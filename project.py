@@ -9,17 +9,19 @@ import difflib
 import json
 import os
 import random 
+import sys
 
 from anytree import Node, RenderTree, PreOrderIter
 
-from whoosh.index import create_in
-from whoosh.fields import Schema, TEXT, ID
-from whoosh.formats import Positions
-import whoosh.index as index
+from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
+from whoosh.index import create_in, exists_in, open_dir
+from whoosh.qparser import QueryParser
+from whoosh.highlight import UppercaseFormatter
+from whoosh.analysis import StemmingAnalyzer
+
 from .timeline import timeline
 from .node import UrtextNode
 from .interlinks import Interlinks
-
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -68,8 +70,6 @@ class UrtextProject:
         self.compiled = False
         self.alias_nodes = []
 
-        
-
         filelist = os.listdir(self.path)
 
         for file in filelist:
@@ -93,8 +93,6 @@ class UrtextProject:
         self.compiled = True
 
         self.update()
-
-        self.build_search_index()
 
     def node_id_generator(self):
         chars = [
@@ -1056,6 +1054,59 @@ class UrtextProject:
             num_files /= 10
         return prefix_length
 
+    """
+    Project Navigation
+    """
+
+    def nav_advance(self):
+        if not self.check_nav_history():
+            return None
+
+        # return if the index is already at the end
+        if self.nav_index == len(self.navigation) - 1:
+            self.log_item('index is at the end.')
+            return None
+        
+        self.nav_index += 1
+        print (self.navigation[self.nav_index])
+        return self.navigation[self.nav_index]
+
+
+    def nav_new(self, node_id):
+
+        # don't re-remember consecutive duplicate links
+        if self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
+            return
+
+        # add the newly opened file as the new "HEAD"
+        del self.navigation[self.nav_index+1:]
+        self.navigation.append(node_id)
+        self.nav_index += 1
+
+    def nav_reverse(self):
+
+        if self.nav_index == 0:
+            self.log_item('index is already at the beginning.')
+            return None
+
+
+        if not self.check_nav_history():
+            return None
+
+        last_node = self.navigation[self.nav_index - 1]
+        self.nav_index -= 1
+        print(last_node)
+        return last_node
+
+
+    def check_nav_history(self):
+
+        if len(self.navigation) == -1:
+            self.log_item('There is no nav history')
+            return None
+
+        return True
+
     """ 
     Cataloguing Nodes
     """
@@ -1117,21 +1168,25 @@ class UrtextProject:
     These methods are currently unused
     """
     def build_search_index(self):
-        schema = Schema(title=TEXT(stored=True),
-                        path=ID(stored=True),
-                        content=TEXT)
+        schema = Schema(
+                title=TEXT(stored=True),
+                path=ID(stored=True),
+                content=TEXT(stored=True, analyzer=StemmingAnalyzer()))
+        
         if not exists_in(os.path.join(self.path, "index"), indexname="urtext"):
             self.ix = create_in(os.path.join(self.path, "index"),
-                                schema,
+                                schema=schema,
                                 indexname="urtext")
         else:
             self.ix = open_dir(os.path.join(self.path, "index"),
                                indexname="urtext")
+
         writer = self.ix.writer()
         for node_id in self.nodes:
             writer.add_document(title=self.nodes[node_id].get_title(),
-                                content=self.nodes[node_id].contents,
-                                path=node_id)
+                                path=node_id,
+                                content=self.nodes[node_id].contents())
+                                
         writer.commit()
 
     def search(self, string):
@@ -1145,7 +1200,7 @@ class UrtextProject:
             for result in results:
                 final_results += '\n\n---- in >' + result['path'] + '\n\n'
                 test = self.nodes[result['path']].contents()
-                final_results += result.highlights("content", test)
+                final_results += result.highlights("content")
 
         return final_results
 
@@ -1434,8 +1489,8 @@ class UrtextProject:
 
     def log_item(self, item):
         self.log.info(item + '\n')
-        #if self.settings['console_log'].lower() == 'true':          
-        #    print(item)
+        if self.settings['console_log'].lower() == 'true':          
+            print(item)
 
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
