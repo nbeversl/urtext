@@ -22,11 +22,14 @@ from whoosh.analysis import StemmingAnalyzer
 from .timeline import timeline
 from .node import UrtextNode
 from .interlinks import Interlinks
+from .google_calendar import sync_project_to_calendar
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 
+if not hasattr(sys, 'argv'):
+    sys.argv  = ['']
 
 class NoProject(Exception):
     """ Raised when no Urtext nodes are in the folder """
@@ -63,6 +66,8 @@ class UrtextProject:
             'node_list': 'zzz.txt',
             'metadata_list': 'zzy.txt',
             'console_log':'false',
+            'google_auth_token' : 'token.json',
+            'google_calendar_id' : None
         }
         self.to_import = []
         self.settings_initialized = False
@@ -416,7 +421,7 @@ class UrtextProject:
                         continue
                 if dt_stamp:
                     self.nodes[node_id].metadata.dt_stamp = dt_stamp
-                    if entry.tag_name == 'Timestamp':
+                    if entry.tag_name == 'timestamp':
                         self.nodes[node_id].date = dt_stamp
                     continue
                 else:
@@ -1526,6 +1531,22 @@ class UrtextProject:
         for node in self.nodes:
             all_files.append(self.nodes[node].filename)
         return all_files
+    """
+    Sync to Google Calendar
+    """
+    def get_google_auth_token(self):
+        return os.path.join(self.path, self.settings['google_auth_token'])
+
+    def get_google_credentials(self):
+        return os.path.join(self.path, 'credentials.json')
+
+    def get_service_account_private_key(self):
+        return os.path.join(self.path, self.settings['google_service_account_private_key'])
+    def sync_to_google_calendar(self):
+        google_calendar_id = self.settings['google_calendar_id']
+        if not google_calendar_id:
+            return
+        sync_project_to_calendar(self, google_calendar_id)
 
 
 """ 

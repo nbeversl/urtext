@@ -34,6 +34,8 @@ class UrtextNode:
                 self.id = node_id
         if self.metadata.get_tag('title') == ['project_settings']:
             self.project_settings = True
+        if self.metadata.get_tag('timestamp') != []:
+            self.date = self.metadata.get_tag('timestamp')
 
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(stripped_contents)
