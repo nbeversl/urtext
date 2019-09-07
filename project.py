@@ -1135,6 +1135,7 @@ class UrtextProject:
         for node_id in list(self.nodes):
             if self.nodes[node_id].metadata.get_tag('index') == []:
                 unindexed_nodes.append(node_id)
+                
         sorted_unindexed_nodes = sorted(
             unindexed_nodes,
             key=lambda node_id: self.nodes[node_id].date,
