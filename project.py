@@ -11,6 +11,7 @@ import os
 import random 
 import sys
 
+
 from anytree import Node, RenderTree, PreOrderIter
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
@@ -22,7 +23,8 @@ from whoosh.analysis import StemmingAnalyzer
 from .timeline import timeline
 from .node import UrtextNode
 from .interlinks import Interlinks
-from .google_calendar import sync_project_to_calendar
+
+#from .google_calendar import sync_project_to_calendar
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -38,6 +40,7 @@ class NoProject(Exception):
 
 class UrtextProject:
     """ Urtext project object """
+    
     def __init__(self,
                  path,
                  make_new_files=True,
@@ -129,7 +132,7 @@ class UrtextProject:
     Parsing
     """
     def parse_file(self, filename, add=True, import_project=False):
-        """ Main method for parsing a single file into nodes in a project """
+        """ Parse a single file into project nodes """
 
         filename = os.path.basename(filename)
         if self.filter_filenames(filename) == None:
@@ -563,8 +566,21 @@ class UrtextProject:
                 theFile.close()
 
             updated_file_contents = old_file_contents
+            re_parsed_files = []
 
             for target_id in files_to_modify[file]:
+
+                # BUG FIX : 
+                # need to also parse this individual file
+                # to make sure calling contents() knows the right ranges.
+                # this is probably where the partial or over-large file
+                # fragments are coming from.
+                target_filename = self.nodes[target_id].filename
+                if target_filename not in re_parsed_files:
+                    self.parse_file(target_filename)
+                    re_parsed_files.append(target_filename)
+                    self.update(compile=False, update_lists=False)
+                    
                 old_node_contents = self.nodes[target_id].contents()
                 dynamic_definition = self.dynamic_nodes[target_id]
 
@@ -581,8 +597,11 @@ class UrtextProject:
                     for item in dynamic_definition.include:
                         key, value = item[0], item[1]
                         if value in self.tagnames[key]:
-                            included_nodes.extend(self.tagnames[key][value])
-
+                            added_nodes = self.tagnames[key][value]
+                            for indiv_node in added_nodes:
+                                if indiv_node not in included_nodes:
+                                    included_nodes.append(indiv_node)
+        
                     for item in dynamic_definition.exclude:
                         key, value = item[0], item[1]
                         if value in self.tagnames[key]:
@@ -623,7 +642,7 @@ class UrtextProject:
                             if dynamic_definition.show == 'full_contents':
                                 show_contents = targeted_node.content_only(
                                 ).strip('\n').strip()
-                            contents += show_contents + ' >' + targeted_node.id + '\n-\n'
+                            contents += '- '+show_contents + ' >' + targeted_node.id + '\n'
                 """
                 add metadata to dynamic node
                 """
@@ -649,11 +668,6 @@ class UrtextProject:
                 updated_file_contents = updated_file_contents.replace(
                     old_node_contents, updated_node_contents)
             
-                # DEBUGGING
-                
-                #self.log_item('######## Replacing:\n' + old_node_contents)
-                #self.log_item('######## WITH:\n' + updated_node_contents)
-
             """
             Update this file if it has changed
             """
@@ -720,7 +734,7 @@ class UrtextProject:
     """
     Metadata
     """
-    def tag_node(self, node_id, tag_contents):
+    def tag_other_node(self, node_id, tag_contents):
         """adds a metadata tag to a node programmatically"""
 
         # might also need to add in checking for Sublime (only) to make sure the file
@@ -728,15 +742,14 @@ class UrtextProject:
         timestamp = self.timestamp(datetime.datetime.now())
         territory = self.nodes[node_id].ranges
         with open(os.path.join(self.path, self.nodes[node_id].filename),
-                  'r') as theFile:
+                  'r', encoding='utf-8') as theFile:
             full_file_contents = theFile.read()
             theFile.close()
         tag_position = territory[-1][1]
-        new_contents = full_file_contents[:
-                                          tag_position] + tag_contents + full_file_contents[
+        new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[
                                               tag_position:]
         with open(os.path.join(self.path, self.nodes[node_id].filename),
-                  'w') as theFile:
+                  'w', encoding='utf-8') as theFile:
             theFile.write(new_contents)
             theFile.close()
         self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))
@@ -886,6 +899,12 @@ class UrtextProject:
         """ Omit system files """
         if filename[0] == '.':
             return None
+        
+        if os.path.splitext(filename)[1] != '.txt':
+            # FUTURE:
+            # save and check these in an optional list of other extensions 
+            # set from project_settings 
+            return None
         """ Omit the log file """
         skip_files = [self.settings['logfile']]
         if filename in skip_files:
@@ -921,7 +940,7 @@ class UrtextProject:
             self.log_item('Urtext not including ' + filename)
             return None
 
-        return full_file_contents
+        return full_file_contents.encode('utf-8').decode('utf-8')
 
     def new_file_node(self, date=None, metadata = {}):
         """ add a new FILE-level node programatically """
@@ -946,18 +965,37 @@ class UrtextProject:
         self.files[filename]['nodes'] = [node_id]
         self.nodes[node_id] = UrtextNode(os.path.join(self.path, filename),
                                          contents)
-        return filename
+        return { 
+                'filename':filename, 
+                'id':node_id
+                }
+ 
+    def add_inline_node(self, 
+            date=None, 
+            contents='', 
+            metadata={},
+            one_line=False ):
 
-    def add_inline_node(self, date=None, contents='', metadata={} ):
+        if contents == '':
+            contents = ' '
+ 
+        separator = '\n'
+        newline = '\n'
+        if one_line:
+            separator = '; '
+            newline = ''
+ 
         node_id = self.next_index()
         if date == None:
             date = datetime.datetime.now()
+ 
         new_node_contents = "{{ " + contents 
-        new_node_contents += "\n/-- ID:" + node_id + '\n'
-        new_node_contents += 'Timestamp:' + self.timestamp(date) + '\n'
+        new_node_contents += newline + "/-- ID:" + node_id + separator
+        new_node_contents += 'timestamp:' + self.timestamp(date) + separator
         for key in metadata:
-            new_node_contents += key + ": " + metadata[key] + '\n'
+            new_node_contents += key + ": " + metadata[key] + newline
         new_node_contents += "--/ }}"
+ 
         return new_node_contents
 
     """ 
@@ -1440,7 +1478,7 @@ class UrtextProject:
     def get_link(self, string, position=None):
         """ Given a line of text passed from an editorm, returns finds a node or web link """
 
-        url_scheme = re.compile('https?://[-\w.\/#]+')
+        url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
         if re.search(url_scheme, string):
             url = re.search(url_scheme, string).group(0)
             return ['HTTP', url]
@@ -1494,6 +1532,7 @@ class UrtextProject:
         return False
 
     def log_item(self, item):
+        print(item)
         self.log.info(item + '\n')
         if self.settings['console_log'].lower() == 'true':          
             print(item)
@@ -1509,7 +1548,9 @@ class UrtextProject:
             self.settings[entry.tag_name.lower()] = entry.value
 
     def get_file_name(self, node_id):
-        return self.nodes[node_id].filename
+        if node_id in self.nodes:
+            return self.nodes[node_id].filename
+        return None
 
     def next_index(self):
         index = random.choice(list(self.node_id_generator()))
