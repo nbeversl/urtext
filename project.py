@@ -11,8 +11,8 @@ import os
 import random 
 import sys
 
-
 from anytree import Node, RenderTree, PreOrderIter
+from anytree.render import AbstractStyle
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
@@ -470,7 +470,10 @@ class UrtextProject:
 
         self.detach_excluded_tree_nodes(start_point)
 
-        for pre, _, this_node in RenderTree(start_point):
+        no_line = AbstractStyle('    ','├── ','└── ')
+
+
+        for pre, _, this_node in RenderTree(start_point,style=no_line ):
             if this_node.name in self.nodes:
                 tree_render += "%s%s" % (pre, self.nodes[
                     this_node.name].get_title()) + ' >' + this_node.name + '\n'
@@ -594,7 +597,24 @@ class UrtextProject:
                     included_nodes = []
                     excluded_nodes = []
 
-                    for item in dynamic_definition.include:
+                    included_nodes_and = []
+                    for item in dynamic_definition.include_and:
+                        key, value = item[0], item[1]
+                        if value in self.tagnames[key]:
+                            included_nodes_and.append(set(self.tagnames[key][value]))
+                            
+                    if len(included_nodes_and) > 1:
+                        included_nodes_and = list(set(included_nodes_and[0]).intersection(*included_nodes_and))
+                    else:
+                        included_nodes_and = list(included_nodes_and)
+                        
+                    for e in included_nodes_and:
+                        included_nodes.append(e)
+
+                    for indiv_node in included_nodes:
+                        if indiv_node not in included_nodes:
+                            included_nodes.append(indiv_node)
+                    for item in dynamic_definition.include_or:
                         key, value = item[0], item[1]
                         if value in self.tagnames[key]:
                             added_nodes = self.tagnames[key][value]
@@ -602,7 +622,7 @@ class UrtextProject:
                                 if indiv_node not in included_nodes:
                                     included_nodes.append(indiv_node)
         
-                    for item in dynamic_definition.exclude:
+                    for item in dynamic_definition.exclude_or:
                         key, value = item[0], item[1]
                         if value in self.tagnames[key]:
                             excluded_nodes.extend(self.tagnames[key][value])
@@ -1532,11 +1552,11 @@ class UrtextProject:
         return False
 
     def log_item(self, item):
-        print(item)
-        self.log.info(item + '\n')
-        if self.settings['console_log'].lower() == 'true':          
-            print(item)
-
+        #self.log.info(item + '\n')
+        #if self.settings['console_log'].lower() == 'true':          
+        #    print(item)
+        pass
+        
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
 

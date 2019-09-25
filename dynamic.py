@@ -11,8 +11,10 @@ class UrtextDynamicDefinition:
 
         self.spaces = 0
         self.target_id = None
-        self.include = []
-        self.exclude = []
+        self.include_or = []
+        self.include_and = []
+        self.exclude_or = []
+        self.exclude_and = []
         self.tree = None
         self.sort_tagname = None
         self.metadata = {}
@@ -74,14 +76,30 @@ class UrtextDynamicDefinition:
       """
             if atoms[0] == 'include':
                 if atoms[1] == 'all':
-                    self.include = 'all'
+                    self.include_or = 'all'
                     continue
 
                 if atoms[1] == 'metadata' and len(atoms) > 3:
-                    self.include.append((atoms[2], atoms[3]))
+                    
+                    if atoms[2] == 'and':
+                        key = atoms[3]
+                        values = atoms[4:]
+                        for value in values:
+                            self.include_and.append((key,value))
+                        
+                    elif atoms[2] == 'or':
+                        key = atoms[3]
+                        values = atoms[4:]
+                        for value in values:
+                            self.include_or.append((key,value))
+                    else:
+                        key = atoms[2]
+                        values = atoms[3:]
+                        for value in values:
+                            self.include_or.append((key,value))
                     continue
 
             if atoms[0] == 'exclude':
                 if atoms[1] == 'metadata' and len(atoms) > 3:
-                    self.exclude.append((atoms[2], atoms[3]))
+                    self.exclude_or.append((atoms[2], atoms[3]))
                     continue
