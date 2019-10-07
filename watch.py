@@ -20,6 +20,9 @@ class UrtextWatcher (FileSystemEventHandler):
 
   def on_created(self, event):
 
+    if not self.project.check_lock('THIS MACHINE'):
+      return
+
     if event.is_directory:
         return None
     filename = event.src_path
@@ -41,6 +44,9 @@ class UrtextWatcher (FileSystemEventHandler):
        
     """
   def on_deleted(self, event):
+    if not self.project.check_lock(machine):
+      return
+
     if filter(event.src_path) == None:
         return
     filename = os.path.basename(event.src_path)
@@ -49,6 +55,9 @@ class UrtextWatcher (FileSystemEventHandler):
     _UrtextProject.update()
    
   def on_moved(self, event):
+      if not self.project.check_lock(machine):
+        return
+
       if filter(event.src_path) == None:
         return
       old_filename = os.path.basename(event.src_path)

@@ -19,10 +19,16 @@ class UrtextDynamicDefinition:
         self.sort_tagname = None
         self.metadata = {}
         self.show = 'full_contents'
-
+        self.oneline_meta = False
+        
         entries = re.split(';|\n', contents)
 
         for entry in entries:
+            
+            if entry.strip().lower() == 'oneline_meta':
+                self.oneline_meta = True
+                continue
+
             atoms = [
                 atom.strip() for atom in entry.split(':') if atom.strip() != ''
             ]
@@ -56,6 +62,7 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'sort':
                 self.sort_tagname = atoms[1]
                 continue
+
             """
       target node ID
       """

@@ -1,3 +1,4 @@
+
 import codecs
 import re
 import datetime
@@ -10,6 +11,7 @@ import json
 import os
 import random 
 import sys
+import time
 
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
@@ -47,7 +49,8 @@ class UrtextProject:
                  rename=False,
                  recursive=False,
                  import_project=False,
-                 init_project=False):
+                 init_project=False,
+                 machine_lock=None):
 
         self.path = path
         self.conflicting_files = []
@@ -77,9 +80,24 @@ class UrtextProject:
         self.dynamic_nodes = {}  # { target : definition, etc.}
         self.compiled = False
         self.alias_nodes = []
+        
+        # Whoosh
+        schema = Schema(
+                title=TEXT(stored=True),
+                path=ID(stored=True),
+                content=TEXT(stored=True, analyzer=StemmingAnalyzer()))
 
+        index_dir = os.path.join(self.path, "index")
+        
+        if exists_in(os.path.join(self.path, "index"), indexname="urtext"):
+            self.ix = open_dir(os.path.join(self.path, "index"),
+                               indexname="urtext")
+        
         filelist = os.listdir(self.path)
 
+        if machine_lock:
+            self.lock(machine_lock)
+            
         for file in filelist:
             self.parse_file(file, import_project=import_project)
 
@@ -92,16 +110,17 @@ class UrtextProject:
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
-        for node_id in list(
-                self.nodes):  # needs do be done once manually on project init
+        # needs do be done once manually on project init
+        for node_id in list(self.nodes):  
             self.parse_meta_dates(node_id)
 
         self.compile()
 
         self.compiled = True
-
+        
         self.update()
 
+        
     def node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -131,7 +150,11 @@ class UrtextProject:
     """ 
     Parsing
     """
-    def parse_file(self, filename, add=True, import_project=False):
+    def parse_file(self, 
+        filename, 
+        add=True, 
+        import_project=False,
+        re_index=False):
         """ Parse a single file into project nodes """
 
         filename = os.path.basename(filename)
@@ -153,11 +176,10 @@ class UrtextProject:
         """
         symbols = {}
 
-        for symbol in ['{{', '}}', '>>']:
+        for symbol in ['{{', '}}', '>>', '^']:
             loc = -2
             while loc != -1:
                 loc = full_file_contents.find(symbol, loc + 2)
-                full_file_contents.find(symbol, loc + 2)
                 symbols[loc] = symbol
 
         positions = sorted([key for key in symbols.keys() if key != -1])
@@ -191,20 +213,41 @@ class UrtextProject:
                     parsed_items[position] = node_pointer
                 continue
 
+            if symbols[position] == '^' and full_file_contents[position-1] == '\n':
+                compact_node_regex = '\^[^\n]*'
+                compact_node_contents = re.search(compact_node_regex, full_file_contents[position:]).group(0)
+                
+                compact_node = UrtextNode(os.path.join(self.path, filename), 
+                    contents=compact_node_contents[1:])
+                
+                if compact_node.id != None and re.match(node_id_regex, compact_node.id):
+                    
+                    nested_levels[nested].append([last_start, position ])
+                    compact_node.compact = True
+                    if self.is_duplicate_id(compact_node.id, filename):
+                        return
+
+                    else:
+                        self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents)]])
+                        parsed_items[position] = compact_node.id
+                    
+                    last_start = position + len(compact_node_contents) 
+                    continue
+
             # If this closes a node:
             if symbols[position] == '}}':  # pop
                 nested_levels[nested].append([last_start, position])
 
                 # Get the node contents and construct the node
-                node_contents = ''
+                node_contents = []
                 for file_range in nested_levels[nested]:
-                    node_contents += full_file_contents[file_range[0]:
-                                                        file_range[1]]
-                new_node = UrtextNode(os.path.join(self.path, filename),
-                                      contents=node_contents)
+                    node_contents.append(full_file_contents[file_range[0]:file_range[1]])
 
-                if new_node.id != None and re.match(node_id_regex,
-                                                    new_node.id):
+                joined_contents = ''.join(node_contents)
+                new_node = UrtextNode(os.path.join(self.path, filename),
+                                      contents=joined_contents)
+
+                if new_node.id != None and re.match(node_id_regex, new_node.id):
                     if self.is_duplicate_id(new_node.id, filename):
                         return
                     else:
@@ -264,12 +307,12 @@ class UrtextProject:
         else:
             nested_levels[0].append([last_start + 1, length])
 
-        root_node_contents = ''
+        root_node_contents = []
         for file_range in nested_levels[0]:
-            root_node_contents += full_file_contents[file_range[0]:
-                                                     file_range[1]]
+            root_node_contents.append(full_file_contents[file_range[0]:
+                                                     file_range[1]])
         root_node = UrtextNode(os.path.join(self.path, filename),
-                               contents=root_node_contents,
+                               contents=''.join(root_node_contents),
                                root=True)
         if root_node.id == None or not re.match(node_id_regex, root_node.id):
             if import_project == True:
@@ -293,11 +336,15 @@ class UrtextProject:
         if self.compiled == True:
             for node_id in self.files[filename]['nodes']:
                 self.parse_meta_dates(node_id)
+        
         self.set_tree_elements(filename)
 
         for node_id in self.files[filename]['nodes']:
             self.rebuild_node_tag_info(node_id)
-            self.nodes[node_id].set_title()
+        
+        if re_index:
+            self.re_search_index_file(filename)
+
         return filename
 
     """
@@ -476,7 +523,7 @@ class UrtextProject:
         for pre, _, this_node in RenderTree(start_point,style=no_line ):
             if this_node.name in self.nodes:
                 tree_render += "%s%s" % (pre, self.nodes[
-                    this_node.name].get_title()) + ' >' + this_node.name + '\n'
+                    this_node.name].title) + ' >' + this_node.name + '\n'
             else:
                 tree_render += "%s%s" % (pre, '? (Missing Node): >' +
                                          this_node.name + '\n')
@@ -517,7 +564,7 @@ class UrtextProject:
                             this_root_node = self.get_root_node_id(base_filename)
                             link += this_root_node+'.html'
                     link += '#'+child.name
-                    html += '<li><a href="' + link + '">' + self.nodes[child.name].get_title() + '</a></li>\n'
+                    html += '<li><a href="' + link + '">' + self.nodes[child.name].title + '</a></li>\n'
                     html += render_list(self.nodes[child.name].tree_node, nested, visited_nodes)
                 html += '</ul>\n'
             return html
@@ -547,18 +594,8 @@ class UrtextProject:
                 files_to_modify[filename] = []
             files_to_modify[filename].append(target_id)
 
-        
-
         # rebuild the text for each file all at once
         for file in files_to_modify:
-
-            self.parse_file(os.path.join(self.path, file))
-            # 
-            # perform a "soft update", to sync node ranges, 
-            # in case a file has been modified by another 
-            # Urtext instance
-            #
-            self.update(compile=False, update_lists=False)
 
             """
             Get current file contents
@@ -572,23 +609,11 @@ class UrtextProject:
             re_parsed_files = []
 
             for target_id in files_to_modify[file]:
-
-                # BUG FIX : 
-                # need to also parse this individual file
-                # to make sure calling contents() knows the right ranges.
-                # this is probably where the partial or over-large file
-                # fragments are coming from.
-                target_filename = self.nodes[target_id].filename
-                if target_filename not in re_parsed_files:
-                    self.parse_file(target_filename)
-                    re_parsed_files.append(target_filename)
-                    self.update(compile=False, update_lists=False)
                     
                 old_node_contents = self.nodes[target_id].contents()
                 dynamic_definition = self.dynamic_nodes[target_id]
 
                 contents = ''
-                metadata = '/--\n'
 
                 if dynamic_definition.tree and dynamic_definition.tree in self.nodes:
                     contents += self.show_tree_from(dynamic_definition.tree)
@@ -658,7 +683,7 @@ class UrtextProject:
 
                         for targeted_node in included_nodes:
                             if dynamic_definition.show == 'title':
-                                show_contents = targeted_node.set_title()
+                                show_contents = targeted_node.title
                             if dynamic_definition.show == 'full_contents':
                                 show_contents = targeted_node.content_only(
                                 ).strip('\n').strip()
@@ -666,17 +691,18 @@ class UrtextProject:
                 """
                 add metadata to dynamic node
                 """
-                metadata += 'ID:' + target_id + '\n'
-                metadata += 'kind: dynamic\n'
-                metadata += 'defined in: >' + dynamic_definition.source_id + '\n'
+
+                metadata_values = { 
+                    'ID': [ target_id ],
+                    'kind' : [ 'dynamic' ],
+                    'defined in' : [ '>'+dynamic_definition.source_id ] }
 
                 for value in dynamic_definition.metadata:
-                    metadata += value + ':' + dynamic_definition.metadata[
-                        value].strip('\n') + '\n'
+                    metadata_values[value] = dynamic_definition.metadata[value]
+                built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
-                metadata += '--/'
+                updated_node_contents = contents + built_metadata
 
-                updated_node_contents = contents + metadata
                 """
                 add indentation if specified
                 """
@@ -734,7 +760,7 @@ class UrtextProject:
                 t.parent = s
                 if value in self.tagnames[key]:
                     for node_id in self.tagnames[key][value]:
-                        n = Node(self.nodes[node_id].get_title() + ' >' +
+                        n = Node(self.nodes[node_id].title + ' >' +
                                  node_id)
                         n.parent = t
         if 'zzy' in self.nodes:
@@ -775,6 +801,7 @@ class UrtextProject:
         self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))
 
     def consolidate_metadata(self, node_id, one_line=False):
+        
         def adjust_ranges(filename, position, length):
             for node_id in self.files[os.path.basename(filename)]['nodes']:
                 for index in range(len(self.nodes[node_id].ranges)):
@@ -783,7 +810,6 @@ class UrtextProject:
                         self.nodes[node_id].ranges[index][0] -= length
                         self.nodes[node_id].ranges[index][1] -= length
 
-        self.log_item(node_id)
         consolidated_metadata = self.nodes[node_id].consolidate_metadata(
             one_line=one_line)
 
@@ -816,7 +842,7 @@ class UrtextProject:
                   encoding='utf-8') as theFile:
             theFile.write(new_file_contents)
             theFile.close()
-        return (consolidated_metadata)
+        return consolidated_metadata
 
     def build_tag_info(self):
         """ Rebuilds metadata for the entire project """
@@ -920,7 +946,7 @@ class UrtextProject:
         if filename[0] == '.':
             return None
         
-        if os.path.splitext(filename)[1] != '.txt':
+        if not filename.endswith('.txt'):
             # FUTURE:
             # save and check these in an optional list of other extensions 
             # set from project_settings 
@@ -929,14 +955,6 @@ class UrtextProject:
         skip_files = [self.settings['logfile']]
         if filename in skip_files:
             return
-        """ Omit files containing these fragments """
-        conflict_filename_fragments = [
-            'conflicted copy',  # Dropbox 
-        ]
-        for fragment in conflict_filename_fragments:
-            if fragment in filename:
-                self.conflicting_files.append(filename)
-                return None
 
         return filename
 
@@ -951,6 +969,8 @@ class UrtextProject:
             ) as theFile:
                 full_file_contents = theFile.read()
                 theFile.close()
+            return full_file_contents.encode('utf-8').decode('utf-8')
+
         except IsADirectoryError:
             return None
         except UnicodeDecodeError:
@@ -960,7 +980,7 @@ class UrtextProject:
             self.log_item('Urtext not including ' + filename)
             return None
 
-        return full_file_contents.encode('utf-8').decode('utf-8')
+        
 
     def new_file_node(self, date=None, metadata = {}):
         """ add a new FILE-level node programatically """
@@ -1069,7 +1089,7 @@ class UrtextProject:
             root_node = self.nodes[root_node_id]
 
             new_filename = ' - '.join(filename_template)
-            new_filename = new_filename.replace('TITLE', root_node.get_title())
+            new_filename = new_filename.replace('TITLE', root_node.title)
             if root_node_id not in indexed_nodes and date_template != None:
                 new_filename = new_filename.replace(
                     'DATE',
@@ -1177,10 +1197,10 @@ class UrtextProject:
         """returns a list of all nodes in the project, in plain text"""
         output = ''
         for node_id in list(self.indexed_nodes()):
-            title = self.nodes[node_id].get_title()
+            title = self.nodes[node_id].title
             output += title + ' >' + node_id + '\n-\n'
         for node_id in list(self.unindexed_nodes()):
-            title = self.nodes[node_id].get_title()
+            title = self.nodes[node_id].title
             output += title + ' >' + node_id + '\n-\n'
         return output
 
@@ -1231,27 +1251,33 @@ class UrtextProject:
     Full Text search implementation using Whoosh (unfinished) 
     These methods are currently unused
     """
-    def build_search_index(self):
-        schema = Schema(
-                title=TEXT(stored=True),
-                path=ID(stored=True),
-                content=TEXT(stored=True, analyzer=StemmingAnalyzer()))
+    def rebuild_search_index(self):
         
-        if not exists_in(os.path.join(self.path, "index"), indexname="urtext"):
-            self.ix = create_in(os.path.join(self.path, "index"),
-                                schema=schema,
-                                indexname="urtext")
-        else:
-            self.ix = open_dir(os.path.join(self.path, "index"),
-                               indexname="urtext")
+        self.ix = create_in(os.path.join(self.path, "index"),
+                            schema=self.schema,
+                            indexname="urtext")
 
-        writer = self.ix.writer()
-        for node_id in self.nodes:
-            writer.add_document(title=self.nodes[node_id].get_title(),
+        self.writer = self.ix.writer()
+
+        for filename in self.files:
+            self.re_search_index_file(filename, single=False)
+                                
+        self.writer.commit()
+
+    def re_search_index_file(self, filename, single=True):
+        
+        if not self.ix:
+            return
+
+        if single:
+            self.writer = self.ix.writer()
+
+        for node_id in self.files[filename]['nodes']:
+            self.writer.add_document(title=self.nodes[node_id].title,
                                 path=node_id,
                                 content=self.nodes[node_id].contents())
-                                
-        writer.commit()
+        if single:
+            self.writer.commit()
 
     def search(self, string):
 
@@ -1308,7 +1334,7 @@ class UrtextProject:
             return wrappers[kind]
 
         def wrap_title(kind, node_id, nested):
-            title = self.nodes[node_id].get_title()
+            title = self.nodes[node_id].title
             if kind == 'Markdown':
                 return '\n' + '#' * nested + ' ' + title + '\n'
             if kind == 'HTML':
@@ -1336,7 +1362,7 @@ class UrtextProject:
                 file_contents = f.read()
                 f.close()
             
-            title = self.nodes[root_node_id].get_title()
+            title = self.nodes[root_node_id].title
             if style_titles:                 
                 exported_contents += wrap_title(kind, root_node_id, nested)
 
@@ -1455,7 +1481,7 @@ class UrtextProject:
                 header = '\n'.join([
                 '---',
                 'layout: '+ post_or_page,
-                'title:  "'+ self.nodes[root_node_id].get_title() +'"',
+                'title:  "'+ self.nodes[root_node_id].title +'"',
                 'date:   2019-08-21 10:44:41 -0500',
                 'categories: '+ ' '.join(self.nodes[root_node_id].metadata.get_tag('categories')),
                 '---'
@@ -1470,13 +1496,18 @@ class UrtextProject:
     
     def get_parent(self, child_node_id):
         """ Given a node ID, returns its parent, if any """
+
         filename = self.nodes[child_node_id].filename
         start = self.nodes[child_node_id].ranges[0][0]
+        distance_back = 2 
+        if self.nodes[child_node_id].compact:
+            distance_back = 1
         for other_node in [
                 other_id for other_id in self.files[filename]['nodes']
                 if other_id != child_node_id
-        ]:
-            if self.is_in_node(start - 2, other_node):
+                ]:
+            
+            if self.is_in_node(start - distance_back, other_node):
                 return other_node
         return None
 
@@ -1552,9 +1583,9 @@ class UrtextProject:
         return False
 
     def log_item(self, item):
-        #self.log.info(item + '\n')
+        self.log.info(item + '\n')
         #if self.settings['console_log'].lower() == 'true':          
-        #    print(item)
+        print(item)
         pass
         
     def timestamp(self, date):
@@ -1610,11 +1641,60 @@ class UrtextProject:
             return
         sync_project_to_calendar(self, google_calendar_id)
 
+    """
+    Folder Locking
+    """
+    def check_lock(self, machine):
+        lock = self.get_current_lock()
+        if lock == machine:
+            return True
+        if not lock:
+            return self.lock(machine)
+        print('compiling locked by '+lock)
+        return False
+
+    def get_current_lock(self):
+        lock_file = os.path.join(self.path,'.lock')
+        try:
+            with open(lock_file, 'r') as f:
+                contents = f.read()
+                f.close()
+            return contents
+        except:
+            return None
+
+    def lock(self, machine):
+        lock_file = os.path.join(self.path,'.lock')
+        with open (lock_file, 'w', encoding='utf-8') as f:
+            f.write(machine)
+            f.close()
+        return True
 
 """ 
 Helpers 
 """
+def build_metadata(tags, one_line=False):
+    """ Note this is a method from node.py. Could be refactored """
 
+    if one_line:
+        line_separator = '; '
+    else:
+        line_separator = '\n'
+    new_metadata = '\n/-- '
+    if not one_line: 
+        new_metadata += line_separator
+    for tag in tags:
+        new_metadata += tag + ': '
+        if isinstance(tags[tag], list):
+            new_metadata += ' | '.join(tags[tag])
+        else:
+            new_metadata += tags[tag]
+        new_metadata += line_separator
+    if one_line:
+        new_metadata = new_metadata[:-2] + ' '
+
+    new_metadata += '--/'
+    return new_metadata 
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')

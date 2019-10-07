@@ -10,6 +10,15 @@ PACKAGE_FOLDER = __name__.split('.')[0]
 from anytree import Node
 from anytree import PreOrderIter
 
+
+"""
+Dynamic definitions in the form:
+{ target_id : definition, ..., ... }
+"""
+dynamic_definition_regex = re.compile('(?:\[\[)(.*?)(?:\]\])', re.DOTALL)
+subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
+dynamic_def_regexp = re.compile(r'\[\[.*?\]\]', re.DOTALL)
+
 class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, filename, contents='', root=False):
@@ -18,7 +27,6 @@ class UrtextNode:
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
-        self.metadata = NodeMetadata(contents)
         self.dynamic = False
         self.id = None
         self.new_id = None
@@ -27,32 +35,29 @@ class UrtextNode:
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
-
-        if self.metadata.get_tag('ID') != []:
+        self.compact = False
+        stripped_contents = self.strip_dynamic_definitions(contents)
+        self.metadata = NodeMetadata(stripped_contents)
+        
+        if self.metadata.get_tag('ID'):
             node_id = self.metadata.get_tag('ID')[0].lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
         if self.metadata.get_tag('title') == ['project_settings']:
             self.project_settings = True
 
-        stripped_contents = self.strip_dynamic_definitions(contents)
-        self.metadata = NodeMetadata(stripped_contents)
         self.parent = None
         self.index = self.metadata.get_tag('index')
         self.reset_node()
-        self.title = None
-        """
-        Dynamic definitions in the form:
-        { target_id : definition, ..., ... }
-        """
-        dynamic_definition_regex = re.compile('(?:\[\[)(.*?)(?:\]\])',
-                                              re.DOTALL)
+        
         for match in dynamic_definition_regex.findall(contents):
             dynamic_definition = UrtextDynamicDefinition(match)
             dynamic_definition.source_id = self.id
             if dynamic_definition.target_id != None:
                 self.dynamic_definitions[
                     dynamic_definition.target_id] = dynamic_definition
+
+        self.set_title(stripped_contents)
 
     def reset_node(self):
         self.tree_node = Node(self.id)
@@ -66,10 +71,10 @@ class UrtextNode:
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
             theFile.close()
-        node_contents = ''
+        node_contents = []
         for segment in self.ranges:
-            node_contents += file_contents[segment[0]:segment[1]]
-        return node_contents
+            node_contents.append(file_contents[segment[0]:segment[1]])
+        return ''.join(node_contents)
 
     def strip_metadata(self, contents=''):
         if contents == '':
@@ -83,7 +88,7 @@ class UrtextNode:
     def strip_inline_nodes(self, contents=''):
         if contents == '':
             contents = self.contents()
-        subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
+        
         stripped_contents = contents
         while subnode_regexp.search(stripped_contents):
             for inline_node in subnode_regexp.findall(stripped_contents):
@@ -93,7 +98,7 @@ class UrtextNode:
     def strip_dynamic_definitions(self, contents=''):
         if contents == '':
             contents = self.contents()
-        dynamic_def_regexp = re.compile(r'\[\[.*?\]\]', re.DOTALL)
+        
         stripped_contents = contents
         while dynamic_def_regexp.search(stripped_contents):
             for dynamic_definition in dynamic_def_regexp.findall(
@@ -111,35 +116,30 @@ class UrtextNode:
     def set_index(self, new_index):
         self.index = new_index
 
-    def get_title(self):
-        if self.title != None:
-            return self.title
-        return self.set_title()
-
-    def set_title(self):
+    def set_title(self, stripped_contents):
         #
         # check for title metadata
         #
-        if len(self.metadata.get_tag(
-                'title')) > 0: 
-            self.title = self.metadata.get_tag('title')[0]
-            return self.title
+        title_tag = self.metadata.get_tag('title')
+        if len(title_tag) > 0: 
+            self.title = title_tag[0]
+            return
         #
         # otherwise, title is the first non white-space line
         #
-        full_contents = self.content_only().strip().split('\n')
+        stripped_contents = self.strip_metadata(contents=stripped_contents).strip().split('\n')
+
         index = 0
-        while full_contents[index].strip() == '':
-            if index == len(full_contents) - 1:
+        last_character = len(stripped_contents) - 1
+        while stripped_contents[index] == r'\s':
+            if index == last_character:
                 self.title = '(untitled)'
-                return self.title
+                return
             index += 1
 
-        first_line = full_contents[index][:100].replace('{{','').replace('}}', '')
+        first_line = stripped_contents[index][:100].replace('{{','').replace('}}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         self.title = first_line.strip()
-
-        return self.title
 
     def get_ID(self):
         if len(self.metadata.get_tag(
@@ -154,11 +154,11 @@ class UrtextNode:
         logging.info(self.metadata.log())
 
     def consolidate_metadata(self, one_line=False):
-        def line_separator(one_line=False):
-            if one_line == True:
-                return '; '
-            else:
-                return '\n'
+        
+        if one_line == True:
+            line_separator = '; '
+        else:
+            line_separator = '\n'
 
         tags = {}
         for entry in self.metadata.entries:
@@ -169,20 +169,19 @@ class UrtextNode:
                 entry_value = [entry_value]
             for value in entry_value:
                 tags[entry.tag_name].append(value)
-        new_metadata = '\n/--'
-        new_metadata += line_separator(one_line)
-        new_metadata += 'ID:' + self.get_ID() + line_separator(
-            one_line=one_line)
-        new_metadata += 'title:' + self.title + line_separator(
-            one_line=one_line)
+        new_metadata = '\n/-- '
+        if not one_line: 
+            new_metadata += '\n'
+            new_metadata += line_separator
 
         for tag in tags:
-            if tag in ['ID', 'title']:  # do not duplicate these
-                continue
             new_metadata += tag + ': '
-            new_metadata += ' | '.join(tags[tag])
-            new_metadata += line_separator(one_line)
-        if one_line == True:
+            if isinstance(tags[tag], list):
+                new_metadata += ' | '.join(tags[tag])
+            else:
+                new_metadata += tags[tag]
+            new_metadata += line_separator
+        if one_line:
             new_metadata = new_metadata[:-2] + ' '
 
         new_metadata += '--/'

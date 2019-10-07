@@ -19,6 +19,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 
+meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
+                          re.DOTALL)  # \/--((?!\/--).)*--\/
+
 class MetadataEntry:  # container for a single metadata entry
     def __init__(self, tag, value, dtstring):
         self.tag_name = tag.strip()
@@ -35,16 +38,13 @@ class MetadataEntry:  # container for a single metadata entry
 
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):
-
+        
         self.entries = []
         self.case_sensitive_values = [ 
                 'title',
                 'notes',
                 'timestamp_format',
                 'filenames' ]
-
-        meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
-                          re.DOTALL)  # \/--((?!\/--).)*--\/
 
         self.raw_meta_data = ''
         for section in re.findall(meta, full_contents):
@@ -106,6 +106,7 @@ class NodeMetadata:
             if entry.tag_name.lower() == tagname.lower():
                 value = entry.value
                 if tagname not in self.case_sensitive_values:
+
                     value = value.lower()
                 values.append(value)  # allows for multiple tags of the same name
         return values
