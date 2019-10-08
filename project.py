@@ -111,7 +111,7 @@ class UrtextProject:
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
-        # needs do be done once manually on project init
+        # must be done once manually on project init
         for node_id in list(self.nodes):  
             self.parse_meta_dates(node_id)
 
@@ -120,7 +120,6 @@ class UrtextProject:
         self.compiled = True
         
         self.update()
-
         
     def node_id_generator(self):
         chars = [
@@ -579,8 +578,6 @@ class UrtextProject:
     def compile(self):
         """ Main method to compile dynamic nodes definitions """
 
-        files_to_modify = {}
-
         for target_id in self.dynamic_nodes:
             """
             Make sure the target node exists.
@@ -590,142 +587,109 @@ class UrtextProject:
                 self.log_item('Dynamic node definition >' + source_id +
                               ' points to nonexistent node >' + target_id)
                 continue
-            filename = self.nodes[target_id].filename
-            if filename not in files_to_modify:
-                files_to_modify[filename] = []
-            files_to_modify[filename].append(target_id)
 
-        # rebuild the text for each file all at once
-        for file in files_to_modify:
+            old_node_contents = self.nodes[target_id].contents()
+            dynamic_definition = self.dynamic_nodes[target_id]
 
-            """
-            Get current file contents
-            """
-            with open(os.path.join(self.path, file), "r",
-                      encoding='utf-8') as theFile:
-                old_file_contents = theFile.read()
-                theFile.close()
+            new_node_contents = ''
 
-            updated_file_contents = old_file_contents
-            re_parsed_files = []
+            if dynamic_definition.tree and dynamic_definition.tree in self.nodes:
+                new_node_contents += self.show_tree_from(dynamic_definition.tree)
 
-            for target_id in files_to_modify[file]:
+            else:
+                included_nodes = []
+                excluded_nodes = []
+
+                included_nodes_and = []
+                for item in dynamic_definition.include_and:
+                    key, value = item[0], item[1]
+                    if value in self.tagnames[key]:
+                        included_nodes_and.append(set(self.tagnames[key][value]))
+                        
+                if len(included_nodes_and) > 1:
+                    included_nodes_and = list(set(included_nodes_and[0]).intersection(*included_nodes_and))
+                else:
+                    included_nodes_and = list(included_nodes_and)
                     
-                old_node_contents = self.nodes[target_id].contents()
-                dynamic_definition = self.dynamic_nodes[target_id]
+                for e in included_nodes_and:
+                    included_nodes.append(e)
 
-                contents = ''
+                for indiv_node in included_nodes:
+                    if indiv_node not in included_nodes:
+                        included_nodes.append(indiv_node)
+                for item in dynamic_definition.include_or:
+                    key, value = item[0], item[1]
+                    if value in self.tagnames[key]:
+                        added_nodes = self.tagnames[key][value]
+                        for indiv_node in added_nodes:
+                            if indiv_node not in included_nodes:
+                                included_nodes.append(indiv_node)
+    
+                for item in dynamic_definition.exclude_or:
+                    key, value = item[0], item[1]
+                    if value in self.tagnames[key]:
+                        excluded_nodes.extend(self.tagnames[key][value])
 
-                if dynamic_definition.tree and dynamic_definition.tree in self.nodes:
-                    contents += self.show_tree_from(dynamic_definition.tree)
+                for node in excluded_nodes:
+                    if node in included_nodes:
+                        included_nodes.remove(node)
+                """
+                Assemble the node collection from the list
+                """
+                included_nodes = [self.nodes[node_id] for node_id in included_nodes]
+                """
+                build timeline if specified
+                """
+                if dynamic_definition.show == 'timeline':
+                    new_node_contents += urtext.timeline.timeline(self, included_nodes)
 
                 else:
-                    included_nodes = []
-                    excluded_nodes = []
-
-                    included_nodes_and = []
-                    for item in dynamic_definition.include_and:
-                        key, value = item[0], item[1]
-                        if value in self.tagnames[key]:
-                            included_nodes_and.append(set(self.tagnames[key][value]))
-                            
-                    if len(included_nodes_and) > 1:
-                        included_nodes_and = list(set(included_nodes_and[0]).intersection(*included_nodes_and))
+                    """
+                    otherwise this is a list, so sort the nodes
+                    """
+                    if dynamic_definition.sort_tagname != None:
+                        included_nodes = sorted(
+                            included_nodes,
+                            key=lambda node: node.metadata.get_tag(
+                                dynamic_definition.sort_tagname))
                     else:
-                        included_nodes_and = list(included_nodes_and)
-                        
-                    for e in included_nodes_and:
-                        included_nodes.append(e)
+                        included_nodes = sorted(included_nodes,
+                                                key=lambda node: node.date)
 
-                    for indiv_node in included_nodes:
-                        if indiv_node not in included_nodes:
-                            included_nodes.append(indiv_node)
-                    for item in dynamic_definition.include_or:
-                        key, value = item[0], item[1]
-                        if value in self.tagnames[key]:
-                            added_nodes = self.tagnames[key][value]
-                            for indiv_node in added_nodes:
-                                if indiv_node not in included_nodes:
-                                    included_nodes.append(indiv_node)
-        
-                    for item in dynamic_definition.exclude_or:
-                        key, value = item[0], item[1]
-                        if value in self.tagnames[key]:
-                            excluded_nodes.extend(self.tagnames[key][value])
-
-                    for node in excluded_nodes:
-                        if node in included_nodes:
-                            included_nodes.remove(node)
-                    """
-                    Assemble the node collection from the list
-                    """
-                    included_nodes = [
-                        self.nodes[node_id] for node_id in included_nodes
-                    ]
-                    """
-                    build timeline if specified
-                    """
-                    if dynamic_definition.show == 'timeline':
-                        contents += urtext.timeline.timeline(
-                            self, included_nodes)
-
-                    else:
-                        """
-                        otherwise this is a list, so sort the nodes
-                        """
-                        if dynamic_definition.sort_tagname != None:
-                            included_nodes = sorted(
-                                included_nodes,
-                                key=lambda node: node.metadata.get_tag(
-                                    dynamic_definition.sort_tagname))
-                        else:
-                            included_nodes = sorted(included_nodes,
-                                                    key=lambda node: node.date)
-
-                        for targeted_node in included_nodes:
-                            if dynamic_definition.show == 'title':
-                                show_contents = targeted_node.title
-                            if dynamic_definition.show == 'full_contents':
-                                show_contents = targeted_node.content_only(
-                                ).strip('\n').strip()
-                            contents += '- '+show_contents + ' >' + targeted_node.id + '\n'
-                """
-                add metadata to dynamic node
-                """
-
-                metadata_values = { 
-                    'ID': [ target_id ],
-                    'kind' : [ 'dynamic' ],
-                    'defined in' : [ '>'+dynamic_definition.source_id ] }
-
-                for value in dynamic_definition.metadata:
-                    metadata_values[value] = dynamic_definition.metadata[value]
-                built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
-
-                updated_node_contents = contents + built_metadata
-
-                """
-                add indentation if specified
-                """
-
-                if dynamic_definition.spaces:
-                    updated_node_contents = indent(updated_node_contents,
-                                                   dynamic_definition.spaces)
-
-                updated_file_contents = updated_file_contents.replace(
-                    old_node_contents, updated_node_contents)
-            
+                    for targeted_node in included_nodes:
+                        if dynamic_definition.show == 'title':
+                            show_contents = targeted_node.title
+                        if dynamic_definition.show == 'full_contents':
+                            show_contents = targeted_node.content_only(
+                            ).strip('\n').strip()
+                        new_node_contents += '- '+show_contents + ' >' + targeted_node.id + '\n'
             """
-            Update this file if it has changed
+            add metadata to dynamic node
             """
-            if updated_file_contents != old_file_contents:
 
-                with open(os.path.join(self.path, file), "w",
-                          encoding='utf-8') as theFile:
-                    theFile.write(updated_file_contents)
-                    theFile.close()
-                self.parse_file(os.path.join(self.path, file))
+            metadata_values = { 
+                'ID': [ target_id ],
+                'kind' : [ 'dynamic' ],
+                'defined in' : [ '>'+dynamic_definition.source_id ] }
+
+            for value in dynamic_definition.metadata:
+                metadata_values[value] = dynamic_definition.metadata[value]
+            built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
+
+            updated_node_contents = new_node_contents + built_metadata
+
+            """
+            add indentation if specified
+            """
+
+            if dynamic_definition.spaces:
+                updated_node_contents = indent(updated_node_contents,
+                                               dynamic_definition.spaces)
+
+            self.nodes[target_id].set_content(updated_node_contents)
         
+            self.parse_file(self.nodes[target_id].filename)
+
         self.update(compile=False)
 
     """
@@ -801,48 +765,57 @@ class UrtextProject:
             theFile.close()
         self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))
 
-    def consolidate_metadata(self, node_id, one_line=False):
-        
-        def adjust_ranges(filename, position, length):
-            for node_id in self.files[os.path.basename(filename)]['nodes']:
-                for index in range(len(self.nodes[node_id].ranges)):
-                    this_range = self.nodes[node_id].ranges[index]
-                    if position >= this_range[0]:
-                        self.nodes[node_id].ranges[index][0] -= length
-                        self.nodes[node_id].ranges[index][1] -= length
+    def adjust_ranges(self, filename, from_position, amount):
+        """ 
+        adjust the ranges of all nodes in the given file 
+        a given amount, from a given position
+        """
+        for node_id in self.files[os.path.basename(filename)]['nodes']:
+            number_ranges = len(self.nodes[node_id].ranges)
+            for index in range(number_ranges):
+                this_range = self.nodes[node_id].ranges[index]
+                if from_position >= this_range[0]:
+                    self.nodes[node_id].ranges[index][0] -= amount
+                    self.nodes[node_id].ranges[index][1] -= amount
 
-        consolidated_metadata = self.nodes[node_id].consolidate_metadata(
-            one_line=one_line)
-
-        filename = self.nodes[node_id].filename
+    def full_file_contents(self, filename='', node_id=''):
+        if node_id:
+            filename = self.nodes[node_id].filename
+        if not filename:
+            return
         with open(os.path.join(self.path, filename), 'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
             theFile.close()
+        return file_contents
 
+    def consolidate_metadata(self, node_id, one_line=False):
+        
+        consolidated_metadata = self.nodes[node_id].consolidate_metadata(
+            one_line=one_line)
+
+        file_contents = self.full_file_contents(node_id=node_id) 
+        filename = self.nodes[node_id].filename
         length = len(file_contents)
         ranges = self.nodes[node_id].ranges
-        meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
-                          re.DOTALL)  # \/--((?!\/--).)*--\/
+        meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',re.DOTALL)
+
         for single_range in ranges:
 
-            for section in meta.finditer(
-                    file_contents[single_range[0]:single_range[1]]):
+            for section in meta.finditer(file_contents[single_range[0]:single_range[1]]):
                 start = section.start() + single_range[0]
                 end = start + len(section.group())
                 first_splice = file_contents[:start]
                 second_splice = file_contents[end:]
                 file_contents = first_splice
                 file_contents += second_splice
-                adjust_ranges(filename, start, len(section.group()))
+                self.adjust_ranges(filename, start, len(section.group()))
 
         new_file_contents = file_contents[0:ranges[-1][1] - 2]
         new_file_contents += consolidated_metadata
         new_file_contents += file_contents[ranges[-1][1]:]
-        with open(os.path.join(self.path, filename), 'w',
-                  encoding='utf-8') as theFile:
-            theFile.write(new_file_contents)
-            theFile.close()
+        print(new_file_contents)
+
         return consolidated_metadata
 
     def build_tag_info(self):

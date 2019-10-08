@@ -187,6 +187,32 @@ class UrtextNode:
         new_metadata += '--/'
         return new_metadata
 
+    def set_content(self, contents):
+
+        if contents == self.contents():
+            return
+        
+        with open(os.path.join(self.project_path, self.filename),
+                  'r',
+                  encoding='utf-8') as theFile:
+            file_contents = theFile.read()
+            theFile.close()
+
+        start_range = self.ranges[0][0]
+        end_range = self.ranges[-1][1]
+
+        new_file_contents = ''.join([
+            file_contents[0:start_range],
+            contents,
+            file_contents[end_range:]]) 
+         
+        with open(os.path.join(self.project_path, self.filename),
+                  'w',
+                  encoding='utf-8') as theFile:
+            theFile.write(new_file_contents)
+            theFile.close()
+
+        """ MUST re-parse now """
 
 def duplicate_tree(original_node):
 
