@@ -12,6 +12,9 @@ import os
 import random 
 import sys
 import time
+from time import strftime
+from pytz import timezone
+import pytz
 
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
@@ -73,7 +76,8 @@ class UrtextProject:
             'metadata_list': 'zzy.txt',
             'console_log':'false',
             'google_auth_token' : 'token.json',
-            'google_calendar_id' : None
+            'google_calendar_id' : None,
+            'timezone' : 'US/Eastern' 
         }
         self.to_import = []
         self.settings_initialized = False
@@ -438,8 +442,7 @@ class UrtextProject:
                               '. Keeping the definition in >' +
                               self.dynamic_nodes[target_id].source_id + '.')
             else:
-                self.dynamic_nodes[target_id] = new_node.dynamic_definitions[
-                    target_id]
+                self.dynamic_nodes[target_id] = new_node.dynamic_definitions[target_id]
 
         ID_tags = new_node.metadata.get_tag('ID')
         if len(ID_tags) > 1:
@@ -456,6 +459,8 @@ class UrtextProject:
         """ Parses dates (requires that timestamp_format already be set) """
 
         timestamp_format = self.settings['timestamp_format']
+        default_timezone = timezone(self.settings['timezone'])
+
         if isinstance(timestamp_format, str):
             timestamp_format = [timestamp_format]
 
@@ -465,11 +470,12 @@ class UrtextProject:
                 for this_format in timestamp_format:
                     dt_format = '<' + this_format + '>'
                     try:
-                        dt_stamp = datetime.datetime.strptime(
-                            entry.dtstring, dt_format)
+                        dt_stamp = datetime.datetime.strptime(entry.dtstring, dt_format)
                     except:
                         continue
                 if dt_stamp:
+                    if dt_stamp.tzinfo == None:
+                        dt_stamp = default_timezone.localize(dt_stamp) 
                     self.nodes[node_id].metadata.dt_stamp = dt_stamp
                     if entry.tag_name == 'timestamp':
                         self.nodes[node_id].date = dt_stamp
@@ -578,16 +584,22 @@ class UrtextProject:
     def compile(self):
         """ Main method to compile dynamic nodes definitions """
 
-        for target_id in self.dynamic_nodes:
+        """dictionary size changes during iteration """
+
+        for target_id in list(self.dynamic_nodes):
             """
             Make sure the target node exists.
             """
+
             source_id = self.dynamic_nodes[target_id].source_id
             if target_id not in self.nodes:
                 self.log_item('Dynamic node definition >' + source_id +
                               ' points to nonexistent node >' + target_id)
                 continue
 
+            self.parse_file(self.nodes[target_id].filename)
+            self.update(compile=False, update_lists=False)
+            
             old_node_contents = self.nodes[target_id].contents()
             dynamic_definition = self.dynamic_nodes[target_id]
 
@@ -660,8 +672,7 @@ class UrtextProject:
                         if dynamic_definition.show == 'title':
                             show_contents = targeted_node.title
                         if dynamic_definition.show == 'full_contents':
-                            show_contents = targeted_node.content_only(
-                            ).strip('\n').strip()
+                            show_contents = targeted_node.content_only().strip('\n').strip()
                         new_node_contents += '- '+show_contents + ' >' + targeted_node.id + '\n'
             """
             add metadata to dynamic node
@@ -689,6 +700,8 @@ class UrtextProject:
             self.nodes[target_id].set_content(updated_node_contents)
         
             self.parse_file(self.nodes[target_id].filename)
+
+            self.update(compile=False, update_lists=False)
 
         self.update(compile=False)
 
@@ -752,17 +765,13 @@ class UrtextProject:
         # is not open and unsaved.
         timestamp = self.timestamp(datetime.datetime.now())
         territory = self.nodes[node_id].ranges
-        with open(os.path.join(self.path, self.nodes[node_id].filename),
-                  'r', encoding='utf-8') as theFile:
-            full_file_contents = theFile.read()
-            theFile.close()
+        
+        full_file_contents = self.full_file_contents(node_id=node_id)
         tag_position = territory[-1][1]
         new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[
                                               tag_position:]
-        with open(os.path.join(self.path, self.nodes[node_id].filename),
-                  'w', encoding='utf-8') as theFile:
-            theFile.write(new_contents)
-            theFile.close()
+
+        self.set_file_contents(self.nodes[node_id].filename, new_contents)
         self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))
 
     def adjust_ranges(self, filename, from_position, amount):
@@ -789,6 +798,13 @@ class UrtextProject:
             theFile.close()
         return file_contents
 
+    def set_file_contents(self, filename, contents):
+        with open(os.path.join(self.path, filename),
+                  'w', encoding='utf-8') as theFile:
+            theFile.write(contents)
+            theFile.close()
+        return
+
     def consolidate_metadata(self, node_id, one_line=False):
         
         consolidated_metadata = self.nodes[node_id].consolidate_metadata(
@@ -814,9 +830,8 @@ class UrtextProject:
         new_file_contents = file_contents[0:ranges[-1][1] - 2]
         new_file_contents += consolidated_metadata
         new_file_contents += file_contents[ranges[-1][1]:]
-        print(new_file_contents)
-
-        return consolidated_metadata
+        self.set_file_contents(filename, new_file_contents)
+        self.parse_file(filename)
 
     def build_tag_info(self):
         """ Rebuilds metadata for the entire project """
@@ -860,13 +875,7 @@ class UrtextProject:
 
         full_file_contents += contents
 
-        with open(
-                os.path.join(self.path, filename),
-                'w',
-                encoding='utf-8',
-        ) as theFile:
-            full_file_contents = theFile.write(full_file_contents)
-            theFile.close()
+        self.set_file_contents(filename,full_file_contents)
 
         return self.parse_file(filename)
 
@@ -954,14 +963,14 @@ class UrtextProject:
             self.log_item('Urtext not including ' + filename)
             return None
 
-        
-
-    def new_file_node(self, date=None, metadata = {}):
+    
+    def new_file_node(self, date=None, metadata = {}, node_id=None):
         """ add a new FILE-level node programatically """
 
         if date == None:
             date = datetime.datetime.now()
-        node_id = self.next_index()
+        if not node_id:
+            node_id = self.next_index()            
         contents = "\n\n\n"
         contents += "/-- ID:" + node_id + '\n'
         contents += 'Timestamp:' + self.timestamp(date) + '\n'
@@ -971,9 +980,7 @@ class UrtextProject:
 
         filename = node_id + '.txt'
 
-        with open(os.path.join(self.path, filename), "w") as theFile:
-            theFile.write(contents)
-            theFile.close()
+        self.set_file_contents( filename, contents )
 
         self.files[filename] = {}
         self.files[filename]['nodes'] = [node_id]
@@ -1340,9 +1347,7 @@ class UrtextProject:
             ranges =  self.nodes[root_node_id].ranges
             filename = self.nodes[root_node_id].filename
             
-            with open(os.path.join(self.path, filename),'r',encoding="utf-8") as f:
-                file_contents = f.read()
-                f.close()
+            file_contents = self.full_file_contents(filename)
             
             title = self.nodes[root_node_id].title
             if style_titles:                 
@@ -1472,7 +1477,6 @@ class UrtextProject:
                 final_exported_contents = header + final_exported_contents
 
 
-        
         with open(os.path.join(self.path, to_filename), 'w', encoding='utf-8') as f:
             f.write(final_exported_contents)
     
@@ -1572,6 +1576,9 @@ class UrtextProject:
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
+        default_timezone = timezone(self.settings['timezone'])
+        if date.tzinfo == None:
+            date = timezone(self.settings['timezone']).localize(date)             
 
         timestamp_format = '<' + self.settings['timestamp_format'][0] + '>'
         return date.strftime(timestamp_format)
@@ -1651,6 +1658,42 @@ class UrtextProject:
             f.write(machine)
             f.close()
         return True
+
+    def pop_node(self, position=None, filename=None, node_id=None):
+        if not node_id:
+            node_id = self.get_node_id_from_position(filename, position)
+        if not node_id:
+            return
+        if self.nodes[node_id].root_node:
+            print(node_id + ' is already a root node.')
+            return
+
+        start = self.nodes[node_id].ranges[0][0]
+        end = self.nodes[node_id].ranges[-1][1]
+
+        file_contents = self.full_file_contents(node_id=node_id)
+        popped_node_id = node_id
+        root_node_id = self.get_root_node_id(self.nodes[node_id].filename)
+
+        popped_node_contents = file_contents[start:end].strip()
+        
+        remaining_node_contents = ''.join([
+            file_contents[0:start - 2],
+            '\n',
+            '>>',
+            popped_node_id,
+            '\n',
+            file_contents[end + 2:]])
+
+        self.nodes[root_node_id].set_content(remaining_node_contents)
+        with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
+            f.write(popped_node_contents)
+            f.close()
+
+        self.parse_file(popped_node_id+'.txt')
+        self.parse_file(self.nodes[node_id].filename)
+        
+        return start - 2 # returns where to put the cursor at the new marker
 
 """ 
 Helpers 

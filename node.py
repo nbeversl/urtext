@@ -4,7 +4,7 @@ from .dynamic import UrtextDynamicDefinition
 import re
 import datetime
 import logging
-
+import pytz
 PACKAGE_FOLDER = __name__.split('.')[0]
 
 from anytree import Node
@@ -31,7 +31,8 @@ class UrtextNode:
         self.id = None
         self.new_id = None
         self.root_node = root
-        self.date = datetime.datetime(1970, 1, 1)  # temporary default
+        self.tz = pytz.timezone('UTC')
+        self.date = self.tz.localize(datetime.datetime.now())  # default
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
@@ -54,8 +55,7 @@ class UrtextNode:
             dynamic_definition = UrtextDynamicDefinition(match)
             dynamic_definition.source_id = self.id
             if dynamic_definition.target_id != None:
-                self.dynamic_definitions[
-                    dynamic_definition.target_id] = dynamic_definition
+                self.dynamic_definitions[dynamic_definition.target_id] = dynamic_definition
 
         self.set_title(stripped_contents)
 
