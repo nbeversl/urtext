@@ -80,6 +80,7 @@ class UrtextProject:
         self.dynamic_nodes = {}  # { target : definition, etc.}
         self.compiled = False
         self.alias_nodes = []
+        self.ix = None
         
         # Whoosh
         schema = Schema(
@@ -1019,24 +1020,32 @@ class UrtextProject:
         if contents == '':
             contents = ' '
  
-        separator = '\n'
-        newline = '\n'
-        if one_line:
-            separator = '; '
-            newline = ''
- 
         node_id = self.next_index()
         if date == None:
             date = datetime.datetime.now()
- 
+        
+        metadata['id']=self.next_index()
+        metadata['timestamp'] = self.timestamp(date)
+
         new_node_contents = "{{ " + contents 
-        new_node_contents += newline + "/-- ID:" + node_id + separator
-        new_node_contents += 'timestamp:' + self.timestamp(date) + separator
-        for key in metadata:
-            new_node_contents += key + ": " + metadata[key] + newline
-        new_node_contents += "--/ }}"
+        
+        metadata_block = build_metadata(metadata, one_line=one_line)
+
+        new_node_contents += metadata_block + " }}"
  
         return new_node_contents
+
+    def add_compact_node(self, 
+            date=None, 
+            contents='', 
+            metadata={},
+        ):
+        if date == None:
+            date = datetime.datetime.now()
+        metadata['id']=self.next_index()
+        metadata['timestamp'] = self.timestamp(date)
+        metadata_block = build_metadata(metadata, one_line=True)
+        return '^ '+contents + metadata_block
 
     """ 
     Reindexing (renaming) Files 
@@ -1680,7 +1689,7 @@ def build_metadata(tags, one_line=False):
         line_separator = '; '
     else:
         line_separator = '\n'
-    new_metadata = '\n/-- '
+    new_metadata = '/-- '
     if not one_line: 
         new_metadata += line_separator
     for tag in tags:
