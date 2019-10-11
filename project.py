@@ -48,7 +48,6 @@ class UrtextProject:
     
     def __init__(self,
                  path,
-                 make_new_files=True,
                  rename=False,
                  recursive=False,
                  import_project=False,
@@ -59,7 +58,6 @@ class UrtextProject:
         self.conflicting_files = []
         self.log = setup_logger('urtext_log',
                                 os.path.join(self.path, 'urtext_log.txt'))
-        self.make_new_files = make_new_files
         self.nodes = {}
         self.files = {}
         self.tagnames = {}
@@ -144,7 +142,7 @@ class UrtextProject:
 
         self.rewrite_recursion()
 
-        if compile:
+        if compile == True:
             self.compile()
 
         if update_lists:
@@ -680,14 +678,17 @@ class UrtextProject:
 
             metadata_values = { 
                 'ID': [ target_id ],
-                'kind' : [ 'dynamic' ],
                 'defined in' : [ '>'+dynamic_definition.source_id ] }
 
             for value in dynamic_definition.metadata:
                 metadata_values[value] = dynamic_definition.metadata[value]
             built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
-            updated_node_contents = new_node_contents + built_metadata
+            title = ''
+            if 'title' in dynamic_definition.metadata:
+                title = dynamic_definition.metadata['title']
+
+            updated_node_contents = '\n' + title + new_node_contents + built_metadata
 
             """
             add indentation if specified
@@ -697,13 +698,15 @@ class UrtextProject:
                 updated_node_contents = indent(updated_node_contents,
                                                dynamic_definition.spaces)
 
-            self.nodes[target_id].set_content(updated_node_contents)
+            self.set_node_contents(target_id, updated_node_contents)
         
-            self.parse_file(self.nodes[target_id].filename)
-
-            self.update(compile=False, update_lists=False)
-
         self.update(compile=False)
+
+    def set_node_contents(self, node_id, contents):
+        """ project-aware alias for the Node set_content() method """
+
+        if self.nodes[node_id].set_content(contents):
+            self.parse_file(self.nodes[node_id].filename)
 
     """
     Refreshers
@@ -964,11 +967,9 @@ class UrtextProject:
             return None
 
     
-    def new_file_node(self, date=None, metadata = {}, node_id=None):
+    def new_file_node(self, date=datetime.datetime.now(), metadata = {}, node_id=None):
         """ add a new FILE-level node programatically """
 
-        if date == None:
-            date = datetime.datetime.now()
         if not node_id:
             node_id = self.next_index()            
         contents = "\n\n\n"
@@ -992,7 +993,7 @@ class UrtextProject:
                 }
  
     def add_inline_node(self, 
-            date=None, 
+            date=datetime.datetime.now(), 
             contents='', 
             metadata={},
             one_line=False ):
@@ -1000,17 +1001,11 @@ class UrtextProject:
         if contents == '':
             contents = ' '
  
-        node_id = self.next_index()
-        if date == None:
-            date = datetime.datetime.now()
-        
+        node_id = self.next_index()       
         metadata['id']=self.next_index()
         metadata['timestamp'] = self.timestamp(date)
-
         new_node_contents = "{{ " + contents 
-        
         metadata_block = build_metadata(metadata, one_line=one_line)
-
         new_node_contents += metadata_block + " }}"
  
         return new_node_contents
@@ -1271,15 +1266,24 @@ class UrtextProject:
     def search(self, string):
 
         final_results = ''
+        shown_nodes = []
         with self.ix.searcher() as searcher:
             query = QueryParser("content", self.ix.schema).parse(string)
             results = searcher.search(query, limit=1000)
             results.formatter = UppercaseFormatter()
-            final_results += 'TOTAL RESULTS: ' + str(len(results)) + '\n\n'
+            final_results += 'Total Results: ' + str(len(results)) + '\n\n'
+            final_results +='\n----------------------------------\n'
             for result in results:
-                final_results += '\n\n---- in >' + result['path'] + '\n\n'
-                test = self.nodes[result['path']].contents()
-                final_results += result.highlights("content")
+                node_id = result['path']
+                if node_id in self.nodes:
+                    if node_id not in shown_nodes:
+                        final_results += ''.join([
+                            self.nodes[node_id].title,' >', node_id, '\n',
+                            result.highlights("content"),
+                            '\n----------------------------------\n'])
+                        shown_nodes.append(node_id)
+                else:
+                    final_results += node_id + ' ( No longer in the project. Update the search index. )\n\n'
 
         return final_results
 
@@ -1694,6 +1698,14 @@ class UrtextProject:
         self.parse_file(self.nodes[node_id].filename)
         
         return start - 2 # returns where to put the cursor at the new marker
+
+    def complete_tag(self, fragment):
+        fragment = fragment.lower()
+        length = len(fragment)
+        for tag in self.tagnames['tags'].keys():
+            if fragment == tag[:length].lower():
+                return tag
+        return u''
 
 """ 
 Helpers 

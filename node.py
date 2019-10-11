@@ -32,7 +32,7 @@ class UrtextNode:
         self.new_id = None
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.date = self.tz.localize(datetime.datetime.now())  # default
+        self.date = self.tz.localize(datetime.datetime(1970,1,1))  # default
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
@@ -190,7 +190,7 @@ class UrtextNode:
     def set_content(self, contents):
 
         if contents == self.contents():
-            return
+            return False
         
         with open(os.path.join(self.project_path, self.filename),
                   'r',
@@ -212,6 +212,7 @@ class UrtextNode:
             theFile.write(new_file_contents)
             theFile.close()
 
+        return True
         """ MUST re-parse now """
 
 def duplicate_tree(original_node):
