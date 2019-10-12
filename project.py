@@ -83,7 +83,9 @@ class UrtextProject:
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
-        
+ 
+        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '\^'] ]
+
         # Whoosh
         schema = Schema(
                 title=TEXT(stored=True),
@@ -178,11 +180,12 @@ class UrtextProject:
         """
         symbols = {}
 
-        for symbol in ['{{', '}}', '>>', '^']:
-            loc = -2
-            while loc != -1:
-                loc = full_file_contents.find(symbol, loc + 2)
-                symbols[loc] = symbol
+        for compiled_symbol in self.compiled_symbols:
+            symbol = compiled_symbol.pattern
+            locations = compiled_symbol.finditer(full_file_contents)
+            for loc in locations:
+                start = loc.span()[0]
+                symbols[start] = symbol
 
         positions = sorted([key for key in symbols.keys() if key != -1])
         length = len(full_file_contents)
@@ -809,7 +812,10 @@ class UrtextProject:
         return
 
     def consolidate_metadata(self, node_id, one_line=False):
-        
+        if node_id not in self.nodes:
+            self.log_item('Node ID '+node_id+' not in project.')
+            return None
+
         consolidated_metadata = self.nodes[node_id].consolidate_metadata(
             one_line=one_line)
 
@@ -1700,7 +1706,7 @@ class UrtextProject:
         return start - 2 # returns where to put the cursor at the new marker
 
     def complete_tag(self, fragment):
-        fragment = fragment.lower()
+        fragment = fragment.lower().strip()
         length = len(fragment)
         for tag in self.tagnames['tags'].keys():
             if fragment == tag[:length].lower():
