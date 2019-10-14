@@ -218,7 +218,7 @@ class UrtextProject:
                     parsed_items[position] = node_pointer
                 continue
 
-            if symbols[position] == '^' and full_file_contents[position-1] == '\n':
+            if symbols[position] == '\^' and full_file_contents[position-1] == '\n':
                 compact_node_regex = '\^[^\n]*'
                 compact_node_contents = re.search(compact_node_regex, full_file_contents[position:]).group(0)
                 
@@ -654,7 +654,7 @@ class UrtextProject:
                 build timeline if specified
                 """
                 if dynamic_definition.show == 'timeline':
-                    new_node_contents += urtext.timeline.timeline(self, included_nodes)
+                    new_node_contents += timeline(self, included_nodes)
 
                 else:
                     """
@@ -733,17 +733,17 @@ class UrtextProject:
         """ Refreshes the Metadata List file """
 
         root = Node('Metadata Keys')
-        for key in [
+        for key in sorted([
                 k for k in self.tagnames
                 if k.lower() not in ['defined in', 'id', 'timestamp', 'index']
-        ]:
+        ]):
             s = Node(key)
             s.parent = root
-            for value in self.tagnames[key]:
+            for value in sorted(self.tagnames[key]):
                 t = Node(value)
                 t.parent = s
                 if value in self.tagnames[key]:
-                    for node_id in self.tagnames[key][value]:
+                    for node_id in sorted(self.tagnames[key][value]):
                         n = Node(self.nodes[node_id].title + ' >' +
                                  node_id)
                         n.parent = t
@@ -1586,6 +1586,7 @@ class UrtextProject:
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
+
         default_timezone = timezone(self.settings['timezone'])
         if date.tzinfo == None:
             date = timezone(self.settings['timezone']).localize(date)             

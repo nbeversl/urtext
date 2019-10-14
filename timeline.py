@@ -18,13 +18,14 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 import datetime
-
-# this is only showing nodes with timestamps. shouldn't it also read them from the Node IDs?
-
+from pytz import timezone
 
 def timeline(project, nodes):
     """ given an Urtext Project and nodes, generates a timeline """
+
     found_stuff = []
+    timestamp_formats = project.settings['timestamp_format']
+    default_timezone = timezone(project.settings['timezone'])
     for node in nodes:
         full_contents = project.nodes[node.id].content_only()
 
@@ -42,12 +43,15 @@ def timeline(project, nodes):
         for timestamp in timestamps:
             contents = full_contents
             found_thing = {}
+            #for ts_format in timestamp_formats: 
             try:
                 datetime_obj = datetime.datetime.strptime(
                     timestamp, '%a., %b. %d, %Y, %I:%M %p')
+
             except:
                 datetime_obj = datetime.datetime.strptime(
                     timestamp, '%A, %B %d, %Y, %I:%M %p')
+            datetime_obj = default_timezone.localize(datetime_obj)
             position = contents.find(timestamp)
             lines = contents.split('\n')
             for num, line in enumerate(lines, 1):
@@ -81,17 +85,17 @@ def timeline(project, nodes):
         while '\n\n' in contents:
             contents = contents.replace('\n\n', '\n')
         contents = '      ...' + contents.replace(
-            '\n', '\n                   |      ') + '...   '
-        timeline += '                   |<----' + entry_date + ' ' + sorted_stuff[
+            '\n', '\n|      ') + '...   '
+        timeline += '|<----' + entry_date + ' ' + sorted_stuff[
             index]['kind']
         timeline += ' >' + sorted_stuff[index][
-            'filename'] + '\n                   |\n                   |'
-        timeline += contents + '\n                   |\n'
+            'filename'] + '\n|\n|'
+        timeline += contents + '\n|\n'
         num_days = sorted_stuff[index]['date'].day - sorted_stuff[
             index + 1]['date'].day
         next_day = sorted_stuff[index]['date'] + datetime.timedelta(days=-1)
-        for empty_day in range(0, num_days):
-            timeline += next_day.strftime('%a. %b. %d, %Y') + ' |\n'
-            next_day += datetime.timedelta(days=-1)
+        # for empty_day in range(0, num_days):
+        #     timeline += next_day.strftime('%a. %b. %d, %Y') + ' |\n'
+        #     next_day += datetime.timedelta(days=-1)
 
     return timeline
