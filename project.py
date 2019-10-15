@@ -610,22 +610,38 @@ class UrtextProject:
                 new_node_contents += self.show_tree_from(dynamic_definition.tree)
 
             else:
+                # list of explicitly included node IDs
                 included_nodes = []
+
+                # list of explicitly excluded node IDs
                 excluded_nodes = []
 
+                # list of the nodes indicated by ALL the key/value pairs for AND inclusion
                 included_nodes_and = []
+
+                # for all AND key/value pairs in the dynamic definition                 
                 for item in dynamic_definition.include_and:
                     key, value = item[0], item[1]
-                    if value in self.tagnames[key]:
+
+                    # if the key/value pair is in the project
+                    if key in self.tagnames and value in self.tagnames[key]:
+
+                        # add its nodes to the list of possibly included nodes as its own set
                         included_nodes_and.append(set(self.tagnames[key][value]))
                         
+                # If more than one actual set results from this:
                 if len(included_nodes_and) > 1:
+
+                    # reduce the list to the intersection of all sets
                     included_nodes_and = list(set(included_nodes_and[0]).intersection(*included_nodes_and))
-                else:
-                    included_nodes_and = list(included_nodes_and)
+
+                elif len(included_nodes_and) > 0:
+                    # otherwise, the list of included nodes is just the single set, if it exists
+                    included_nodes_and = list(included_nodes_and[0])
                     
-                for e in included_nodes_and:
-                    included_nodes.append(e)
+                # add all the these nodes to the list of nodes to be included.
+                for indiv_node_id in included_nodes_and:
+                    included_nodes.append(indiv_node_id)
 
                 for indiv_node in included_nodes:
                     if indiv_node not in included_nodes:

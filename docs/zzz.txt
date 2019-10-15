@@ -1,10 +1,10 @@
-About Urtext >013
--
 Example Source Node 3 >01b
 -
-Example Source Node 1 >017
+About Urtext >013
 -
 Setup >003
+-
+Example Source Node 1 >017
 -
 Writing Nodes >01j
 -
@@ -12,13 +12,13 @@ index >00z
 -
 Inline Nodes >004
 -
-Example Source Node 4 >01c
--
 Node Metadata >00x
 -
-Relationships >00j
+Example Source Node 4 >01c
 -
 Timestamps >005
+-
+Relationships >00j
 -
 Node Pointers >00r
 -
@@ -54,51 +54,29 @@ The Node List >01i
 -
 In-Progress / Experimental / Wish List >014
 -
-Reserved Metadata Keys >011
+Comparison To Other Tools >h8z
 -
 (Python) >4ho
 -
-Project Metadata List >012
+Full Screen / Distraction Free Mode >002
 -
-In Urtext for Sublime Text >e6m
+Sublime Text Interface Tips >000
 -
-Example Dynamic Node Title >016
--
-(Python) >b44
--
-Node List >zzz
--
-Hiding Tabs >015
--
-flags >cwb
--
-Traverse Mode >00w
--
-Creating Inline Nodes >bbj
--
-0.1.15-alpha >024
--
-Reopening a Project >01p
--
-Sublime Project >c3n
+Features and Characteristics >006
 -
 About the Sublime Text Implementation >01u
 -
-Uses >lhs
--
 Opening Links >01w
 -
-Disable Prompts for File Reload >023
+Using this document >009
 -
-iPhone/iPad/iOS >01y
+Reopening a Project >01p
 -
-Word Wrap in Traverse Mode (Sublime Text) >xci
+0.1.11-alpha >01l
 -
-Synchronator Setup >01z
+Example - Table of Contents From Another Root >01n
 -
-Another Example: The Node Definition for the Table of Contents >029
--
-On the web >fak
+Node Identity (Node IDs) >01h
 -
 Hiding Line Numbers >01e
 -
@@ -106,19 +84,21 @@ Syntax Highlighting >01d
 -
 File Level Nodes >01g
 -
-Node Identity (Node IDs) >01h
+Table of Contents >01a
 -
-0.1.11-alpha >01l
+Synchronator Setup >01z
 -
-Example - Table of Contents From Another Root >01n
+Uses >lhs
+-
+Word Wrap in Traverse Mode (Sublime Text) >xci
 -
 Syntax Highlighting of Inline Nodes >koe
 -
-Metadata List >zzy
+In Urtext for Sublime Text >e6m
 -
-What Urtext Is >hdf
+Simple Links >0y2
 -
-(Sublime) >xo8
+Traverse Mode >00w
 -
 Recursive Node Pointers >00s
 -
@@ -128,17 +108,19 @@ Linking to outside resources >00q
 -
 Example Source Node 2 >00v
 -
-(Sublime) >rij
--
 Duplicate Node Pointers >00t
 -
 Viewing Linked Relationships >00u
 -
 title (This tag overrides the default title) >00y
 -
+Reserved Metadata Keys >011
+-
+Project Metadata List >012
+-
 Using Existing Files >00b
 -
-Home >00c
+Hiding Tabs >015
 -
 Making a New Project >00a
 -
@@ -156,51 +138,69 @@ Filename formats >00i
 -
 Timestamp Formats >00n
 -
-Urtext Documentation >a5m
+Web >00o
 -
 Sublime Text tools to help with linking >00m
 -
-0.1.14-alpha >022
+(Sublime) >rij
 -
-Description >yv2
--
-Comparison To Other Tools >h8z
+Example Dynamic Node Title >016
 -
  >ucj
 -
-Web >00o
--
 (Python) >83e
 -
-Full Screen / Distraction Free Mode >002
+Node List >zzz
 -
-Sublime Text Interface Tips >000
+(Python) >b44
 -
-Creating a File Level Node >ekz
+(Sublime) >xo8
 -
-Using this document >009
--
-(Sublime) >qx6
--
-0.1.12-alpha >020
--
-Simple Links >0y2
--
-0.1.13-alpha >021
--
-Table of Contents >01a
--
-Standalone >plq
--
-0.1.16-alpha >03l
--
-Features and Characteristics >006
+Another Example: The Node Definition for the Table of Contents >029
 -
 Generating a node ID manually >a0i
 -
+Home >00c
+-
+0.1.12-alpha >020
+-
+0.1.13-alpha >021
+-
+flags >cwb
+-
+Disable Prompts for File Reload >023
+-
+0.1.15-alpha >024
+-
+Description >yv2
+-
+0.1.16-alpha >03l
+-
+What Urtext Is >hdf
+-
+On the web >fak
+-
+Metadata List >zzy
+-
+(Sublime) >qx6
+-
+iPhone/iPad/iOS >01y
+-
 (Sublime) >phk
 -
+Creating Inline Nodes >bbj
+-
+Urtext Documentation >a5m
+-
 (Python) >n2m
+-
+Sublime Project >c3n
+-
+Creating a File Level Node >ekz
+-
+Standalone >plq
+-
+0.1.14-alpha >022
 -
 /--
 ID:zzz
