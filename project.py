@@ -628,7 +628,12 @@ class UrtextProject:
 
                         # add its nodes to the list of possibly included nodes as its own set
                         included_nodes_and.append(set(self.tagnames[key][value]))
-                        
+
+                    else:
+                        # otherwise, this means no nodes result from this AND combination
+                        included_nodes_and = []
+                        break
+
                 # If more than one actual set results from this:
                 if len(included_nodes_and) > 1:
 
