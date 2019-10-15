@@ -87,7 +87,7 @@ class UrtextProject:
         self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '\^'] ]
 
         # Whoosh
-        schema = Schema(
+        self.schema = Schema(
                 title=TEXT(stored=True),
                 path=ID(stored=True),
                 content=TEXT(stored=True, analyzer=StemmingAnalyzer()))
@@ -973,8 +973,11 @@ class UrtextProject:
             return None
 
     
-    def new_file_node(self, date=datetime.datetime.now(), metadata = {}, node_id=None):
+    def new_file_node(self, date=None, metadata = {}, node_id=None):
         """ add a new FILE-level node programatically """
+
+        if date == None:
+            date = datetime.datetime.now()
 
         if not node_id:
             node_id = self.next_index()            
@@ -999,11 +1002,14 @@ class UrtextProject:
                 }
  
     def add_inline_node(self, 
-            date=datetime.datetime.now(), 
+            date=None, 
             contents='', 
             metadata={},
             one_line=False ):
 
+        if date == None:
+            date = datetime.datetime.now()
+            
         if contents == '':
             contents = ' '
  
