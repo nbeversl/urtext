@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from .metadata import NodeMetadata
 from .dynamic import UrtextDynamicDefinition
@@ -139,7 +140,7 @@ class UrtextNode:
 
         first_line = stripped_contents[index][:100].replace('{{','').replace('}}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
-        self.title = first_line.strip()
+        self.title = first_line.strip().strip('\n').strip()
 
     def get_ID(self):
         if len(self.metadata.get_tag(

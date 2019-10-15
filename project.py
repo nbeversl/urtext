@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 import codecs
 import re
 import datetime
@@ -689,7 +689,7 @@ class UrtextProject:
 
             title = ''
             if 'title' in dynamic_definition.metadata:
-                title = dynamic_definition.metadata['title']
+                title = dynamic_definition.metadata['title'] + '\n'
 
             updated_node_contents = '\n' + title + new_node_contents + built_metadata
 
@@ -1705,6 +1705,12 @@ class UrtextProject:
         self.parse_file(self.nodes[node_id].filename)
         
         return start - 2 # returns where to put the cursor at the new marker
+
+    def titles(self):
+        title_list = {}
+        for node_id in self.nodes:
+            title_list[self.nodes[node_id].title] = node_id
+        return title_list
 
     def complete_tag(self, fragment):
         fragment = fragment.lower().strip()

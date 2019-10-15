@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 import os
 
@@ -33,24 +34,24 @@ class UrtextDynamicDefinition:
                 atom.strip() for atom in entry.split(':') if atom.strip() != ''
             ]
             """
-      skip entries without values
-      """
+            skip entries without values
+            """
             if len(atoms) < 2:
                 continue
             """
-      add metadata to target node
-      """
+            add metadata to target node
+            """
             if atoms[0] == 'metadata' and len(atoms) > 2:
                 self.metadata[atoms[1]] = ':'.join(
-                    atoms[2:]) + '\n'  # use the rest of the
+                    atoms[2:]) 
                 continue
             """
-      use case-insensitive values for the rest
-      """
+            use case-insensitive values for the rest
+            """
             atoms = [atom.lower() for atom in atoms]
             """
-      indentation
-      """
+            inndentation
+            """
             if atoms[0] == 'indent':
                 self.spaces = int(atoms[1])
                 continue
@@ -64,14 +65,14 @@ class UrtextDynamicDefinition:
                 continue
 
             """
-      target node ID
-      """
+            target node ID
+            """
             if atoms[0] == 'id':
                 self.target_id = re.search(node_id_regex, atoms[1]).group(0)
                 continue
             """
-      show contents, title
-      """
+            show contents, title
+            """
             if atoms[0] == 'show':
                 if atoms[1] == 'title':
                     self.show = 'title'
@@ -79,8 +80,8 @@ class UrtextDynamicDefinition:
                     self.show = 'timeline'
                 continue
             """
-      exclude/include meta
-      """
+            exclude/include meta
+            """
             if atoms[0] == 'include':
                 if atoms[1] == 'all':
                     self.include_or = 'all'

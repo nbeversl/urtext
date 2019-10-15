@@ -1,0 +1,135 @@
+Urtext Documentation
+
+Version: 0.1.2-alpha
+License: GNU General Public License 3.0
+
+{{  Using this document
+
+    This is a documentation of Urtext, written in Urtext. It can be read:
+
+    {{  On the web
+
+        An HTML export of the latest version of this document is published at www.urtext.org/docs.
+        /-- ID:fak --/ }}
+
+    {{ In Urtext for Sublime Text /-- tags: sublime --/
+
+        - Sublime Urtext must be installed to use these features.
+
+        - To go to a link in the table of contents, press ctrl-shift-/ from any line. Links are three-character node-IDs preceded by one or two right-angle brackets. (See Links >00j for more information).
+
+        - To return to this table of contents, press ctrl-shift-H.
+
+        - You can also traverse the table of contents while viewing linked content in another pane using Traverse Mode : Press Ctrl-Shift-R and click or arrow-navigate to any node in the table. See (>00w) for more information on Traverse Mode.
+      
+        - Enabling syntax highlighting makes the documentation easier to read: Select the Sixteen (for light) or Monokai (for dark) color schemes in Preferences -> Color Scheme ...  Then switch to the Urtext syntax by selecting it in View -> Syntax -> Urtext. To avoid having to do this for every file, select View -> Syntax -> Open All with Current Extension As ... -> Urtext. (You can undo this later by repeating the same but selecting Plain Text.) See >01d for more on syntax highlighting. /-- ID:e6m --/ }}
+
+    {{  Standalone
+
+        Being in plaintext, it is also readable as-is.  /-- ID:plq --/ }}
+
+   /--ID:009--/}}
+
+{{
+Table of Contents
+Urtext Documentation >a5m
+├── Using this document >009
+    ├── On the web >fak
+    ├── In Urtext for Sublime Text >e6m
+    └── Standalone >plq
+├── About Urtext >013
+    ├── What Urtext Is >hdf
+        ├── Description >yv2
+        ├── Comparison To Other Tools >h8z
+        ├── Uses >lhs
+        └── Features and Characteristics >006
+    └── About the Sublime Text Implementation >01u
+        └── Dependencies and Installation: >2fn
+├── Setup >003
+    ├── Making a New Project >00a
+        ├── (Python) >n2m
+        └── (Sublime) >phk
+    ├── Using Existing Files >00b
+        ├── (Python) >b44
+        └── (Sublime) >rij
+    ├── Sublime Project >c3n
+    ├── Reopening a Project >01p
+    └── Sublime Text Interface Tips >000
+        ├── Syntax Highlighting >01d
+        ├── Hiding Tabs >015
+        ├── Hiding Line Numbers >01e
+        ├── Full Screen / Distraction Free Mode >002
+        └── Disable Prompts for File Reload >023
+├── Writing Nodes >01j
+    ├── Node Identity (Node IDs) >01h
+        └── Generating a node ID manually >a0i
+    ├── File Level Nodes >01g
+        └── Creating a File Level Node >ekz
+            ├── (Python) >83e
+            └── (Sublime) >xo8
+    ├── Node Metadata >00x
+        ├── Reserved Metadata Keys >011
+            ├── title (This tag overrides the default title) >00y
+            ├── index >00z
+            └── flags >cwb
+        ├── Project Metadata List >012
+            └── Metadata List >zzy
+        └── Timestamps >005
+            └── Timeline View: >00k
+    ├── Inline Nodes >004
+        ├── Example inline node >00e
+        ├── Creating Inline Nodes >bbj
+            ├── (Sublime) >qx6
+            └── (Python) >4ho
+        └── Syntax Highlighting of Inline Nodes >koe
+    └── The Node List >01i
+├── Dynamic Nodes >01r
+    ├── Example Source Node 1 >017
+    ├── Example Source Node 3 >01b
+    ├── Example Source Node 2 >00v
+    ├── Example Source Node 4 >01c
+    ├── Example Dynamic Node Title >016
+    └── Another Example: The Node Definition for the Table of Contents >029
+├── Trees >00h
+    ├── From a selected node >00f
+    └── From the root >00g
+├── Relationships >00j
+    ├── Simple Links >0y2
+        └── Sublime Text tools to help with linking >00m
+    ├── Opening Links >01w
+    ├── Viewing Linked Relationships >00u
+    ├── Linking to outside resources >00q
+        ├── Web >00o
+        └── Files >00p
+    └── Traverse Mode >00w
+        └── Word Wrap in Traverse Mode (Sublime Text) >xci
+├── Node Pointers >00r
+    ├── Example Child Node Using a Node Pointer >001
+    ├── Duplicate Node Pointers >00t
+        └── Example Child Node Using a Node Pointer >001
+    └── Recursive Node Pointers >00s
+        ├── ? (Missing Node): >RECURSION >a5m
+        └── Example - Table of Contents From Another Root >01n
+├── Search >k67
+    └── Fuzzy Full Text Search >4p9
+├── Filenames >01m
+└── Extension and Customization >01o
+/-- 
+ID: 01a
+flags: exclude_from_tree
+title: Table of Contents
+defined in: >029
+--/}}
+
+About Urtext >>013
+Setup >>003
+Nodes >>01j
+Dynamic Nodes >>01r
+Node Trees >>00h
+Links >>00j
+Node Pointers >>00r
+Search >>k67
+File Naming >>01m
+Extension & Customization >>01o
+
+/-- ID: a5m --/

@@ -1,0 +1,52 @@
+Metadata Keys
+├── flags
+│   └── exclude_from_tree
+│       └── Table of Contents >01a
+├── home
+│   └── a5m
+│       └── project_settings >00l
+├── kind
+│   └── gift_list
+│       └── Node Metadata >00x
+├── note
+│   └── example note
+│       └── Node Metadata >00x
+├── purpose
+│   └── work-related
+│       └── Node Metadata >00x
+├── tag
+│   ├── example_node
+│   │   ├── Example Source Node 2 >00v
+│   │   ├── Example Source Node 1 >017
+│   │   ├── Example Source Node 3 >01b
+│   │   └── Example Source Node 4 >01c
+│   ├── exclude_this
+│   │   └── Example Source Node 2 >00v
+│   └── groceries
+│       └── Node Metadata >00x
+└── tags
+    ├── coming
+    │   └── Files >00p
+    ├── python
+    │   ├── (Python) >83e
+    │   ├── (Python) >b44
+    │   └── (Python) >n2m
+    ├── sublime
+    │   ├── From a selected node >00f
+    │   ├── From the root >00g
+    │   ├── Sublime Text tools to help with linking >00m
+    │   ├── Reopening a Project >01p
+    │   ├── About the Sublime Text Implementation >01u
+    │   ├── Generating a node ID manually >a0i
+    │   ├── Sublime Project >c3n
+    │   ├── In Urtext for Sublime Text >e6m
+    │   ├── Syntax Highlighting of Inline Nodes >koe
+    │   ├── (Sublime) >qx6
+    │   ├── (Sublime) >rij
+    │   └── (Sublime) >xo8
+    └── urtext_documentation
+        └── Setup >003
+/--
+ID:zzy
+title: Metadata List
+--/
