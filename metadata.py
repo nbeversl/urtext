@@ -112,6 +112,9 @@ class NodeMetadata:
                 values.append(value)  # allows for multiple tags of the same name
         return values
 
+    def set_tag(self, key, value):
+        self.entries.append(MetadataEntry(key, value, None))
+
     def get_date(self, tagname):
         """only works after the project has set the dt_stamp from dt_string"""
         tagname = tagname.lower()
