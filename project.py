@@ -27,21 +27,13 @@ from whoosh.analysis import StemmingAnalyzer
 
 from .timeline import timeline
 from .node import UrtextNode
+from .file import UrtextFile
 from .interlinks import Interlinks
 
 #from .google_calendar import sync_project_to_calendar
-
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-node_link_regex = r'>[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
-
-if not hasattr(sys, 'argv'):
-    sys.argv  = ['']
-
-class NoProject(Exception):
-    """ Raised when no Urtext nodes are in the folder """
-    pass
-
+node_link_regex = r'>[0-9,a-z]{3}\b'
 
 class UrtextProject:
     """ Urtext project object """
@@ -84,8 +76,6 @@ class UrtextProject:
         self.alias_nodes = []
         self.ix = None
  
-        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '\^'] ]
-
         # Whoosh
         self.schema = Schema(
                 title=TEXT(stored=True),
@@ -104,6 +94,8 @@ class UrtextProject:
             self.lock(machine_lock)
             
         for file in filelist:
+            if self.filter_filenames(file) == None:
+                continue
             self.parse_file(file, import_project=import_project)
 
         for file in self.to_import:
@@ -155,196 +147,39 @@ class UrtextProject:
     Parsing
     """
     def parse_file(self, 
-        filename, 
+        filename,
         add=True, 
         import_project=False,
         re_index=False):
         """ Parse a single file into project nodes """
 
-        filename = os.path.basename(filename)
         if self.filter_filenames(filename) == None:
-            return
-
-        full_file_contents = self.get_file_contents(filename)
-        if full_file_contents == None:
             return
 
         # clear all node_id's defined from this file in case the file has changed
         self.remove_file(filename)
 
-        # re-add the file to the project
-        self.files[filename] = {}
-        self.files[filename]['nodes'] = []
         """
         Find all node symbols in the file
         """
-        symbols = {}
-
-        for compiled_symbol in self.compiled_symbols:
-            symbol = compiled_symbol.pattern
-            locations = compiled_symbol.finditer(full_file_contents)
-            for loc in locations:
-                start = loc.span()[0]
-                symbols[start] = symbol
-
-        positions = sorted([key for key in symbols.keys() if key != -1])
-        length = len(full_file_contents)
+        new_file = UrtextFile(os.path.join(self.path, filename))
+        self.files[new_file.basename] = new_file
+        for node_id in new_file.nodes:
+            if self.is_duplicate_id(node_id, filename):
+                self.remove_file(filename)
+                return
+            self.add_node(new_file.nodes[node_id])
         
-        """
-        Counters and trackers
-        """
-        nested = 0  # tracks depth of node nesting
-        nested_levels = {}
-        last_start = 0  # tracks the most recently parsed position
-        parsed_items = {}  # stores parsed items
-
-        for position in positions:
-
-            # Allow node nesting arbitrarily deep
-            if nested not in nested_levels:
-                nested_levels[nested] = []
-
-            # If this opens a new node, track the ranges of the outer one.
-            if symbols[position] == '{{':
-                nested_levels[nested].append([last_start, position])
-                nested += 1
-                last_start = position + 2
-                continue
-
-            # If this points to an outside node, find which node
-            if symbols[position] == '>>':
-                node_pointer = full_file_contents[position:position + 5]
-                if re.match(node_pointer_regex, node_pointer):
-                    parsed_items[position] = node_pointer
-                continue
-
-            if symbols[position] == '\^' and full_file_contents[position-1] == '\n':
-                compact_node_regex = '\^[^\n]*'
-                compact_node_contents = re.search(compact_node_regex, full_file_contents[position:]).group(0)
-                
-                compact_node = UrtextNode(os.path.join(self.path, filename), 
-                    contents=compact_node_contents[1:])
-                
-                if compact_node.id != None and re.match(node_id_regex, compact_node.id):
-                    
-                    nested_levels[nested].append([last_start, position ])
-                    compact_node.compact = True
-                    if self.is_duplicate_id(compact_node.id, filename):
-                        return
-
-                    else:
-                        self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents)]])
-                        parsed_items[position] = compact_node.id
-                    
-                    last_start = position + len(compact_node_contents) 
-                    continue
-
-            # If this closes a node:
-            if symbols[position] == '}}':  # pop
-                nested_levels[nested].append([last_start, position])
-
-                # Get the node contents and construct the node
-                node_contents = []
-                for file_range in nested_levels[nested]:
-                    node_contents.append(full_file_contents[file_range[0]:file_range[1]])
-
-                joined_contents = ''.join(node_contents)
-                new_node = UrtextNode(os.path.join(self.path, filename),
-                                      contents=joined_contents)
-
-                if new_node.id != None and re.match(node_id_regex, new_node.id):
-                    if self.is_duplicate_id(new_node.id, filename):
-                        return
-                    else:
-                        self.add_node(new_node, nested_levels[nested])
-                        parsed_items[position] = new_node.id
-
-                else:
-                    error_line = full_file_contents[position -
-                                                    50:position].split(
-                                                        '\n')[-1]
-                    error_line += full_file_contents[position:position +
-                                                     50].split('\n')[0]
-                    message = [
-                        'Node missing ID in ', filename, '\n', error_line,
-                        '\n', ' ' * len(error_line), '^'
-                    ]
-                    message = ''.join(message)
-                    self.log_item(message)
-                    return self.remove_file(filename)
-
-                del nested_levels[nested]
-
-                last_start = position + 2
-                nested -= 1
-
-                if nested < 0:
-                    error_line = full_file_contents[position -
-                                                    50:position].split('\n')[0]
-                    error_line += full_file_contents[position:position +
-                                                     50].split('\n')[0]
-                    message = [
-                        'Stray closing wrapper in ', filename, ' at position ',
-                        str(position), '\n', error_line, '\n',
-                        ' ' * len(error_line), '^'
-                    ]
-                    message = ''.join(message)
-                    self.log_item(message)
-                    return self.remove_file(filename)
-
-        if nested != 0:
-            error_line = full_file_contents[position -
-                                            50:position].split('\n')[0]
-            error_line += full_file_contents[position:position +
-                                             50].split('\n')[0]
-            message = [
-                'Missing closing wrapper in ', filename, ' at position ',
-                str(position), '\n', error_line, '\n', ' ' * len(error_line),
-                '^'
-            ]
-            message = ''.join(message)
-            self.log_item(message)
-            return self.remove_file(filename)
-
-        ### Handle the root node:
-        if nested_levels == {} or nested_levels[0] == []:
-            nested_levels[0] = [[0, length]]  # no inline nodes
-        else:
-            nested_levels[0].append([last_start + 1, length])
-
-        root_node_contents = []
-        for file_range in nested_levels[0]:
-            root_node_contents.append(full_file_contents[file_range[0]:
-                                                     file_range[1]])
-        root_node = UrtextNode(os.path.join(self.path, filename),
-                               contents=''.join(root_node_contents),
-                               root=True)
-        if root_node.id == None or not re.match(node_id_regex, root_node.id):
-            if import_project == True:
-                if filename not in self.to_import:
-                    self.to_import.append(filename)
-                    return self.remove_file(filename)
-            else:
-                self.log_item('Root node without ID: ' + filename)
-                return self.remove_file(filename)
-
-        if self.is_duplicate_id(root_node.id, filename):
-            return
-
-        self.add_node(root_node, nested_levels[0])
-        root_node_id = root_node.id
-
-        self.files[filename]['parsed_items'] = parsed_items
         """
         If this is not the initial load of the project, parse the timestamps in the file
         """
         if self.compiled == True:
-            for node_id in self.files[filename]['nodes']:
+            for node_id in new_file.nodes:
                 self.parse_meta_dates(node_id)
         
         self.set_tree_elements(filename)
 
-        for node_id in self.files[filename]['nodes']:
+        for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)
         
         if re_index:
@@ -358,7 +193,7 @@ class UrtextProject:
     def set_tree_elements(self, filename):
         """ Builds tree elements within the file, after the file is parsed."""
 
-        parsed_items = self.files[filename]['parsed_items']
+        parsed_items = self.files[filename].parsed_items
         positions = sorted(parsed_items.keys())
 
         for position in positions:
@@ -372,7 +207,7 @@ class UrtextProject:
             if node[:2] == '>>':
                 inserted_node_id = node[2:]
                 for other_node in [
-                        node_id for node_id in self.files[filename]['nodes']
+                        node_id for node_id in self.files[filename].nodes
                         if node_id != node
                 ]:  # Careful ...
                     if self.is_in_node(position, other_node):
@@ -388,13 +223,13 @@ class UrtextProject:
             set the inline node's parent as the root node manually.
             """
             if position == 0 and parsed_items[0] == '{{':
-                self.nodes[node].tree_node.parent = self.nodes[
-                    root_node_id].tree_node
+                self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
                 continue
             """
             Otherwise, this is an inline node not at the beginning of the file.
             """
             parent = self.get_parent(node)
+            
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
     def build_alias_trees(self):
@@ -426,11 +261,11 @@ class UrtextProject:
     """
     Parsing helpers
     """
-    def add_node(self, new_node, ranges):
+    def add_node(self, new_node):
         """ Adds a node to the project object """
 
-        if new_node.filename not in self.files:
-            self.files[new_node.filename]['nodes'] = []
+        # if new_node.filename not in self.files:
+        #     self.files[new_node.filename]['nodes'] = []
         """
         pass the node's dynamic definitions up into the project object
         self.dynamic_nodes = { target_id : definition }
@@ -451,8 +286,6 @@ class UrtextProject:
                           ', using the first one found.')
 
         self.nodes[new_node.id] = new_node
-        self.files[new_node.filename]['nodes'].append(new_node.id)
-        self.nodes[new_node.id].ranges = ranges
         if new_node.project_settings:
             self.get_settings_from(new_node)
 
@@ -920,7 +753,7 @@ class UrtextProject:
 
         filename = os.path.basename(filename)
         if filename in self.files:
-            for node_id in self.files[filename]['nodes']:
+            for node_id in self.files[filename].nodes:
                 for target_id in list(self.dynamic_nodes):
                     if self.dynamic_nodes[target_id].source_id == node_id:
                         del self.dynamic_nodes[target_id]
@@ -935,7 +768,8 @@ class UrtextProject:
                                 self.tagnames[tagname][value].remove(node_id)
                             if len(self.tagnames[tagname][value]) == 0:
                                 del self.tagnames[tagname][value]
-                del self.nodes[node_id]
+                if node_id in self.nodes:
+                    del self.nodes[node_id]
             del self.files[filename]
         return None
 
@@ -970,29 +804,6 @@ class UrtextProject:
             return
 
         return filename
-
-    def get_file_contents(self, filename):
-        """ returns the file contents, filtering out Unicode Errors, directories, other errors """
-
-        try:
-            with open(
-                    os.path.join(self.path, filename),
-                    'r',
-                    encoding='utf-8',
-            ) as theFile:
-                full_file_contents = theFile.read()
-                theFile.close()
-            return full_file_contents.encode('utf-8').decode('utf-8')
-
-        except IsADirectoryError:
-            return None
-        except UnicodeDecodeError:
-            self.log_item('UnicodeDecode Error: ' + filename)
-            return None
-        except:
-            self.log_item('Urtext not including ' + filename)
-            return None
-
     
     def new_file_node(self, date=None, metadata = {}, node_id=None):
         """ add a new FILE-level node programatically """
@@ -1014,7 +825,7 @@ class UrtextProject:
         self.set_file_contents( filename, contents )
 
         self.files[filename] = {}
-        self.files[filename]['nodes'] = [node_id]
+        self.files[filename].nodes = [node_id]
         self.nodes[node_id] = UrtextNode(os.path.join(self.path, filename),
                                          contents)
         return { 
@@ -1289,7 +1100,7 @@ class UrtextProject:
         if single:
             self.writer = self.ix.writer()
 
-        for node_id in self.files[filename]['nodes']:
+        for node_id in self.files[filename].nodes:
             self.writer.add_document(title=self.nodes[node_id].title,
                                 path=node_id,
                                 content=self.nodes[node_id].contents())
@@ -1526,7 +1337,7 @@ class UrtextProject:
         if self.nodes[child_node_id].compact:
             distance_back = 1
         for other_node in [
-                other_id for other_id in self.files[filename]['nodes']
+                other_id for other_id in self.files[filename].nodes
                 if other_id != child_node_id
                 ]:
             
@@ -1601,7 +1412,6 @@ class UrtextProject:
             self.log_item('Duplicate node ID ' + node_id + ' in ' + filename +
                           ' -- already used in ' +
                           self.nodes[node_id].filename + ' (>' + node_id + ')')
-            self.remove_file(filename)
             return True
         return False
 
@@ -1640,7 +1450,7 @@ class UrtextProject:
         """
         Given a filename, returns the root Node's ID
         """
-        for node_id in self.files[filename]['nodes']:
+        for node_id in self.files[filename].nodes:
             if self.nodes[node_id].root_node == True:
                 return node_id
         return None
@@ -1746,6 +1556,11 @@ class UrtextProject:
             if fragment == tag[:length].lower():
                 return tag
         return u''
+
+class NoProject(Exception):
+    """ Raised when no Urtext nodes are in the folder """
+    pass
+
 
 """ 
 Helpers 
