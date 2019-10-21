@@ -229,7 +229,7 @@ class UrtextProject:
             Otherwise, this is an inline node not at the beginning of the file.
             """
             parent = self.get_parent(node)
-            
+
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
     def build_alias_trees(self):
@@ -1451,8 +1451,9 @@ class UrtextProject:
         Given a filename, returns the root Node's ID
         """
         for node_id in self.files[filename].nodes:
-            if self.nodes[node_id].root_node == True:
-                return node_id
+            for root_node in self.files[filename].root_nodes:
+                if self.is_in_node(root_node, self.nodes[node_id].ranges[0][0]):
+                    return root_node
         return None
 
     def get_all_files(self):
