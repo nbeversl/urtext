@@ -22,12 +22,13 @@ dynamic_def_regexp = re.compile(r'\[\[.*?\]\]', re.DOTALL)
 
 class UrtextNode:
     """ Urtext Node object"""
-    def __init__(self, filename, contents='', root=False):
+    def __init__(self, filename, contents='', root=False, compact=False):
         self.filename = os.path.basename(filename)
         self.project_path = os.path.dirname(filename)
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
+        self.compact = compact
         self.dynamic = False
         self.id = None
         self.new_id = None

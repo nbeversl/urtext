@@ -15,7 +15,7 @@ class UrtextFile:
         self.root_nodes = {}
         self.filename = filename
         self.basename = os.path.basename(filename)        
-        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^'] ]
+        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^', '^\%'] ]
         self.parsed_items = {}
         self.length = None
         self.full_file_contents = self.get_file_contents()
@@ -65,47 +65,41 @@ class UrtextFile:
                 continue
 
             if self.symbols[position] == '^\s*\^':
-             
                 compact_node_contents = re.search(compact_node_regex, self.full_file_contents[position:]).group(0)
-                compact_node = UrtextNode(self.filename, contents=compact_node_contents[1:])
-                
-                if compact_node.id != None and re.match(node_id_regex, compact_node.id):
+                compact_node = UrtextNode(self.filename, 
+                    contents=compact_node_contents[1:], # omit the '^ character itself'
+                    compact = True)
+
+                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents)]]):
+                    return self.log_error('Compact Node problem', position)
                     
-                    nested_levels[nested].append([last_start, position ])
-                    compact_node.compact = True 
-                    self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents)]])
-                    self.parsed_items[position] = compact_node.id
-                    last_start = position + len(compact_node_contents) 
-                    continue
+                nested_levels[nested].append([last_start, position ]) 
+                self.parsed_items[position] = compact_node.id
+                last_start = position + len(compact_node_contents) 
+                continue
 
             # If this closes a node:
             if self.symbols[position] == '}}':  # pop
                 nested_levels[nested].append([last_start, position])
 
                 # Get the node contents and construct the node
-                node_contents = []
-                for file_range in nested_levels[nested]:
-                    node_contents.append(self.full_file_contents[file_range[0]:file_range[1]])
+                new_node = UrtextNode(
+                    self.filename, 
+                    contents=''.join([  
+                        self.full_file_contents[file_range[0]:file_range[1]] 
+                            for file_range in nested_levels[nested] 
+                        ]))
+                if not self.add_node(new_node, nested_levels[nested]):
+                    return self.log_error('Node missing ID', position)
 
-                joined_contents = ''.join(node_contents)
-                new_node = UrtextNode(self.filename, contents=joined_contents)
-
-                if new_node.id != None and re.match(node_id_regex, new_node.id):
-                    self.add_node(new_node, nested_levels[nested])
-                    self.parsed_items[position] = new_node.id
-
-                else:
-                    self.log_error('Node missing ID', position)
-                    return None
-
+                self.parsed_items[position] = new_node.id
                 del nested_levels[nested]
 
                 last_start = position + 2
                 nested -= 1
 
                 if nested < 0:
-                    self.log_error('Stray closing wrapper', position)
-                    return None
+                    return self.log_error('Stray closing wrapper', position)  
 
         if nested != 0:
             self.log_error('Missing closing wrapper', position)
@@ -113,29 +107,28 @@ class UrtextFile:
 
         ### Handle the root node:
         if nested_levels == {} or nested_levels[0] == []:
-            nested_levels[0] = [[0, self.length]]  # no inline nodes
+            nested_levels[0] = [[0, self.length]]  
         else:
             nested_levels[0].append([last_start + 1, self.length])
 
-        root_node_contents = []
-        for file_range in nested_levels[0]:
-            root_node_contents.append(self.full_file_contents[file_range[0]: file_range[1]])
         root_node = UrtextNode(self.filename,
-                               contents=''.join(root_node_contents),
+                               contents=''.join([
+                                    self.full_file_contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
                                root=True)
-        if root_node.id == None or not re.match(node_id_regex, root_node.id):
+
+        if not self.add_node(root_node, nested_levels[0]):
             print('Root node without ID: ' + self.filename)
             return None
 
-        self.nodes[root_node.id] = root_node
-        self.nodes[root_node.id].ranges = nested_levels[0]
         self.root_node_id = root_node.id
     
 
     def add_node(self, new_node, ranges):
-        self.nodes[new_node.id] = new_node
-        self.nodes[new_node.id].ranges = ranges
-
+        if new_node.id != None and re.match(node_id_regex, new_node.id):
+            self.nodes[new_node.id] = new_node
+            self.nodes[new_node.id].ranges = ranges
+            return True
+        return False
 
 
     def get_file_contents(self):
