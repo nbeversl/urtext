@@ -45,6 +45,9 @@ class UrtextFile:
         nested_levels = {}
         last_start = 0  # tracks the most recently parsed position
 
+        if self.positions:
+            nested_levels[0] = [[0, self.positions[0]]]
+
         for position in self.positions:
 
             # Allow node nesting arbitrarily deep
@@ -82,13 +85,17 @@ class UrtextFile:
             if self.symbols[position] in ['}}','%%']:  # pop
                 nested_levels[nested].append([last_start, position])
 
+                root = True if nested == 0 else False
+                
                 # Get the node contents and construct the node
                 new_node = UrtextNode(
                     self.filename, 
                     contents=''.join([  
                         self.full_file_contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
-                        ]))
+                        ]),
+                    root=root)
+
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
 
@@ -100,7 +107,6 @@ class UrtextFile:
                 if self.symbols[position] == '%%':
                     nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
                     nested_levels[nested].append([last_start, position])
-                    #nested += 1
                     continue
 
                 nested -= 1

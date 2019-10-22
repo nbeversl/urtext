@@ -182,8 +182,8 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)
         
-        if re_index:
-            self.re_search_index_file(filename)
+        #if re_index:
+        #    self.re_search_index_file(filename)
 
         return filename
 
@@ -226,11 +226,12 @@ class UrtextProject:
                 self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
                 continue
             """
-            Otherwise, this is an inline node not at the beginning of the file.
+            Otherwise, this is either an inline node not at the beginning of the file,
+            or else a root (file level) node, so:
             """
-            parent = self.get_parent(node)
-
-            self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
+            if not self.nodes[node].root_node:
+                parent = self.get_parent(node)
+                self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
     def build_alias_trees(self):
         """ 
@@ -822,12 +823,8 @@ class UrtextProject:
 
         filename = node_id + '.txt'
 
-        self.set_file_contents( filename, contents )
-
-        self.files[filename] = {}
-        self.files[filename].nodes = [node_id]
-        self.nodes[node_id] = UrtextNode(os.path.join(self.path, filename),
-                                         contents)
+        self.set_file_contents( filename, contents )  
+        self.parse_file(filename)
         return { 
                 'filename':filename, 
                 'id':node_id
