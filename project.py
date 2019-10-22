@@ -402,7 +402,10 @@ class UrtextProject:
                         this_node_id = child.name
                         base_filename = self.nodes[this_node_id].filename
                         if base_filename != tree_filename:
+                            
+                            # Will need to be changed to handle multiple root nodes
                             this_root_node = self.get_root_node_id(base_filename)
+                            ###
                             link += this_root_node+'.html'
                     link += '#'+child.name
                     html += '<li><a href="' + link + '">' + self.nodes[child.name].title + '</a></li>\n'
@@ -910,6 +913,9 @@ class UrtextProject:
 
         for filename in filenames:
             old_filename = os.path.basename(filename)
+
+            ## WILL NEED TO BE CHANGED TO HANDLE MULTIPLE ROOT NODES
+
             root_node_id = self.get_root_node_id(old_filename)
             root_node = self.nodes[root_node_id]
 
@@ -1133,6 +1139,7 @@ class UrtextProject:
     """
     def export_project( self , jekyll=False, style_titles=True ):
         for filename in list(self.files):
+            # will have to be changed to handle multiple root nodes
             export_filename = self.get_root_node_id(filename)+'.html'
             self.export(filename, 
                 export_filename, 
@@ -1173,7 +1180,8 @@ class UrtextProject:
                 return '\n' + '#' * nested + ' ' + title + '\n'
             if kind == 'HTML':
                 return '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n'
-            
+        
+        # will have to be changed to handle multiple root nodes
         root_node_id = self.get_root_node_id(filename)
         
         def s(  root_node_id, 

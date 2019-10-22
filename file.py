@@ -140,6 +140,8 @@ class UrtextFile:
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
+            if new_node.root:
+                self.root_nodes.append(new_node.id)
             return True
         return False
 
@@ -173,4 +175,5 @@ class UrtextFile:
                 message, ' in ', self.filename, ' at position ',
             str(position), '\n', error_line, '\n', ' ' * len(error_line), '^']))
 
+        self.nodes = []
         return None
