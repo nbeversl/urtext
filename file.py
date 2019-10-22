@@ -15,9 +15,8 @@ class UrtextFile:
         self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
-        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^', '%%'] ]
+        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^', '\$\$'] ]
         self.parsed_items = {}
-        self.length = None
         self.full_file_contents = self.get_file_contents()
         self.length = len(self.full_file_contents)
         self.parse()
@@ -52,7 +51,7 @@ class UrtextFile:
 
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
-
+            
             # If this opens a new node, track the ranges of the outer one.
             if self.symbols[position] == '{{':
                 nested_levels[nested].append([last_start, position])
@@ -82,7 +81,7 @@ class UrtextFile:
                 continue
 
             # If this closes a node:
-            if self.symbols[position] in ['}}','%%']:  # pop
+            if self.symbols[position] in ['}}', '\$\$']:  # pop
                 nested_levels[nested].append([last_start, position])
 
                 root = True if nested == 0 else False
@@ -104,7 +103,7 @@ class UrtextFile:
 
                 last_start = position + 2
 
-                if self.symbols[position] == '%%':
+                if self.symbols[position] == '\$\$':
                     nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
                     nested_levels[nested].append([last_start, position])
                     continue

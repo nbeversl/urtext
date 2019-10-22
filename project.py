@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-import codecs
 import re
 import datetime
 import itertools
 import platform
 import logging
-import operator
-import difflib
 import json
 import os
-import random 
-import sys
+import random
 import time
 from time import strftime
 from pytz import timezone
@@ -26,7 +22,6 @@ from whoosh.highlight import UppercaseFormatter
 from whoosh.analysis import StemmingAnalyzer
 
 from .timeline import timeline
-from .node import UrtextNode
 from .file import UrtextFile
 from .interlinks import Interlinks
 
@@ -755,7 +750,6 @@ class UrtextProject:
     def remove_file(self, filename):
         """ removes the file from the project object """
 
-        filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
                 for target_id in list(self.dynamic_nodes):
@@ -1564,7 +1558,7 @@ class UrtextProject:
         return u''
 
 class NoProject(Exception):
-    """ Raised when no Urtext nodes are in the folder """
+    """ no Urtext nodes are in the folder """
     pass
 
 
