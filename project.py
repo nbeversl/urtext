@@ -166,7 +166,7 @@ class UrtextProject:
         self.files[new_file.basename] = new_file
         for node_id in new_file.nodes:
             if self.is_duplicate_id(node_id, filename):
-                self.remove_file(filename)
+                self.remove_file(new_file.basename)
                 return
             self.add_node(new_file.nodes[node_id])
         
@@ -177,7 +177,7 @@ class UrtextProject:
             for node_id in new_file.nodes:
                 self.parse_meta_dates(node_id)
         
-        self.set_tree_elements(filename)
+        self.set_tree_elements(new_file.basename)
 
         for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)

@@ -12,7 +12,7 @@ class UrtextFile:
     def __init__(self, filename):
         
         self.nodes = {}
-        self.root_nodes = {}
+        self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
         self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^', '%%'] ]
@@ -140,8 +140,8 @@ class UrtextFile:
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
-            if new_node.root:
-                self.root_nodes.append(new_node.id)
+            if new_node.root_node:
+                self.root_nodes.append(new_node.id) 
             return True
         return False
 
