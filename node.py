@@ -28,7 +28,6 @@ class UrtextNode:
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
-        self.compact = compact
         self.dynamic = False
         self.id = None
         self.new_id = None
@@ -38,7 +37,7 @@ class UrtextNode:
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
-        self.compact = False
+        self.compact = compact
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(stripped_contents)
         

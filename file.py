@@ -15,7 +15,8 @@ class UrtextFile:
         self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
-        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', '^\s*\^', '\$\$'] ]
+        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', ] ]
+        self.compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in ['^\s*\^','^\%(?!%)'] ])
         self.parsed_items = {}
         self.full_file_contents = self.get_file_contents()
         self.length = len(self.full_file_contents)
@@ -27,14 +28,15 @@ class UrtextFile:
         self.symbols = {}
 
         for compiled_symbol in self.compiled_symbols:
-            symbol = compiled_symbol.pattern
             locations = compiled_symbol.finditer(self.full_file_contents)
             for loc in locations:
                 start = loc.span()[0]
-                self.symbols[start] = symbol
+                self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols.keys() if key != -1])
-                
+        if 'cwq' in self.filename:
+            print(self.positions)
+
     def lex(self):
 
         """
@@ -69,19 +71,19 @@ class UrtextFile:
             if self.symbols[position] == '^\s*\^':
                 compact_node_contents = re.search(compact_node_regex, self.full_file_contents[position:]).group(0)
                 compact_node = UrtextNode(self.filename, 
-                    contents=compact_node_contents[1:], # omit the '^ character itself'
+                    # omit the leading/training whitespace and the '^' character itself:
+                    contents=compact_node_contents.strip()[1:], 
                     compact = True)
-
-                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents)]]):
+                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents.strip()[1:])]]):
                     return self.log_error('Compact Node problem', position)
-                    
+
                 nested_levels[nested].append([last_start, position ]) 
                 self.parsed_items[position] = compact_node.id
                 last_start = position + len(compact_node_contents) 
                 continue
 
             # If this closes a node:
-            if self.symbols[position] in ['}}', '\$\$']:  # pop
+            if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
                 nested_levels[nested].append([last_start, position])
 
                 root = True if nested == 0 else False
@@ -103,7 +105,7 @@ class UrtextFile:
 
                 last_start = position + 2
 
-                if self.symbols[position] == '\$\$':
+                if self.symbols[position] == '^\%(?!%)':
                     nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
                     nested_levels[nested].append([last_start, position])
                     continue
@@ -175,4 +177,7 @@ class UrtextFile:
             str(position), '\n', error_line, '\n', ' ' * len(error_line), '^']))
 
         self.nodes = []
+        self.parsed_items = {}
+        self.root_nodes = []
+
         return None
