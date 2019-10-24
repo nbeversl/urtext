@@ -34,8 +34,6 @@ class UrtextFile:
                 self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols.keys() if key != -1])
-        if 'cwq' in self.filename:
-            print(self.positions)
 
     def lex(self):
 
@@ -131,8 +129,7 @@ class UrtextFile:
                                root=True)
 
         if not self.add_node(root_node, nested_levels[0]):
-            print('Root node without ID: ' + self.filename)
-            return None
+            return self.log_error(self, 'Root node without ID', position)
 
         self.root_node_id = root_node.id
     
