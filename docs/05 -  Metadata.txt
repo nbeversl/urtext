@@ -14,6 +14,9 @@ Node Metadata
         /-- note: example note ; tag: groceries --/
 
     Other than three reserved words (see below), metadata may have user-defined aribitrary keys and values. Keys and values of metadata tags are indexed automatically and searchable within the Urtext project (see >012). 
+/-- ID: 7il --/
+
+
 
     Note that: 
 
@@ -36,9 +39,8 @@ Node Metadata
 
        {{   title
        
-            If for you want to override the automatic title and assign a title manually, use title tag in the metadata block:
-       
-               /-- title: title (This tag overrides the default title)  --/
+            If you want to override the automatic title and assign a title manually, use title tag in the metadata block: /-- title: title (overrides the default title)  --/
+
         /-- ID:00y --/ }}
 
        {{   index
@@ -54,7 +56,13 @@ Node Metadata
 
         {{  flags
 
-            to be added
+            The `flags` key is used to set behavior. At present only the following exist; more may be added in the future:
+
+                - exclude_from_tree
+
+                {{  Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node will not be shown in the table of contents. /-- flags:exclude_from_tree; id: 1e3 --/ }}
+
+
 
         /-- id: cwb--/ }}
           
@@ -80,4 +88,4 @@ Timestamps >>005
 Timestamp:<Sat., Jun. 08, 2019, 09:23 AM>
 tags: 
 index: 05
- --/
+--/

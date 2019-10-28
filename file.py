@@ -72,7 +72,7 @@ class UrtextFile:
                     # omit the leading/training whitespace and the '^' character itself:
                     contents=compact_node_contents.strip()[1:], 
                     compact = True)
-                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents.strip()[1:])]]):
+                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents.strip()[1:]) + 2]]):
                     return self.log_error('Compact Node problem', position)
 
                 nested_levels[nested].append([last_start, position ]) 
@@ -128,8 +128,8 @@ class UrtextFile:
                                     self.full_file_contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
                                root=True)
 
-        if not self.add_node(root_node, nested_levels[0]):
-            return self.log_error(self, 'Root node without ID', position)
+        if not self.add_node(root_node, nested_levels[0]):                
+            return self.log_error('Root node without ID', 0)
 
         self.root_node_id = root_node.id
     

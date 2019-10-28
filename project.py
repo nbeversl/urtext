@@ -627,8 +627,7 @@ class UrtextProject:
         
         full_file_contents = self.full_file_contents(node_id=node_id)
         tag_position = territory[-1][1]
-        new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[
-                                              tag_position:]
+        new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
 
         self.set_file_contents(self.nodes[node_id].filename, new_contents)
         self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))

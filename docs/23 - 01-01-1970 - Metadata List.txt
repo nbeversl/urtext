@@ -1,19 +1,20 @@
 Metadata Keys
 ├── flags
 │   └── exclude_from_tree
-│       └── Table of Contents >01a
+│       ├── Table of Contents >01a
+│       └── Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
 ├── home
 │   └── a5m
 │       └── project_settings >00l
 ├── kind
 │   └── gift_list
-│       └── Node Metadata >00x
+│       └── Node Metadata >7il
 ├── note
 │   └── example note
-│       └── Node Metadata >00x
+│       └── Node Metadata >7il
 ├── purpose
 │   └── work-related
-│       └── Node Metadata >00x
+│       └── Node Metadata >7il
 ├── tag
 │   ├── example_node
 │   │   ├── Example Source Node 2 >00v
@@ -23,7 +24,7 @@ Metadata Keys
 │   ├── exclude_this
 │   │   └── Example Source Node 2 >00v
 │   └── groceries
-│       └── Node Metadata >00x
+│       └── Node Metadata >7il
 └── tags
     ├── coming
     │   └── Files >00p

@@ -67,15 +67,7 @@ Urtext Documentation >a5m
         └── Creating a File Level Node >ekz
             ├── (Python) >83e
             └── (Sublime) >xo8
-    ├── Node Metadata >00x
-        ├── Reserved Metadata Keys >011
-            ├── title (This tag overrides the default title) >00y
-            ├── index >00z
-            └── flags >cwb
-        ├── Project Metadata List >012
-            └── Metadata List >zzy
-        └── Timestamps >005
-            └── Timeline View: >00k
+    ├── ? (Missing Node): >00x
     ├── Inline Nodes >004
         ├── Example inline node >00e
         ├── Creating Inline Nodes >bbj
@@ -115,10 +107,10 @@ Urtext Documentation >a5m
 ├── Filenames >01m
 └── Extension and Customization >01o
 /-- 
-title: Table of Contents
 defined in: >029
-ID: 01a
 flags: exclude_from_tree
+ID: 01a
+title: Table of Contents
 --/}}
 
 About Urtext >>013

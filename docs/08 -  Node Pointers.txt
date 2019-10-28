@@ -78,15 +78,7 @@ Node Pointers >00r
                 └── Creating a File Level Node >ekz
                     ├── (Python) >83e
                     └── (Sublime) >xo8
-            ├── Node Metadata >00x
-                ├── Reserved Metadata Keys >011
-                    ├── title (This tag overrides the default title) >00y
-                    ├── index >00z
-                    └── flags >cwb
-                ├── Project Metadata List >012
-                    └── Metadata List >zzy
-                └── Timestamps >005
-                    └── Timeline View: >00k
+            ├── ? (Missing Node): >00x
             ├── Inline Nodes >004
                 ├── Example inline node >00e
                 ├── Creating Inline Nodes >bbj
@@ -121,9 +113,9 @@ Node Pointers >00r
         └── Extension and Customization >01o
     └── Example - Table of Contents From Another Root >01n
 /-- 
-title: Example - Table of Contents From Another Root
 defined in: >00s
 ID: 01n
+title: Example - Table of Contents From Another Root
 --/}}
 
     [[ ID:01n
