@@ -6,23 +6,50 @@ import re
 import datetime
 import logging
 import pytz
-PACKAGE_FOLDER = __name__.split('.')[0]
 
 from anytree import Node
 from anytree import PreOrderIter
-
 
 """
 Dynamic definitions in the form:
 { target_id : definition, ..., ... }
 """
-dynamic_definition_regex = re.compile('(?:\[\[)(.*?)(?:\]\])', re.DOTALL)
+dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
-dynamic_def_regexp = re.compile(r'\[\[.*?\]\]', re.DOTALL)
+dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
+
+def create_urtext_node(
+    filename, 
+    contents='', 
+    root=False, 
+    compact=False):
+    
+    stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
+    metadata = NodeMetadata(stripped_contents)
+
+    new_node = UrtextNode(filename, metadata, root=root, compact=compact)
+    new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
+
+    possible_defs = ['[['+section for section in contents.split('[[') ]
+    dynamic_definitions = {}
+    for possible_def in possible_defs:
+        match = re.match(dynamic_definition_regex, possible_def)        
+        if match:
+            match = match.group(0).strip('[[').strip(']]')
+            dynamic_definition = UrtextDynamicDefinition(match)
+            if dynamic_definition.target_id != None:
+                dynamic_definition.source_id = new_node.id
+                dynamic_definitions[dynamic_definition.target_id] = dynamic_definition
+
+    new_node.dynamic_definitions = dynamic_definitions
+
+    return new_node
+
 
 class UrtextNode:
     """ Urtext Node object"""
-    def __init__(self, filename, contents='', root=False, compact=False):
+    def __init__(self, filename, metadata, root=False, compact=False):
         self.filename = os.path.basename(filename)
         self.project_path = os.path.dirname(filename)
         self.position = 0
@@ -30,17 +57,14 @@ class UrtextNode:
         self.tree = None
         self.dynamic = False
         self.id = None
-        self.new_id = None
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.date = self.tz.localize(datetime.datetime(1970,1,1))  # default
+        self.date = default_date # default
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
-        stripped_contents = self.strip_dynamic_definitions(contents)
-        self.metadata = NodeMetadata(stripped_contents)
-        
+        self.metadata = metadata
         if self.metadata.get_tag('ID'):
             node_id = self.metadata.get_tag('ID')[0].lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
@@ -50,16 +74,8 @@ class UrtextNode:
 
         self.parent = None
         self.index = self.metadata.get_tag('index')
-        self.reset_node()
-        
-        for match in dynamic_definition_regex.findall(contents):
-            dynamic_definition = UrtextDynamicDefinition(match)
-            dynamic_definition.source_id = self.id
-            if dynamic_definition.target_id != None:
-                self.dynamic_definitions[dynamic_definition.target_id] = dynamic_definition
-
-        self.set_title(stripped_contents)
-
+        self.reset_node()                
+ 
     def reset_node(self):
         self.tree_node = Node(self.id)
 
@@ -77,15 +93,17 @@ class UrtextNode:
             node_contents.append(file_contents[segment[0]:segment[1]])
         return ''.join(node_contents)
 
+    @classmethod
     def strip_metadata(self, contents=''):
         if contents == '':
-            contents = self.contents()
+            return contents
         stripped_contents = re.sub(r'(\/--(?:(?!\/--).)*?--\/)',
                                    '',
                                    contents,
                                    flags=re.DOTALL)
         return stripped_contents
 
+    @classmethod
     def strip_inline_nodes(self, contents=''):
         if contents == '':
             contents = self.contents()
@@ -96,10 +114,11 @@ class UrtextNode:
                 stripped_contents = stripped_contents.replace(inline_node, '')
         return stripped_contents
 
+    @classmethod
     def strip_dynamic_definitions(self, contents=''):
-        if contents == '':
-            contents = self.contents()
-        
+        if not contents:
+            return contents
+             
         stripped_contents = contents
         while dynamic_def_regexp.search(stripped_contents):
             for dynamic_definition in dynamic_def_regexp.findall(
@@ -117,18 +136,21 @@ class UrtextNode:
     def set_index(self, new_index):
         self.index = new_index
 
-    def set_title(self, stripped_contents):
+    @classmethod
+    def set_title(self, contents, metadata=None):
+
         #
         # check for title metadata
         #
-        title_tag = self.metadata.get_tag('title')
-        if len(title_tag) > 0: 
-            self.title = title_tag[0]
-            return
+        if metadata:
+            title_tag = metadata.get_tag('title')
+            if len(title_tag) > 0: 
+                title = title_tag[0]
+                return title
         #
         # otherwise, title is the first non white-space line
         #
-        stripped_contents = self.strip_metadata(contents=stripped_contents).strip().split('\n')
+        stripped_contents = self.strip_metadata(contents=contents).strip().split('\n')
 
         index = 0
         last_character = len(stripped_contents) - 1
@@ -140,7 +162,7 @@ class UrtextNode:
 
         first_line = stripped_contents[index][:100].replace('{{','').replace('}}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
-        self.title = first_line.strip().strip('\n').strip()
+        return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
         if len(self.metadata.get_tag(

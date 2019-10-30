@@ -11,6 +11,7 @@ import time
 from time import strftime
 from pytz import timezone
 import pytz
+import getpass
 
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
@@ -38,8 +39,7 @@ class UrtextProject:
                  rename=False,
                  recursive=False,
                  import_project=False,
-                 init_project=False,
-                 machine_lock=None):
+                 init_project=False):
 
         self.path = path
         self.conflicting_files = []
@@ -85,9 +85,9 @@ class UrtextProject:
         
         filelist = os.listdir(self.path)
 
-        if machine_lock:
-            self.lock(machine_lock)
-            
+        self.machine_name = getpass.getuser()
+        self.lock()
+        
         for file in filelist:
             if self.filter_filenames(file) == None:
                 continue
@@ -260,13 +260,6 @@ class UrtextProject:
     def add_node(self, new_node):
         """ Adds a node to the project object """
 
-        # if new_node.filename not in self.files:
-        #     self.files[new_node.filename]['nodes'] = []
-        """
-        pass the node's dynamic definitions up into the project object
-        self.dynamic_nodes = { target_id : definition }
-
-        """
         for target_id in new_node.dynamic_definitions.keys():
             if target_id in self.dynamic_nodes:
                 self.log_item('Node >' + target_id +
@@ -280,6 +273,9 @@ class UrtextProject:
         if len(ID_tags) > 1:
             self.log_item('Multiple ID tags in >' + new_node.id +
                           ', using the first one found.')
+            print('ERROR LOGGING, ID_tags:')
+            print(ID_tags)
+
 
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
@@ -417,8 +413,6 @@ class UrtextProject:
     def compile(self):
         """ Main method to compile dynamic nodes definitions """
 
-        """dictionary size changes during iteration """
-
         for target_id in list(self.dynamic_nodes):
             """
             Make sure the target node exists.
@@ -430,10 +424,10 @@ class UrtextProject:
                               ' points to nonexistent node >' + target_id)
                 continue
 
-            self.parse_file(self.nodes[target_id].filename)
-            self.update(compile=False, update_lists=False)
+            # these should no longer be necessary with machine lock
+            # self.parse_file(self.nodes[target_id].filename)
+            # self.update(compile=False, update_lists=False)
             
-            old_node_contents = self.nodes[target_id].contents()
             dynamic_definition = self.dynamic_nodes[target_id]
 
             new_node_contents = ''
@@ -476,20 +470,18 @@ class UrtextProject:
                     # otherwise, the list of included nodes is just the single set, if it exists
                     included_nodes_and = list(included_nodes_and[0])
                     
-                # add all the these nodes to the list of nodes to be included.
+                # add all the these nodes to the list of nodes to be included, avoiding duplicates
                 for indiv_node_id in included_nodes_and:
-                    included_nodes.append(indiv_node_id)
+                    if indiv_node_id not in included_nodes:
+                        included_nodes.append(indiv_node_id)
 
-                for indiv_node in included_nodes:
-                    if indiv_node not in included_nodes:
-                        included_nodes.append(indiv_node)
                 for item in dynamic_definition.include_or:
                     key, value = item[0], item[1]
                     if value in self.tagnames[key]:
                         added_nodes = self.tagnames[key][value]
-                        for indiv_node in added_nodes:
-                            if indiv_node not in included_nodes:
-                                included_nodes.append(indiv_node)
+                        for indiv_node_id in added_nodes:
+                            if indiv_node_id not in included_nodes:
+                                included_nodes.append(indiv_node_id)
     
                 for item in dynamic_definition.exclude_or:
                     key, value = item[0], item[1]
@@ -597,9 +589,12 @@ class UrtextProject:
                 t.parent = s
                 if value in self.tagnames[key]:
                     for node_id in sorted(self.tagnames[key][value]):
-                        n = Node(self.nodes[node_id].title + ' >' +
-                                 node_id)
-                        n.parent = t
+                        if node_id in self.nodes:
+                            n = Node(self.nodes[node_id].title + ' >' +
+                                     node_id)
+                            n.parent = t
+                        else: # debugging
+                            print(node_id+ ' WAS LOST (DEBUGGING)')
         if 'zzy' in self.nodes:
             metadata_file = self.nodes['zzy'].filename
         else:
@@ -637,7 +632,7 @@ class UrtextProject:
         adjust the ranges of all nodes in the given file 
         a given amount, from a given position
         """
-        for node_id in self.files[os.path.basename(filename)]['nodes']:
+        for node_id in self.files[os.path.basename(filename)].nodes:
             number_ranges = len(self.nodes[node_id].ranges)
             for index in range(number_ranges):
                 this_range = self.nodes[node_id].ranges[index]
@@ -759,8 +754,8 @@ class UrtextProject:
                 # delete it from the self.tagnames array -- duplicated from delete_file()
                 for tagname in list(self.tagnames):
                     for value in list(self.tagnames[tagname]):
-                        if value in self.tagnames[
-                                tagname]:  # in case it's been removed
+                        if value in self.tagnames[tagname]:  
+                            # in case it's been removed
                             if node_id in self.tagnames[tagname][value]:
                                 self.tagnames[tagname][value].remove(node_id)
                             if len(self.tagnames[tagname][value]) == 0:
@@ -774,7 +769,7 @@ class UrtextProject:
         new_filename = os.path.basename(new_filename)
         old_filename = os.path.basename(old_filename)
         self.files[new_filename] = self.files[old_filename]
-        for node_id in self.files[new_filename]['nodes']:
+        for node_id in self.files[new_filename].nodes:
             self.nodes[node_id].filename = new_filename
             self.nodes[node_id].full_path = os.path.join(
                 self.path, new_filename)
@@ -1353,28 +1348,28 @@ class UrtextProject:
     def get_node_id_from_position(self, filename, position):
         """ Given a position, returns the Node ID it's in """
 
-        for node_id in self.files[os.path.basename(filename)]['nodes']:
+        for node_id in self.files[os.path.basename(filename)].nodes:
             if self.is_in_node(position, node_id):
                 return node_id
         return None
 
-    def get_link(self, string, position=None):
-        """ Given a line of text passed from an editorm, returns finds a node or web link """
-
+    def get_link(self, string, position=0):
+        """ Given a line of text passed from an editor, returns finds a node or web link """
         url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-        if re.search(url_scheme, string):
+
+        if re.search(url_scheme, string[position:]):
             url = re.search(url_scheme, string).group(0)
             return ['HTTP', url]
 
         link = None
-        # first try looking where the cursor is positioned
-        if position:
-            for index in range(0, 3):
-                if re.search(node_link_regex,
-                             string[position - index:position - index + 5]):
-                    link = re.search(
-                        node_link_regex,
-                        string[position - index:position - index + 5]).group(0)
+        # first try looking around where the cursor is positioned
+        for index in range(0, 3):
+            if re.search(node_link_regex,
+                         string[position - index:position - index + 5]):
+                link = re.search(
+                    node_link_regex,
+                    string[position - index:position - index + 5]).group(0)
+                break
 
         # next try looking ahead:
         if not link:
@@ -1382,6 +1377,7 @@ class UrtextProject:
             if re.search(node_link_regex, after_cursor):
                 link = re.search(node_link_regex, after_cursor).group(0)
 
+        # then behind:
         if not link:
             before_cursor = string[:position]
             if re.search(node_link_regex, before_cursor):
@@ -1480,29 +1476,26 @@ class UrtextProject:
     """
     Folder Locking
     """
-    def check_lock(self, machine):
+    def check_lock(self):
         lock = self.get_current_lock()
-        if lock == machine:
+        if lock == self.machine_name:
             return True
         if not lock:
-            return self.lock(machine)
+            return self.lock()
         print('compiling locked by '+lock)
         return False
 
     def get_current_lock(self):
-        lock_file = os.path.join(self.path,'.lock')
-        try:
-            with open(lock_file, 'r') as f:
-                contents = f.read()
-                f.close()
-            return contents
-        except:
-            return None
+        lock_file = os.path.join(self.path,'lock')
+        with open(lock_file, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            f.close()
+        return contents
 
-    def lock(self, machine):
-        lock_file = os.path.join(self.path,'.lock')
+    def lock(self):
+        lock_file = os.path.join(self.path,'lock')
         with open (lock_file, 'w', encoding='utf-8') as f:
-            f.write(machine)
+            f.write(self.machine_name)
             f.close()
         return True
 
@@ -1555,6 +1548,70 @@ class UrtextProject:
             if fragment == tag[:length].lower():
                 return tag
         return u''
+
+    """
+    Methods used with watchdog
+    """
+
+    def on_created(self, filename):
+        if not self.check_lock():
+            return False
+        if os.path.isdir(filename):
+            return True
+        filename = os.path.basename(filename)
+        if filename in self.files:
+          return True
+        self.parse_file(filename, re_index=True)
+        self.log_item(filename +' modified. Updating the project object')
+        self.update()
+        return True
+
+    def on_modified(self, filename):
+        if not self.check_lock():
+          return False
+        filename = os.path.basename(filename)
+        do_not_update = [
+            'index', 
+            os.path.basename(self.path),
+            self.settings['logfile'],
+            ]
+
+        for node_id in ['zzz','zzy']:
+            if node_id in self.nodes:
+               do_not_update.append(self.nodes[node_id].filename)
+
+        if filename in do_not_update or '.git' in filename:
+            return True
+        self.log_item('MODIFIED ' + filename +' - Updating the project object')
+        self.parse_file(filename, re_index=True)
+        self.update()
+        return True
+
+    def on_deleted(self, filename):
+      """ this method should be removed, since deleting files should be done explicitly from Urtext """
+      pass
+      
+      # if not self.check_lock():
+      #     return False
+        
+      # filename = os.path.basename(filename)
+      # self.log_item('Watchdog saw file deleted: '+filename)
+      # self.remove_file(filename)
+      # self.update()
+      # return True
+
+    def on_moved(self, filename):
+        if not self.check_lock():            
+            return False
+        old_filename = os.path.basename(filename)
+        new_filename = os.path.basename(filename)
+        if old_filename in self.files:
+            self.log.info('RENAMED ' + old_filename + ' to ' +
+                                    new_filename)
+            self.handle_renamed(old_filename, new_filename)
+        return True
+
+
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

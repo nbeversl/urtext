@@ -23,20 +23,6 @@ import datetime
 meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
                           re.DOTALL)  # \/--((?!\/--).)*--\/
 
-class MetadataEntry:  # container for a single metadata entry
-    def __init__(self, tag, value, dtstring):
-        self.tag_name = tag.strip()
-        self.value = value
-        self.dtstring = dtstring
-        self.dtstamp = None
-
-    def log(self):
-        print('tag: %s' % self.tag_name)
-        print('value: %s' % self.value)
-        print('datetimestring: %s' % self.dtstring)
-        print('datetimestamp: %s' % self.dtstamp)
-
-
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):
         
@@ -132,3 +118,16 @@ class NodeMetadata:
             if entry.tag_name[0] == '_':
                 groups_list.append(entry.tag_name)
         return groups_list
+
+class MetadataEntry:  # container for a single metadata entry
+    def __init__(self, tag, value, dtstring):
+        self.tag_name = tag.strip()
+        self.value = value
+        self.dtstring = dtstring
+        self.dtstamp = None
+
+    def log(self):
+        print('tag: %s' % self.tag_name)
+        print('value: %s' % self.value)
+        print('datetimestring: %s' % self.dtstring)
+        print('datetimestamp: %s' % self.dtstamp)

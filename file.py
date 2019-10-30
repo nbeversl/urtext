@@ -1,11 +1,15 @@
 import os
 import re
 from .node import UrtextNode
+from . import node
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 compact_node_regex = '\^[^\n]*'
+
+compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', ] ]
+compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in ['^\s*\^','^\%(?!%)'] ])
 
 class UrtextFile:
 
@@ -15,27 +19,28 @@ class UrtextFile:
         self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
-        self.compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', ] ]
-        self.compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in ['^\s*\^','^\%(?!%)'] ])
         self.parsed_items = {}
-        self.full_file_contents = self.get_file_contents()
-        self.length = len(self.full_file_contents)
-        self.parse()
-        self.lex()
-       
-    def parse(self):
+        self.lex_and_parse()
+
+    def lex_and_parse(self):
+        contents = self.get_file_contents()
+        self.length = len(contents)
+        self.lex(contents)
+        self.parse(contents)
+
+    def lex(self, contents):
         """ locate syntax symbols """
         self.symbols = {}
 
-        for compiled_symbol in self.compiled_symbols:
-            locations = compiled_symbol.finditer(self.full_file_contents)
+        for compiled_symbol in compiled_symbols:
+            locations = compiled_symbol.finditer(contents)
             for loc in locations:
                 start = loc.span()[0]
                 self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols.keys() if key != -1])
 
-    def lex(self):
+    def parse(self, contents):
 
         """
         Counters and trackers
@@ -61,14 +66,14 @@ class UrtextFile:
 
             # If this points to an outside node, find which node
             if self.symbols[position] == '>>':
-                node_pointer = self.full_file_contents[position:position + 5]
+                node_pointer = contents[position:position + 5]
                 if re.match(node_pointer_regex, node_pointer):
                     self.parsed_items[position] = node_pointer
                 continue
 
             if self.symbols[position] == '^\s*\^':
-                compact_node_contents = re.search(compact_node_regex, self.full_file_contents[position:]).group(0)
-                compact_node = UrtextNode(self.filename, 
+                compact_node_contents = re.search(compact_node_regex, contents[position:]).group(0)
+                compact_node = node.create_urtext_node(self.filename, 
                     # omit the leading/training whitespace and the '^' character itself:
                     contents=compact_node_contents.strip()[1:], 
                     compact = True)
@@ -87,10 +92,10 @@ class UrtextFile:
                 root = True if nested == 0 else False
                 
                 # Get the node contents and construct the node
-                new_node = UrtextNode(
+                new_node = node.create_urtext_node(
                     self.filename, 
                     contents=''.join([  
-                        self.full_file_contents[file_range[0]:file_range[1]] 
+                        contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ]),
                     root=root)
@@ -123,17 +128,14 @@ class UrtextFile:
         else:
             nested_levels[0].append([last_start + 1, self.length])
 
-        root_node = UrtextNode(self.filename,
+        root_node = node.create_urtext_node(self.filename,
                                contents=''.join([
-                                    self.full_file_contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
+                                    contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
                                root=True)
 
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
-
-        self.root_node_id = root_node.id
     
-
     def add_node(self, new_node, ranges):
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
@@ -142,7 +144,6 @@ class UrtextFile:
                 self.root_nodes.append(new_node.id) 
             return True
         return False
-
 
     def get_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
@@ -166,15 +167,14 @@ class UrtextFile:
             return None
 
     def log_error(self, message, position):
-        error_line = self.full_file_contents[position - 50:position].split('\n')[0]
-        error_line += self.full_file_contents[position:position + 50].split('\n')[0]
+ 
+        self.nodes = {}
+        self.parsed_items = {}
+        self.root_nodes = []
+        self.length = 0
 
         print(''.join([ 
                 message, ' in ', self.filename, ' at position ',
-            str(position), '\n', error_line, '\n', ' ' * len(error_line), '^']))
-
-        self.nodes = []
-        self.parsed_items = {}
-        self.root_nodes = []
+            str(position)]))
 
         return None
