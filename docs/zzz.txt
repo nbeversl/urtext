@@ -8,7 +8,7 @@ Example Source Node 1 >017
 -
 index >00z
 -
-Writing Nodes >01j
+Nodes >01j
 -
 Inline Nodes >004
 -
@@ -30,9 +30,7 @@ Reference: Key Bindings >018
 -
 project_settings >00l
 -
-second example node >g8a
--
-parent >kru
+Generating a node ID manually (Sublime) >rfp
 -
 Compact Nodes >j6t
 -
@@ -56,157 +54,163 @@ The Node List >01i
 -
 In-Progress / Experimental / Wish List >014
 -
+Simple Links >0y2
+-
 0.1.16-alpha >03l
--
-(Python) >4ho
--
-iPhone/iPad/iOS >01y
--
-Description >yv2
 -
 Using this document >009
 -
-Full Screen / Distraction Free Mode >002
+Features and Characteristics >006
+-
+Creating Inline Nodes >rbs
 -
 Sublime Text Interface Tips >000
 -
-Features and Characteristics >006
--
-(Sublime) >xo8
+Full Screen / Distraction Free Mode >002
 -
 Sublime Project >c3n
 -
-Uses >lhs
+Compact Nodes >j6t >ucj
 -
-(Python) >n2m
+0.1.11-alpha >01l
+-
+It is proven that the corruption issue can happen with only one compiler running. It happened on the >988
+-
+flags >cwb
 -
 On the web >fak
 -
-Example node >n2w
+Hiding Tabs >015
 -
-Word Wrap in Traverse Mode (Sublime Text) >xci
+Syntax Highlighting of Inline Nodes (Sublime) >koe
 -
-Timeline View: >00k
+(Python) >83e
 -
-Trees >00h
--
-Filename formats >00i
+Sublime Text tools to help with linking >00m
 -
 Timestamp Formats >00n
 -
 Web >00o
 -
-Sublime Text tools to help with linking >00m
+Trees >00h
 -
-Using Existing Files >00b
+Filename formats >00i
 -
-Home Node >00c
+Timeline View: >00k
 -
-(Sublime) >00a
+Example inline node >00e
 -
 From a selected node >00f
 -
 From the root >00g
 -
-Example inline node >00e
+(Sublime) >00a
+-
+Using Existing Files >00b
+-
+Home Node >00c
 -
 title (overrides the default title) >00y
 -
-Files >00p
+What Urtext Is >hdf
 -
-Linking to outside resources >00q
+Duplicate Node Pointers >00t
+-
+Viewing Linked Relationships >00u
 -
 Example Source Node 2 >00v
 -
 Traverse Mode >00w
 -
-Viewing Linked Relationships >00u
+Files >00p
 -
-In Urtext for Sublime Text >e6m
--
-Comparison To Other Tools >h8z
--
-Urtext Documentation >a5m
--
-require an ID >frm
+Linking to outside resources >00q
 -
 can have arbitrary other metadata >xlc
 -
-Another Example: The Node Definition for the Table of Contents >029
+Synchronator Setup >01z
+-
+In Urtext for Sublime Text >e6m
+-
+iPhone/iPad/iOS >01y
+-
+Metadata List >zzy
+-
+Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
+-
+Standalone >plq
+-
+Node Identity (Node IDs) >01h
+-
+Example - Table of Contents From Another Root >01n
+-
+Urtext Documentation >a5m
+-
+Table of Contents >01a
+-
+Uses >lhs
+-
+File Level Nodes >01g
 -
 Hiding Line Numbers >01e
 -
 Syntax Highlighting >01d
 -
-File Level Nodes >01g
--
-Table of Contents >01a
--
-Syntax Highlighting of Inline Nodes >koe
--
-0.1.11-alpha >01l
--
-Node Identity (Node IDs) >01h
--
-About the Sublime Text Implementation >01u
--
-Compact Nodes >j6t >ucj
--
-Opening Links >01w
--
-Reopening a Project >01p
--
-0.1.15-alpha >024
--
-Creating Inline Nodes >bbj
--
-0.1.13-alpha >021
--
 0.1.14-alpha >022
 -
 Disable Prompts for File Reload >023
 -
-Creating a File Level Node >ekz
--
 0.1.12-alpha >020
 -
-Standalone >plq
+0.1.13-alpha >021
 -
-What Urtext Is >hdf
+0.1.15-alpha >024
 -
-Generating a node ID manually >a0i
+Another Example: The Node Definition for the Table of Contents >029
 -
-Synchronator Setup >01z
+Opening Links >01w
 -
-(Sublime) >qx6
+About the Sublime Text Implementation >01u
 -
-Simple Links >0y2
+become child nodes of their containing node. >hiz
 -
-(Python) >b44
+Reopening a Project >01p
+-
+(Sublime) >xo8
 -
 Making a New Project >dce
 -
 Node List >zzz
 -
-Metadata List >zzy
+Description >yv2
 -
-Hiding Tabs >015
+require an ID >frm
 -
-Example Dynamic Node Title >016
+Creating a File Level Node >ekz
 -
-Reserved Metadata Keys >011
+Word Wrap in Traverse Mode (Sublime Text) >xci
+-
+Recursive Node Pointers >6ct
+-
+(Sublime) >8fh
+-
+(Python) >fv2
+-
+Comparison To Other Tools >h8z
 -
 Project Metadata List >012
 -
-become child nodes of their containing node. >hiz
+Reserved Metadata Keys >011
 -
-(Python) >83e
+Example Dynamic Node Title >016
+-
+(Python) >n2m
 -
 (Sublime) >rij
 -
-Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
+(Python) >b44
 -
-flags >cwb
+Node Pointers >lmu
 -
 /--
 ID:zzz

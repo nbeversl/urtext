@@ -43,15 +43,17 @@ Metadata Keys
     │   ├── Sublime Text tools to help with linking >00m
     │   ├── Reopening a Project >01p
     │   ├── About the Sublime Text Implementation >01u
-    │   ├── Generating a node ID manually >a0i
+    │   ├── (Sublime) >8fh
     │   ├── Sublime Project >c3n
     │   ├── In Urtext for Sublime Text >e6m
-    │   ├── Syntax Highlighting of Inline Nodes >koe
-    │   ├── (Sublime) >qx6
+    │   ├── Syntax Highlighting of Inline Nodes (Sublime) >koe
+    │   ├── Generating a node ID manually (Sublime) >rfp
     │   ├── (Sublime) >rij
     │   └── (Sublime) >xo8
-    └── urtext_documentation
-        └── Setup >003
+    ├── urtext_documentation
+    │   └── Setup >003
+    └── urtext_fix
+        └── It is proven that the corruption issue can happen with only one compiler running. It happened on the >988
 /--
 ID:zzy
 title: Metadata List

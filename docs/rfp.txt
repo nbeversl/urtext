@@ -1,0 +1,8 @@
+Generating a node ID manually (Sublime)/-- tags:sublime --/
+
+If you accidentally delete a Node ID or need to insert one arbitrarily, press Control-Shift-I. 
+
+
+/-- ID:rfp
+Timestamp:<Wed., Oct. 30, 2019, 04:37 PM>
+--/

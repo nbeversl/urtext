@@ -1,8 +1,8 @@
 Setup
 
-{{  Making a New Project /-- ID: dce --/
+{{  Making a New Project 
 
-%		(Python)
+	{{	(Python)
 
 		Pass a system path to UrtextProject(): 
 		
@@ -15,12 +15,14 @@ Setup
 		%%-END
 
 		/-- id: n2m --/ /-- tags:python --/
-    
-%	  	(Sublime)
+	
+%		(Sublime)
 
 	    To make an empty project, make a new folder (or open an existing folder, if you want to create a new project there) and open the folder in Sublime. Select Urtext : Initialize Project from the Sublime Command Palette. Then press Ctrl-Shift-; to create a new node.
 
-     /-- ID:00a --/ }}
+    	 /-- ID:00a --/ }}
+	
+	/-- ID: dce --/ }}
 
  {{ Using Existing Files
 
