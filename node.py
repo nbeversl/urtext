@@ -23,12 +23,13 @@ def create_urtext_node(
     filename, 
     contents='', 
     root=False, 
-    compact=False):
+    compact=False,
+    split=True):
     
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
     metadata = NodeMetadata(stripped_contents)
 
-    new_node = UrtextNode(filename, metadata, root=root, compact=compact)
+    new_node = UrtextNode(filename, metadata, root=root, compact=compact, split=split)
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
 
     possible_defs = ['[['+section for section in contents.split('[[') ]
@@ -49,7 +50,13 @@ def create_urtext_node(
 
 class UrtextNode:
     """ Urtext Node object"""
-    def __init__(self, filename, metadata, root=False, compact=False):
+    def __init__(self, 
+        filename, 
+        metadata, 
+        root=False, 
+        compact=False, 
+        split=False):
+
         self.filename = os.path.basename(filename)
         self.project_path = os.path.dirname(filename)
         self.position = 0
@@ -64,12 +71,15 @@ class UrtextNode:
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
+        self.split = split
         self.metadata = metadata
         if self.metadata.get_tag('ID'):
             node_id = self.metadata.get_tag('ID')[0].lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
-        if self.metadata.get_tag('title') == ['project_settings']:
+
+        title_tag = self.metadata.get_tag('title')
+        if len(title_tag) > 0 and title_tag[0] == 'project_settings':
             self.project_settings = True
 
         self.parent = None

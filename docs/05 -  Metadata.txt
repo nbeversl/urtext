@@ -14,8 +14,6 @@ Node Metadata
         /-- note: example note ; tag: groceries --/
 
     Other than three reserved words (see below), metadata may have user-defined aribitrary keys and values. Keys and values of metadata tags are indexed automatically and searchable within the Urtext project (see >012). 
-/-- ID: 7il --/
-
 
 
     Note that: 

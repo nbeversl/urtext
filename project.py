@@ -148,11 +148,11 @@ class UrtextProject:
         re_index=False):
         """ Parse a single file into project nodes """
 
-        if self.filter_filenames(filename) == None:
+        if self.filter_filenames(os.path.basename(filename)) == None:
             return
 
         # clear all node_id's defined from this file in case the file has changed
-        self.remove_file(filename)
+        self.remove_file(os.path.basename(filename))
 
         """
         Find all node symbols in the file
@@ -220,6 +220,7 @@ class UrtextProject:
             if position == 0 and parsed_items[0] == '{{':
                 self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
                 continue
+
             """
             Otherwise, this is either an inline node not at the beginning of the file,
             or else a root (file level) node, so:
@@ -227,6 +228,9 @@ class UrtextProject:
             if not self.nodes[node].root_node:
                 parent = self.get_parent(node)
                 self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
+            else:
+                print('SOME OTHER NODE MADE IT HERE, project.py line 232')
+                print(node)
 
     def build_alias_trees(self):
         """ 
@@ -597,6 +601,7 @@ class UrtextProject:
                             print(node_id+ ' WAS LOST (DEBUGGING)')
         if 'zzy' in self.nodes:
             metadata_file = self.nodes['zzy'].filename
+
         else:
             metadata_file = self.settings['metadata_list']
             
@@ -762,6 +767,7 @@ class UrtextProject:
                                 del self.tagnames[tagname][value]
                 if node_id in self.nodes:
                     del self.nodes[node_id]
+                    
             del self.files[filename]
         return None
 
@@ -1325,16 +1331,19 @@ class UrtextProject:
         """ Given a node ID, returns its parent, if any """
 
         filename = self.nodes[child_node_id].filename
-        start = self.nodes[child_node_id].ranges[0][0]
+        start_of_node = self.nodes[child_node_id].ranges[0][0]
         distance_back = 2 
         if self.nodes[child_node_id].compact:
             distance_back = 1
+        if self.nodes[child_node_id].split:
+            distance_back = 1
+            print('HEY')
         for other_node in [
                 other_id for other_id in self.files[filename].nodes
                 if other_id != child_node_id
                 ]:
             
-            if self.is_in_node(start - distance_back, other_node):
+            if self.is_in_node(start_of_node - distance_back, other_node):
                 return other_node
         return None
 
@@ -1363,7 +1372,7 @@ class UrtextProject:
 
         link = None
         # first try looking around where the cursor is positioned
-        for index in range(0, 3):
+        for index in range(0, 4):
             if re.search(node_link_regex,
                          string[position - index:position - index + 5]):
                 link = re.search(
@@ -1473,31 +1482,6 @@ class UrtextProject:
             return
         sync_project_to_calendar(self, google_calendar_id)
 
-    """
-    Folder Locking
-    """
-    def check_lock(self):
-        lock = self.get_current_lock()
-        if lock == self.machine_name:
-            return True
-        if not lock:
-            return self.lock()
-        print('compiling locked by '+lock)
-        return False
-
-    def get_current_lock(self):
-        lock_file = os.path.join(self.path,'lock')
-        with open(lock_file, 'r', encoding='utf-8') as f:
-            contents = f.read()
-            f.close()
-        return contents
-
-    def lock(self):
-        lock_file = os.path.join(self.path,'lock')
-        with open (lock_file, 'w', encoding='utf-8') as f:
-            f.write(self.machine_name)
-            f.close()
-        return True
 
     def pop_node(self, position=None, filename=None, node_id=None):
         if not node_id:
@@ -1554,22 +1538,23 @@ class UrtextProject:
     """
 
     def on_created(self, filename):
-        if not self.check_lock():
-            return False
+        unlocked, lock_name = self.check_lock()
+        if not unlocked:
+            return (False, lock_name)
         if os.path.isdir(filename):
-            return True
+            return (True,'')
         filename = os.path.basename(filename)
         if filename in self.files:
-          return True
+            return (True,'')
         self.parse_file(filename, re_index=True)
         self.log_item(filename +' modified. Updating the project object')
         self.update()
-        return True
+        return (True,'')
 
     def on_modified(self, filename):
-        if not self.check_lock():
-          return False
-        filename = os.path.basename(filename)
+        unlocked, lock_name = self.check_lock()
+        if not unlocked:
+            return (False, lock_name)
         do_not_update = [
             'index', 
             os.path.basename(self.path),
@@ -1581,36 +1566,53 @@ class UrtextProject:
                do_not_update.append(self.nodes[node_id].filename)
 
         if filename in do_not_update or '.git' in filename:
-            return True
+            return (True,'')
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
         self.parse_file(filename, re_index=True)
         self.update()
-        return True
+        return (True,'')
 
     def on_deleted(self, filename):
       """ this method should be removed, since deleting files should be done explicitly from Urtext """
       pass
-      
-      # if not self.check_lock():
-      #     return False
-        
-      # filename = os.path.basename(filename)
-      # self.log_item('Watchdog saw file deleted: '+filename)
-      # self.remove_file(filename)
-      # self.update()
-      # return True
 
     def on_moved(self, filename):
-        if not self.check_lock():            
-            return False
+        unlocked, lock_name = self.check_lock()
+        if not unlocked:
+            return (False, lock_name)
         old_filename = os.path.basename(filename)
         new_filename = os.path.basename(filename)
         if old_filename in self.files:
             self.log.info('RENAMED ' + old_filename + ' to ' +
                                     new_filename)
             self.handle_renamed(old_filename, new_filename)
-        return True
+        return (True,'')
 
+    """
+    Locking
+    """
+    def check_lock(self):
+        self.current_lock = self.get_current_lock()
+        if self.current_lock == self.machine_name:
+            return (True,'')
+        if not self.current_lock:
+            return self.lock()
+        print('compiling locked by '+self.current_lock)
+        return (False, self.current_lock)
+
+    def get_current_lock(self):
+        lock_file = os.path.join(self.path,'lock')
+        with open(lock_file, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            f.close()
+        return contents
+
+    def lock(self):
+        lock_file = os.path.join(self.path,'lock')
+        with open (lock_file, 'w', encoding='utf-8') as f:
+            f.write(self.machine_name)
+            f.close()
+        self.current_lock = self.machine_name
 
 
 class NoProject(Exception):

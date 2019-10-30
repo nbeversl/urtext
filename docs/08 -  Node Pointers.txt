@@ -43,11 +43,12 @@ Node Pointers >00r
 ├── Duplicate Node Pointers >00t
     └── Example Child Node Using a Node Pointer >001
 └── Recursive Node Pointers >00s
-    ├── Urtext Documentation >a5m
-        ├── Using this document >009
-            ├── On the web >fak
-            ├── In Urtext for Sublime Text >e6m
-            └── Standalone >plq
+    ├── ? (Missing Node): >a5m
+        ├── ? (Missing Node): >009
+            ├── ? (Missing Node): >fak
+            ├── ? (Missing Node): >e6m
+            └── ? (Missing Node): >plq
+        ├── ? (Missing Node): >01a
         ├── About Urtext >013
             ├── What Urtext Is >hdf
                 ├── Description >yv2
@@ -56,21 +57,7 @@ Node Pointers >00r
                 └── Features and Characteristics >006
             └── About the Sublime Text Implementation >01u
                 └── Dependencies and Installation: >2fn
-        ├── Setup >003
-            ├── Making a New Project >00a
-                ├── (Python) >n2m
-                └── (Sublime) >phk
-            ├── Using Existing Files >00b
-                ├── (Python) >b44
-                └── (Sublime) >rij
-            ├── Sublime Project >c3n
-            ├── Reopening a Project >01p
-            └── Sublime Text Interface Tips >000
-                ├── Syntax Highlighting >01d
-                ├── Hiding Tabs >015
-                ├── Hiding Line Numbers >01e
-                ├── Full Screen / Distraction Free Mode >002
-                └── Disable Prompts for File Reload >023
+        ├── ? (Missing Node): >003
         ├── Writing Nodes >01j
             ├── Node Identity (Node IDs) >01h
                 └── Generating a node ID manually >a0i
@@ -113,21 +100,62 @@ Node Pointers >00r
         └── Extension and Customization >01o
     └── Example - Table of Contents From Another Root >01n
 /-- 
-defined in: >00s
 ID: 01n
+defined in: >00s
 title: Example - Table of Contents From Another Root
---/}}
-
-    [[ ID:01n
-        tree:00r
-        metadata:title:Example - Table of Contents From Another Root
-     ]]
-
-/-- ID:00s --/ }}    
-                                                                                                                     
-
-/-- ID:00r
-Timestamp:<Sat., Jun. 08, 2019, 09:01 AM>
-tags: 
-index: 07
+--/plq
+        ├── About Urtext >013
+            ├── What Urtext Is >hdf
+                ├── Description >yv2
+                ├── Comparison To Other Tools >h8z
+                ├── Uses >lhs
+                └── Features and Characteristics >006
+            └── About the Sublime Text Implementation >01u
+                └── Dependencies and Installation: >2fn
+        ├── ? (Missing Node): >003
+        ├── Writing Nodes >01j
+            ├── Node Identity (Node IDs) >01h
+                └── Generating a node ID manually >a0i
+            ├── File Level Nodes >01g
+                └── Creating a File Level Node >ekz
+                    ├── (Python) >83e
+                    └── (Sublime) >xo8
+            ├── ? (Missing Node): >00x
+            ├── Inline Nodes >004
+                ├── Example inline node >00e
+                ├── Creating Inline Nodes >bbj
+                    ├── (Sublime) >qx6
+                    └── (Python) >4ho
+                └── Syntax Highlighting of Inline Nodes >koe
+            └── The Node List >01i
+        ├── Dynamic Nodes >01r
+            ├── Example Source Node 1 >017
+            ├── Example Source Node 3 >01b
+            ├── Example Source Node 2 >00v
+            ├── Example Source Node 4 >01c
+            ├── Example Dynamic Node Title >016
+            └── Another Example: The Node Definition for the Table of Contents >029
+        ├── Trees >00h
+            ├── From a selected node >00f
+            └── From the root >00g
+        ├── Relationships >00j
+            ├── Simple Links >0y2
+                └── Sublime Text tools to help with linking >00m
+            ├── Opening Links >01w
+            ├── Viewing Linked Relationships >00u
+            ├── Linking to outside resources >00q
+                ├── Web >00o
+                └── Files >00p
+            └── Traverse Mode >00w
+                └── Word Wrap in Traverse Mode (Sublime Text) >xci
+        ├── ? (Missing Node): >RECURSION >00r
+        ├── Search >k67
+            └── Fuzzy Full Text Search >4p9
+        ├── Filenames >01m
+        └── Extension and Customization >01o
+    └── Example - Table of Contents From Another Root >01n
+/-- 
+ID: 01n
+defined in: >00s
+title: Example - Table of Contents From Another Root
 --/

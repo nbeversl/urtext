@@ -15,7 +15,7 @@ A node can be a file but a file can also contain multiple nodes. In this system,
 
 		If you accidentally delete a Node ID or need to insert one arbitrarily, press Control-Shift-I. /-- id: a0i--/ }}
 
-	Node IDs have no special meaning except as a unique identifier.  IDs are covered more in (>01q).
+	Node IDs have no special meaning except as a unique identifier. IDs are covered more in (>01q).
 
    /-- ID:01h --/ }}
 

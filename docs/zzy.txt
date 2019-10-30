@@ -1,6 +1,7 @@
 Metadata Keys
 ├── flags
 │   └── exclude_from_tree
+│       ├── Table of Contents >01a
 │       └── Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
 ├── home
 │   └── a5m
@@ -33,16 +34,24 @@ Metadata Keys
     ├── coming
     │   └── Files >00p
     ├── python
-    │   └── (Python) >83e
-    └── sublime
-        ├── From a selected node >00f
-        ├── From the root >00g
-        ├── Sublime Text tools to help with linking >00m
-        ├── About the Sublime Text Implementation >01u
-        ├── Generating a node ID manually >a0i
-        ├── Syntax Highlighting of Inline Nodes >koe
-        ├── (Sublime) >qx6
-        └── (Sublime) >xo8
+    │   ├── (Python) >83e
+    │   ├── (Python) >b44
+    │   └── (Python) >n2m
+    ├── sublime
+    │   ├── From a selected node >00f
+    │   ├── From the root >00g
+    │   ├── Sublime Text tools to help with linking >00m
+    │   ├── Reopening a Project >01p
+    │   ├── About the Sublime Text Implementation >01u
+    │   ├── Generating a node ID manually >a0i
+    │   ├── Sublime Project >c3n
+    │   ├── In Urtext for Sublime Text >e6m
+    │   ├── Syntax Highlighting of Inline Nodes >koe
+    │   ├── (Sublime) >qx6
+    │   ├── (Sublime) >rij
+    │   └── (Sublime) >xo8
+    └── urtext_documentation
+        └── Setup >003
 /--
 ID:zzy
 title: Metadata List

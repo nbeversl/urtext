@@ -1,6 +1,6 @@
-About Urtext >013
--
 Example Source Node 3 >01b
+-
+About Urtext >013
 -
 Setup >003
 -
@@ -12,15 +12,13 @@ Writing Nodes >01j
 -
 Inline Nodes >004
 -
-Node Metadata >7il
+Node Metadata >00x
 -
 Example Source Node 4 >01c
 -
-Relationships >00j
--
 Timestamps >005
 -
-Node Pointers >00r
+Relationships >00j
 -
 Dynamic Nodes >01r
 -
@@ -31,6 +29,10 @@ Extension and Customization >01o
 Reference: Key Bindings >018
 -
 project_settings >00l
+-
+second example node >g8a
+-
+parent >kru
 -
 Compact Nodes >j6t
 -
@@ -54,161 +56,157 @@ The Node List >01i
 -
 In-Progress / Experimental / Wish List >014
 -
-Standalone >plq
--
-In Urtext for Sublime Text >e6m
--
-become child nodes of their containing node. >hiz
--
-Recursive Node Pointers >00s
--
-Linking to outside resources >00q
--
-Files >00p
--
-Traverse Mode >00w
--
-Example Source Node 2 >00v
--
-Viewing Linked Relationships >00u
--
-Duplicate Node Pointers >00t
--
-title (overrides the default title) >00y
--
-Home >00c
--
-Using Existing Files >00b
--
-Making a New Project >00a
--
-Urtext Documentation >a5m
--
-From a selected node >00f
--
-Example inline node >00e
--
-Timeline View: >00k
--
-From the root >00g
--
-Filename formats >00i
--
-Trees >00h
--
-Web >00o
--
-Timestamp Formats >00n
--
-Sublime Text tools to help with linking >00m
--
-(Sublime) >xo8
--
-(Python) >83e
--
-Creating a File Level Node >ekz
--
-require an ID >frm
+0.1.16-alpha >03l
 -
 (Python) >4ho
 -
+iPhone/iPad/iOS >01y
+-
 Description >yv2
 -
-(Sublime) >phk
+Using this document >009
 -
 Full Screen / Distraction Free Mode >002
--
-0.1.16-alpha >03l
 -
 Sublime Text Interface Tips >000
 -
 Features and Characteristics >006
 -
-Using this document >009
--
-0.1.15-alpha >024
--
-Word Wrap in Traverse Mode (Sublime Text) >xci
--
-iPhone/iPad/iOS >01y
--
-Compact Nodes >j6t >ucj
--
-(Python) >n2m
--
-flags >cwb
+(Sublime) >xo8
 -
 Sublime Project >c3n
 -
+Uses >lhs
+-
+(Python) >n2m
+-
+On the web >fak
+-
+Example node >n2w
+-
+Word Wrap in Traverse Mode (Sublime Text) >xci
+-
+Timeline View: >00k
+-
+Trees >00h
+-
+Filename formats >00i
+-
+Timestamp Formats >00n
+-
+Web >00o
+-
+Sublime Text tools to help with linking >00m
+-
+Using Existing Files >00b
+-
+Home Node >00c
+-
+(Sublime) >00a
+-
+From a selected node >00f
+-
+From the root >00g
+-
+Example inline node >00e
+-
+title (overrides the default title) >00y
+-
+Files >00p
+-
+Linking to outside resources >00q
+-
+Example Source Node 2 >00v
+-
+Traverse Mode >00w
+-
+Viewing Linked Relationships >00u
+-
+In Urtext for Sublime Text >e6m
+-
+Comparison To Other Tools >h8z
+-
+Urtext Documentation >a5m
+-
+require an ID >frm
+-
+can have arbitrary other metadata >xlc
+-
+Another Example: The Node Definition for the Table of Contents >029
+-
+Hiding Line Numbers >01e
+-
+Syntax Highlighting >01d
+-
+File Level Nodes >01g
+-
+Table of Contents >01a
+-
+Syntax Highlighting of Inline Nodes >koe
+-
+0.1.11-alpha >01l
+-
+Node Identity (Node IDs) >01h
+-
+About the Sublime Text Implementation >01u
+-
+Compact Nodes >j6t >ucj
+-
+Opening Links >01w
+-
+Reopening a Project >01p
+-
+0.1.15-alpha >024
+-
 Creating Inline Nodes >bbj
 -
+0.1.13-alpha >021
+-
+0.1.14-alpha >022
+-
+Disable Prompts for File Reload >023
+-
+Creating a File Level Node >ekz
+-
+0.1.12-alpha >020
+-
+Standalone >plq
+-
+What Urtext Is >hdf
+-
+Generating a node ID manually >a0i
+-
+Synchronator Setup >01z
+-
+(Sublime) >qx6
+-
 Simple Links >0y2
+-
+(Python) >b44
+-
+Making a New Project >dce
 -
 Node List >zzz
 -
 Metadata List >zzy
 -
-On the web >fak
--
-Project Metadata List >012
--
-Uses >lhs
--
 Hiding Tabs >015
 -
 Example Dynamic Node Title >016
 -
-Comparison To Other Tools >h8z
--
-Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
--
-What Urtext Is >hdf
--
-(Sublime) >qx6
--
-Generating a node ID manually >a0i
--
 Reserved Metadata Keys >011
 -
-0.1.13-alpha >021
+Project Metadata List >012
 -
-can have arbitrary other metadata >xlc
+become child nodes of their containing node. >hiz
 -
-Reopening a Project >01p
+(Python) >83e
 -
 (Sublime) >rij
 -
-About the Sublime Text Implementation >01u
+Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
 -
-Opening Links >01w
--
-Syntax Highlighting of Inline Nodes >koe
--
-(Python) >b44
--
-Synchronator Setup >01z
--
-Another Example: The Node Definition for the Table of Contents >029
--
-Table of Contents >01a
--
-Syntax Highlighting >01d
--
-Hiding Line Numbers >01e
--
-File Level Nodes >01g
--
-Node Identity (Node IDs) >01h
--
-0.1.12-alpha >020
--
-Disable Prompts for File Reload >023
--
-0.1.14-alpha >022
--
-0.1.11-alpha >01l
--
-Example - Table of Contents From Another Root >01n
+flags >cwb
 -
 /--
 ID:zzz

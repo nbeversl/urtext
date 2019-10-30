@@ -87,10 +87,17 @@ class UrtextFile:
 
             # If this closes a node:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
-                nested_levels[nested].append([last_start, position])
+                
+                # TODO why is this if necessary?
+                if [last_start,position] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_start, position])
 
                 root = True if nested == 0 else False
                 
+                split=False
+                if self.symbols[position] == '^\%(?!%)':
+                    split=True
+
                 # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 
@@ -98,7 +105,8 @@ class UrtextFile:
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ]),
-                    root=root)
+                    root=root,
+                    split=split)
 
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
@@ -110,7 +118,11 @@ class UrtextFile:
 
                 if self.symbols[position] == '^\%(?!%)':
                     nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
-                    nested_levels[nested].append([last_start, position])
+                    nested_levels[nested-1] = [] if nested -1 not in nested_levels else nested_levels[nested-1]
+                    
+                    nested_levels[nested-1].append([position,position])
+                    if [last_start,position] not in nested_levels[nested]:
+                        nested_levels[nested].append([last_start, position])
                     continue
 
                 nested -= 1
@@ -122,7 +134,7 @@ class UrtextFile:
             self.log_error('Missing closing wrapper', position)
             return None
 
-        ### Handle the root node:
+        ### Handle the root node: -- this now just the last (lowest) remaining node at the file level
         if nested_levels == {} or nested_levels[0] == []:
             nested_levels[0] = [[0, self.length]]  
         else:

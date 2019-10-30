@@ -14,7 +14,7 @@ index: 100
 
 This node now has special reserved metadata keys that will be parsed as follows:
 
-{{ Home 
+{{ Home Node
 
 The Home page is accessible anywhere in the project by pressing Ctrl-Shift-H. Specify the node ID you want this shortcut to jump to. /-- ID:00c --/ }}
 
