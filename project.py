@@ -191,7 +191,9 @@ class UrtextProject:
         parsed_items = self.files[filename].parsed_items
         positions = sorted(parsed_items.keys())
 
-        for position in positions:
+        for index in range(len(positions)):
+
+            position = positions[index]
 
             node = parsed_items[position]
 
@@ -222,6 +224,16 @@ class UrtextProject:
                 continue
 
             """
+            if this is a split node and its predecessor is already parsed,
+            get the parent from the predecessor
+            """
+            # TODO this needs to be refactored and done more elegantly.
+            if index > 0 and parsed_items[positions[index-1]][:2] != '>>':
+                if self.nodes[parsed_items[position]].split and self.nodes[parsed_items[positions[index-1]]].split:
+                    self.nodes[parsed_items[position]].tree_node.parent = self.nodes[parsed_items[positions[index-1]]].tree_node.parent
+                    continue
+                
+            """
             Otherwise, this is either an inline node not at the beginning of the file,
             or else a root (file level) node, so:
             """
@@ -229,6 +241,7 @@ class UrtextProject:
                 parent = self.get_parent(node)
                 self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
             else:
+                # these will be root nodes.
                 print('SOME OTHER NODE MADE IT HERE, project.py line 232')
                 print(node)
 
@@ -976,7 +989,6 @@ class UrtextProject:
             return None
         
         self.nav_index += 1
-        print (self.navigation[self.nav_index])
         return self.navigation[self.nav_index]
 
 
@@ -1003,7 +1015,6 @@ class UrtextProject:
 
         last_node = self.navigation[self.nav_index - 1]
         self.nav_index -= 1
-        print(last_node)
         return last_node
 
 

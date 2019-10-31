@@ -1,8 +1,12 @@
 Metadata Keys
 ├── flags
 │   └── exclude_from_tree
+│       ├── Example Source Node 2 >00v
+│       ├── Example Dynamic Node Title >016
+│       ├── Example Source Node 1 >017
 │       ├── Table of Contents >01a
-│       └── Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node >1e3
+│       ├── Example Source Node 3 >01b
+│       └── Example Source Node 4 >01c
 ├── home
 │   └── a5m
 │       ├── project_settings >00l
@@ -10,13 +14,34 @@ Metadata Keys
 ├── kind
 │   └── gift_list
 │       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── note
 │   └── example note
 │       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── purpose
 │   └── work-related
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── tag
@@ -28,6 +53,13 @@ Metadata Keys
 │   ├── exclude_this
 │   │   └── Example Source Node 2 >00v
 │   └── groceries
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 └── tags

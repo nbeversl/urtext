@@ -1,4 +1,4 @@
-Relationships                                                                               
+Links and Pointers
 
 {{  Simple Links 
 
@@ -72,6 +72,7 @@ Relationships
         
         }}
 
+Node Pointers >>lmu
 
 /-- ID:00j
 Timestamp:<Fri., Jun. 07, 2019, 05:26 PM>

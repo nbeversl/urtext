@@ -47,8 +47,8 @@ Urtext Documentation >a5m
         └── Dependencies and Installation: >2fn
 ├── Setup >003
     ├── Making a New Project >dce
-        └── (Python) >n2m
-            └── (Sublime) >00a
+        ├── (Python) >n2m
+        └── (Sublime) >00a
     ├── Using Existing Files >00b
         ├── (Python) >b44
         └── (Sublime) >rij
@@ -76,14 +76,13 @@ Urtext Documentation >a5m
         └── Example Compact Node     Example inline node within the compact node >d7b
             └── Example inline node within the compact node >9up
     ├── Split Nodes >k6d
-        ├── First Example Split Node >jym
-        └── Second Example split Node >ftz
     ├── Generating a node ID manually (Sublime) >rfp
     ├── Node Metadata >00x
         ├── Reserved Metadata Keys >011
             ├── title (overrides the default title) >00y
             ├── index >00z
             └── flags >cwb
+                └── - exclude_from_tree >1e3
         ├── Project Metadata List >012
             └── ? (Missing Node): >zzy
         └── Timestamps >005
@@ -92,18 +91,21 @@ Urtext Documentation >a5m
                 └── Timezone List >zh1
     └── The Node List >01i
 ├── Dynamic Nodes >01r
-    ├── - ID: >02t
-        └── - include:metadata:[AND:|OR:](metadata key):(metadata value(s)): >4mb
-    ├── Example Source Node 1 >017
-    ├── Example Source Node 3 >01b
-    ├── Example Source Node 2 >00v
-    ├── Example Source Node 4 >01c
-    ├── Example Dynamic Node Title >016
-    └── Another Example: The Node Definition for the Table of Contents >029
+    ├── Description & Purpose >h0y
+    ├── Syntax >igk
+    ├── Definition keys >37h
+        ├── id >02t
+        ├── include >a3r
+        ├── exclude >e18
+        ├── sort >05f
+        ├── metadata >oa2
+        └── tree >4mb
+    ├── Example 1 : List >slu
+    └── Example 2 : Tree >029
 ├── Trees >00h
     ├── From a selected node >00f
     └── From the root >00g
-├── Relationships >00j
+├── Links and Pointers >00j
     ├── Simple Links >0y2
         └── Sublime Text tools to help with linking >00m
     ├── Opening Links >01w
@@ -111,24 +113,24 @@ Urtext Documentation >a5m
     ├── Linking to outside resources >00q
         ├── Web >00o
         └── Files >00p
-    └── Traverse Mode >00w
+    ├── Traverse Mode >00w
         └── Word Wrap in Traverse Mode (Sublime Text) >xci
-├── Node Pointers >lmu
-    ├── Example Child Node Using a Node Pointer >001
-    ├── Duplicate Node Pointers >00t
-        └── Example Child Node Using a Node Pointer >001
-    └── Recursive Node Pointers >6ct
-        ├── ? (Missing Node): >RECURSION >a5m
-        └── Example - Table of Contents From Another Root >01n
+    └── Pointers >lmu
+        ├── Example Child Node Using a Node Pointer >001
+        ├── Duplicate Node Pointers >00t
+            └── Example Child Node Using a Node Pointer >001
+        └── Recursive Node Pointers >6ct
+            ├── ? (Missing Node): >RECURSION >a5m
+            └── Example - Table of Contents From Another Root >01n
 ├── Search >k67
     └── Fuzzy Full Text Search >4p9
 ├── Filenames >01m
 └── Extension and Customization >01o
 /-- 
-title: Table of Contents
-defined in: >029
 ID: 01a
+defined in: >029
 flags: exclude_from_tree
+title: Table of Contents
 --/}}
 
 About Urtext >>013
@@ -137,7 +139,7 @@ Nodes >>01j
 Dynamic Nodes >>01r
 Node Trees >>00h
 Links >>00j
-Node Pointers >>lmu
+
 Search >>k67
 File Naming >>01m
 Extension & Cstomization >>01o

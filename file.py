@@ -50,7 +50,7 @@ class UrtextFile:
         nested = 0  # tracks depth of node nesting
         nested_levels = {}
         last_position = 0  # tracks the most recently parsed position in the file
-
+        
         if self.positions:
             nested_levels[0] = [[0, self.positions[0]]]
 
@@ -94,7 +94,7 @@ class UrtextFile:
                     compact = True)
                 if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents.strip()[1:]) + 2]]):
                     return self.log_error('Compact Node problem', position)
-                    
+
                 nested_levels[nested].append([last_position, position ]) 
                 self.parsed_items[position] = compact_node.id
                 last_position = position + len(compact_node_contents) 
@@ -131,26 +131,12 @@ class UrtextFile:
 
                 self.parsed_items[nested_levels[nested][0][0]] = new_node.id
 
-                # THIS WAS THE BUG
-                #self.parsed_items[position] = new_node.id
-
                 del nested_levels[nested]
 
                 last_position = position + 2
 
                 if self.symbols[position] == '^\%(?!%)':
-                    
                     last_position = position + 1 # overwrite from above
-
-                    nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
-                    
-                    
-                    nested_levels[nested-1] = [] if nested-1 not in nested_levels else nested_levels[nested-1]
-                    nested_levels[nested-1].append([position,position])
-                
-                    if [last_position,position] not in nested_levels[nested]:
-                        nested_levels[nested].append([last_position, position-1])
-
                     continue
 
                 nested -= 1

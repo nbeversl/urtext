@@ -51,11 +51,11 @@ Node Metadata
 
         {{  flags
 
-            The `flags` key is used to set compile behavior. At present only the following exist; more may be added in the future:
+            The `flags` key is used to set node behavior. At present only the following exist; more may be added in the future:
 
-                - exclude_from_tree
+            {{- exclude_from_tree
 
-                {{  Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node will not be shown in the table of contents. /-- flags:exclude_from_tree; id: 1e3 --/ }}
+                Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node will not be shown in the table of contents. For an example, see Example 2 in "Dynamic Nodes" >029 /-- id: 1e3 --/ }}
 
 
 
