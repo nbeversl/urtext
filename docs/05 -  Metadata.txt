@@ -1,8 +1,6 @@
 Node Metadata
 
-    As described in >01g, every newly-created node contains a metadata region with an ID and timestamp. The metadata region opens with a forward-slash followed by two dashes and closes with two dashes followed by a forward slash.
-
-    Additional user-defined metadata can be added into the same region, and additional metadata regions can be inserted arbitrarily anywhere inside a node.
+    Metadata regions open with a forward-slash followed by two dashes and closes with two dashes followed by a forward slash. The only required metadata is a node ID. Additional user-defined metadata can be added into the same region, and additional metadata regions can be inserted arbitrarily anywhere inside a node.
 
     Each metadata entry is a user-defined key/value pair, separated by a colon, with the value containing an optional timestamp. Examples:
 

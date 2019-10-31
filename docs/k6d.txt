@@ -1,0 +1,23 @@
+Split Nodes
+
+A node region can be split into two separate nodes using the `%` character as the first character on a line. The `%` character is the syntactic equivalent of two closing curly braces followed by a space and two opening curly braces, closing the previous node and opening new one. 
+
+
+{{ First Example Split Node /-- ID: jym --/
+
+This node must contain its own ID (above).
+
+% 
+
+Second Example split Node
+
+ /-- 
+id: ftz
+timestamp: <Thu., Oct. 31, 2019, 12:20 PM>
+--/ }}
+
+Note using a `%` symbol at the file level (outside of an inline node wrapper) is equivalent to dividing the file into multiple parts; inline nodes generated inside any of these parts will be children only of their containing node, not of any other root nodes in the same file.
+
+/-- ID:k6d
+Timestamp:<Thu., Oct. 31, 2019, 12:04 PM>
+--/

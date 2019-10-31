@@ -72,6 +72,12 @@ Urtext Documentation >a5m
             ├── (Sublime) >8fh
             └── (Python) >fv2
         └── Syntax Highlighting of Inline Nodes (Sublime) >koe
+    ├── Compact Nodes >kpz
+        └── Example Compact Node     Example inline node within the compact node >d7b
+            └── Example inline node within the compact node >9up
+    ├── Split Nodes >k6d
+        ├── First Example Split Node >jym
+        └── Second Example split Node >ftz
     ├── Generating a node ID manually (Sublime) >rfp
     ├── Node Metadata >00x
         ├── Reserved Metadata Keys >011
@@ -79,11 +85,15 @@ Urtext Documentation >a5m
             ├── index >00z
             └── flags >cwb
         ├── Project Metadata List >012
-            └── Metadata List >zzy
+            └── ? (Missing Node): >zzy
         └── Timestamps >005
-            └── Timeline View: >00k
+            ├── Timeline View >00k
+            └── Time Zones >7w6
+                └── Timezone List >zh1
     └── The Node List >01i
 ├── Dynamic Nodes >01r
+    ├── - ID: >02t
+        └── - include:metadata:[AND:|OR:](metadata key):(metadata value(s)): >4mb
     ├── Example Source Node 1 >017
     ├── Example Source Node 3 >01b
     ├── Example Source Node 2 >00v
@@ -115,9 +125,9 @@ Urtext Documentation >a5m
 ├── Filenames >01m
 └── Extension and Customization >01o
 /-- 
+title: Table of Contents
 defined in: >029
 ID: 01a
-title: Table of Contents
 flags: exclude_from_tree
 --/}}
 

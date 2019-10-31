@@ -62,7 +62,7 @@ class UrtextProject:
             'console_log':'false',
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
-            'timezone' : 'US/Eastern' 
+            'timezone' : 'UTC' 
         }
         self.to_import = []
         self.settings_initialized = False
@@ -1337,7 +1337,6 @@ class UrtextProject:
             distance_back = 1
         if self.nodes[child_node_id].split:
             distance_back = 1
-            print('HEY')
         for other_node in [
                 other_id for other_id in self.files[filename].nodes
                 if other_id != child_node_id
@@ -1538,6 +1537,8 @@ class UrtextProject:
     """
 
     def on_created(self, filename):
+        if not self.filter_filename(filename):
+            return (True,'')
         unlocked, lock_name = self.check_lock()
         if not unlocked:
             return (False, lock_name)
@@ -1552,6 +1553,8 @@ class UrtextProject:
         return (True,'')
 
     def on_modified(self, filename):
+        if not self.filter_filename(filename):
+            return (True,'')
         unlocked, lock_name = self.check_lock()
         if not unlocked:
             return (False, lock_name)
@@ -1564,7 +1567,7 @@ class UrtextProject:
         for node_id in ['zzz','zzy']:
             if node_id in self.nodes:
                do_not_update.append(self.nodes[node_id].filename)
-
+        filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True,'')
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
@@ -1572,11 +1575,9 @@ class UrtextProject:
         self.update()
         return (True,'')
 
-    def on_deleted(self, filename):
-      """ this method should be removed, since deleting files should be done explicitly from Urtext """
-      pass
-
     def on_moved(self, filename):
+        if not self.filter_filename(filename):
+            return (True,'')
         unlocked, lock_name = self.check_lock()
         if not unlocked:
             return (False, lock_name)
@@ -1587,6 +1588,16 @@ class UrtextProject:
                                     new_filename)
             self.handle_renamed(old_filename, new_filename)
         return (True,'')
+
+    def filter_filename(self, filename):
+        filename = os.path.basename(filename)
+        if filename in [
+            'zzz.txt',
+            'zzy.txt',
+            'urtext_log.txt']:
+            return False
+        return True
+
 
     """
     Locking

@@ -50,10 +50,8 @@ Metadata Keys
     │   ├── Generating a node ID manually (Sublime) >rfp
     │   ├── (Sublime) >rij
     │   └── (Sublime) >xo8
-    ├── urtext_documentation
-    │   └── Setup >003
-    └── urtext_fix
-        └── It is proven that the corruption issue can happen with only one compiler running. It happened on the >988
+    └── urtext_documentation
+        └── Setup >003
 /--
 ID:zzy
 title: Metadata List
