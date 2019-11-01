@@ -844,6 +844,7 @@ class UrtextProject:
             date=None, 
             contents='', 
             metadata={},
+            timestamp=True,
             one_line=False ):
 
         if date == None:
@@ -854,7 +855,8 @@ class UrtextProject:
  
         node_id = self.next_index()       
         metadata['id']=self.next_index()
-        metadata['timestamp'] = self.timestamp(date)
+        if timestamp:
+            metadata['timestamp'] = self.timestamp(date)
         new_node_contents = "{{ " + contents 
         metadata_block = build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + " }}"
@@ -1634,6 +1636,7 @@ class UrtextProject:
         with open (lock_file, 'w', encoding='utf-8') as f:
             f.write(self.machine_name)
             f.close()
+        print('WROTE '+self.machine_name+' to log file')
         self.current_lock = self.machine_name
 
 
