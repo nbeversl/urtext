@@ -65,19 +65,47 @@ Node Metadata
                    
     /-- ID:011 --/ }}
 
+Timestamps >>005
+
 {{  Project Metadata List  /-- ID:012 --/
 
-    Like the Node List (>01i), every project maintains a Metadata List, automatically written to a built-in file-level dynamic node. 
+    Like the Node List (>01i), every project maintains a Metadata List, automatically written to a built-in file-level dynamic node. The Node ID `zzy` is reserved for the Metadata list. (See >01l for more information on Node IDs). To see the metadata list for the documentation, for instance, see node >>zzy.
+ 
+{{   Opening the Metadata List 
 
-    To see the Metadata List, press Ctrl-Shift-U. Like any node, the Metadata List can be traversed using Traverse Mode (>00w). You can also link to it from anywhere by its node ID, like this: >zzy.
+{{      Sublime /-- id: zm2 --/ /-- tags:sublime --/
 
-    In Sublime Text there is also the alternative of using the "Find By Meta" command in Command Palette. Press Control-Shift-E or select "Urtext: Metadata List" from the Sublime command palette (Shift-Super-P). 
+        Ctrl-Shift-U
 
-    The Node ID `zzy` is reserved for the Metadata list. (See >01l for more information on Node IDs). To see the metadata list for the documentation, for instance, see node >>zzy.
+        Like any node, the Metadata List can be traversed in Sublime using Traverse Mode (>00w). You can also link to it from anywhere by its node ID, like this: >zzy. 
 
-    }}
+        In Sublime Text there is also the alternative of using the "Find By Meta" command in Command Palette. Press Control-Shift-E or select "Urtext: Metadata List" from the Sublime command palette (Shift-Super-P). 
 
-Timestamps >>005
+%       Pythonista /-- ID: c7r --/ /-- tags:pythonista --/
+        
+        Urtext Keys: L
+
+%       Python /-- ID: 3bb --/
+
+        Get the filename using the get_file_name() method and open it directly:
+
+        %%-PYTHON
+            UrtextProject.get_file_name(node_id)
+            """
+            Args:
+                node_id (string) : Node ID=
+            Returns:
+                string : filename **WITHOUT** path
+                or None
+            """
+        %%-END
+
+}} 
+ /-- id: saa --/ }} 
+
+}}
+
+
 
 /-- ID:00x
 Timestamp:<Sat., Jun. 08, 2019, 09:23 AM>

@@ -844,23 +844,22 @@ class UrtextProject:
             date=None, 
             contents='', 
             metadata={},
-            timestamp=True,
-            one_line=False ):
-
-        if date == None:
-            date = datetime.datetime.now()
+            one_line=False,
+            include_timestamp=False):
             
         if contents == '':
             contents = ' '
- 
+        
         node_id = self.next_index()       
         metadata['id']=self.next_index()
-        if timestamp:
+        if include_timestamp:
+            if date == None:
+                date = datetime.datetime.now()
             metadata['timestamp'] = self.timestamp(date)
         new_node_contents = "{{ " + contents 
         metadata_block = build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + " }}"
- 
+        metadata={}
         return new_node_contents
 
     def add_compact_node(self, 
@@ -1380,8 +1379,7 @@ class UrtextProject:
 
         if re.search(url_scheme, string[position:]):
             url = re.search(url_scheme, string).group(0)
-            return ['HTTP', url]
-
+            return ('HTTP', url)
         link = None
         # first try looking around where the cursor is positioned
         for index in range(0, 4):
@@ -1410,7 +1408,7 @@ class UrtextProject:
         node_id = link.split(':')[0].strip('>')
         if node_id.strip() in self.nodes:
             file_position = self.nodes[node_id].ranges[0][0]
-            return ['NODE', node_id, file_position]
+            return ('NODE', node_id, file_position)
         else:
             self.log_item('Node ' + node_id + ' is not in the project')
             return None

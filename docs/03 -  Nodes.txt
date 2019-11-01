@@ -18,11 +18,22 @@ Think of a node as a region of paper with flexible and open-ended length.
 
 	{{ Creating a File Level Node
 
-		{{ (Python)
+		{{ Sublime /-- tags:sublime --/
+
+			Press Control-Shift-; (Control-Shift-semicolon). 
+			/-- id: xo8; --/ }}
+
+		{{ Pythonista /-- tags:pythonista --/
+
+			Press `;` in the Urtext key row.
+
+		 /-- id: xcx --/ }}
+
+		{{ Python
 
 			%%-PYTHON
 
-				myproject.new_file_node(date=datetime.datetime.now(), metadata = {}, node_id=None)
+				UrtextProject.new_file_node(date=None, metadata = {}, node_id=None)
 				"""
 				Kwargs:
 					date (datetime): the timestamp, defaults to now if not specified
@@ -36,10 +47,7 @@ Think of a node as a region of paper with flexible and open-ended length.
 
 			%%-END /-- id: 83e; tags:python--/ }}
 	
-		{{ (Sublime) /-- tags:sublime --/
 
-			Press Control-Shift-; (Control-Shift-semicolon). 
-			/-- id: xo8; --/ }}
 
 	The file is created, named and saved automatically. It has whitespace on top and a metadata block at the bottom containing a node ID and a timestamp of the creation date and time.
 

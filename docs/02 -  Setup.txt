@@ -2,9 +2,16 @@ Setup
 
 {{  Making a New Project 
 
-	{{	(Python)
+	{{	
+		Sublime /-- ID:00a --/ /-- tags:sublime --/
 
-		Pass a system path to UrtextProject(): 
+	    To make an empty project, make a new folder (or open an existing folder, if you want to create a new project there) and open the folder in Sublime. Select Urtext : Initialize Project from the Sublime Command Palette. Then press Ctrl-Shift-; to create a new node.
+
+% 		Pythonista : not currently implemented. Use an existing project. /-- id:rs8 --/ /-- tags:pythonista --/
+
+%	    Python
+
+		Pass a system path to a new instance of urtext.UrtextProject(): 
 		
 		%%-PYTHON
 
@@ -12,23 +19,27 @@ Setup
 			path = '~/users/someone/path/to/project/folder'
 			my_project = UrtextProject(path)
 
-		%%-END
+		%%-END /-- id: n2m --/ /-- tags:python --/
 
-		/-- id: n2m --/ /-- tags:python --/
-	
-%		(Sublime)
-
-	    To make an empty project, make a new folder (or open an existing folder, if you want to create a new project there) and open the folder in Sublime. Select Urtext : Initialize Project from the Sublime Command Palette. Then press Ctrl-Shift-; to create a new node.
-
-    	 /-- ID:00a --/ }}
+    	  }}
 	
 	/-- ID: dce --/ }}
 
- {{ Using Existing Files
+ {{ Using/Adding Existing Files
 
     To use existing plaintext files, you must append the `ID` (>01e) and `Timestamp` (>00j) metadata keys and values to the file, along with the current date and time to show when the file was added to the Urtext Project. See >00x for more information on Metadata.
 
-    {{  (Python) /-- tags:python --/
+    {{  Sublime /-- tags:sublime --/
+
+	    Select `Urtext : Import Project` from the Sublime Command palette.
+
+	    Note that the append will occur without a confirmation dialog, so if you are just experimenting with this system, consider making a copy of your file folder so you can revert without having to manually remove the metadata./-- id: rij --/ }}
+
+    {{ Pythonista
+
+    	Not currently implemented.  /-- tags:pythonista --/ /-- id: ouh --/ }}
+
+    {{  Python /-- tags:python --/
     	
     	Pass the keyword argument `import_project=True`:
 
@@ -42,11 +53,7 @@ Setup
 
     /-- id: b44 --/ }}
 
-	{{  (Sublime) /-- tags:sublime --/
-
-	    Select `Urtext : Import Project` from the Sublime Command palette.
-
-	    Note that the append will occur without a confirmation dialog, so if you are just experimenting with this system, consider making a copy of your file folder so you can revert without having to manually remove the metadata./-- id: rij --/ }}
+	
 
     /-- ID:00b --/ }}
 

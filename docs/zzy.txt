@@ -14,34 +14,13 @@ Metadata Keys
 ├── kind
 │   └── gift_list
 │       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── note
 │   └── example note
 │       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── purpose
 │   └── work-related
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
 │       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── tag
@@ -54,34 +33,43 @@ Metadata Keys
 │   │   └── Example Source Node 2 >00v
 │   └── groceries
 │       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 └── tags
     ├── coming
     │   └── Files >00p
     ├── python
-    │   ├── (Python) >83e
-    │   ├── (Python) >b44
-    │   └── (Python) >n2m
+    │   ├── Python >0ow
+    │   ├── Python >83e
+    │   ├── Python >b44
+    │   ├── Python >n2m
+    │   └── Python >xor
+    ├── pythonista
+    │   ├── Pythonista >0yn
+    │   ├── Pythonista >agg
+    │   ├── Pythonista >c7r
+    │   ├── Pythonista >hrv
+    │   ├── Pythonista >iy8
+    │   ├── Pythonista >ouh
+    │   ├── Pythonista : not currently implemented. Use an existing project. >rs8
+    │   └── Pythonista >xcx
     ├── sublime
+    │   ├── Sublime >00a
     │   ├── From a selected node >00f
     │   ├── From the root >00g
     │   ├── Sublime Text tools to help with linking >00m
     │   ├── Reopening a Project >01p
     │   ├── About the Sublime Text Implementation >01u
-    │   ├── (Sublime) >8fh
+    │   ├── Sublime >40f
+    │   ├── Sublime >7n6
+    │   ├── Sublime >8fh
     │   ├── Sublime Project >c3n
     │   ├── In Urtext for Sublime Text >e6m
     │   ├── Syntax Highlighting of Inline Nodes (Sublime) >koe
-    │   ├── Generating a node ID manually (Sublime) >rfp
-    │   ├── (Sublime) >rij
-    │   └── (Sublime) >xo8
+    │   ├── Sublime >osu
+    │   ├── Sublime >qwn
+    │   ├── Sublime >rij
+    │   ├── Sublime >xo8
+    │   └── Sublime >zm2
     └── urtext_documentation
         └── Setup >003
 /--

@@ -86,10 +86,10 @@
     - Example Source Node 1 >017
     - Example Source Node 4 >01c
     /-- 
-    ID: 016
     defined in: >slu
-    flags: exclude_from_tree
     title: Example Dynamic Node Title
+    flags: exclude_from_tree
+    ID: 016
     --/}}
 
 
@@ -106,6 +106,8 @@
          ]]  
 
     Changing the titles or structure of sections in this documentation will dynamically update the table of contents tree.
+
+    For more information on trees, see >00h
 
      /-- ID: 029 --/}}
                                                                                               

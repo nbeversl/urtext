@@ -9,8 +9,7 @@ License: GNU General Public License 3.0
 
     {{  On the web
 
-        An HTML export of the latest version of this document is published at www.urtext.org/docs.
-        /-- ID:fak --/ }}
+        An HTML export of the latest version of this document is published at www.urtext.org/docs. /-- ID:fak --/ }}
 
     {{ In Urtext for Sublime Text /-- tags: sublime --/
 
@@ -47,11 +46,13 @@ Urtext Documentation >a5m
         └── Dependencies and Installation: >2fn
 ├── Setup >003
     ├── Making a New Project >dce
-        ├── (Python) >n2m
-        └── (Sublime) >00a
-    ├── Using Existing Files >00b
-        ├── (Python) >b44
-        └── (Sublime) >rij
+        ├── Sublime >00a
+        ├── Pythonista : not currently implemented. Use an existing project. >rs8
+        └── Python >n2m
+    ├── Using/Adding Existing Files >00b
+        ├── Sublime >rij
+        ├── Pythonista >ouh
+        └── Python >b44
     ├── Sublime Project >c3n
     ├── Reopening a Project >01p
     └── Sublime Text Interface Tips >000
@@ -64,31 +65,49 @@ Urtext Documentation >a5m
     ├── Node Identity (Node IDs) >01h
     ├── File Level Nodes >01g
         └── Creating a File Level Node >ekz
-            ├── (Python) >83e
-            └── (Sublime) >xo8
+            ├── Sublime >xo8
+            ├── Pythonista >xcx
+            └── Python >83e
     ├── Inline Nodes >004
         ├── Example inline node >00e
         ├── Creating Inline Nodes >rbs
-            ├── (Sublime) >8fh
-            └── (Python) >fv2
+            ├── Sublime >8fh
+            ├── Pythonista >hrv
+            └── Python >fv2
         └── Syntax Highlighting of Inline Nodes (Sublime) >koe
     ├── Compact Nodes >kpz
-        └── Example Compact Node     Example inline node within the compact node >d7b
+        ├── Example Compact Node     Example inline node within the compact node >d7b
             └── Example inline node within the compact node >9up
+        └── Creating Compact Nodes >3t5
+            ├── Sublime >qwn
+            ├── Pythonista >0yn
+            └── Python >xor
     ├── Split Nodes >k6d
-    ├── Generating a node ID manually (Sublime) >rfp
+        ├── First Example Split Node >jym
+        ├── Second Example split Node >ftz
+        └── Creating Split Nodes >0mn
+            ├── Sublime >40f
+            └── Pythonista >agg
+    ├── Generating a node ID manually >rfp
+        ├── Sublime >7n6
+        ├── Pythonista >bhk
+        └── Python >0ow
     ├── Node Metadata >00x
         ├── Reserved Metadata Keys >011
             ├── title (overrides the default title) >00y
             ├── index >00z
             └── flags >cwb
                 └── - exclude_from_tree >1e3
-        ├── Project Metadata List >012
-            └── ? (Missing Node): >zzy
-        └── Timestamps >005
+        ├── Timestamps >005
             ├── Timeline View >00k
             └── Time Zones >7w6
                 └── Timezone List >zh1
+        └── Project Metadata List >012
+            ├── ? (Missing Node): >zzy
+            └── Opening the Metadata List >saa
+                ├── Sublime >zm2
+                ├── Pythonista >c7r
+                └── Python >3bb
     └── The Node List >01i
 ├── Dynamic Nodes >01r
     ├── Description & Purpose >h0y
@@ -109,6 +128,9 @@ Urtext Documentation >a5m
     ├── Simple Links >0y2
         └── Sublime Text tools to help with linking >00m
     ├── Opening Links >01w
+        ├── Sublime >osu
+        ├── Pythonista >iy8
+        └── Python >eea
     ├── Viewing Linked Relationships >00u
     ├── Linking to outside resources >00q
         ├── Web >00o
@@ -127,10 +149,10 @@ Urtext Documentation >a5m
 ├── Filenames >01m
 └── Extension and Customization >01o
 /-- 
-ID: 01a
 defined in: >029
-flags: exclude_from_tree
 title: Table of Contents
+flags: exclude_from_tree
+ID: 01a
 --/}}
 
 About Urtext >>013
