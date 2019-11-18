@@ -102,7 +102,7 @@ class UrtextFile:
 
             # If this closes a node:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
-                
+                print(nested_levels)
                 # TODO why is this if necessary?
                 if [last_position,position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position])
@@ -143,17 +143,20 @@ class UrtextFile:
 
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
-
+                
         if nested != 0:
             self.log_error('Missing closing wrapper', position)
             return None
 
         ### Handle the root node: -- this now just the last (lowest) remaining node at the file level
-        if nested_levels == {} or nested_levels[0] == []:
+        
+        if nested_levels == {} and last_position > 0:
+            nested_levels[0] = [[last_position + 1, self.length]]
+        elif nested_levels == {} or nested_levels[0] == []:
             nested_levels[0] = [[0, self.length]]  
         else:
             nested_levels[0].append([last_position + 1, self.length])
-
+       
         root_node = node.create_urtext_node(self.filename,
                                contents=''.join([
                                     contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
