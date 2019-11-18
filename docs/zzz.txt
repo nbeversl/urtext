@@ -70,6 +70,8 @@ Simple Links >0y2
 -
 Sublime >8fh
 -
+Creating a Dynamic Node >yon
+-
 Pythonista >ouh
 -
 Python >3bb
@@ -160,17 +162,21 @@ id >02t
 -
 Example Dynamic Node Title >016
 -
-Definition keys >37h
+Definition keys/values >37h
 -
 Project Metadata List >012
 -
 Reserved Metadata Keys >011
+-
+Pythonista >c3y
 -
 Uses >lhs
 -
 Table of Contents >01a
 -
 Pythonista >bhk
+-
+Opening the Node List >hl7
 -
 include >a3r
 -
@@ -188,7 +194,7 @@ Files >00p
 -
 Opening the Metadata List >saa
 -
-Word Wrap in Traverse Mode (Sublime Text) >xci
+Word Wrap in Traverse Mode >xci
 -
 exclude >e18
 -
@@ -230,11 +236,15 @@ Python >0ow
 -
 Python >xor
 -
+Sublime >p78
+-
 Pythonista >agg
 -
 Creating Inline Nodes >rbs
 -
 Example 1 : List >slu
+-
+Python >h8c
 -
 can have arbitrary other metadata >xlc
 -
@@ -250,7 +260,7 @@ Compact Nodes >j6t >ucj
 -
 title (overrides the default title) >00y
 -
-Viewing Linked Relationships >00u
+REVISE !! Viewing Linked Relationships >00u
 -
 Duplicate Node Pointers >00t
 -
@@ -270,7 +280,7 @@ Timestamp Formats >00n
 -
 Filename formats >00i
 -
-Trees >00h
+REVISE !! Trees >00h
 -
 Timeline View >00k
 -

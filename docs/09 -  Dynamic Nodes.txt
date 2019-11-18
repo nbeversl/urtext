@@ -1,10 +1,19 @@
  Dynamic Nodes
     
     ^ Dynamic nodes can compile and update content in real time from other nodes. Dynamic nodes can display complete contents or lists of titles of other nodes, as well as display tree diagrams of relationships among nodes, across many files.  /-- id: h0y; title: Description & Purpose--/
-    
-    ^  Dynamic node definitions are enclosed in double square brackets and can be inserted into any node arbitrarily. In Sublime, press Ctrl-Shift-] to insert a dynamic node definition. /-- id: igk; title:Syntax --/
 
-    {{ Definition keys
+    ^ Dynamic node definitions are enclosed in double square brackets and can be inserted into any node arbitrarily. /-- id: igk; title:Syntax --/
+
+    
+    {{ Creating a Dynamic Node
+
+        Ctrl-Shift-] creates a new dynamic definition in Sublime.
+        In Pythonista or other editors, create them manually.
+
+     /-- id: yon --/ }}
+
+
+    {{ Definition keys/values
 
         Dynamic definitions accept the following keys:
           

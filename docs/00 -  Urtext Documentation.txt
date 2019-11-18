@@ -109,10 +109,15 @@ Urtext Documentation >a5m
                 ├── Pythonista >c7r
                 └── Python >3bb
     └── The Node List >01i
+        └── Opening the Node List >hl7
+            ├── Sublime >p78
+            ├── Pythonista >c3y
+            └── Python >h8c
 ├── Dynamic Nodes >01r
     ├── Description & Purpose >h0y
     ├── Syntax >igk
-    ├── Definition keys >37h
+    ├── Creating a Dynamic Node >yon
+    ├── Definition keys/values >37h
         ├── id >02t
         ├── include >a3r
         ├── exclude >e18
@@ -121,7 +126,7 @@ Urtext Documentation >a5m
         └── tree >4mb
     ├── Example 1 : List >slu
     └── Example 2 : Tree >029
-├── Trees >00h
+├── REVISE !! Trees >00h
     ├── From a selected node >00f
     └── From the root >00g
 ├── Links and Pointers >00j
@@ -131,12 +136,12 @@ Urtext Documentation >a5m
         ├── Sublime >osu
         ├── Pythonista >iy8
         └── Python >eea
-    ├── Viewing Linked Relationships >00u
+    ├── REVISE !! Viewing Linked Relationships >00u
     ├── Linking to outside resources >00q
         ├── Web >00o
         └── Files >00p
     ├── Traverse Mode >00w
-        └── Word Wrap in Traverse Mode (Sublime Text) >xci
+        └── Word Wrap in Traverse Mode >xci
     └── Pointers >lmu
         ├── Example Child Node Using a Node Pointer >001
         ├── Duplicate Node Pointers >00t

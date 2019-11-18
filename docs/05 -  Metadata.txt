@@ -83,11 +83,11 @@ Timestamps >>005
 
 %       Pythonista /-- ID: c7r --/ /-- tags:pythonista --/
         
-        Urtext Keys: L
+        Urtext Keys: M
 
 %       Python /-- ID: 3bb --/
 
-        Get the filename using the get_file_name() method and open it directly:
+        Get the filename by passing node ID 'zzy' to get_file_name() method and open it directly:
 
         %%-PYTHON
             UrtextProject.get_file_name(node_id)

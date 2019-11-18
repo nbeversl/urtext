@@ -161,6 +161,9 @@ class UrtextFile:
 
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
+        if len(self.root_nodes) == 0:
+            print('NO ROOT NODES')
+            print(self.filename)
         
 
     def add_node(self, new_node, ranges):

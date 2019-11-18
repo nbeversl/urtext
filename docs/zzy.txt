@@ -14,13 +14,19 @@ Metadata Keys
 ├── kind
 │   └── gift_list
 │       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── note
 │   └── example note
 │       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── purpose
 │   └── work-related
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── tag
@@ -32,6 +38,8 @@ Metadata Keys
 │   ├── exclude_this
 │   │   └── Example Source Node 2 >00v
 │   └── groceries
+│       ├── Node Metadata >00x
+│       ├── Node Metadata >00x
 │       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 └── tags
@@ -46,6 +54,7 @@ Metadata Keys
     ├── pythonista
     │   ├── Pythonista >0yn
     │   ├── Pythonista >agg
+    │   ├── Pythonista >c3y
     │   ├── Pythonista >c7r
     │   ├── Pythonista >hrv
     │   ├── Pythonista >iy8
@@ -57,6 +66,7 @@ Metadata Keys
     │   ├── From a selected node >00f
     │   ├── From the root >00g
     │   ├── Sublime Text tools to help with linking >00m
+    │   ├── Traverse Mode >00w
     │   ├── Reopening a Project >01p
     │   ├── About the Sublime Text Implementation >01u
     │   ├── Sublime >40f
@@ -66,6 +76,7 @@ Metadata Keys
     │   ├── In Urtext for Sublime Text >e6m
     │   ├── Syntax Highlighting of Inline Nodes (Sublime) >koe
     │   ├── Sublime >osu
+    │   ├── Sublime >p78
     │   ├── Sublime >qwn
     │   ├── Sublime >rij
     │   ├── Sublime >xo8
