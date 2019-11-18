@@ -21,6 +21,7 @@ from whoosh.index import create_in, exists_in, open_dir
 from whoosh.qparser import QueryParser
 from whoosh.highlight import UppercaseFormatter
 from whoosh.analysis import StemmingAnalyzer
+from whoosh.writing import AsyncWriter
 
 from .timeline import timeline
 from .file import UrtextFile
@@ -892,8 +893,6 @@ class UrtextProject:
             old_filename = os.path.basename(filename)
 
             ## Name each file from the first root_node
-            print(old_filename)
-            print(self.files[old_filename].root_nodes)
             root_node_id = self.files[old_filename].root_nodes[0]
             root_node = self.nodes[root_node_id]
 
@@ -1056,24 +1055,17 @@ class UrtextProject:
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
-                print(filename)
-                print(self.files[filename].root_nodes)
-                print(self.files[filename].root_nodes[0])
                 root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
     
 
-    """ 
-    Full Text search implementation using Whoosh (unfinished) 
-    These methods are currently unused
-    """
     def rebuild_search_index(self):
         
         self.ix = create_in(os.path.join(self.path, "index"),
                             schema=self.schema,
                             indexname="urtext")
 
-        self.writer = self.ix.writer()
+        self.writer = AsyncWriter(self.ix)
 
         for filename in self.files:
             self.re_search_index_file(filename, single=False)
@@ -1086,7 +1078,7 @@ class UrtextProject:
             return
 
         if single:
-            self.writer = self.ix.writer()
+            self.writer = AsyncWriter(self.ix)
 
         for node_id in self.files[filename].nodes:
             self.writer.add_document(title=self.nodes[node_id].title,
@@ -1099,6 +1091,7 @@ class UrtextProject:
 
         final_results = ''
         shown_nodes = []
+
         with self.ix.searcher() as searcher:
             query = QueryParser("content", self.ix.schema).parse(string)
             results = searcher.search(query, limit=1000)
@@ -1142,10 +1135,7 @@ class UrtextProject:
 
     def is_in_node(self, position, node_id):
         """ Given a position, and node_id, returns whether the position is in the node """
-        print(node_id)
         for this_range in self.nodes[node_id].ranges:
-            print(this_range)
-            print(position)
             if position > this_range[0] - 2 and position < this_range[1] + 2:
                 return True
         return False
