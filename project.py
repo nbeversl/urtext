@@ -604,6 +604,9 @@ class UrtextProject:
         
         full_file_contents = self.full_file_contents(node_id=node_id)
         tag_position = territory[-1][1]
+        if full_file_contents[tag_position] == '%':
+             tag_contents += '\n' # keep split markers as the first character on new lines
+
         new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
 
         self.set_file_contents(self.nodes[node_id].filename, new_contents)
@@ -725,15 +728,12 @@ class UrtextProject:
     """
     def remove_file(self, filename):
         """ removes the file from the project object """
-
         if filename in self.files:
             for node_id in self.files[filename].nodes:
                 for target_id in list(self.dynamic_nodes):
                     if self.dynamic_nodes[target_id].source_id == node_id:
                         del self.dynamic_nodes[target_id]
 
-                # REFACTOR
-                # delete it from the self.tagnames array -- duplicated from delete_file()
                 for tagname in list(self.tagnames):
                     for value in list(self.tagnames[tagname]):
                         if value in self.tagnames[tagname]:  
@@ -1316,8 +1316,6 @@ class UrtextProject:
     """
 
     def on_created(self, filename):
-        if not self.filter_filename(filename):
-            return (True,'')
         unlocked, lock_name = self.check_lock()
         if not unlocked:
             return (False, lock_name)
@@ -1334,8 +1332,6 @@ class UrtextProject:
     def on_modified(self, 
             filename, 
             watchdog=False):
-        if not self.filter_filename(filename):
-            return (True,'')
         if watchdog:
             unlocked, lock_name = self.check_lock()
             if not unlocked:
@@ -1358,8 +1354,6 @@ class UrtextProject:
         return (True,'')
 
     def on_moved(self, filename):
-        if not self.filter_filename(filename):
-            return (True,'')
         unlocked, lock_name = self.check_lock()
         if not unlocked:
             return (False, lock_name)
@@ -1370,15 +1364,6 @@ class UrtextProject:
                                     new_filename)
             self.handle_renamed(old_filename, new_filename)
         return (True,'')
-
-    def filter_filename(self, filename):
-        # filename = os.path.basename(filename)
-        # if filename in [
-        #     'zzz.txt',
-        #     'zzy.txt',
-        #     'urtext_log.txt']:
-        #     return False
-        return True
 
 
     """

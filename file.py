@@ -102,7 +102,7 @@ class UrtextFile:
 
             # If this closes a node:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
-                print(nested_levels)
+
                 # TODO why is this if necessary?
                 if [last_position,position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position])
