@@ -248,10 +248,6 @@ class UrtextProject:
             if not self.nodes[node].root_node:
                 parent = self.get_parent(node)
                 self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
-            else:
-                # these will be root nodes.
-                print('SOME OTHER NODE MADE IT HERE, project.py line 232')
-                print(node)
 
     def build_alias_trees(self):
         """ 

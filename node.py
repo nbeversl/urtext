@@ -28,7 +28,6 @@ def create_urtext_node(
     
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
     metadata = NodeMetadata(stripped_contents)
-
     new_node = UrtextNode(filename, metadata, root=root, compact=compact, split=split)
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
 

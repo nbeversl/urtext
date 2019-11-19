@@ -59,9 +59,19 @@ class UrtextFile:
         nested_levels = {}
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
+        split = False
         
+        # THIS IS CAUSED OVERLAPPING RANGES TO BE ADDED TO THE SAME
         if self.positions:
-            nested_levels[0] = [[0, self.positions[0]]]
+            non_newline_symbol = 0
+            while self.symbols[self.positions[non_newline_symbol]] == '\n':
+                non_newline_symbol += 1
+                if non_newline_symbol == len(self.positions):
+                    break
+            if non_newline_symbol < len(self.positions):
+
+                nested_levels[0] = [[0, self.positions[non_newline_symbol]]]
+
 
         for index in range(len(self.positions)):
 
@@ -74,7 +84,8 @@ class UrtextFile:
             if self.symbols[position] == '{{':
 
                 # begin tracking the ranges of the next outer one
-                nested_levels[nested].append([last_position, position])
+                if [last_position, position] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position])
 
                 # add another level of depth
                 nested += 1 
@@ -104,11 +115,12 @@ class UrtextFile:
                 
             if self.symbols[position] == '\n' and compact_node_open:
                 # TODO: this could be refactored with what is below
+                
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position])
+
                 compact_node = node.create_urtext_node(
                     self.filename, 
-
                     contents=''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
@@ -133,28 +145,30 @@ class UrtextFile:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
 
                 # TODO why is this if necessary?
-                if [last_position,position] not in nested_levels[nested]: # avoid duplicates
+                if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position])
-
+            
                 # file level nodes are root nodes, with multiples permitted
                 root = True if nested == 0 else False
 
-                split=False
+                split = False
 
                 # determine whether this is a node made by a split marker (%)
                 if self.symbols[position] == '^\%(?!%)' or self.symbols[self.positions[index-1]] == '^\%(?!%)':
-                    split=True
-
+                    split = True
+                
+                node_contents = ''.join([  
+                        contents[file_range[0]:file_range[1]] 
+                            for file_range in nested_levels[nested] 
+                        ])
+                
                 # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 
-                    contents=''.join([  
-                        contents[file_range[0]:file_range[1]] 
-                            for file_range in nested_levels[nested] 
-                        ]),
+                    contents=node_contents,
                     root=root,
                     split=split)
-
+                
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
 
@@ -162,11 +176,11 @@ class UrtextFile:
 
                 del nested_levels[nested]
 
-                last_position = position + 2
-
                 if self.symbols[position] == '^\%(?!%)':
-                    last_position = position + 1 # overwrite from above
+                    last_position = position + 1  # overwrite from above
                     continue
+                
+                last_position = position + 2
 
                 nested -= 1
 
@@ -177,28 +191,36 @@ class UrtextFile:
             self.log_error('Missing closing wrapper', position)
             return None
 
-        ### Handle the root node: -- this now just the last (lowest) remaining node at the file level
+        ### handle last (lowest) remaining node at the file level
         
-        if nested_levels == {} and last_position > 0:
-            nested_levels[0] = [[last_position + 1, self.length]]
+        if nested_levels == {} or nested_levels[0] == [] and last_position > 0:
+            # everything else in the file is part of another node.
+            nested_levels[0] = [[last_position+1, self.length]]
+               
         elif nested_levels == {} or nested_levels[0] == []:
+            # everything else in the file is other nodes.
             nested_levels[0] = [[0, self.length]]  
-        else:
+        
+        elif [last_position + 1, self.length] not in nested_levels[0]:
             nested_levels[0].append([last_position + 1, self.length])
-       
-        root_node = node.create_urtext_node(self.filename,
-                               contents=''.join([
-                                    contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]]),
-                               root=True)
 
+        node_contents = ''.join([contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]])
+        root_node = node.create_urtext_node(
+            self.filename,
+            contents=node_contents,
+            root=True,
+            split=split # use most recent value; if previous closed node is split, this is split.
+            )
+       
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
+        
         if len(self.root_nodes) == 0:
             print('NO ROOT NODES')
             print(self.filename)
-        
 
     def add_node(self, new_node, ranges):
+      
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
