@@ -8,8 +8,16 @@ node_link_regex = r'>[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 compact_node_regex = '\^[^\n]*'
 
-compiled_symbols = [re.compile(symbol) for symbol in ['{{', '}}', '>>', ] ]
-compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in ['^\s*\^','^\%(?!%)'] ])
+compiled_symbols = [re.compile(symbol) for symbol in  [
+    '{{', # inline node opening wrapper
+    '}}', # inline node closing wrapper
+    '>>', # node pointer
+    '\n',
+    ] ]
+compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
+    '^\s*\^',           # compact node opening wrapper
+    '^\%(?!%)'          # split node marker
+    ] ])
 
 class UrtextFile:
 
@@ -50,6 +58,7 @@ class UrtextFile:
         nested = 0  # tracks depth of node nesting
         nested_levels = {}
         last_position = 0  # tracks the most recently parsed position in the file
+        compact_node_open = False
         
         if self.positions:
             nested_levels[0] = [[0, self.positions[0]]]
@@ -67,7 +76,7 @@ class UrtextFile:
                 # begin tracking the ranges of the next outer one
                 nested_levels[nested].append([last_position, position])
 
-                # add another level of depth0
+                # add another level of depth
                 nested += 1 
 
                 # move the parsing pointer forward
@@ -87,17 +96,37 @@ class UrtextFile:
                 continue
 
             if self.symbols[position] == '^\s*\^':
-                compact_node_contents = re.search(compact_node_regex, contents[position:]).group(0)
-                compact_node = node.create_urtext_node(self.filename, 
-                    # omit the leading/training whitespace and the '^' character itself:
-                    contents=compact_node_contents.strip()[1:], 
-                    compact = True)
-                if not self.add_node(compact_node, [[position + 2 , position+len(compact_node_contents.strip()[1:]) + 2]]):
-                    return self.log_error('Compact Node problem', position)
+                nested_levels[nested].append([last_position, position])
+                nested += 1 
+                last_position = position + 1
+                compact_node_open = True
+                continue
+                
+            if self.symbols[position] == '\n' and compact_node_open:
+                # TODO: this could be refactored with what is below
+                if [last_position, position] not in nested_levels[nested]: # avoid duplicates
+                    nested_levels[nested].append([last_position, position])
+                compact_node = node.create_urtext_node(
+                    self.filename, 
 
-                nested_levels[nested].append([last_position, position ]) 
-                self.parsed_items[position] = compact_node.id
-                last_position = position + len(compact_node_contents) 
+                    contents=''.join([  
+                        contents[file_range[0]:file_range[1]] 
+                            for file_range in nested_levels[nested] 
+                        ])[1:].strip(), # omit the leading/training whitespace and the '^' character itself:
+                    compact = True)
+
+                if not self.add_node(
+                    compact_node, # node
+                    nested_levels[nested] # ranges
+                    ):
+                    return self.log_error('Compact Node problem', position)
+                compact_node_open = False
+                self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
+                del nested_levels[nested]
+                nested -= 1
+                last_position = position + 1
+                if nested < 0:
+                    return self.log_error('Stray closing wrapper', position)  
                 continue
 
             # If this closes a node:
