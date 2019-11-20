@@ -1048,6 +1048,8 @@ class UrtextProject:
         """
         root_nodes = []        
         for filename in self.files:
+            print(filename)
+            print(self.files[filename].root_nodes)
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
