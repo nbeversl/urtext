@@ -162,10 +162,13 @@ class UrtextProject:
         Parse the file
         """
         new_file = UrtextFile(os.path.join(self.path, filename))
+        if not new_file.nodes:
+            return
 
         """
         re-add the filename and all its nodes to the project
         """
+        
         self.files[new_file.basename] = new_file
         for node_id in new_file.nodes:
             if self.is_duplicate_id(node_id, filename):
@@ -209,6 +212,7 @@ class UrtextProject:
             # If the parsed item is a tree marker to another node,
             # parse the markers, positioning it within its parent node
             #
+            print(filename)
             if node[:2] == '>>':
                 inserted_node_id = node[2:]
                 for other_node in [
@@ -1048,8 +1052,6 @@ class UrtextProject:
         """
         root_nodes = []        
         for filename in self.files:
-            print(filename)
-            print(self.files[filename].root_nodes)
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:

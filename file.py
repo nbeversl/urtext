@@ -34,7 +34,7 @@ class UrtextFile:
         contents = self.get_file_contents()
         if not contents:
             return
-        self.length = len(contents)
+        self.file_length = len(contents)
         self.lex(contents)
         self.parse(contents)
 
@@ -127,13 +127,14 @@ class UrtextFile:
                         ])[1:].strip(), # omit the leading/training whitespace and the '^' character itself:
                     compact = True)
 
+                compact_node_open = False
                 if not self.add_node(
                     compact_node, # node
                     nested_levels[nested] # ranges
                     ):
-                    return self.log_error('Compact Node problem', position)
-                compact_node_open = False
-                self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
+                    print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
+                else:
+                    self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
                 del nested_levels[nested]
                 nested -= 1
                 last_position = position + 1
@@ -154,7 +155,16 @@ class UrtextFile:
                 split = False
 
                 # determine whether this is a node made by a split marker (%)
-                if self.symbols[position] == '^\%(?!%)' or self.symbols[self.positions[index-1]] == '^\%(?!%)':
+
+                # look backwards to the previous non-newline symbols
+                # TODO: refactor
+                back_search_index = index - 1
+                while self.symbols[self.positions[back_search_index]] == '\n':
+                    back_search_index -= 1
+                    if back_search_index == 0:
+                        break
+
+                if self.symbols[position] == '^\%(?!%)' or self.symbols[self.positions[back_search_index]] == '^\%(?!%)':
                     split = True
                 
                 node_contents = ''.join([  
@@ -195,14 +205,14 @@ class UrtextFile:
         
         if nested_levels == {} or nested_levels[0] == [] and last_position > 0:
             # everything else in the file is part of another node.
-            nested_levels[0] = [[last_position+1, self.length]]
+            nested_levels[0] = [[last_position+1, self.file_length]]
                
         elif nested_levels == {} or nested_levels[0] == []:
             # everything else in the file is other nodes.
-            nested_levels[0] = [[0, self.length]]  
+            nested_levels[0] = [[0, self.file_length]]  
         
-        elif [last_position + 1, self.length] not in nested_levels[0]:
-            nested_levels[0].append([last_position + 1, self.length])
+        elif [last_position + 1, self.file_length] not in nested_levels[0]:
+            nested_levels[0].append([last_position + 1, self.file_length])
 
         node_contents = ''.join([contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]])
         root_node = node.create_urtext_node(
@@ -255,8 +265,8 @@ class UrtextFile:
         self.nodes = {}
         self.parsed_items = {}
         self.root_nodes = []
-        self.length = 0
-
+        self.file_length = 0
+        
         print(''.join([ 
                 message, ' in ', self.filename, ' at position ',
             str(position)]))
