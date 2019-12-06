@@ -124,7 +124,7 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
-    def update(self, compile=True, update_lists=True):
+    def update(self, compile_project=True, update_lists=True):
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
@@ -135,12 +135,15 @@ class UrtextProject:
 
         self.rewrite_recursion()
 
-        if compile == True:
-            self.compile()
+        modified_files = []
+        if compile_project == True:
+            modified_files = self.compile()
 
         if update_lists:
             self.update_node_list()
             self.update_metadata_list()
+
+        return modified_files
 
     """ 
     Parsing
@@ -212,7 +215,6 @@ class UrtextProject:
             # If the parsed item is a tree marker to another node,
             # parse the markers, positioning it within its parent node
             #
-            print(filename)
             if node[:2] == '>>':
                 inserted_node_id = node[2:]
                 for other_node in [
@@ -264,7 +266,13 @@ class UrtextProject:
             node_id = node.name[-3:]
             if node_id in self.nodes:
                 duplicate_node = self.nodes[node_id].duplicate_tree()
-                node.children = [s for s in duplicate_node.children]      
+                children = [s for s in duplicate_node.children]
+                if children:
+                    try:
+                        node.children = children
+                    except:
+                        print('ERROR')
+                        print(children)
             else:
                 new_node = Node('MISSING NODE ' + node_id)
 
@@ -390,23 +398,33 @@ class UrtextProject:
     Compiling dynamic nodes
     """
     def compile(self):
-        """ Main method to compile dynamic nodes definitions """
+        """ Main method to compile dynamic nodes from their definitions """
+        # is list() part of the problem?
+        
+        modified_files = []
 
         for target_id in list(self.dynamic_nodes):
             """
             Make sure the target node exists.
             """
+            if target_id not in self.dynamic_nodes:
+                print('dyanmic node list has changed ,skipping '+target_id)
+                continue
 
             source_id = self.dynamic_nodes[target_id].source_id
             if target_id not in self.nodes:
                 self.log_item('Dynamic node definition >' + source_id +
                               ' points to nonexistent node >' + target_id)
                 continue
-
-            # these should no longer be necessary with machine lock
-            # self.parse_file(self.nodes[target_id].filename)
-            # self.update(compile=False, update_lists=False)
             
+            # re-parse the file in case it has changed
+            self.parse_file(self.nodes[target_id].filename)
+            self.update(compile_project=False, update_lists=False)
+            
+            if target_id not in self.dynamic_nodes:
+                print('dyanmic node list has changed ,skipping '+target_id)
+                continue
+
             dynamic_definition = self.dynamic_nodes[target_id]
 
             new_node_contents = ''
@@ -525,15 +543,23 @@ class UrtextProject:
                 updated_node_contents = indent(updated_node_contents,
                                                dynamic_definition.spaces)
 
-            self.set_node_contents(target_id, updated_node_contents)
-        
-        self.update(compile=False)
+            changed_file = self.set_node_contents(target_id, updated_node_contents)
+            if changed_file:
+                if changed_file not in modified_files:
+                    modified_files.append(changed_file)
+
+        self.update(compile_project=False)
+
+        return modified_files
 
     def set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
 
-        if self.nodes[node_id].set_content(contents):
+        content_changed = self.nodes[node_id].set_content(contents)
+        if content_changed:
             self.parse_file(self.nodes[node_id].filename)
+            return self.nodes[node_id].filename
+        return False
 
     """
     Refreshers
@@ -604,7 +630,7 @@ class UrtextProject:
         
         full_file_contents = self.full_file_contents(node_id=node_id)
         tag_position = territory[-1][1]
-        if full_file_contents[tag_position] == '%':
+        if tag_position < len(full_file_contents) and full_file_contents[tag_position] == '%':
              tag_contents += '\n' # keep split markers as the first character on new lines
 
         new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
@@ -1019,7 +1045,7 @@ class UrtextProject:
         in reverse order (most recent) by date 
         """
         unindexed_nodes = []
-        for node_id in list(self.nodes):
+        for node_id in self.nodes:
             if self.nodes[node_id].metadata.get_tag('index') == []:
                 unindexed_nodes.append(node_id)
                 
@@ -1033,12 +1059,11 @@ class UrtextProject:
         """ returns an array of node IDs of indexed nodes, in indexed order """
 
         indexed_nodes_list = []
-        node_list = list(self.nodes)
-        for node in node_list:
-            if self.nodes[node].metadata.get_tag('index') != []:
+        for node_id in self.nodes:
+            if self.nodes[node_id].metadata.get_tag('index') != []:
                 indexed_nodes_list.append([
-                    node,
-                    int((self.nodes[node].metadata.get_tag('index')[0]))
+                    node_id,
+                    int((self.nodes[node_id].metadata.get_tag('index')[0]))
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list,
                                       key=lambda item: item[1])
@@ -1265,7 +1290,7 @@ class UrtextProject:
             return
         if self.nodes[node_id].root_node:
             print(node_id + ' is already a root node.')
-            return
+            return None
 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
@@ -1284,17 +1309,17 @@ class UrtextProject:
             '\n',
             file_contents[end + 2:]])
 
-        with open (os.path.join(self.path, filename)):
+        with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
             f.close()
+
+        self.parse_file(filename)
 
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
             f.close()
 
         self.parse_file(popped_node_id+'.txt')
-        self.parse_file(filename)
-
         return start - 2 # returns where to put the cursor at the new marker
 
     def titles(self):
