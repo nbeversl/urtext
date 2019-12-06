@@ -11,7 +11,7 @@ import time
 from time import strftime
 from pytz import timezone
 import pytz
-import getpass
+import threading
 
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
@@ -72,7 +72,8 @@ class UrtextProject:
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
- 
+        self._lock = threading.Lock()
+
         # Whoosh
         self.schema = Schema(
                 title=TEXT(stored=True),
@@ -86,11 +87,6 @@ class UrtextProject:
                                indexname="urtext")
         
         filelist = os.listdir(self.path)
-
-        self.machine_name = getpass.getuser()
-
-        if watchdog:
-            self.lock()
         
         for file in filelist:
             if self.filter_filenames(file) == None:
@@ -115,7 +111,8 @@ class UrtextProject:
         self.compiled = True
         
         self.update()
-        
+
+
     def node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -124,7 +121,15 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
+
     def update(self, compile_project=True, update_lists=True):
+        with self._lock:
+            x = threading.Thread(
+                target=self._update)
+            x.start()
+
+    def _update(self,compile_project=True, update_lists=True):
+
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
@@ -268,11 +273,7 @@ class UrtextProject:
                 duplicate_node = self.nodes[node_id].duplicate_tree()
                 children = [s for s in duplicate_node.children]
                 if children:
-                    try:
-                        node.children = children
-                    except:
-                        print('ERROR')
-                        print(children)
+                    node.children = children
             else:
                 new_node = Node('MISSING NODE ' + node_id)
 
@@ -419,7 +420,7 @@ class UrtextProject:
             
             # re-parse the file in case it has changed
             self.parse_file(self.nodes[target_id].filename)
-            self.update(compile_project=False, update_lists=False)
+            self._update(compile_project=False, update_lists=False)
             
             if target_id not in self.dynamic_nodes:
                 print('dyanmic node list has changed ,skipping '+target_id)
@@ -548,7 +549,7 @@ class UrtextProject:
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
 
-        self.update(compile_project=False)
+        self._update(compile_project=False)
 
         return modified_files
 
@@ -623,8 +624,6 @@ class UrtextProject:
     def tag_other_node(self, node_id, tag_contents):
         """adds a metadata tag to a node programmatically"""
 
-        # might also need to add in checking for Sublime (only) to make sure the file
-        # is not open and unsaved.
         timestamp = self.timestamp(datetime.datetime.now())
         territory = self.nodes[node_id].ranges
         
@@ -1045,7 +1044,7 @@ class UrtextProject:
         in reverse order (most recent) by date 
         """
         unindexed_nodes = []
-        for node_id in self.nodes:
+        for node_id in list(self.nodes):
             if self.nodes[node_id].metadata.get_tag('index') == []:
                 unindexed_nodes.append(node_id)
                 

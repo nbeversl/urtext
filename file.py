@@ -137,7 +137,7 @@ class UrtextFile:
                     self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
                 del nested_levels[nested]
                 nested -= 1
-                last_position = position + 1
+                last_position = position
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 continue
