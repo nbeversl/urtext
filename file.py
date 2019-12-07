@@ -1,3 +1,4 @@
+
 import os
 import re
 from .node import UrtextNode
@@ -137,7 +138,7 @@ class UrtextFile:
                     self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
                 del nested_levels[nested]
                 nested -= 1
-                last_position = position
+                last_position = position + 1
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 continue
@@ -155,23 +156,19 @@ class UrtextFile:
                 split = False
 
                 # determine whether this is a node made by a split marker (%)
+                start_position = nested_levels[nested][0][0]
+                end_position = nested_levels[nested][-1][1]
 
-                # look backwards to the previous non-newline symbols
-                # TODO: refactor
-                back_search_index = index - 1
-                while self.symbols[self.positions[back_search_index]] == '\n':
-                    back_search_index -= 1
-                    if back_search_index == 0:
-                        break
-
-                if self.symbols[position] == '^\%(?!%)' or self.symbols[self.positions[back_search_index]] == '^\%(?!%)':
+                # TODO this method of checking for split node may be problematic?? 
+                # Will an inline node ever get falsely called a split node?
+                if contents[start_position-1] == '%' or contents[end_position+1] == '%':
                     split = True
-                
+                                
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ])
-                
+
                 # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 

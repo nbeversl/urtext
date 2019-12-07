@@ -73,6 +73,7 @@ class UrtextProject:
         self.alias_nodes = []
         self.ix = None
         self._lock = threading.Lock()
+        self.loaded = False
 
         # Whoosh
         self.schema = Schema(
@@ -111,6 +112,8 @@ class UrtextProject:
         self.compiled = True
         
         self.update()
+
+        self.loaded = True
 
 
     def node_id_generator(self):
@@ -220,6 +223,7 @@ class UrtextProject:
             # If the parsed item is a tree marker to another node,
             # parse the markers, positioning it within its parent node
             #
+
             if node[:2] == '>>':
                 inserted_node_id = node[2:]
                 for other_node in [
@@ -234,12 +238,28 @@ class UrtextProject:
                             self.alias_nodes.append(alias_node)
                         break
                 continue
+
+            if self.nodes[node].root_node:
+                continue
+
+
             """
             in case this node begins the file and is an an inline node,
             set the inline node's parent as the root node manually.
             """
+
             if position == 0 and parsed_items[0] == '{{':
                 self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
+                continue
+            """
+            if this is a compact node, its parent is the node right before it.
+
+            """
+            
+                
+            if self.nodes[node].compact or self.nodes[node].split:
+                parent = self.get_parent(node)
+                self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
                 continue
 
             """
@@ -247,8 +267,8 @@ class UrtextProject:
             get the parent from the predecessor
             """
             # TODO this needs to be refactored and done more elegantly.
-            if index > 0 and parsed_items[positions[index-1]][:2] != '>>':
-                if self.nodes[parsed_items[position]].split and self.nodes[parsed_items[positions[index-1]]].split:
+            if index > 0 and parsed_items[positions[index-1]][:2] not in ['>>']:
+                if self.nodes[parsed_items[position]].split:
                     self.nodes[parsed_items[position]].tree_node.parent = self.nodes[parsed_items[positions[index-1]]].tree_node.parent
                     continue
                 
@@ -385,7 +405,6 @@ class UrtextProject:
 
         no_line = AbstractStyle('    ','├── ','└── ')
 
-
         for pre, _, this_node in RenderTree(start_point,style=no_line ):
             if this_node.name in self.nodes:
                 tree_render += "%s%s" % (pre, self.nodes[
@@ -443,31 +462,60 @@ class UrtextProject:
                 # list of the nodes indicated by ALL the key/value pairs for AND inclusion
                 included_nodes_and = []
 
-                # for all AND key/value pairs in the dynamic definition                 
-                for item in dynamic_definition.include_and:
-                    key, value = item[0], item[1]
+                # for all AND key/value pairs in the dynamic definition   
 
-                    # if the key/value pair is in the project
-                    if key in self.tagnames and value in self.tagnames[key]:
+                for and_group in dynamic_definition.include_and:
 
-                        # add its nodes to the list of possibly included nodes as its own set
-                        included_nodes_and.append(set(self.tagnames[key][value]))
+                    this_and_group = []
 
-                    else:
-                        # otherwise, this means no nodes result from this AND combination
-                        included_nodes_and = []
-                        break
+                    for pair in and_group:
+                        
+                        key, value = pair[0], pair[1]
 
-                # If more than one actual set results from this:
-                if len(included_nodes_and) > 1:
+                        # if the key/value pair is in the project
+                        if key in self.tagnames and value in self.tagnames[key]:
 
-                    # reduce the list to the intersection of all sets
-                    included_nodes_and = list(set(included_nodes_and[0]).intersection(*included_nodes_and))
+                            # add its nodes to the list of possibly included nodes as its own set
+                            this_and_group.append(set(self.tagnames[key][value]))
+                            #included_nodes_and.append(set(self.tagnames[key][value]))
 
-                elif len(included_nodes_and) > 0:
-                    # otherwise, the list of included nodes is just the single set, if it exists
-                    included_nodes_and = list(included_nodes_and[0])
-                    
+                        else:
+                            # otherwise, this means no nodes result from this AND combination
+                            this_and_group = []
+                            break
+ 
+                    if this_and_group:
+ 
+                        included_nodes.extend(
+                            list(set.intersection(*this_and_group))
+                            )
+
+                for and_group in dynamic_definition.exclude_and:
+
+                    this_and_group = []
+
+                    for pair in and_group:
+                        
+                        key, value = pair[0], pair[1]
+
+                        # if the key/value pair is in the project
+                        if key in self.tagnames and value in self.tagnames[key]:
+
+                            # add its nodes to the list of possibly included nodes as its own set
+                            this_and_group.append(set(self.tagnames[key][value]))
+                            #included_nodes_and.append(set(self.tagnames[key][value]))
+
+                        else:
+                            # otherwise, this means no nodes result from this AND combination
+                            this_and_group = []
+                            break
+ 
+                    if this_and_group:
+ 
+                        excluded_nodes.extend(
+                            list(set.intersection(*this_and_group))
+                            )
+
                 # add all the these nodes to the list of nodes to be included, avoiding duplicates
                 for indiv_node_id in included_nodes_and:
                     if indiv_node_id not in included_nodes:
@@ -483,7 +531,8 @@ class UrtextProject:
     
                 for item in dynamic_definition.exclude_or:
                     key, value = item[0], item[1]
-                    if value in self.tagnames[key]:
+                    
+                    if key in self.tagnames and value in self.tagnames[key]:
                         excluded_nodes.extend(self.tagnames[key][value])
 
                 for node in excluded_nodes:
@@ -506,11 +555,12 @@ class UrtextProject:
                     if dynamic_definition.sort_tagname != None:
                         included_nodes = sorted(
                             included_nodes,
-                            key=lambda node: node.metadata.get_tag(
+                            key = lambda node: node.metadata.get_tag(
                                 dynamic_definition.sort_tagname))
                     else:
-                        included_nodes = sorted(included_nodes,
-                                                key=lambda node: node.date)
+                        included_nodes = sorted(
+                            included_nodes,
+                            key = lambda node: node.date)
 
                     for targeted_node in included_nodes:
                         if dynamic_definition.show == 'title':
@@ -878,7 +928,6 @@ class UrtextProject:
         # this should actually just be the first root node, not all root nodes.
         remaining_primary_root_nodes = list(self.root_nodes(primary=True))
 
-
         indexed_nodes = list(self.indexed_nodes())
         for node_id in indexed_nodes:
             if node_id in remaining_primary_root_nodes:
@@ -1043,8 +1092,9 @@ class UrtextProject:
         returns an array of node IDs of unindexed nodes, 
         in reverse order (most recent) by date 
         """
+     
         unindexed_nodes = []
-        for node_id in list(self.nodes):
+        for node_id in list(self.nodes):   
             if self.nodes[node_id].metadata.get_tag('index') == []:
                 unindexed_nodes.append(node_id)
                 
@@ -1058,7 +1108,7 @@ class UrtextProject:
         """ returns an array of node IDs of indexed nodes, in indexed order """
 
         indexed_nodes_list = []
-        for node_id in self.nodes:
+        for node_id in list(self.nodes):
             if self.nodes[node_id].metadata.get_tag('index') != []:
                 indexed_nodes_list.append([
                     node_id,
@@ -1140,34 +1190,35 @@ class UrtextProject:
     
     def get_parent(self, child_node_id):
         """ Given a node ID, returns its parent, if any """
-
+        
         filename = self.nodes[child_node_id].filename
         start_of_node = self.nodes[child_node_id].ranges[0][0]
-        distance_back = 2 
-        if self.nodes[child_node_id].compact:
-            distance_back = 1
-        if self.nodes[child_node_id].split:
-            distance_back = 1
-        for other_node in [
-                other_id for other_id in self.files[filename].nodes
-                if other_id != child_node_id
-                ]:
-            
-            if self.is_in_node(start_of_node - distance_back, other_node):
-                return other_node
-        return None
+        distance_back = 1
+        
+        parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
+        while not parent_node and distance_back < start_of_node:
+            distance_back += 1
+            parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
+
+        while self.nodes[child_node_id].split and not self.nodes[child_node_id].compact and self.nodes[parent_node].split :
+            if self.nodes[parent_node].root_node:
+                break
+            parent_node = self.get_parent(parent_node)
+
+        return parent_node
 
     def is_in_node(self, position, node_id):
         """ Given a position, and node_id, returns whether the position is in the node """
         for this_range in self.nodes[node_id].ranges:
-            if position > this_range[0] - 2 and position < this_range[1] + 2:
+           
+            if position >= this_range[0] and position <= this_range[1]:
                 return True
         return False
 
     def get_node_id_from_position(self, filename, position):
         """ Given a position, returns the Node ID it's in """
-
         for node_id in self.files[os.path.basename(filename)].nodes:
+           
             if self.is_in_node(position, node_id):
                 return node_id
         return None

@@ -90,10 +90,12 @@ class UrtextDynamicDefinition:
                 if atoms[1] == 'metadata' and len(atoms) > 3:
                     
                     if atoms[2] == 'and':
+                        and_group = []
                         key = atoms[3]
                         values = atoms[4:]
                         for value in values:
-                            self.include_and.append((key,value))
+                            and_group.append((key,value)) 
+                        self.include_and.append(and_group)
                         
                     elif atoms[2] == 'or':
                         key = atoms[3]
@@ -109,5 +111,24 @@ class UrtextDynamicDefinition:
 
             if atoms[0] == 'exclude':
                 if atoms[1] == 'metadata' and len(atoms) > 3:
-                    self.exclude_or.append((atoms[2], atoms[3]))
+                    
+                    if atoms[2] == 'and':
+                        and_group = []
+                        key = atoms[3]
+                        values = atoms[4:]
+                        for value in values:
+                            and_group.append((key,value)) 
+                        self.exclude_and.append(and_group)
+                        
+                    elif atoms[2] == 'or':
+                        key = atoms[3]
+                        values = atoms[4:]
+                        for value in values:
+                            self.exclude_or.append((key,value))
+
+                    else:
+                        key = atoms[2]
+                        values = atoms[3:]
+                        for value in values:
+                            self.exclude_or.append((key,value))
                     continue

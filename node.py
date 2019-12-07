@@ -24,7 +24,7 @@ def create_urtext_node(
     contents='', 
     root=False, 
     compact=False,
-    split=True):
+    split=False):
     
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
     metadata = NodeMetadata(stripped_contents)
