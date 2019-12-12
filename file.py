@@ -70,7 +70,6 @@ class UrtextFile:
                 if non_newline_symbol == len(self.positions):
                     break
             if non_newline_symbol < len(self.positions):
-
                 nested_levels[0] = [[0, self.positions[non_newline_symbol]]]
 
 
@@ -85,8 +84,8 @@ class UrtextFile:
             if self.symbols[position] == '{{':
 
                 # begin tracking the ranges of the next outer one
-                if [last_position, position] not in nested_levels[nested]:
-                    nested_levels[nested].append([last_position, position])
+                if [last_position, position + 2] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position + 2])
 
                 # add another level of depth
                 nested += 1 

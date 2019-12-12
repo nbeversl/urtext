@@ -1,0 +1,8 @@
+Syntaxes :
+
+	The { {  and } } character is part of the node it encloses.
+
+
+/-- ID:r0w
+Timestamp:<Thu., Dec. 12, 2019, 09:02 AM>
+--/

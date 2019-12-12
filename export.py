@@ -3,10 +3,16 @@ Export
 
 These should be re-tested. 
 """
+import os
+import re
+node_link_regex = r'>[0-9,a-z]{3}\b'
+
 def export_project( project , jekyll=False, style_titles=True ):
     for filename in list(project.files):
+        
         # Name file by the first root node
         export_filename = project.files[filename].root_nodes[0]+'.html'
+        
         export(project,
             filename, 
             export_filename, 
@@ -14,7 +20,8 @@ def export_project( project , jekyll=False, style_titles=True ):
             as_single_file=False,
             style_titles=style_titles,
             strip_urtext_syntax=False,
-            jekyll=jekyll)
+            jekyll=jekyll
+            )
 
 def export( project, 
             filename, 
@@ -24,9 +31,10 @@ def export( project,
             style_titles=True,
             strip_urtext_syntax=True,
             jekyll=False,
-            jekyll_post=False):
+            jekyll_post=False
+            ):
     
-
+    filename = os.path.basename(filename)
     def opening_wrapper(kind, nested):
         wrappers = { 
             'HTML':     '<div class="urtext_nested_'+str(nested)+'">',
@@ -47,10 +55,10 @@ def export( project,
             return '\n' + '#' * nested + ' ' + title + '\n'
         if kind == 'HTML':
             return '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n'
-    
+
     # name by the first root node
-    root_node_id = project.files[filename].root_nodes[0]
- 
+    
+    
     def s(  root_node_id, 
             nested, 
             visited_nodes, 
@@ -59,11 +67,12 @@ def export( project,
 
         if root_node_id in visited_nodes:
             return '\n' + '#' * nested + ' RECURSION : '+ root_node_id                
+
         else:
             visited_nodes.append(root_node_id)
 
         exported_contents = ''
-
+        print(root_node_id)
         ranges =  project.nodes[root_node_id].ranges
         filename = project.nodes[root_node_id].filename
         
@@ -146,6 +155,7 @@ def export( project,
             if as_single_file:
                 while re.findall(node_pointer_regex, added_contents):
                     for match in re.findall(node_pointer_regex, added_contents):
+                        print(match)
                         inserted_contents = s(match[2:5], nested + 1, visited_nodes)
                         if inserted_contents == None:
                             inserted_contents = ''
@@ -157,12 +167,17 @@ def export( project,
                 if next_node in project.dynamic_nodes and project.dynamic_nodes[next_node].tree:
                     exported_contents += project.render_tree_as_html(project.dynamic_nodes[next_node].tree)
                 else:
+                    print(filename)
+                    print(single_range[1]+1 )
+                    print(next_node)
                     exported_contents += s(next_node, nested + 1 ,visited_nodes)
             
         exported_contents += closing_wrapper(kind)
 
         return exported_contents 
 
+    root_node_id = project.files[filename].root_nodes[0]
+    
     visited_nodes = []
     final_exported_contents = s(root_node_id, 1, visited_nodes)
     

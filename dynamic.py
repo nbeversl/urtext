@@ -21,7 +21,10 @@ class UrtextDynamicDefinition:
         self.metadata = {}
         self.show = 'full_contents'
         self.oneline_meta = False
-        
+        self.interlinks = None
+        self.omit=[]
+        self.mirror = None
+        self.mirror_include_all = None
         entries = re.split(';|\n', contents)
 
         for entry in entries:
@@ -50,8 +53,14 @@ class UrtextDynamicDefinition:
             """
             atoms = [atom.lower() for atom in atoms]
             """
-            inndentation
+            indentation
             """
+            if atoms[0] == 'mirror':
+                self.mirror = atoms[1]
+                if len(atoms) > 2 and atoms[2] == 'include':
+                    self.mirror_include_all = True
+                continue
+
             if atoms[0] == 'indent':
                 self.spaces = int(atoms[1])
                 continue
@@ -59,6 +68,15 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'tree':
                 self.tree = atoms[1]
                 continue
+
+            if atoms[0] == 'interlinks':
+                self.interlinks = atoms[1]
+                continue
+
+            if atoms[0] == 'omit':
+                self.omit = atoms[1:]
+                continue
+
 
             if atoms[0] == 'sort':
                 self.sort_tagname = atoms[1]

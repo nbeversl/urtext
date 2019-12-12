@@ -21,27 +21,28 @@ from .metadata import NodeMetadata
 from anytree import Node
 from anytree import RenderTree
 
-node_id_regex = r'\b[0-9,a-z]{3}\b'
+node_id_regex = '[0-9,a-z]{3}'
 
 class Interlinks():
-    def __init__(self, project, root_node_id):
+
+    def __init__(self, project, root_node_id, omit=[]):
         self.visited_nodes = []
         self.backward_visited_nodes = []
         self.project = project
+        self.exclude = [ 'zzz','zzy']
+        self.exclude.extend(omit)
 
         root_node = project.nodes[root_node_id]
         root_meta = project.nodes[root_node_id].metadata
-
         self.build_node_tree(root_node.id)
         self.build_backward_node_tree(root_node.id)
-        self.render = self.render_tree()
 
     def build_node_tree(self, oldest_node, parent=None):
         self.tree = Node(oldest_node)
         self.add_children(self.tree)
 
     def get_links_in_node(self, node_id):
-        contents = self.project.nodes[node_id].strip_metadata()
+        contents = self.project.nodes[node_id].content_only()
         nodes = re.findall('>' + node_id_regex,
                            contents)  # link RegEx
         links = []
@@ -52,14 +53,16 @@ class Interlinks():
     def add_children(self, parent):
         """ recursively add children """
         links = self.get_links_in_node(parent.name)
+
         for link in links:
+            if link in self.exclude:
+                continue
             if link == None:
                 child_nodename = Node('(Broken Link)', parent=parent)
                 continue
             if link not in self.project.nodes:
                 print('link not found ' + link)
                 continue
-            child_metadata = self.project.nodes[link].metadata
             if link in self.visited_nodes:
                 child_nodename = Node(link, parent=parent)
                 continue
@@ -75,7 +78,9 @@ class Interlinks():
     def get_links_to_node(self, node_id):
         links_to_node = []
         for node in self.project.nodes:
-            contents = self.project.nodes[node].strip_metadata()
+            if node in self.exclude:
+                continue
+            contents = self.project.nodes[node].content_only()
             links = re.findall('>' + node_id, contents)  # link RegEx
             if len(links) > 0:
                 links_to_node.append(node)
@@ -84,9 +89,10 @@ class Interlinks():
     def add_backward_children(self, parent):
         links = self.get_links_to_node(parent.name)
         for link in links:
-            contents = self.project.nodes[link].strip_metadata()
+           
+            if link in self.exclude:
+                continue
             if link in self.backward_visited_nodes:
-                child_metadata = NodeMetadata(contents)
                 child_nodename = Node(link, parent=parent)
             else:
                 self.backward_visited_nodes.append(link)
@@ -95,9 +101,9 @@ class Interlinks():
 
     def render_tree(self):
         render = ''
-        for pre, fill, node in RenderTree(self.backward_tree):
+        for pre, fill, node in RenderTree(self.backward_tree):          
             render += ("%s%s" % (pre, self.project.nodes[node.name].title +
-                                 ' >' + node.name)) + '\n'
+                             ' >' + node.name)) + '\n'
         render = render.replace('└', '┌')
         render = render.split('\n')
         render = render[1:]  # avoids duplicating the root node

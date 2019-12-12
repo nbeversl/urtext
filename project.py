@@ -12,7 +12,7 @@ from time import strftime
 from pytz import timezone
 import pytz
 import threading
-
+import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
 
@@ -26,6 +26,8 @@ from whoosh.writing import AsyncWriter
 from .timeline import timeline
 from .file import UrtextFile
 from .interlinks import Interlinks
+from .node import UrtextNode 
+from .export import export_project
 
 #from .google_calendar import sync_project_to_calendar
 node_id_regex = r'\b[0-9,a-z]{3}\b'
@@ -73,7 +75,9 @@ class UrtextProject:
         self.alias_nodes = []
         self.ix = None
         self._lock = threading.Lock()
+        self.update_lock = threading.Lock()
         self.loaded = False
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
         # Whoosh
         self.schema = Schema(
@@ -108,10 +112,15 @@ class UrtextProject:
             self.parse_meta_dates(node_id)
 
         self.compile()
+        
+        self.build_alias_trees()  
+        self.rewrite_recursion()                
+        self.update_node_list()
+        self.update_metadata_list()
 
         self.compiled = True
         
-        self.update()
+        self._update()
 
         self.loaded = True
 
@@ -124,14 +133,9 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
-
-    def update(self, compile_project=True, update_lists=True):
-        with self._lock:
-            x = threading.Thread(
-                target=self._update)
-            x.start()
-
-    def _update(self,compile_project=True, update_lists=True):
+    def _update(self, 
+        compile_project=True, 
+        update_lists=True):
 
         """ 
         Main method to keep the project updated. 
@@ -143,26 +147,21 @@ class UrtextProject:
 
         self.rewrite_recursion()
 
-        modified_files = []
-        if compile_project == True:
-            modified_files = self.compile()
+        if compile_project:
+            self.compile()
+                
+        self.update_node_list()
+        self.update_metadata_list()
 
-        if update_lists:
-            self.update_node_list()
-            self.update_metadata_list()
 
-        return modified_files
-
-    """ 
-    Parsing
-    """
     def parse_file(self, 
         filename,
         add=True, 
         import_project=False,
-        re_index=False):
-        """ Parse a single file into project nodes """
-
+        re_index=False,
+        update=False
+        ):
+    
         if self.filter_filenames(os.path.basename(filename)) == None:
             return
 
@@ -190,7 +189,7 @@ class UrtextProject:
         """
         If this is not the initial load of the project, parse the timestamps in the file
         """
-        if self.compiled == True:
+        if self.compiled:
             for node_id in new_file.nodes:
                 self.parse_meta_dates(node_id)
         
@@ -202,6 +201,9 @@ class UrtextProject:
         if re_index:
             self.re_search_index_file(filename)
 
+        if update:
+            self._update()
+        
         return filename
 
     """
@@ -291,9 +293,7 @@ class UrtextProject:
             node_id = node.name[-3:]
             if node_id in self.nodes:
                 duplicate_node = self.nodes[node_id].duplicate_tree()
-                children = [s for s in duplicate_node.children]
-                if children:
-                    node.children = children
+                node.children = [s for s in duplicate_node.children]
             else:
                 new_node = Node('MISSING NODE ' + node_id)
 
@@ -439,10 +439,11 @@ class UrtextProject:
             
             # re-parse the file in case it has changed
             self.parse_file(self.nodes[target_id].filename)
-            self._update(compile_project=False, update_lists=False)
+            self.build_alias_trees()  
+            self.rewrite_recursion()                
             
             if target_id not in self.dynamic_nodes:
-                print('dyanmic node list has changed ,skipping '+target_id)
+                print('dynamic node list has changed ,skipping '+target_id)
                 continue
 
             dynamic_definition = self.dynamic_nodes[target_id]
@@ -451,6 +452,24 @@ class UrtextProject:
 
             if dynamic_definition.tree and dynamic_definition.tree in self.nodes:
                 new_node_contents += self.show_tree_from(dynamic_definition.tree)
+
+            if dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+                new_node_contents += self.get_node_relationships(
+                    dynamic_definition.interlinks,
+                    omit=dynamic_definition.omit)
+
+            if dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
+                if dynamic_definition.mirror_include_all:
+                    # TODO prevent nodes being repeatedly mirrored inside themselves.
+                    start = self.nodes[dynamic_definition.mirror].ranges[0][0]
+                    end = self.nodes[dynamic_definition.mirror].ranges[-1][1]
+                    new_node_contents += self.full_file_contents(node_id=dynamic_definition.mirror)[start:end]
+                    new_node_contents = UrtextNode.strip_metadata(contents=new_node_contents)
+                    new_node_contents = UrtextNode.strip_dynamic_definitions(contents=new_node_contents)
+                    new_node_contents = new_node_contents.replace('{{','')
+                    new_node_contents = new_node_contents.replace('}}','')
+                else:
+                    new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
             else:
                 # list of explicitly included node IDs
@@ -576,6 +595,9 @@ class UrtextProject:
                 'ID': [ target_id ],
                 'defined in' : [ '>'+dynamic_definition.source_id ] }
 
+            if dynamic_definition.mirror:
+                metadata_values['mirrors'] = '>'+dynamic_definition.mirror
+
             for value in dynamic_definition.metadata:
                 metadata_values[value] = dynamic_definition.metadata[value]
             built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
@@ -598,11 +620,25 @@ class UrtextProject:
             if changed_file:
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
+                self.parse_file(changed_file)
 
-        self._update(compile_project=False)
+            self.build_alias_trees()  
+            self.rewrite_recursion()           
 
         return modified_files
 
+    def export(self, 
+            filename, 
+            to_filename, 
+            kind='HTML',
+            as_single_file=False,
+            style_titles=True,
+            strip_urtext_syntax=True,
+            jekyll=False,
+            jekyll_post=False
+            ):
+        
+        export_project (self)
     def set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
 
@@ -685,7 +721,7 @@ class UrtextProject:
         new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
 
         self.set_file_contents(self.nodes[node_id].filename, new_contents)
-        self.parse_file(os.path.join(self.path, self.nodes[node_id].filename))
+        return self.on_modified(os.path.join(self.path, self.nodes[node_id].filename))
 
     def adjust_ranges(self, filename, from_position, amount):
         """ 
@@ -795,8 +831,13 @@ class UrtextProject:
 
         return self.parse_file(filename)
 
-    def get_node_relationships(self, node_id):
-        return Interlinks(self, node_id).render
+    def get_node_relationships(self, 
+        node_id, 
+        omit=[]):
+
+        return Interlinks(self, 
+            node_id, 
+            omit=omit).render_tree()
 
     """
     Removing and renaming files
@@ -889,8 +930,8 @@ class UrtextProject:
         if contents == '':
             contents = ' '
         
-        node_id = self.next_index()       
-        metadata['id']=self.next_index()
+        node_id = self.next_index()
+        metadata['id']=node_id
         if include_timestamp:
             if date == None:
                 date = datetime.datetime.now()
@@ -899,7 +940,17 @@ class UrtextProject:
         metadata_block = build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + " }}"
         metadata={}
-        return new_node_contents
+        return (new_node_contents, node_id)
+
+    def insert_interlinks(self, node_id, one_line=True):
+        new_node = self.add_inline_node()
+        insertion = new_node[0]
+        new_node_id = new_node[1]
+        dynamic_def =   '[[ id:'+ new_node_id +'; '
+        dynamic_def +=  'interlinks:'+node_id
+        dynamic_def += ' ]]'
+
+        return '\n'.join([insertion, dynamic_def])
 
     def add_compact_node(self, 
             date=None, 
@@ -1076,8 +1127,9 @@ class UrtextProject:
     """ 
     Cataloguing Nodes
     """
+
     def list_nodes(self):
-        """returns a list of all nodes in the project, in plain text"""
+            
         output = ''
         for node_id in list(self.indexed_nodes()):
             title = self.nodes[node_id].title
@@ -1092,7 +1144,9 @@ class UrtextProject:
         returns an array of node IDs of unindexed nodes, 
         in reverse order (most recent) by date 
         """
-     
+        
+    
+
         unindexed_nodes = []
         for node_id in list(self.nodes):   
             if self.nodes[node_id].metadata.get_tag('index') == []:
@@ -1107,6 +1161,7 @@ class UrtextProject:
     def indexed_nodes(self):
         """ returns an array of node IDs of indexed nodes, in indexed order """
 
+       
         indexed_nodes_list = []
         for node_id in list(self.nodes):
             if self.nodes[node_id].metadata.get_tag('index') != []:
@@ -1386,6 +1441,14 @@ class UrtextProject:
                 return tag
         return u''
 
+    def random_node(self):
+        node_id = random.choice(list(self.nodes))
+        return node_id
+
+    
+
+
+
     """
     Methods used with watchdog
     """
@@ -1407,6 +1470,7 @@ class UrtextProject:
     def on_modified(self, 
             filename, 
             watchdog=False):
+    
         if watchdog:
             unlocked, lock_name = self.check_lock()
             if not unlocked:
@@ -1424,9 +1488,20 @@ class UrtextProject:
         if filename in do_not_update or '.git' in filename:
             return (True,'')
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
-        self.parse_file(filename, re_index=True)
-        self.update()
-        return (True,'')
+
+        #self.file_update(filename)
+        self.update_lock.acquire()
+        self.updating = threading.Thread(
+            target=self.file_update,
+            args=(filename,))
+        self.updating.start()
+        return self.updating
+
+    def file_update(self, filename):
+
+        self.parse_file(filename)
+        self._update()
+        self.update_lock.release()
 
     def on_moved(self, filename):
         unlocked, lock_name = self.check_lock()
@@ -1472,6 +1547,7 @@ class UrtextProject:
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
+
 
 
 """ 

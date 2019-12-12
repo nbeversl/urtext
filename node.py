@@ -72,6 +72,7 @@ class UrtextNode:
         self.compact = compact
         self.split = split
         self.metadata = metadata
+        
         if self.metadata.get_tag('ID'):
             node_id = self.metadata.get_tag('ID')[0].lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
@@ -171,6 +172,8 @@ class UrtextNode:
 
         first_line = stripped_contents[index][:100].replace('{{','').replace('}}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
+        first_line = re.sub('┌──','',first_line, re.DOTALL)
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
