@@ -149,9 +149,9 @@ Urtext Documentation >a5m
 └── xtension and Customization >01o
 /-- 
 flags: exclude_from_tree
+title: Table of Contents
 ID: 01a
 defined in: >029
-title: Table of Contents
 --/}}
 
 About Urtext >>013

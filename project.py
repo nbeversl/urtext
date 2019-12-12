@@ -641,6 +641,22 @@ class UrtextProject:
             ):
         
         export_project (self)
+
+    def export_nodes(self, node_list, args):
+        if isinstance(node_list, str):
+            node_list = [node_list]
+        pass
+
+    def export_file (self, filename, args):
+        pass
+
+    def export_from_root_node(self, root_node_id, args):
+
+        pass
+
+    def export_project(self, args):
+        pass 
+
     def set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
 

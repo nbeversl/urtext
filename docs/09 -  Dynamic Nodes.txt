@@ -96,9 +96,9 @@
     - Example Source Node 4 >01c
     /-- 
     flags: exclude_from_tree
+    title: Example Dynamic Node Title
     ID: 016
     defined in: >slu
-    title: Example Dynamic Node Title
     --/}}
 
 

@@ -16,17 +16,31 @@ def export_project( project , jekyll=False, style_titles=True ):
         export(project,
             filename, 
             export_filename, 
-            kind='HTML',
+            kind='Markdown',
             as_single_file=False,
             style_titles=style_titles,
             strip_urtext_syntax=False,
             jekyll=jekyll
             )
 
+class Export:
+
+    def __init__(self, project):
+        self.node_id = node_id
+        self.project = project
+
+
+    def export_node(self, node_id, kind):
+        kind = kind.lower()
+        contents = self.project.nodes[node_id].content_only()
+        
+
+
+
 def export( project, 
             filename, 
             to_filename, 
-            kind='HTML',
+            kind='Markdown',
             as_single_file=False,
             style_titles=True,
             strip_urtext_syntax=True,
@@ -35,17 +49,23 @@ def export( project,
             ):
     
     filename = os.path.basename(filename)
+    
     def opening_wrapper(kind, nested):
+        kind = kind.lower()
         wrappers = { 
-            'HTML':     '<div class="urtext_nested_'+str(nested)+'">',
-            'Markdown': ''
+            'HTML': '<div class="urtext_nested_'+str(nested)+'">',
+            'Markdown': '',
+            'plaintext': ''
+
             }
         return wrappers[kind]
 
     def closing_wrapper(kind):
+        kind = kind.lower()
         wrappers = { 
-            'HTML': '</div>',
-            'Markdown': ''
+            'html': '</div>',
+            'markdown': '',
+            'plaintext': ''
             }
         return wrappers[kind]
 
@@ -56,9 +76,8 @@ def export( project,
         if kind == 'HTML':
             return '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n'
 
-    # name by the first root node
     
-    
+
     def s(  root_node_id, 
             nested, 
             visited_nodes, 
@@ -72,7 +91,7 @@ def export( project,
             visited_nodes.append(root_node_id)
 
         exported_contents = ''
-        print(root_node_id)
+    
         ranges =  project.nodes[root_node_id].ranges
         filename = project.nodes[root_node_id].filename
         
@@ -87,7 +106,9 @@ def export( project,
             title_removed = False
         
         exported_contents += opening_wrapper(kind, nested)        
-        exported_contents += '<a name="'+ root_node_id + '"></a>'
+
+        if kind == 'HTML':
+            exported_contents += '<a name="'+ root_node_id + '"></a>'
 
         
         for single_range in ranges:
@@ -167,9 +188,7 @@ def export( project,
                 if next_node in project.dynamic_nodes and project.dynamic_nodes[next_node].tree:
                     exported_contents += render_tree_as_html(project, project.dynamic_nodes[next_node].tree)
                 else:
-                    print(filename)
-                    print(single_range[1]+1 )
-                    print(next_node)
+ 
                     exported_contents += s(next_node, nested + 1 ,visited_nodes)
             
         exported_contents += closing_wrapper(kind)
@@ -240,19 +259,23 @@ def render_tree_as_html(project,
         if children:
             html += '<ul>\n'
             for child in node.children:
+                if child.name not in project.nodes:
+                    print(child.name + ' not in the project. skipping')
+                    continue
                 visited_nodes.append(child)
                 link = ''
                 if not links_on_same_page:
                     this_node_id = child.name
+                    
                     base_filename = project.nodes[this_node_id].filename
                     if base_filename != tree_filename:
                         
                         # Will need to be changed to handle multiple root nodes
                         this_root_node = project.files[base_filename].root_nodes[0]
                         ###
-
-
                         link += this_root_node+'.html'
+                    else:
+                        print(this_node_id + ' not in the project. Not exporting')
                 link += '#'+child.name
                 html += '<li><a href="' + link + '">' + project.nodes[child.name].title + '</a></li>\n'
                 html += render_list(project.nodes[child.name].tree_node, nested, visited_nodes)

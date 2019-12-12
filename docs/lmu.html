@@ -1,98 +1,10 @@
-<h1>Pointers</h1>
-<div class="urtext_nested_1"><a name="lmu"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
-<div class="urtext_line">You can extend trees beyond the file level to create node relationships spanning many files. Preceding a link to a node with two right angle brackets instead of one creates a Pointer. In addition to being a hyperlink, this connects the targeted node, and all of its subchildren, as children of the node containing the Pointer. Example:</div>
-<div class="urtext_line">Here is an example Child Node:</div>
-<div class="urtext_line">>></div>
 
-## RECURSION : lmu<div class="urtext_line"><h1>Pointers</h1></div>
-<div class="urtext_line">You can extend trees beyond the file level to create node relationships spanning many files. Preceding a link to a node with two right angle brackets instead of one creates a Pointer. In addition to being a hyperlink, this connects the targeted node, and all of its subchildren, as children of the node containing the Pointer. Example:</div>
-<div class="urtext_line">Here is an example Child Node:</div>
-<div class="urtext_line">><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001">>001</a></a></a></a></a></a></div>
-<div class="urtext_line">The example Pointer above becomes a child of this node, visible in the table of contents (<a href="a5m.html#01a"><a href="a5m.html#01a"><a href="a5m.html#01a">>01a</a></a></a>) or using the other tree views described in <a href="00h.html#00h"><a href="00h.html#00h"><a href="00h.html#00h">>00h</a></a></a>.</div>
-<div class="urtext_line">The advantages to Node Pointers are many, including:</div>
-<ul class="urtext-list"><li> The tree represents a hierachy of actual content, rather than the files containing the content.</li><li> The tree permits nesting both within and beyond file level.</li><li> The tree can be displayed from any arbitrary starting point, whether or not its branches are within or beyond a particular file.</li></ul><div class="urtext_line">{{</div>
-<h2>Duplicate Node Pointers</h2>
-<div class="urtext_nested_2"><a name="00t"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
-<div class="urtext_line">Node Pointers may point more than once to the same node, so that content can be reused or referenced across multiple trees within the same project:</div>
-<div class="urtext_line">Here is the same example child node from above: ><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001">>001</a></a></a></a></a></a></div>
-<div class="urtext_line"><span class="urtext-metadata">/-- ID:00t --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
-</div><div class="urtext_line">{{</div>
-<h2>Recursive Node Pointers</h2>
-<div class="urtext_nested_2"><a name="6ct"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
-<div class="urtext_line">Recursive Node Pointers would be ones that point to one of their containing node's own ancestors, causing a circular reference.</div>
-<div class="urtext_line">These are not prohibited, but the recursion will not be drawn if it is already contained in the tree. Instead, the point of recursion will show RECURSION, with a link to the Node ID of the node causing the recursion.</div>
-<div class="urtext_line">For example, this Node Pointer points back to the root node of the table of contents: ><a href="a5m.html#a5m"><a href="a5m.html#a5m"><a href="a5m.html#a5m"><a href="a5m.html#a5m">>a5m</a></a></a></a>. Instead of the table of contents being drawn recursively from this node, you can see the recursion point in the table of contents.</div>
-<div class="urtext_line">Note, however, that if you view the entire tree with another node as root, one full iteration will still appear, with the point of recursion falling elsewhere in the tree. For instance, below is the table of contents with the node "Node Pointers" (>00r) as root. See Dynamic Nodes (<a href="01r.html#01r"><a href="01r.html#01r"><a href="01r.html#01r"><a href="01r.html#01r">>01r</a></a></a></a>) for more information on how to generate trees like this in dynamic nodes.</div>
-<div class="urtext_line">{{</div>
-<h3>Example - Table of Contents From Another Root</h3>
-<div class="urtext_nested_3"><a name="01n"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
-<div class="urtext_line"><h3>Example - Table of Contents From Another Root</h3></div>
-<div class="urtext_line">Node Pointers >00r</div>
-<div class="urtext_line">├── Example Child Node Using a Node Pointer <a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001">>001</a></a></a></a></a></a></div>
-<div class="urtext_line">├── Duplicate Node Pointers <a href="#00t"><a href="#00t">>00t</a></a></div>
-<div class="urtext_line">└── Example Child Node Using a Node Pointer <a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001"><a href="001.html#001">>001</a></a></a></a></a></a></div>
-<div class="urtext_line">└── Recursive Node Pointers >00s</div>
-<div class="urtext_line">├── ? (Missing Node): <a href="a5m.html#a5m"><a href="a5m.html#a5m"><a href="a5m.html#a5m"><a href="a5m.html#a5m">>a5m</a></a></a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="a5m.html#009"><a href="a5m.html#009">>009</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="a5m.html#fak"><a href="a5m.html#fak">>fak</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="a5m.html#e6m"><a href="a5m.html#e6m">>e6m</a></a></div>
-<div class="urtext_line">└── ? (Missing Node): <a href="a5m.html#plq"><a href="a5m.html#plq">>plq</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="a5m.html#01a"><a href="a5m.html#01a"><a href="a5m.html#01a">>01a</a></a></a></div>
-<div class="urtext_line">├── About Urtext <a href="013.html#013"><a href="013.html#013">>013</a></a></div>
-<div class="urtext_line">├── What Urtext Is <a href="013.html#hdf"><a href="013.html#hdf">>hdf</a></a></div>
-<div class="urtext_line">├── Description <a href="013.html#yv2"><a href="013.html#yv2">>yv2</a></a></div>
-<div class="urtext_line">├── Comparison To Other Tools <a href="013.html#h8z"><a href="013.html#h8z">>h8z</a></a></div>
-<div class="urtext_line">├── Uses <a href="013.html#lhs"><a href="013.html#lhs">>lhs</a></a></div>
-<div class="urtext_line">└── Features and Characteristics <a href="013.html#006"><a href="013.html#006">>006</a></a></div>
-<div class="urtext_line">└── About the Sublime Text Implementation <a href="013.html#01u"><a href="013.html#01u">>01u</a></a></div>
-<div class="urtext_line">└── Dependencies and Installation: <a href="013.html#2fn"><a href="013.html#2fn">>2fn</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="003.html#003"><a href="003.html#003">>003</a></a></div>
-<div class="urtext_line">├── Writing Nodes <a href="01j.html#01j"><a href="01j.html#01j">>01j</a></a></div>
-<div class="urtext_line">├── Node Identity (Node IDs) <a href="01j.html#01h"><a href="01j.html#01h">>01h</a></a></div>
-<div class="urtext_line">└── Generating a node ID manually >a0i</div>
-<div class="urtext_line">├── File Level Nodes <a href="01j.html#01g"><a href="01j.html#01g">>01g</a></a></div>
-<div class="urtext_line">└── Creating a File Level Node <a href="01j.html#ekz"><a href="01j.html#ekz">>ekz</a></a></div>
-<div class="urtext_line">├── (Python) <a href="01j.html#83e"><a href="01j.html#83e">>83e</a></a></div>
-<div class="urtext_line">└── (Sublime) <a href="01j.html#xo8"><a href="01j.html#xo8">>xo8</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): <a href="00x.html#00x"><a href="00x.html#00x">>00x</a></a></div>
-<div class="urtext_line">├── Inline Nodes <a href="004.html#004"><a href="004.html#004">>004</a></a></div>
-<div class="urtext_line">├── Example inline node <a href="004.html#00e"><a href="004.html#00e">>00e</a></a></div>
-<div class="urtext_line">├── Creating Inline Nodes >bbj</div>
-<div class="urtext_line">├── (Sublime) >qx6</div>
-<div class="urtext_line">└── (Python) >4ho</div>
-<div class="urtext_line">└── Syntax Highlighting of Inline Nodes <a href="004.html#koe"><a href="004.html#koe">>koe</a></a></div>
-<div class="urtext_line">└── The Node List <a href="01i.html#01i"><a href="01i.html#01i">>01i</a></a></div>
-<div class="urtext_line">├── Dynamic Nodes <a href="01r.html#01r"><a href="01r.html#01r"><a href="01r.html#01r"><a href="01r.html#01r">>01r</a></a></a></a></div>
-<div class="urtext_line">├── Example Source Node 1 <a href="01r.html#017"><a href="01r.html#017">>017</a></a></div>
-<div class="urtext_line">├── Example Source Node 3 <a href="01r.html#01b"><a href="01r.html#01b">>01b</a></a></div>
-<div class="urtext_line">├── Example Source Node 2 <a href="01r.html#00v"><a href="01r.html#00v">>00v</a></a></div>
-<div class="urtext_line">├── Example Source Node 4 <a href="01r.html#01c"><a href="01r.html#01c">>01c</a></a></div>
-<div class="urtext_line">├── Example Dynamic Node Title <a href="01r.html#016"><a href="01r.html#016">>016</a></a></div>
-<div class="urtext_line">└── Another Example: The Node Definition for the Table of Contents <a href="01r.html#029"><a href="01r.html#029">>029</a></a></div>
-<div class="urtext_line">├── Trees <a href="00h.html#00h"><a href="00h.html#00h"><a href="00h.html#00h">>00h</a></a></a></div>
-<div class="urtext_line">├── From a selected node <a href="00h.html#00f"><a href="00h.html#00f">>00f</a></a></div>
-<div class="urtext_line">└── From the root <a href="00h.html#00g"><a href="00h.html#00g">>00g</a></a></div>
-<div class="urtext_line">├── Relationships <a href="00j.html#00j"><a href="00j.html#00j">>00j</a></a></div>
-<div class="urtext_line">├── Simple Links <a href="00j.html#0y2"><a href="00j.html#0y2">>0y2</a></a></div>
-<div class="urtext_line">└── Sublime Text tools to help with linking <a href="00j.html#00m"><a href="00j.html#00m">>00m</a></a></div>
-<div class="urtext_line">├── Opening Links <a href="00j.html#01w"><a href="00j.html#01w">>01w</a></a></div>
-<div class="urtext_line">├── Viewing Linked Relationships <a href="00j.html#00u"><a href="00j.html#00u">>00u</a></a></div>
-<div class="urtext_line">├── Linking to outside resources <a href="00j.html#00q"><a href="00j.html#00q">>00q</a></a></div>
-<div class="urtext_line">├── Web <a href="00j.html#00o"><a href="00j.html#00o">>00o</a></a></div>
-<div class="urtext_line">└── Files <a href="00j.html#00p"><a href="00j.html#00p">>00p</a></a></div>
-<div class="urtext_line">└── Traverse Mode <a href="00j.html#00w"><a href="00j.html#00w">>00w</a></a></div>
-<div class="urtext_line">└── Word Wrap in Traverse Mode (Sublime Text) <a href="00j.html#xci"><a href="00j.html#xci">>xci</a></a></div>
-<div class="urtext_line">├── ? (Missing Node): >RECURSION >00r</div>
-<div class="urtext_line">├── Search <a href="k67.html#k67"><a href="k67.html#k67">>k67</a></a></div>
-<div class="urtext_line">└── Fuzzy Full Text Search <a href="k67.html#4p9"><a href="k67.html#4p9">>4p9</a></a></div>
-<div class="urtext_line">├── Filenames <a href="01m.html#01m"><a href="01m.html#01m">>01m</a></a></div>
-<div class="urtext_line">└── Extension and Customization <a href="01o.html#01o"><a href="01o.html#01o">>01o</a></a></div>
-<div class="urtext_line">└── Example - Table of Contents From Another Root <a href="#01n"><a href="#01n">>01n</a></a></div>
-<div class="urtext_line"><span class="urtext-metadata">/--</div>
-<div class="urtext_line">ID: 01n</div>
-<div class="urtext_line">defined in: >00s</div>
-<div class="urtext_line">title: Example - Table of Contents From Another Root</div>
-<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
-</div><div class="urtext_line"><span class="urtext-metadata">/-- ID: 6ct --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
-</div><div class="urtext_line"><span class="urtext-metadata">/-- ID: lmu --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
-</div>
+# Pointers
+<a name="lmu"></a>
+## RECURSION : lmu
+## Duplicate Node Pointers
+<a name="00t"></a>
+## Recursive Node Pointers
+<a name="6ct"></a>
+### Example - Table of Contents From Another Root
+<a name="01n"></a>

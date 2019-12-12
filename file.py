@@ -221,7 +221,7 @@ class UrtextFile:
         
         if nested_levels == {} or nested_levels[0] == [] and last_position > 0:
             # everything else in the file is part of another node.
-            nested_levels[0] = [[last_position+1, self.file_length]]
+            nested_levels[0] = [[last_position, self.file_length]]
                
         elif nested_levels == {} or nested_levels[0] == []:
             # everything else in the file is other nodes.
