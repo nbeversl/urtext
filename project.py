@@ -152,6 +152,8 @@ class UrtextProject:
                 
         self.update_node_list()
         self.update_metadata_list()
+        if self.update_lock.locked():
+            self.update_lock.release()
 
 
     def parse_file(self, 
@@ -862,7 +864,16 @@ class UrtextProject:
                     del self.nodes[node_id]
                     
             del self.files[filename]
+        
         return None
+
+    def delete_file(self, filename):
+        self.remove_file(filename)
+        os.remove(os.path.join(self.path, filename))
+        self.update_lock.acquire()        
+        self.updating = threading.Thread(
+            target=self._update)
+        self.updating.start()
 
     def handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -1489,7 +1500,6 @@ class UrtextProject:
             return (True,'')
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
 
-        #self.file_update(filename)
         self.update_lock.acquire()
         self.updating = threading.Thread(
             target=self.file_update,
@@ -1501,7 +1511,7 @@ class UrtextProject:
 
         self.parse_file(filename)
         self._update()
-        self.update_lock.release()
+        
 
     def on_moved(self, filename):
         unlocked, lock_name = self.check_lock()

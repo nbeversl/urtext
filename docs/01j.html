@@ -1,0 +1,58 @@
+<h1>Nodes</h1>
+<div class="urtext_nested_1"><a name="01j"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<div class="urtext_line">Think of a node as a region of paper with flexible and open-ended length.</div>
+<div class="urtext_line">{{</div>
+<h2>Node Identity (Node IDs)</h2>
+<div class="urtext_nested_2"><a name="01h"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Nodes are uniquely identified by a three-character ID generated automatically on creation and placed into the initial metadata region. The identity of a node within Urtext persists no matter its containing filename. Every node must have an ID; files with nodes missing IDs cannot be compiled and are omitted from the project.</div>
+<div class="urtext_line">Node IDs have no special meaning except as a unique identifier. IDs are covered more in (<a href="01q.html#01q"><a href="01q.html#01q">>01q</a></a>).</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:01h --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>File Level Nodes</h2>
+<div class="urtext_nested_2"><a name="01g"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">A file-level node is any node at the outermost level of a single file. It may or may not contain other nodes nested inside it.</div>
+<div class="urtext_line">{{</div>
+<h3>Creating a File Level Node</h3>
+<div class="urtext_nested_3"><a name="ekz"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">{{</div>
+<h4>Sublime</h4>
+<div class="urtext_nested_4"><a name="xo8"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  <span class="urtext-metadata">/-- tags:sublime --/</span></div>
+<div class="urtext_line">Press Control-Shift-; (Control-Shift-semicolon).</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- id: xo8; --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h4>Pythonista</h4>
+<div class="urtext_nested_4"><a name="xcx"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  <span class="urtext-metadata">/-- tags:pythonista --/</span></div>
+<div class="urtext_line">Press `;` in the Urtext key row.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- id: xcx --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h4>Python</h4>
+<div class="urtext_nested_4"><a name="83e"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">%%-PYTHON</div>
+<div class="urtext_line">UrtextProject.new_file_node(date=None, metadata = {}, node_id=None)</div>
+<div class="urtext_line">"""</div>
+<div class="urtext_line">Kwargs:</div>
+<div class="urtext_line">date (datetime): the timestamp, defaults to now if not specified</div>
+<div class="urtext_line">metadata (dict): key/value metadata pairs</div>
+<div class="urtext_line">node_id (str): optionally specify a node_id (rarely used)</div>
+<div class="urtext_line">Returns:</div>
+<div class="urtext_line">dict: { 'filename' : # (str) : the new filename, without path</div>
+<div class="urtext_line">'id': # (str) the new node_id</div>
+<div class="urtext_line">}</div>
+<div class="urtext_line">"""</div>
+<div class="urtext_line">%%-END <span class="urtext-metadata">/-- id: 83e; tags:python--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">The file is created, named and saved automatically. It has whitespace on top and a metadata block at the bottom containing a node ID and a timestamp of the creation date and time.</div>
+<div class="urtext_line"><span class="urtext-metadata">/--  id: ekz	--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">By default, the first non-whitespace line of any node is the node's title. Write a title and anything else into the node. Save it as usual (Super-S in Sublime).</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:01g --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">Inline <h1>Nodes</h1> >>004</div>
+<div class="urtext_line">Compact Nodes >>kpz</div>
+<div class="urtext_line">Split Nodes >>k6d</div>
+<div class="urtext_line">Generating a node ID manually >>rfp</div>
+<div class="urtext_line">Metadata >>00x</div>
+<div class="urtext_line">Node list >>01i</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:01j</div>
+<div class="urtext_line">Timestamp:<Sat., Jun. 08, 2019, 10:20 AM></div>
+<div class="urtext_line">tags:</div>
+<div class="urtext_line">index:03</div>
+<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div>

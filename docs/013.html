@@ -1,0 +1,62 @@
+<h1>About Urtext</h1>
+<div class="urtext_nested_1"><a name="013"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<div class="urtext_line"></div>
+<div class="urtext_line">{{</div>
+<h2>What Urtext Is</h2>
+<div class="urtext_nested_2"><a name="hdf"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">ur-text /ˈo͝orˌtekst/ : "an original or the earliest version of a text, to which later versions can be compared"</div>
+<div class="urtext_line">{{</div>
+<h3>Description</h3>
+<div class="urtext_nested_3"><a name="yv2"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Urtext is a syntax and compiler for writing using plaintext.</div>
+<div class="urtext_line">It is a structured but flexible syntax that allows freeform, fragmentary writing while permitting gradual aggregation of content with other content. You can start with a single note and build it gradually into a large, structured document. Urtext parses content into outlines (trees) that can have recursive (tangled) structure.</div>
+<div class="urtext_line">Urtext consolidates content, user interface, and scripting into a single, compilable syntax. Text can generate and modify itself based on rules embedded directly into its own content.</div>
+<div class="urtext_line">Urtext is designed for both organized and disorganized use.</div>
+<div class="urtext_line">Urtext is implemented in Python and can be used wherever Python is used. Currently there is a package for Sublime Text (Mac/Windows/Linux) and a script for Pythonista (iOS). <span class="urtext-metadata">/-- ID:yv2 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Comparison To Other Tools</h3>
+<div class="urtext_nested_3"><a name="h8z"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Urtext shares some characteristics with markup languages such as Markdown and LaTeX, with the important difference that it is author-facing, not forward/reader-facing. Though it can be made to export to HTML, Urtext is not primarily a document conversion or document generation tool. It is rather a tool for organizing text.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:h8z --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Uses</h3>
+<div class="urtext_nested_3"><a name="lhs"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
+<div class="urtext_line">Urtext has many uses, including but limited to:</div>
+<ul class="urtext-list"><li> prose writing</li><li> research</li><li> documentation</li><li> knowledge/information base</li><li> journaling</li><li> Zettelkasten</li><li> project/personal organization</li><li> notetaking</li><li> any other writing or information management that can be done in text form</li></ul><div class="urtext_line"><span class="urtext-metadata">/-- ID:lhs --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Features and Characteristics</h3>
+<div class="urtext_nested_3"><a name="006"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
+<div class="urtext_line">Many of the following characteristics and features were original requirements when creating Urtext. Others came about as consequences. Though many can be found in other tools, when combined, they eliminate most other tools.</div>
+<ul class="urtext-list"><li> Urtext uses plain text files. Plaintext is fast, human-readable, flexible, cross-platform, device-portable, and future-proof.</li><li> Urtext can compile and organize content spread across hundreds or thousands of files.</li><li> Files and content elements can be connected to one another in tree-like, recursive (tangled), and other non-hierarchical ways.</li><li> It has customizable and extensible metadata that does not rely on the file system.</li><li> It is decoupled from any particular text editor or interface ; it can be incorporated into any environment that runs Python, including any scriptable text editor.</li><li> It is usable across multiple platforms and devices.</li><li> It can incorporate other plaintext syntaxes.</li><li> There is no need to interact directly with the file system (creating, naming, saving, organizing files). File management is handled entirely by the compiler.</li><li> Extensible, hackable, customizable. This year's needs might not be next year's. One person's needs might not be another's.</li><li> Does not require years to master.</li><li> Future-proof. No reliance on anything that may not exist in 5 or 100 years.</li><li> Can be used on mobile devices without depending on live internet or cellular data; content can wholly reside on, and sync among, devices.</li><li> It is open source. See here (<a href="01o.html#01o"><a href="01o.html#01o"><a href="01o.html#01o">>01o</a></a></a>) for information on how to modify it for your own purposes.</li></ul><div class="urtext_line">Being in plaintext and having a syntax specification, it can also be used with:</div>
+<ul class="urtext-list"><li> Themes and syntax highlighting in modern text editors.</li><li> Version control (using Git, for example). This possiblity is implicit in the commitment to plaintext but important enough to mention.</li></ul><div class="urtext_line"><span class="urtext-metadata">/--ID:006--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID: hdf --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>About the Sublime Text Implementation</h2>
+<div class="urtext_nested_2"><a name="01u"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  <span class="urtext-metadata">/-- tags:sublime --/</span></div>
+<div class="urtext_line">The Urtext package for Sublime Text utilizes Sublime Text as a user interface for editing Urtext files. The package :</div>
+<ul class="urtext-list"><li> binds Urtext's features to commands in the Sublime command palette</li><li> adds key bindings (hotkeys) as shortcuts for some features</li><li> leverages the Sublime browser as a node browser and metadata browser</li><li> using a syntax definition, defines syntax highlighting in two of Sublime's default color schemes</li><li> adds "Traverse Mode" <a href="00j.html#00w"><a href="00j.html#00w">>00w</a></a></li></ul><div class="urtext_line">Some features in this documentation are built into Urtext, while others are part of only the Sublime Text implementation. Features that are specific to Sublime are tagged with the keyword `sublime`.</div>
+<div class="urtext_line">{{</div>
+<h3>Dependencies and Installation:</h3>
+<div class="urtext_nested_3"><a name="2fn"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>     </div>
+<div class="urtext_line">The decision has been made not to include Urtext or its dependencies in the Urtext package for Sublime. This is to simplify developing Urtext independently for other contexts. As such, it is necessary to install everything manually into Sublime's Python environment, and to update them independently when desired.</div>
+<div class="urtext_line">To use Urtext in Sublime Text:</div>
+<ul class="urtext-list"><li> Clone or download Sublime Urtext ( https://github.com/nbeversl/urtext_sublime ). Place it in your Packages folder (Sublime Text 3/Packages).</li><li> The following must then be manually added to Sublime's library folder (`Sublime Text 3/Lib/python3.3`):</li><li> anytree</li></ul><div class="urtext_line">https://github.com/c0fec0de/anytree</div>
+<div class="urtext_line">The folder needed is `anytree` inside this download; add it to `Sublime Text 3/Lib/python3.3`.</div>
+<ul class="urtext-list"><li> whoosh</li></ul><div class="urtext_line">https://bitbucket.org/mchaput/whoosh/downloads/</div>
+<div class="urtext_line">The folder needed is `src/whoosh`; add it to `Sublime Text 3/Lib/python3.3`.</div>
+<ul class="urtext-list"><li> pytz</li></ul><div class="urtext_line">https://pypi.org/project/pytz/</div>
+<div class="urtext_line">The folder neded is `pytz`; add it to `Sublime Text 3/Lib/python3.3`.</div>
+<ul class="urtext-list"><li> six</li></ul><div class="urtext_line">https://pypi.org/project/six/</div>
+<div class="urtext_line">The only FILE needed is `six.py`, nothing else; add this directly to `Sublime Text 3/Lib/python3.3`.</div>
+<ul class="urtext-list"><li> urtext</li></ul><div class="urtext_line">https://github.com/nbeversl/urtext</div>
+<div class="urtext_line">(This is Urtext itself.) Put the entire folder (`urtext`) into `Sublime Text 3/Lib/python3.3`.</div>
+<div class="urtext_line">In the future a script may be provided to install/update these dependencies, but for now it is a manual process.</div>
+<div class="urtext_line">Close and reopen Sublime Text. At this point, Sublime Text will automatically install `watchdog`, an additional dependency.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- id: 2fn; timestamp: <Fri., Oct. 11, 2019, 11:55 AM> --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID:01u --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID:013</div>
+<div class="urtext_line">index:01</div>
+<div class="urtext_line">Timestamp:<Wed., Jun. 05, 2019, 10:01 PM></div>
+<div class="urtext_line">tags:</div>
+<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div>

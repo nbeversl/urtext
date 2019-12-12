@@ -141,7 +141,7 @@ def export( project,
                         # TODO write better error catching here
                         continue
                     filename = project.nodes[root_node_id].filename
-                    if node_id in project.files[filename]:
+                    if node_id in project.files[filename].nodes:
                         link = '#'+node_id
                     else: 
                         base_filename = project.nodes[node_id].filename
@@ -165,7 +165,7 @@ def export( project,
             if single_range != ranges[-1]:
                 next_node = project.get_node_id_from_position(filename, single_range[1]+1)
                 if next_node in project.dynamic_nodes and project.dynamic_nodes[next_node].tree:
-                    exported_contents += project.render_tree_as_html(project.dynamic_nodes[next_node].tree)
+                    exported_contents += render_tree_as_html(project, project.dynamic_nodes[next_node].tree)
                 else:
                     print(filename)
                     print(single_range[1]+1 )
@@ -218,14 +218,14 @@ def render_tree_as_html(project,
                             links_on_same_page=False,
                             from_root_of=False ):
 
-    if node_id not in self.nodes:
-        self.log_item(root_node_id + ' is not in the project')
+    if node_id not in project.nodes:
+        project.log_item(root_node_id + ' is not in the project')
         return None
 
-    start_point = self.nodes[node_id].tree_node
+    start_point = project.nodes[node_id].tree_node
     
     if from_root_of == True:
-        start_point = self.nodes[node_id].tree_node.root
+        start_point = project.nodes[node_id].tree_node.root
 
     # revisit whether this does what we actually want it to.
     project.detach_excluded_tree_nodes(start_point, flag='export') 
@@ -244,18 +244,18 @@ def render_tree_as_html(project,
                 link = ''
                 if not links_on_same_page:
                     this_node_id = child.name
-                    base_filename = self.nodes[this_node_id].filename
+                    base_filename = project.nodes[this_node_id].filename
                     if base_filename != tree_filename:
                         
                         # Will need to be changed to handle multiple root nodes
-                        this_root_node = self.files[base_filename].root_nodes[0]
+                        this_root_node = project.files[base_filename].root_nodes[0]
                         ###
 
 
                         link += this_root_node+'.html'
                 link += '#'+child.name
-                html += '<li><a href="' + link + '">' + self.nodes[child.name].title + '</a></li>\n'
-                html += render_list(self.nodes[child.name].tree_node, nested, visited_nodes)
+                html += '<li><a href="' + link + '">' + project.nodes[child.name].title + '</a></li>\n'
+                html += render_list(project.nodes[child.name].tree_node, nested, visited_nodes)
             html += '</ul>\n'
         return html
 

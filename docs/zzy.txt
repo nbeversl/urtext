@@ -4,23 +4,20 @@ Metadata Keys
 │       ├── Example Source Node 2 >00v
 │       ├── Example Dynamic Node Title >016
 │       ├── Example Source Node 1 >017
+│       ├── Table of Contents >01a
 │       ├── Example Source Node 3 >01b
 │       └── Example Source Node 4 >01c
 ├── home
 │   └── a5m
-│       ├── project_settings >00l
 │       └── project_settings >00l
 ├── kind
 │   └── gift_list
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── note
 │   └── example note
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── purpose
 │   └── work-related
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 ├── tag
 │   ├── example_node
@@ -31,7 +28,6 @@ Metadata Keys
 │   ├── exclude_this
 │   │   └── Example Source Node 2 >00v
 │   └── groceries
-│       ├── Node Metadata >00x
 │       └── Node Metadata >00x
 └── tags
     ├── coming
@@ -64,6 +60,7 @@ Metadata Keys
     │   ├── Sublime >7n6
     │   ├── Sublime >8fh
     │   ├── Sublime Project >c3n
+    │   ├── In Urtext for Sublime Text >e6m
     │   ├── Syntax Highlighting of Inline Nodes (Sublime) >koe
     │   ├── Sublime >osu
     │   ├── Sublime >p78

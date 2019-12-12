@@ -1,0 +1,94 @@
+<h1>Links and Pointers</h1>
+<div class="urtext_nested_1"><a name="00j"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<div class="urtext_line">{{</div>
+<h2>Simple Links</h2>
+<div class="urtext_nested_2"><a name="0y2"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
+<div class="urtext_line">To make a simple "hyperlink" from one node to another, use the right angle bracket (>) followed immediately by a node ID. Linking does not require a filename or any other information, only the node ID. Any other information (such as the title or other surrounding text), is ignored.</div>
+<div class="urtext_line">{{</div>
+<h3>Sublime Text tools to help with linking</h3>
+<div class="urtext_nested_3"><a name="00m"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>   <span class="urtext-metadata">/-- tags:sublime --/</span></div>
+<div class="urtext_line">Two Sublime Command Palette commands can make linking quick and easy:</div>
+<div class="urtext_line">Urtext : Link To ...</div>
+<div class="urtext_line">Links from the currently viewed node to another node which you can select in the selection panel. When you select a node in the quick panel, a link to that node will be inserted at the cursor.</div>
+<div class="urtext_line">Urtext: Link From ...</div>
+<div class="urtext_line">Links TO the current node FROM another node. When you select this command, a link to the current node will be copied to the clipboard. You can then paste the reference into the node you open in the quick panel.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00m --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID: 0y2 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Opening Links</h2>
+<div class="urtext_nested_2"><a name="01w"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">{{</div>
+<h3>Sublime</h3>
+<div class="urtext_nested_3"><a name="osu"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Press Shift-Ctrl-/ on a line containing a link to open the node with the linked ID. If the link is to an inline node, Sublime will scroll to and center its starting point. <span class="urtext-metadata">/-- id: osu --/</span> <span class="urtext-metadata">/-- tags:sublime --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Pythonista</h3>
+<div class="urtext_nested_3"><a name="iy8"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Use the `>` key when the cursor is on any line containing a link.</div>
+<div class="urtext_line"><span class="urtext-metadata">/--tags: pythonista--/</span> <span class="urtext-metadata">/-- id: iy8 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">Note that Urtext reads node regions on every save, so cursor location may be imprecise if the file has been altered since the last save.</div>
+<div class="urtext_line">{{</div>
+<h3>Python</h3>
+<div class="urtext_nested_3"><a name="eea"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Pass the current line contents and cursor position (within the line) to the UrtextProject. The method returns the best link match. Find the filename as described in <a href="01i.html#h8c"><a href="01i.html#h8c"><a href="01i.html#h8c"><a href="01i.html#h8c"><a href="01i.html#h8c">>h8c</a></a></a></a></a> and open it at the start_position returned from get_link(). See the open_urtext_node() function in the Sublime Text package for an example.</div>
+<div class="urtext_line">%%-PYTHON</div>
+<div class="urtext_line">UrtextProject.get_link( line, position=0 )</div>
+<div class="urtext_line">"""</div>
+<div class="urtext_line">Args:</div>
+<div class="urtext_line">line (string) : the current line from the text editor</div>
+<div class="urtext_line">Kwargs:</div>
+<div class="urtext_line">position (int) : cursor position</div>
+<div class="urtext_line">Returns: tuple</div>
+<div class="urtext_line">('HTTP', url ),</div>
+<div class="urtext_line">('NODE', node_id [string], start_position [int]),</div>
+<div class="urtext_line">or None</div>
+<div class="urtext_line">Notes:</div>
+<div class="urtext_line">This looks first in the line around the cursor position,</div>
+<div class="urtext_line">then forward, then backward.</div>
+<div class="urtext_line">"""</div>
+<div class="urtext_line">%%-END</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- id: eea --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID:01w --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>REVISE !! Viewing Linked Relationships</h2>
+<div class="urtext_nested_2"><a name="00u"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
+<div class="urtext_line">Elaborate writing and reference systems such as wikis often linking nodes together in tangled and intricate ways. While Urtext cannot draw diagrams of this kind (called acyclic graphs) in plaintext, it can represent these relationships from the perspective of any one node: Position the cursor in the desired node and select "Urtext : Show Linked Relationships..." The currently selected node will be displayed as root; all nodes linking into this nodes, and recursively into those nodes, will be displayed above the root; all files linked from this node, and recursively from those nodes, will be displayed below. Circular references are represented up to one iteration.</div>
+<div class="urtext_line">These diagrams are displayed as Sublime "scratch" views, meaning they will never report as being dirty (unsaved). They are intended for one-time/temporary use and will not update when a node/file changes. To make permanent and dynamically updated diagrams, see Dynamic Nodes (<a href="01r.html#01r"><a href="01r.html#01r"><a href="01r.html#01r">>01r</a></a></a>).</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00u --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Linking to outside resources</h2>
+<div class="urtext_nested_2"><a name="00q"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">{{</div>
+<h3>Web</h3>
+<div class="urtext_nested_3"><a name="00o"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">HTTP links are recognized automatically and will open in the default browser.</div>
+<div class="urtext_line">Example: http://fantutti.com</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00o --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Files</h3>
+<div class="urtext_nested_3"><a name="00p"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">COMING.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00p --/</span></div>
+<div class="urtext_line"><span class="urtext-metadata">/--tags: coming --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID:00q --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Traverse Mode</h2>
+<div class="urtext_nested_2"><a name="00w"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> <h2>Traverse Mode</h2>   <span class="urtext-metadata">/-- ID:00w; title: Traverse Mode --/</span> <span class="urtext-metadata">/-- tags:sublime --/</span></div>
+<div class="urtext_line">This is implemented in Sublime Text only.</div>
+<div class="urtext_line">You can navigate a node tree or list of nodes by turning on Traverse mode (Shift-Ctrl-R). This will open another pane next to the one you are currently in. As you navigate the nodeview in the left side with the cursor or mouse, the selected node shows on the right. Use Sublime's Focus Group navigation keys, or the mouse, to switch between left and right panes.</div>
+<div class="urtext_line">Toggle Traverse Mode off by pressing Shift-Ctrl-R again. The status bar at the bottom of the Sublime window indicates whether Traverse is on or off.</div>
+<div class="urtext_line">Note that if Traverse mode is off, you can also open a link manually (Shift-Ctrl-/) as normal.</div>
+<div class="urtext_line">This feature is not built into Urtext; it is a feature of the Sublime package only.</div>
+<div class="urtext_line">{{</div>
+<h3>Word Wrap in Traverse Mode</h3>
+<div class="urtext_nested_3"><a name="xci"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Since Traverse Mode splits the window into two or more panes, it is suggested to set Word Wrap Column to "Auto" in Sublime Settings. This will cause the edited views to wrap correctly no matter the screen or window/pane size, as well as in Sublime's Distraction Free Mode.</div>
+<div class="urtext_line">Whenever Traverse Mode is enabled on a view, word wrap for that view is turned off altogether to prevent awkward wrapping of trees. It is restored when Traverse Mode is turned off.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:xci --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div></div><div class="urtext_line">Node Pointers >>lmu</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00j</div>
+<div class="urtext_line">Timestamp:<Fri., Jun. 07, 2019, 05:26 PM></div>
+<div class="urtext_line">tags:</div>
+<div class="urtext_line">index: 06</div>
+<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div>

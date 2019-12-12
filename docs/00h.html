@@ -1,0 +1,19 @@
+<h1>REVISE !! Trees</h1>
+<div class="urtext_nested_1"><a name="00h"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<div class="urtext_line">When nodes are nested, you can view a tree of their hierarchy in two ways:</div>
+<div class="urtext_line">{{</div>
+<h2>From a selected node</h2>
+<div class="urtext_nested_2"><a name="00f"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Position the cursor in the node you want to see as root (outermost) and select "Urtext: Show Tree From Current Node" from the Sublime Command Palette. This will add a new split view to the left side of the current view in Sublime, containing a tree with the selected node as root.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:00f --/</span> <span class="urtext-metadata">/-- tags:sublime --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>From the root</h2>
+<div class="urtext_nested_2"><a name="00g"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>  </div>
+<div class="urtext_line">Position the cursor anywhere in the node/file and select "Urtext: Show Tree From Root". This will do the same as above, but the tree will include everything back to the node's root. If the tree extends upward beyond the current file, that will also be included.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- tags: sublime; id: 00g --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">Note that each branch of the resulting file tree contains Node ID that works like a link. You can navigate the links on the tree using Shift-Control-/ (see >0y2) or using Traverse Mode (>00w).</div>
+<div class="urtext_line">File trees are displayed in Sublime's scratch views, meaning they will never report as being "dirty" (unsaved). They are intended for one-time/temporary use, will not have a filename, and will not update when a node/file changes. To make permanent and dynamically updated trees, see >00t.</div>
+<div class="urtext_line">You can extend node trees beyond the file level by using Node Pointers (>00r).</div>
+<div class="urtext_line">Thanks to the `anytree` module (https://pypi.org/project/anytree/) for the plaintext node tree diagrams.</div>
+<div class="urtext_line"><span class="urtext-metadata">/--ID:00h--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div>

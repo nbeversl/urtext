@@ -1,0 +1,85 @@
+<h1>TEST NATE</h1>
+<div class="urtext_nested_1"><a name="01r"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> Dynamic Nodes</div>
+<h2>Description & Purpose</h2>
+<div class="urtext_nested_2"><a name="h0y"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>   ^ Dynamic nodes can compile and update content in real time from other nodes. Dynamic nodes can display complete contents or lists of titles of other nodes, as well as display tree diagrams of relationships among nodes, across many files.  <span class="urtext-metadata">/-- id: h0y; title: <h2>Description & Purpose</h2>--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><h2>Syntax</h2>
+<div class="urtext_nested_2"><a name="igk"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>   ^ Dynamic node definitions are enclosed in double square brackets and can be inserted into any node arbitrarily. <span class="urtext-metadata">/-- id: igk; title:<h2>Syntax</h2> --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Creating a Dynamic Node</h2>
+<div class="urtext_nested_2"><a name="yon"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Ctrl-Shift-] creates a new dynamic definition in Sublime.</div>
+<div class="urtext_line">In Pythonista or other editors, create them manually.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- id: yon --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Definition keys/values</h2>
+<div class="urtext_nested_2"><a name="37h"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Dynamic definitions accept the following keys:</div>
+<div class="urtext_line">{{</div>
+<h3>id</h3>
+<div class="urtext_nested_3"><a name="02t"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<ul class="urtext-list"><li> ID:</li></ul><div class="urtext_line">(required) : This will be auto-populated by Sublime when using the shortcut above; however you can also replace it with the ID of another node. For example, if you want the contents to replace an existing node, copy and paste that node's ID. If you want it to populate new inline node, create that node and then copy/paste its ID.</div>
+<div class="urtext_line">Note that in order to work, the target node must exist; dynamic definitions do *not* create their target nodes.</div>
+<div class="urtext_line"><span class="urtext-metadata">/-- <h3>id</h3>:02t; title:id --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/--  id: 37h--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Example 1 : List</h2>
+<div class="urtext_nested_2"><a name="slu"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span>    </div>
+<div class="urtext_line">Here are four inline nodes with example tags and indexes:</div>
+<div class="urtext_line">{{</div>
+<h3>Example Source Node 1</h3>
+<div class="urtext_nested_3"><a name="017"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID:017; tag: example_node; flags:exclude_from_tree; index:02 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Example Source Node 3</h3>
+<div class="urtext_nested_3"><a name="01b"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID: 01b; tag: example_node; flags:exclude_from_tree; index:01 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Example Source Node 2</h3>
+<div class="urtext_nested_3"><a name="00v"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line"><span class="urtext-metadata">/-- tag: example_node | exclude_this --/</span> <span class="urtext-metadata">/-- ID:00v; flags:exclude_from_tree;--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h3>Example Source Node 4</h3>
+<div class="urtext_nested_3"><a name="01c"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID: 01c; tag: example_node; index:05 ;flags:exclude_from_tree; --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">( Note that each of these nodes has the `exclude_from_tree` flag in the metadata, so that they are not included in the Table of Contents. See <a href="00x.html#1e3"><a href="00x.html#1e3"><a href="00x.html#1e3">>1e3</a></a></a>. )</div>
+<div class="urtext_line">Here is an example dynamic node definition targeting node ID <a href="#016"><a href="#016"><a href="#016">>016</a></a></a></div>
+<div class="urtext_line">[[ ID:016</div>
+<div class="urtext_line">include:metadata:tag:example_node</div>
+<div class="urtext_line">exclude:metadata:tag:exclude_this</div>
+<div class="urtext_line">sort:index</div>
+<div class="urtext_line">show:title</div>
+<div class="urtext_line">metadata:title:Example Dynamic Node Title</div>
+<div class="urtext_line">metadata:flags:exclude_from_tree</div>
+<div class="urtext_line">indent:4</div>
+<div class="urtext_line">]] <a href="018.html#018"><a href="018.html#018"><a href="018.html#018">>018</a></a></a></div>
+<div class="urtext_line">Here is the compiled node defined by the definition above. Changing the dynamic definition and/or the contents or metadata of the source nodes will update the dynamic node. Saving is necessary to trigger the update.</div>
+<div class="urtext_line">{{</div>
+<h3>Example Dynamic Node Title</h3>
+<div class="urtext_nested_3"><a name="016"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span></div>
+<div class="urtext_line"><h3>Example Dynamic Node Title</h3></div>
+<ul class="urtext-list"><li> Example Source Node 3 <a href="#01b"><a href="#01b"><a href="#01b">>01b</a></a></a></li><li> Example Source Node 1 <a href="#017"><a href="#017"><a href="#017">>017</a></a></a></li><li> Example Source Node 4 <a href="#01c"><a href="#01c"><a href="#01c">>01c</a></a></a></li></ul><div class="urtext_line"><span class="urtext-metadata">/--</div>
+<div class="urtext_line">ID: 016</div>
+<div class="urtext_line">defined in: <a href="#slu"><a href="#slu"><a href="#slu">>slu</a></a></a></div>
+<div class="urtext_line">flags: exclude_from_tree</div>
+<div class="urtext_line">title: Example Dynamic Node Title</div>
+<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- id: slu--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line">{{</div>
+<h2>Example 2 : Tree</h2>
+<div class="urtext_nested_2"><a name="029"></a><div class="urtext_line"><span class="urtext-open-brackets">&#123;&#123;</span> </div>
+<div class="urtext_line">Here is the dynamic definition that actually generates the table of contents for this documentation:</div>
+<div class="urtext_line">[[ ID:01a</div>
+<div class="urtext_line">tree:a5m</div>
+<div class="urtext_line">metadata:title:Table of Contents</div>
+<div class="urtext_line">metadata:flags:exclude_from_tree</div>
+<div class="urtext_line">]]</div>
+<div class="urtext_line">Changing the titles or structure of sections in this documentation will dynamically update the table of contents tree.</div>
+<div class="urtext_line">For more information on trees, see <a href="00h.html#00h">>00h</a></div>
+<div class="urtext_line"><span class="urtext-metadata">/-- ID: 029 --/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div><div class="urtext_line"><span class="urtext-metadata">/-- ID: 01r</div>
+<div class="urtext_line">Timestamp:<Sat., Jun. 08, 2019, 10:15 AM></div>
+<div class="urtext_line">tags:</div>
+<div class="urtext_line">title:<h1>TEST NATE</h1></div>
+<div class="urtext_line">index: 08</div>
+<ul class="urtext-list"></ul><div class="urtext_line">--/</span><span class="urtext-close-brackets">&#125;&#125;</span></div>
+</div>

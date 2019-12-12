@@ -16,9 +16,18 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     '\n',
     ] ]
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
-    '^\s*\^',           # compact node opening wrapper
+    '^[ ]*\^',           # compact node opening wrapper
     '^\%(?!%)'          # split node marker
     ] ])
+
+symbol_length = {
+    '^[ ]*\^':1,
+    '{{' : 2,
+    '}}' : 2,
+    '>>' : 2,
+    '\n' : 1,
+    '^\%(?!%)' : 1
+}
 
 class UrtextFile:
 
@@ -62,18 +71,25 @@ class UrtextFile:
         compact_node_open = False
         split = False
         
-        # THIS IS CAUSED OVERLAPPING RANGES TO BE ADDED TO THE SAME
+        """
+        If there are node syntax symbols in the file,
+        find the first non-newline symbol. Newlines are significant
+        only if a compact node is open.
+        """
         if self.positions:
+
             non_newline_symbol = 0
             while self.symbols[self.positions[non_newline_symbol]] == '\n':
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
                     break
             if non_newline_symbol < len(self.positions):
-                nested_levels[0] = [[0, self.positions[non_newline_symbol]]]
-
-
-        for index in range(len(self.positions)):
+                nested_levels[0] = [
+                    [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]
+                    ]]
+                    ]
+                           
+        for index in range(non_newline_symbol, len(self.positions)):
 
             position = self.positions[index]
 
@@ -106,8 +122,9 @@ class UrtextFile:
 
                 continue
 
-            if self.symbols[position] == '^\s*\^':
-                nested_levels[nested].append([last_position, position])
+            if self.symbols[position] == '^[ ]*\^':
+                if [last_position, position + 1] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position + 1])
                 nested += 1 
                 last_position = position + 1
                 compact_node_open = True
@@ -128,13 +145,16 @@ class UrtextFile:
                     compact = True)
 
                 compact_node_open = False
+                
                 if not self.add_node(
                     compact_node, # node
                     nested_levels[nested] # ranges
                     ):
                     print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
+                
                 else:
                     self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
+                
                 del nested_levels[nested]
                 nested -= 1
                 last_position = position + 1
