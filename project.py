@@ -27,7 +27,7 @@ from .timeline import timeline
 from .file import UrtextFile
 from .interlinks import Interlinks
 from .node import UrtextNode 
-from .export import export_project
+from .export import UrtextExport
 
 #from .google_calendar import sync_project_to_calendar
 node_id_regex = r'\b[0-9,a-z]{3}\b'
@@ -232,8 +232,8 @@ class UrtextProject:
                 inserted_node_id = node[2:]
                 for other_node in [
                         node_id for node_id in self.files[filename].nodes
-                        if node_id != node
-                ]:  # Careful ...
+                        if node_id != node ]:  
+                    # Careful ...
                     if self.is_in_node(position, other_node):
                         parent_node = other_node
                         alias_node = Node(inserted_node_id)
@@ -629,19 +629,6 @@ class UrtextProject:
 
         return modified_files
 
-    def export(self, 
-            filename, 
-            to_filename, 
-            kind='HTML',
-            as_single_file=False,
-            style_titles=True,
-            strip_urtext_syntax=True,
-            jekyll=False,
-            jekyll_post=False
-            ):
-        
-        export_project (self)
-
     def export_nodes(self, node_list, args):
         if isinstance(node_list, str):
             node_list = [node_list]
@@ -650,10 +637,11 @@ class UrtextProject:
     def export_file (self, filename, args):
         pass
 
-    def export_from_root_node(self, root_node_id, args):
-
-        pass
-
+    def export_from_root_node(self, root_node_id):
+        export = UrtextExport(self)
+        #contents = export.from_root_id(root_node_id)
+        contents = export.older_export_from(root_node_id)
+        return contents
     def export_project(self, args):
         pass 
 

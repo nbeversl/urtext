@@ -143,6 +143,12 @@ class UrtextNode:
         contents = self.strip_dynamic_definitions(contents=contents)
         return contents
 
+    @classmethod
+    def strip_contents(self, contents):
+        contents = self.strip_metadata(contents=contents)
+        contents = self.strip_dynamic_definitions(contents=contents)
+        return contents
+
     def set_index(self, new_index):
         self.index = new_index
 
