@@ -640,14 +640,17 @@ class UrtextProject:
     def export_from_root_node(self, root_node_id):
         export = UrtextExport(self)
         #contents = export.from_root_id(root_node_id)
-        contents = export.older_export_from(root_node_id)
+        contents = export.older_export_from(
+            root_node_id, 
+            kind='markdown',
+            as_single_file=True)
         return contents
+    
     def export_project(self, args):
         pass 
 
     def set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
-
         content_changed = self.nodes[node_id].set_content(contents)
         if content_changed:
             self.parse_file(self.nodes[node_id].filename)

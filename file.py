@@ -76,9 +76,9 @@ class UrtextFile:
         find the first non-newline symbol. Newlines are significant
         only if a compact node is open.
         """
+        non_newline_symbol = 0
         if self.positions:
-
-            non_newline_symbol = 0
+            
             while self.symbols[self.positions[non_newline_symbol]] == '\n':
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
@@ -164,25 +164,22 @@ class UrtextFile:
 
             # If this closes a node:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
-
-                # TODO why is this if necessary?
-                if [last_position, position] not in nested_levels[nested]: # avoid duplicates
-                    nested_levels[nested].append([last_position, position])
+                
+                if [last_position, position ] not in nested_levels[nested]: # avoid duplicates
+                    nested_levels[nested].append([last_position, position ])
             
                 # file level nodes are root nodes, with multiples permitted
                 root = True if nested == 0 else False
 
                 split = False
-
                 # determine whether this is a node made by a split marker (%)
                 start_position = nested_levels[nested][0][0]
                 end_position = nested_levels[nested][-1][1]
-
-                # TODO this method of checking for split node may be problematic?? 
-                # Will an inline node ever get falsely called a split node?
-                if contents[start_position-1] == '%' or contents[end_position+1] == '%':
+                if start_position >= 0 and contents[start_position-1] == '%':
                     split = True
-                                
+                if end_position < len(contents) and contents[end_position] == '%':
+                    split = True
+                                                    
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
@@ -193,7 +190,8 @@ class UrtextFile:
                     self.filename, 
                     contents=node_contents,
                     root=root,
-                    split=split)
+                    split=split
+                    )
                 
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
@@ -202,12 +200,11 @@ class UrtextFile:
 
                 del nested_levels[nested]
 
-                if self.symbols[position] == '^\%(?!%)':
-                    last_position = position + 1  # overwrite from above
-                    continue
-                
-                last_position = position + 2
+                last_position = position
 
+                if self.symbols[position] == '^\%(?!%)':
+                    continue
+            
                 nested -= 1
 
                 if nested < 0:

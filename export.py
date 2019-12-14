@@ -9,7 +9,7 @@ from .node import UrtextNode
 
 node_link_regex = r'>[0-9,a-z]{3}\b'
 OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123;&#123;</span>'
-
+node_pointer_regex = r'>>[0-9,a-z]{3}\b'
         
         
 
@@ -46,40 +46,40 @@ class UrtextExport:
             f.write(contents)
             f.close()
 
-    def from_root_id(self, 
-        root_node_id, 
-        exclude=[], 
-        kind='plaintext'):
+    # def from_root_id(self, 
+    #     root_node_id, 
+    #     exclude=[], 
+    #     kind='plaintext'):
         
-        if isinstance(exclude,str):
-            exclude = [exclude]
+    #     if isinstance(exclude,str):
+    #         exclude = [exclude]
 
-        kind = kind.lower()
+    #     kind = kind.lower()
 
-        if kind == 'plaintext':
-            contents = ''
+    #     if kind == 'plaintext':
+    #         contents = ''
 
-        filename = self.project.nodes[root_node_id].filename
-        contents = self._add_content(exclude=exclude, from_node_id=root_node_id)
+    #     filename = self.project.nodes[root_node_id].filename
+    #     contents = self._add_content(exclude=exclude, from_node_id=root_node_id)
 
-        visited_nodes = []
-        node_links = re.findall('>>[0-9,a-z]{3}', contents)
-        while node_links:
+    #     visited_nodes = []
+    #     node_links = re.findall('>>[0-9,a-z]{3}', contents)
+    #     while node_links:
 
-            for match in node_links:
-                node_id = match[2:]
-                if node_id not in visited_nodes:
-                    visited_nodes.append(node_id)
-                    if node_id in self.project.nodes:                    
-                        new_contents = self._add_content(exclude=exclude, from_node_id=node_id)
-                        contents = contents.replace(match, new_contents, 1)    
-                else:
-                     contents = contents.replace(match, 'RECURSION!!', 1)
-            node_links = re.findall('>>[0-9,a-z]{3}', contents)
+    #         for match in node_links:
+    #             node_id = match[2:]
+    #             if node_id not in visited_nodes:
+    #                 visited_nodes.append(node_id)
+    #                 if node_id in self.project.nodes:                    
+    #                     new_contents = self._add_content(exclude=exclude, from_node_id=node_id)
+    #                     contents = contents.replace(match, new_contents, 1)    
+    #             else:
+    #                  contents = contents.replace(match, 'RECURSION!!', 1)
+    #         node_links = re.findall('>>[0-9,a-z]{3}', contents)
         
 
 
-        return self._strip_urtext_syntax(contents)
+    #    return self._strip_urtext_syntax(contents)
 
     def _add_content(self, from_file=None, exclude=[], from_node_id=None):
         if from_node_id:
@@ -111,22 +111,20 @@ class UrtextExport:
         contents = UrtextNode.strip_contents(contents)
         contents = contents.replace('{{','')
         contents = contents.replace('}}','')
-        contents = re.sub(r'^\%', '', contents, re.DOTALL)
+        contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
         return contents        
 
     
-    def _opening_wrapper(self, kind, nested):
-        kind = kind.lower()
+    def _opening_wrapper(self, kind, node_id, nested):
         wrappers = { 
-            'HTML': '<div class="urtext_nested_'+str(nested)+'">',
-            'Markdown': '',
+            'html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
+            'markdown': '',
             'plaintext': ''
-
             }
+
         return wrappers[kind]
 
     def _closing_wrapper(self, kind):
-        kind = kind.lower()
         wrappers = { 
             'html': '</div>',
             'markdown': '',
@@ -148,20 +146,23 @@ class UrtextExport:
         root_node_id, 
         as_single_file=False,
         strip_urtext_syntax=True,
-        style_titles=True,
+        #style_titles=True,
         exclude=[], 
         kind='plaintext'
         ):
+
+        kind = kind.lower()
 
         """
         Public method to export a tree of nodes from a given root node
         """
         self.visited_nodes = []
+
         exported_content = self._add_node_content(
             root_node_id,
             as_single_file=as_single_file,
             strip_urtext_syntax=strip_urtext_syntax,
-            style_titles=style_titles,
+            #style_titles=style_titles,
             exclude=exclude,
             kind=kind,
             )
@@ -172,29 +173,21 @@ class UrtextExport:
             root_node_id,                               # node to start from
             as_single_file=False,                       # single file or separate files?
             strip_urtext_syntax=True,                   # for HTML, strip Urtext syntax?
-            style_titles=True,                          # style titles ????
+            #style_titles=True,                          # style titles ????
             exclude=[],
             kind='plaintext',
             nested=1,                                   # nested level (private)
             ):         
         """
-        Recursively add nested nodes / node pointers from a given starting node,
-        keeping track of nesting level, and wrapping in markup.
+        Recursively add a node and its inline nodes and node pointers 
+        from a given starting node, keeping track of nesting level, and wrapping in markup.        
         """    
 
+       
         """
-        Avoid recursion
+        Get and set up initial values
         """
-
-        if root_node_id in self.visited_nodes:
-            return '\n' + '#' * nested + ' <><><>< RECURSION : '+ root_node_id + ' ><><><>'                
-        else:
-            self.visited_nodes.append(root_node_id)
-
-        """
-        Get initial values
-        """
-        exported_contents = ''    
+        exported_contents = '' 
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project.full_file_contents(filename)        
@@ -203,36 +196,35 @@ class UrtextExport:
         """
         Wrap the title if specified
         """
-        if style_titles:                 
-            exported_contents += self._wrap_title(kind, root_node_id, nested)
+                        
+        exported_contents += self._wrap_title(kind, root_node_id, nested)
         
         """
         Insert opening node wrapper
         """
+        exported_contents += self._opening_wrapper(kind, root_node_id, nested)        
 
-        exported_contents += self._opening_wrapper(kind, nested)        
-
-        if kind == 'html':
-            exported_contents += '<a name="'+ root_node_id + '"></a>'
+       
+        """
+        For all inline ranges of the node,
 
         """
-        For all ranges of the node,
-
-        """
-
         for single_range in ranges:
+            """ 
+            Iterate through all ranges of this node 
+            """
 
-            # accumulate contents to add to exported_contents
+            # accumulate new contents to add to exported_contents
             added_contents = '' 
                 
             """
             If this is the node's first range, add Urtext styled {{ wrapper
             """
-            if kind == 'html' and single_range == ranges[0] and not strip_urtext_syntax:
-                added_contents += OPENING_BRACKETS
+            # if kind == 'html' and single_range == ranges[0] and not strip_urtext_syntax:
+            #     added_contents += OPENING_BRACKETS
 
             """
-            Add the node's contents
+            Get and add the range's contents
             """
             range_contents = file_contents[single_range[0]:single_range[1]]
             range_contents = self._strip_urtext_syntax(range_contents)
@@ -240,7 +232,7 @@ class UrtextExport:
 
             if kind == 'html':
                 """
-                Separate added contents in to separate lines
+                Insert special HTML wrappers
                 """
                 lines = [line.strip() for line in added_contents.split('\n') if line.strip() != '']
                 index = 0
@@ -273,7 +265,7 @@ class UrtextExport:
             """
             Remove duplicate titles if there is no title key.
             """
-            if style_titles and not self.project.nodes[root_node_id].metadata.get_tag('title') and title in added_contents: 
+            if not self.project.nodes[root_node_id].metadata.get_tag('title') and title in added_contents: 
                 added_contents = added_contents.replace(title,'',1)
            
             elif kind == 'html':    
@@ -298,54 +290,89 @@ class UrtextExport:
                         link = '#'+node_id
                     else: 
                         base_filename = project.nodes[node_id].filename
-                        # WILL HAVE TO BE CHANGED TO HANDLE MULTIPLE ROOT NODES
                         this_root_node = project.files[base_filename].root_nodes[0]
-                        ##
                         link = this_root_node+'.html#'+ node_id
                     
                     exported_contents = exported_contents.replace(match, 
                                     '<a href="'+link+'">'+match+'</a>')
                 
-            if as_single_file:
-                
-                while re.findall(node_pointer_regex, added_contents):
-                    for match in re.findall(node_pointer_regex, added_contents):
-                        inserted_contents = self._add_node_content(
-                            match[2:5], 
-                            nested + 1,
-                            as_single_file=as_single_file,
-                            strip_urtext_syntax=strip_urtext_syntax,
-                            style_titles=style_titles
-                            )
-                        added_contents = added_contents.replace(match, inserted_contents)
-
-            exported_contents += added_contents
-
             """
             If this is not the last range in the file,
             find the node_id of the node immediately following this range
             and add it, assuming we are including all sub-nodes.
             TODO: Add checking in here for excluded nodes
             """
-            if single_range != ranges[-1]:
-                next_node = self.project.get_node_id_from_position(filename, single_range[1]+1)
+            exported_contents += added_contents
+            
+            if single_range[1] == ranges[-1][1]:
+                self.visited_nodes.append(root_node_id)
 
-                if next_node in self.project.dynamic_nodes and self.roject.dynamic_nodes[next_node].tree:
-                    exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
+            if single_range[1] < ranges[-1][1] or self.project.nodes[root_node_id].split:
+ 
+                # get the node in the space immediately following this RANGE
+                next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
 
-                else:
-                    exported_contents += self._add_node_content(
-                        next_node,                        
-                        as_single_file=as_single_file,
-                        strip_urtext_syntax=strip_urtext_syntax,
-                        style_titles=style_titles,
-                        exclude=exclude,
-                        kind=kind,
-                        nested=nested + 1,)
+                if next_node:
+
+                    if next_node in self.visited_nodes:
+                        continue
+                    
+                    if next_node in self.project.dynamic_nodes and self.project.dynamic_nodes[next_node].tree:
+                        exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
+
+                    else:
+                        next_nested = nested
+                        if not self.project.nodes[root_node_id].split:
+                            next_nested = nested + 1 
+
+                        exported_contents += self._add_node_content(
+                            next_node,                        
+                            as_single_file=as_single_file,
+                            strip_urtext_syntax=strip_urtext_syntax,
+                            #style_titles=style_titles,
+                            exclude=exclude,
+                            kind=kind,
+                            nested=next_nested
+                            )
+            
                         
         exported_contents += self._closing_wrapper(kind)
 
         return exported_contents 
+
+
+
+    def replace_node_pointers(self, contents):
+ 
+        while re.findall(node_pointer_regex, contents):
+           
+            for match in re.findall(node_pointer_regex, contents):
+                node_id = match[2:5]
+              
+                """
+                Avoid recursion
+                """
+                if node_id in self.visited_nodes:
+                    inserted_contents = '\n' + '#' * nested + ' <><><>< RECURSION : '+ node_id + ' ><><><>' 
+                    continue             
+                
+                self.visited_nodes.append(node_id)
+
+                if node_id not in self.project.nodes:
+                    print('NODE MARKER >>'+node_id+' not in project, skipping')
+                    continue                            
+                
+                inserted_contents = self._add_node_content(
+                    node_id, 
+                    nested=nested+1,
+                    as_single_file=as_single_file,
+                    strip_urtext_syntax=strip_urtext_syntax,
+                    #style_titles=style_titles
+                    )
+                    
+                contents = contents.replace(match, inserted_contents)
+
+        return contents
 
     def other_stuff():
         """

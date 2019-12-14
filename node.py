@@ -230,6 +230,9 @@ class UrtextNode:
 
     def set_content(self, contents):
 
+        # add_wrapper = ''
+        # if self.contents()[-2:] == '}}':
+        #     add_wrapper = '}}'
         if contents == self.contents():
             return False
         
@@ -246,7 +249,9 @@ class UrtextNode:
             file_contents[0:start_range],
             contents,
             file_contents[end_range:]]) 
-         
+        
+        #new_file_contents += add_wrapper
+
         with open(os.path.join(self.project_path, self.filename),
                   'w',
                   encoding='utf-8') as theFile:
