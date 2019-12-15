@@ -46,41 +46,6 @@ class UrtextExport:
             f.write(contents)
             f.close()
 
-    # def from_root_id(self, 
-    #     root_node_id, 
-    #     exclude=[], 
-    #     kind='plaintext'):
-        
-    #     if isinstance(exclude,str):
-    #         exclude = [exclude]
-
-    #     kind = kind.lower()
-
-    #     if kind == 'plaintext':
-    #         contents = ''
-
-    #     filename = self.project.nodes[root_node_id].filename
-    #     contents = self._add_content(exclude=exclude, from_node_id=root_node_id)
-
-    #     visited_nodes = []
-    #     node_links = re.findall('>>[0-9,a-z]{3}', contents)
-    #     while node_links:
-
-    #         for match in node_links:
-    #             node_id = match[2:]
-    #             if node_id not in visited_nodes:
-    #                 visited_nodes.append(node_id)
-    #                 if node_id in self.project.nodes:                    
-    #                     new_contents = self._add_content(exclude=exclude, from_node_id=node_id)
-    #                     contents = contents.replace(match, new_contents, 1)    
-    #             else:
-    #                  contents = contents.replace(match, 'RECURSION!!', 1)
-    #         node_links = re.findall('>>[0-9,a-z]{3}', contents)
-        
-
-
-    #    return self._strip_urtext_syntax(contents)
-
     def _add_content(self, from_file=None, exclude=[], from_node_id=None):
         if from_node_id:
             start = self.project.nodes[from_node_id].ranges[0][0]
@@ -182,7 +147,6 @@ class UrtextExport:
         Recursively add a node and its inline nodes and node pointers 
         from a given starting node, keeping track of nesting level, and wrapping in markup.        
         """    
-
        
         """
         Get and set up initial values
@@ -192,6 +156,7 @@ class UrtextExport:
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project.full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
+        split = self.project.nodes[root_node_id].split
 
         """
         Wrap the title if specified
@@ -218,17 +183,22 @@ class UrtextExport:
             added_contents = '' 
                 
             """
-            If this is the node's first range, add Urtext styled {{ wrapper
+            If this is the node's first range:
             """
-            # if kind == 'html' and single_range == ranges[0] and not strip_urtext_syntax:
-            #     added_contents += OPENING_BRACKETS
+            if single_range == ranges[0] and kind == 'html' and not strip_urtext_syntax:
+
+                #add Urtext styled {{ wrapper
+                added_contents += OPENING_BRACKETS
 
             """
             Get and add the range's contents
             """
             range_contents = file_contents[single_range[0]:single_range[1]]
             range_contents = self._strip_urtext_syntax(range_contents)
+
             added_contents += range_contents
+
+
 
             if kind == 'html':
                 """
@@ -321,9 +291,11 @@ class UrtextExport:
                         exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
 
                     else:
+
                         next_nested = nested
+
                         if not self.project.nodes[root_node_id].split:
-                            next_nested = nested + 1 
+                            next_nested += 1
 
                         exported_contents += self._add_node_content(
                             next_node,                        
@@ -334,6 +306,7 @@ class UrtextExport:
                             kind=kind,
                             nested=next_nested
                             )
+
             
                         
         exported_contents += self._closing_wrapper(kind)

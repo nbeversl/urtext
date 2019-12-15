@@ -200,11 +200,14 @@ class UrtextFile:
 
                 del nested_levels[nested]
 
-                last_position = position
+               
 
                 if self.symbols[position] == '^\%(?!%)':
+                    last_position = position
                     continue
-            
+
+                last_position = position + 2
+
                 nested -= 1
 
                 if nested < 0:

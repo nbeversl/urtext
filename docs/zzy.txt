@@ -23,20 +23,20 @@ Metadata Keys
     ├── practicing
     │   └── Started this tree: >yal
     ├── python
-    │   ├── % 	Python >0ow
+    │   ├── Python >0ow
     │   ├── Python >83e
     │   ├── Python >b44
-    │   ├── %	    Python >n2m
-    │   └── % 			Python >xor
+    │   ├── Python >n2m
+    │   └── Python >xor
     ├── pythonista
-    │   ├── % >0yn
-    │   ├── % 	 	Pythonista >agg
-    │   ├── %		Pythonista >c3y
-    │   ├── %       Pythonista >c7r
+    │   ├──  >0yn
+    │   ├── Pythonista >agg
+    │   ├── Pythonista >c3y
+    │   ├── Pythonista >c7r
     │   ├── Pythonista >hrv
     │   ├── Pythonista >iy8
     │   ├── Pythonista >ouh
-    │   ├── % 		Pythonista : not currently implemented. Use an existing project. >rs8
+    │   ├── Pythonista >rs8
     │   └── Pythonista >xcx
     ├── sublime
     │   ├── Sublime >00a

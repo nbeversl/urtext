@@ -24,11 +24,11 @@ project_settings >00l
 -
 Started this tree: >yal
 -
-Test >hg1
--
 Example >3sc
 -
 Inside >d0f
+-
+Test >hg1
 -
 shithead >1qc
 -
@@ -38,7 +38,7 @@ Syntaxes : >r0w
 -
 Timezone List >zh1
 -
-% >ftz
+ >ftz
 -
 Example inline node within the compact node >9up
 -
@@ -66,203 +66,205 @@ The Node List >01i
 -
 In-Progress / Experimental / Wish List >014
 -
-Python >fv2
--
-% 	 	Pythonista >agg
--
-Sublime >xo8
--
-Creating Compact Nodes >3t5
--
-%		Python >h8c
--
-Sublime Project >c3n
--
-Sublime >8fh
+- exclude_from_tree >1e3
 -
 Python >83e
 -
-Description >yv2
+Pythonista >bhk
 -
-Example inline node >00e
+Sublime >40f
 -
-%       Pythonista >c7r
+Opening the Metadata List >saa
 -
-0.1.11-alpha >01l
--
-Creating Split Nodes >0mn
+Recursive Node Pointers >6ct
 -
 Python >b44
 -
-%		Pythonista >c3y
--
-Sublime >7n6
--
-Sublime >p78
--
-Making a New Project >dce
--
-Creating Inline Nodes >rbs
--
-0.1.16-alpha >03l
--
-Pointers >lmu
--
-0.1.14-alpha >022
--
-Disable Prompts for File Reload >023
--
-0.1.12-alpha >020
--
-0.1.13-alpha >021
--
-0.1.15-alpha >024
--
-Opening the Node List >hl7
--
-Example - Table of Contents From Another Root >01n
--
-Comparison To Other Tools >h8z
--
-- exclude_from_tree >1e3
+Node List >zzz
 -
 Sublime >rij
 -
-flags >cwb
+Hiding Line Numbers >01e
 -
-Python >eea
+0.1.16-alpha >03l
 -
-From the root >00g
+Synchronator Setup >01z
 -
-Fuzzy Full Text Search >4p9
+Description >yv2
+-
+Python >xor
+-
+iPhone/iPad/iOS >01y
+-
+Pythonista >iy8
+-
+Sublime >p78
+-
+Traverse Mode >00w
+-
+0.1.15-alpha >024
+-
+Disable Prompts for File Reload >023
 -
 Sublime >zm2
 -
-Pythonista >xcx
+0.1.13-alpha >021
+-
+Pythonista >hrv
+-
+Sublime >8fh
 -
 Uses >lhs
 -
 First Example Split Node >jym
 -
-Home Node >00c
+What Urtext Is >hdf
 -
-Pythonista >hrv
--
-Word Wrap in Traverse Mode >xci
--
-Sublime Text tools to help with linking >00m
--
-Opening the Metadata List >saa
--
-Reserved Metadata Keys >011
+From a selected node >00f
 -
  >1af
 -
-Recursive Node Pointers >6ct
+On the web >fak
 -
-Metadata List >zzy
--
-Hiding Tabs >015
--
-% 	Python >0ow
--
-% >0yn
--
-Urtext Documentation >a5m
--
-Pythonista >ouh
--
-iPhone/iPad/iOS >01y
+0.1.14-alpha >022
 -
 Standalone >plq
 -
-Reopening a Project >01p
+Metadata List >zzy
 -
-Opening Links >01w
+Creating a File Level Node >ekz
 -
-About the Sublime Text Implementation >01u
+Python >h8c
 -
-Features and Characteristics >006
+Making a New Project >dce
+-
+flags >cwb
+-
+Pythonista >agg
+-
+Python >fv2
+-
+Creating Split Nodes >0mn
+-
+Pythonista >ouh
+-
+0.1.12-alpha >020
+-
+Python >n2m
+-
+Pythonista >c3y
+-
+Urtext Documentation >a5m
+-
+Creating Compact Nodes >3t5
+-
+Time Zones >7w6
+-
+Pointers >lmu
+-
+Pythonista >rs8
+-
+Pythonista >c7r
+-
+Python >3bb
+-
+Creating Inline Nodes >rbs
+-
+Fuzzy Full Text Search >4p9
+-
+Hiding Tabs >015
+-
+Python >0ow
+-
+ >0yn
+-
+Sublime >7n6
 -
 Node Identity (Node IDs) >01h
 -
-Sublime Text Interface Tips >000
+Sublime Project >c3n
 -
-What Urtext Is >hdf
+Example - Table of Contents From Another Root >01n
 -
-Full Screen / Distraction Free Mode >002
+0.1.11-alpha >01l
 -
 Table of Contents >01a
 -
 File Level Nodes >01g
 -
-Using this document >009
--
-Hiding Line Numbers >01e
--
 Syntax Highlighting >01d
--
-Simple Links >0y2
--
-Sublime >40f
--
-Pythonista >iy8
--
-Synchronator Setup >01z
 -
 In Urtext for Sublime Text >e6m
 -
-% 	Pythonista >bhk
+Features and Characteristics >006
+-
+Sublime Text Interface Tips >000
+-
+Full Screen / Distraction Free Mode >002
+-
+Reopening a Project >01p
+-
+Using this document >009
+-
+Opening Links >01w
+-
+About the Sublime Text Implementation >01u
+-
+Simple Links >0y2
+-
+Pythonista >xcx
+-
+Sublime >xo8
+-
+Sublime >osu
 -
 Sublime >qwn
 -
-On the web >fak
--
-% 			Python >xor
--
 Syntax Highlighting of Inline Nodes (Sublime) >koe
 -
-%	    Python >n2m
+Word Wrap in Traverse Mode >xci
 -
-From a selected node >00f
+Opening the Node List >hl7
+-
+Example inline node >00e
+-
+From the root >00g
+-
+Reserved Metadata Keys >011
 -
 Sublime >00a
 -
+Home Node >00c
+-
 Using/Adding Existing Files >00b
 -
-%       Python >3bb
--
-Project Metadata List >012
--
-Timestamp Formats >00n
+Sublime Text tools to help with linking >00m
 -
 Web >00o
 -
-REVISE !! Trees >00h
+Timestamp Formats >00n
 -
 Filename formats >00i
 -
-Timeline View >00k
+REVISE !! Trees >00h
 -
-Duplicate Node Pointers >00t
+Timeline View >00k
 -
 REVISE !! Viewing Linked Relationships >00u
 -
-Traverse Mode >00w
--
-Files >00p
+Duplicate Node Pointers >00t
 -
 Linking to outside resources >00q
 -
-% 		Pythonista : not currently implemented. Use an existing project. >rs8
+Files >00p
 -
-Time Zones >7w6
+Python >eea
 -
-Creating a File Level Node >ekz
+Project Metadata List >012
+-
+Comparison To Other Tools >h8z
 -
 title (overrides the default title) >00y
--
-Sublime >osu
 -
 /--
 id:zzz

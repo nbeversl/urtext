@@ -101,7 +101,10 @@ class UrtextNode:
         node_contents = []
         for segment in self.ranges:
             node_contents.append(file_contents[segment[0]:segment[1]])
-        return ''.join(node_contents)
+        node_contents = ''.join(node_contents)
+        if self.split: # don't include the split marker
+            node_contents = node_contents.replace('%','',1)
+        return node_contents
 
     @classmethod
     def strip_metadata(self, contents=''):
@@ -180,6 +183,10 @@ class UrtextNode:
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
         first_line = re.sub('┌──','',first_line, re.DOTALL)
+       
+        # make conditional?
+        first_line = first_line.replace('%','',1)
+        irst_line = first_line.replace('^','',1)
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):

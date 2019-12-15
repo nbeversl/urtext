@@ -7,7 +7,10 @@ Setup
 
 	    To make an empty project, make a new folder (or open an existing folder, if you want to create a new project there) and open the folder in Sublime. Select Urtext : Initialize Project from the Sublime Command Palette. Then press Ctrl-Shift-; to create a new node.
 
-% 		Pythonista : not currently implemented. Use an existing project. /-- id:rs8 --/ /-- tags:pythonista --/
+% 		Pythonista
+
+			not currently implemented. Use an existing project. 
+			/-- id:rs8 --/ /-- tags:pythonista--/
 
 %	    Python
 
@@ -19,7 +22,8 @@ Setup
 			path = '~/users/someone/path/to/project/folder'
 			my_project = UrtextProject(path)
 
-		%%-END /-- id: n2m --/ /-- tags:python --/
+		%%-END 
+		/-- id: n2m --/ /-- tags:python --/
 
     	  }}
 	
