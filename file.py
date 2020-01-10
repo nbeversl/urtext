@@ -150,7 +150,8 @@ class UrtextFile:
                     compact_node, # node
                     nested_levels[nested] # ranges
                     ):
-                    print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
+                    	pass
+                    #print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
                 
                 else:
                     self.parsed_items[nested_levels[nested][0][0]] = compact_node.id

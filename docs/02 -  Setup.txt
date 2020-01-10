@@ -1,6 +1,6 @@
 Setup
 
-{{  Making a New Project 
+{{  Making a New Project
 
 	{{	
 		Sublime /-- ID:00a --/ /-- tags:sublime --/
@@ -32,7 +32,7 @@ Setup
 
  {{ Using/Adding Existing Files
 
-    To use existing plaintext files, you must append the `ID` (>01e) and `Timestamp` (>00j) metadata keys and values to the file, along with the current date and time to show when the file was added to the Urtext Project. See >00x for more information on Metadata.
+    To use existing plaintext files, you must add minimally an `ID` (>01e) metadata tag to the file's text content. See >00x for more information on Metadata.
 
     {{  Sublime /-- tags:sublime --/
 
@@ -57,24 +57,18 @@ Setup
 		%%-END
 
     /-- id: b44 --/ }}
-
-	
-
     /-- ID:00b --/ }}
 
-{{  Sublime Project /-- tags:sublime --/
+{{  Using a Sublime Project /-- tags:sublime --/
 	
 	(not to be confused with an Urtext Project -- see https://www.sublimetext.com/docs/3/projects.html )
 
-	You don't need to define a Sublime Project for the Urtext Project, but if you intend to do more than one thing at a time in Sublime, it's convenient to have one; you can then use Select Project -> Quick Switch Project (Ctrl-Cmd-P) to switch among them.  
-
-	/-- id: c3n --/ }}
-
-{{  Reopening a Project /-- tags:sublime --/
+	You don't need to define a Sublime Project for the Urtext Project, but if you intend to do more than one thing at a time in Sublime, it's convenient to have one; you can then use Select Project -> Quick Switch Project (Ctrl-Super-P) to switch among them.  
 
 	Once the Sublime package is installed, it will always look for any files with the .txt extension in open folders and attempt to compile them. To open an existing Urtext project, open the folder, a file in the folder, or a Sublime project that includes the folder, and any feature described in this documentation will work.
 
-	/-- ID:01p --/ }}
+	/-- id: c3n --/ }}
+
 
 {{  Sublime Text Interface Tips
 	
@@ -110,7 +104,7 @@ Setup
 
 		/-- ID:002 --/ }}
 
-		{{ Disable Prompts for File Reload
+	{{ Disable Prompts for File Reload
 
 			 Urtext does a lot of writing to files on the fly, often when they are already open. To avoid seeing a dialog every time, add add the following to your Sublime project settings or User Preferences file:
 				 "settings" : {

@@ -44,12 +44,11 @@ Metadata Keys
     │   ├── From the root >00g
     │   ├── Sublime Text tools to help with linking >00m
     │   ├── Traverse Mode >00w
-    │   ├── Reopening a Project >01p
     │   ├── About the Sublime Text Implementation >01u
     │   ├── Sublime >40f
     │   ├── Sublime >7n6
     │   ├── Sublime >8fh
-    │   ├── Sublime Project >c3n
+    │   ├── Using a Sublime Project >c3n
     │   ├── In Urtext for Sublime Text >e6m
     │   ├── Syntax Highlighting of Inline Nodes (Sublime) >koe
     │   ├── Sublime >osu

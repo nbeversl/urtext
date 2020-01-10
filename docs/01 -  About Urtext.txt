@@ -3,24 +3,22 @@ About Urtext
    
  {{ What Urtext Is 
 
-    ur-text /ˈo͝orˌtekst/ : "an original or the earliest version of a text, to which later versions can be compared"
-
     {{ Description
         
-        Urtext is a syntax and compiler for writing using plaintext. 
+        Urtext is a syntax and compiler for writing text that can organize and modify itself based on rules embedded directly into its own content. 
 
-        It is a structured but flexible syntax that allows freeform, fragmentary writing while permitting gradual aggregation of content with other content. You can start with a single note and build it gradually into a large, structured document. Urtext parses content into outlines (trees) that can have recursive (tangled) structure.
+        It is a structured but flexible syntax that allows freeform, fragmentary writing while permitting gradual aggregation of content with other content. You can start with a single note and build it gradually into a large, structured document. Urtext parses content into outlines (trees) that can also have recursive (tangled) structure.
 
-        Urtext consolidates content, user interface, and scripting into a single, compilable syntax. Text can generate and modify itself based on rules embedded directly into its own content.
-
-        Urtext is designed for both organized and disorganized use. 
+        Urtext is designed for both organized and freeform/disorganized use. 
 
         Urtext is implemented in Python and can be used wherever Python is used. Currently there is a package for Sublime Text (Mac/Windows/Linux) and a script for Pythonista (iOS). /-- ID:yv2 --/ }}
 
     {{ Comparison To Other Tools
         
-        Urtext shares some characteristics with markup languages such as Markdown and LaTeX, with the important difference that it is author-facing, not forward/reader-facing. Though it can be made to export to HTML, Urtext is not primarily a document conversion or document generation tool. It is rather a tool for organizing text.
-        
+        Urtext shares some characteristics with markup languages such as Markdown and LaTeX, with the important difference that it is author-facing, rather than reader-facing. Though it can be made to export to HTML, Urtext is not primarily a document conversion or document generation tool. It is rather a tool for organizing text.
+    
+        Urtext consolidates content, markup and instructions (scripting) into a single compilable syntax. Though it can hyperlink many documents or parts of documents together, unlike HTML, there is no additional code or markup "behind" the visible content. Everything the compiler/interpreter reads is visible to the author.
+
          /-- ID:h8z --/ }}
 
     {{  Uses
@@ -41,13 +39,13 @@ About Urtext
 
     {{  Features and Characteristics 
 
-        Many of the following characteristics and features were original requirements when creating Urtext. Others came about as consequences. Though many can be found in other tools, when combined, they eliminate most other tools.
+        Many of the following characteristics and features were core requirements when creating Urtext. Others came about as consequences. Though many can be found in other tools, they cannot be found together in another existing tool; this was the motivation for creating Urtext.
 
             - Urtext uses plain text files. Plaintext is fast, human-readable, flexible, cross-platform, device-portable, and future-proof.
 
             - Urtext can compile and organize content spread across hundreds or thousands of files.
 
-            - Files and content elements can be connected to one another in tree-like, recursive (tangled), and other non-hierarchical ways.
+            - Urtext files and content elements can be connected to one another in tree-like, recursive (tangled), and other non-hierarchical ways.
 
             - It has customizable and extensible metadata that does not rely on the file system.
 

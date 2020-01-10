@@ -1,6 +1,6 @@
 Urtext Documentation
 
-Version: 0.1.2-alpha
+Version: 0.1.5-alpha
 License: GNU General Public License 3.0
 
 {{  Using this document
@@ -13,7 +13,7 @@ License: GNU General Public License 3.0
 
     {{ In Urtext for Sublime Text /-- tags: sublime --/
 
-        - Sublime Urtext must be installed to use these features.
+        - Sublime Urtext must be installed to use these features. (see >2fn)
 
         - To go to a link in the table of contents, press ctrl-shift-/ from any line. Links are three-character node-IDs preceded by one or two right-angle brackets. (See Links >00j for more information).
 

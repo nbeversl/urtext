@@ -107,7 +107,7 @@ class UrtextExport:
         return wrappers[kind]
 
 
-    def older_export_from(self, 
+    def export_from(self, 
         root_node_id, 
         as_single_file=False,
         strip_urtext_syntax=True,

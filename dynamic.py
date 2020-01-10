@@ -25,6 +25,8 @@ class UrtextDynamicDefinition:
         self.omit=[]
         self.mirror = None
         self.mirror_include_all = None
+        self.export = None
+
         entries = re.split(';|\n', contents)
 
         for entry in entries:
@@ -81,6 +83,27 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'sort':
                 self.sort_tagname = atoms[1]
                 continue
+
+            if atoms[0] == 'export':
+                if len(atoms) < 5 :
+                    continue
+
+                export_format = atoms[1]
+                from_node = atoms[2]
+                node_or_file = atoms[3]
+                destination = atoms[4]
+
+                if export_format not in ['markdown','html','plaintext']:
+                    continue
+                if node_or_file not in ['node','file']:
+                    continue
+
+                self.export = export_format
+                self.export_to = node_or_file
+                self.export_source = from_node
+                self.destination = destination
+                continue
+
 
             """
             target node ID

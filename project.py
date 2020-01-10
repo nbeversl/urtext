@@ -8,6 +8,7 @@ import json
 import os
 import random
 import time
+import pickle
 from time import strftime
 from pytz import timezone
 import pytz
@@ -46,7 +47,6 @@ class UrtextProject:
                  watchdog=False):
 
         self.path = path
-        self.conflicting_files = []
         self.log = setup_logger('urtext_log',
                                 os.path.join(self.path, 'urtext_log.txt'))
         self.nodes = {}
@@ -74,7 +74,7 @@ class UrtextProject:
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
-        self._lock = threading.Lock()
+        self.init_lock = threading.Lock()
         self.update_lock = threading.Lock()
         self.loaded = False
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
@@ -90,7 +90,30 @@ class UrtextProject:
         if exists_in(os.path.join(self.path, "index"), indexname="urtext"):
             self.ix = open_dir(os.path.join(self.path, "index"),
                                indexname="urtext")
+
+        self.init_lock.acquire() 
+
+        # if os.path.exists(os.path.join(self.path, "save.p")):
+        #     self.log_item('Loading project from pickle')
+        #     saved_state = pickle.load(open( os.path.join(self.path, "save.p"), "rb" ) )
+           
+        #     self.nodes = saved_state.nodes
+        #     self.files = saved_state.files
+        #     self.tagnames = saved_state.tagnames
+        #     self.settings = saved_state.settings
+        #     self.dynamic_nodes = saved_state.dynamic_nodes
+        #     self.alias_nodes = saved_state.alias_nodes
+                
+        initializing = threading.Thread(
+            target=self._initialize_project, kwargs={'import_project':import_project})
+        initializing.start()
         
+        self.loaded = True
+
+    def _initialize_project(self, import_project):
+
+        # Files
+
         filelist = os.listdir(self.path)
         
         for file in filelist:
@@ -122,8 +145,7 @@ class UrtextProject:
         
         self._update()
 
-        self.loaded = True
-
+        self.init_lock.release()
 
     def node_id_generator(self):
         chars = [
@@ -152,6 +174,9 @@ class UrtextProject:
                 
         self.update_node_list()
         self.update_metadata_list()
+
+        pickle = PickledUrtextProject(self)
+
         if self.update_lock.locked():
             self.update_lock.release()
 
@@ -473,6 +498,22 @@ class UrtextProject:
                 else:
                     new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
+            if dynamic_definition.export:
+                
+                exported = UrtextExport(self) 
+                exported_content = exported.export_from(
+                     dynamic_definition.export_source,
+                     kind=dynamic_definition.export
+                    )
+
+                if dynamic_definition.export_to == 'file':
+                    with open(os.path.join(self.path, dynamic_definition.destination), 'w', encoding ='utf-8') as f:
+                        f.write(exported_content)
+                        f.close()
+
+                if dynamic_definition.export_to == 'node' and dynamic_definition.destination in self.nodes:
+                    new_node_contents = exported_content
+
             else:
                 # list of explicitly included node IDs
                 included_nodes = []
@@ -640,9 +681,9 @@ class UrtextProject:
     def export_from_root_node(self, root_node_id):
         export = UrtextExport(self)
         #contents = export.from_root_id(root_node_id)
-        contents = export.older_export_from(
+        contents = export.export_from(
             root_node_id, 
-            kind='markdown',
+            kind='plaintext',
             as_single_file=True)
         return contents
     
@@ -1565,7 +1606,17 @@ class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
 
+class PickledUrtextProject:
 
+    def __init__(self, project):
+        
+        self.nodes = project.nodes
+        self.files = project.files
+        self.tagnames = project.tagnames
+        self.settings = project.settings
+        self.dynamic_nodes = project.dynamic_nodes
+        self.alias_nodes = project.alias_nodes
+        pickle.dump( self, open( os.path.join(project.path, "save.p"), "wb" ) )
 
 """ 
 Helpers 
