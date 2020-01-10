@@ -16,12 +16,12 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     '\n',
     ] ]
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
-    '^[ ]*\^',           # compact node opening wrapper
+    '^[\s]*\^',           # compact node opening wrapper
     '^\%(?!%)'          # split node marker
     ] ])
 
 symbol_length = {
-    '^[ ]*\^':1,
+    '^[\s]*\^':1,
     '{{' : 2,
     '}}' : 2,
     '>>' : 2,
@@ -122,7 +122,7 @@ class UrtextFile:
 
                 continue
 
-            if self.symbols[position] == '^[ ]*\^':
+            if self.symbols[position] == '^[\s]*\^':
                 if [last_position, position + 1] not in nested_levels[nested]:
                     nested_levels[nested].append([last_position, position + 1])
                 nested += 1 
@@ -130,12 +130,12 @@ class UrtextFile:
                 compact_node_open = True
                 continue
                 
-            if self.symbols[position] == '\n' and compact_node_open:
+            if compact_node_open and self.symbols[position] == '\n':
                 # TODO: this could be refactored with what is below
                 
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position])
-
+               
                 compact_node = node.create_urtext_node(
                     self.filename, 
                     contents=''.join([  
