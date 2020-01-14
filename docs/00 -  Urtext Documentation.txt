@@ -46,15 +46,14 @@ Urtext Documentation >a5m
         └── Dependencies and Installation: >2fn
 ├── Setup >003
     ├── Making a New Project >dce
-        └── Sublime >00a
-            ├── Pythonista : not currently implemented. Use an existing project. >rs8
-            └── Python >n2m
+        ├── Sublime >00a
+        ├── Pythonista >rs8
+        └── Python >n2m
     ├── Using/Adding Existing Files >00b
         ├── Sublime >rij
         ├── Pythonista >ouh
         └── Python >b44
-    ├── Sublime Project >c3n
-    ├── Reopening a Project >01p
+    ├── Using a Sublime Project >c3n
     └── Sublime Text Interface Tips >000
         ├── Syntax Highlighting >01d
         ├── Hiding Tabs >015
@@ -75,17 +74,22 @@ Urtext Documentation >a5m
             ├── Pythonista >hrv
             └── Python >fv2
         └── Syntax Highlighting of Inline Nodes (Sublime) >koe
-    ├── ? (Missing Node): >kpz
+    ├── Compact Nodes >kpz
+        ├── Example Compact Node >d7b
+            └── Example inline node within the compact node >9up
+        └── Creating Compact Nodes >3t5
+            ├── Sublime >qwn
+            ├── Pythonista >0yn
+            └── Python >xor
     ├── Split Nodes >k6d
         ├── First Example Split Node >jym
-            └── Second Example split Node >ftz
-        └── Creating Split Nodes >0mn
-            └── Sublime >40f
-                └── Pythonista >agg
+        └── Shortkeys to Create Split Nodes >0mn
+            ├── Sublime >40f
+            └── Pythonista >agg
     ├── Generating a node ID manually >rfp
-        └── Sublime >7n6
-            ├── Pythonista >bhk
-            └── Python >0ow
+        ├── Sublime >7n6
+        ├── Pythonista >bhk
+        └── Python >0ow
     ├── Node Metadata >00x
         ├── Reserved Metadata Keys >011
             ├── title (overrides the default title) >00y
@@ -99,26 +103,26 @@ Urtext Documentation >a5m
         └── Project Metadata List >012
             ├── Metadata List >zzy
             └── Opening the Metadata List >saa
-                └── Sublime >zm2
-                    ├── Pythonista >c7r
-                    └── Python >3bb
+                ├── Sublime >zm2
+                ├── Pythonista >c7r
+                └── Python >3bb
     └── The Node List >01i
         └── Opening the Node List >hl7
-            └── Sublime >p78
-                ├── Pythonista >c3y
-                └── Python >h8c
-├── TEST NATE >01r
+            ├── Sublime >p78
+            ├── Pythonista >c3y
+            └── Python >h8c
+├── Dynamic Nodes >e82
     ├── Description & Purpose >h0y
     ├── Syntax >igk
     ├── Creating a Dynamic Node >yon
     ├── Definition keys/values >37h
-        └── id >02t
-            ├── include >a3r
-            ├── exclude >e18
-            ├── sort >05f
-            ├── metadata >oa2
-            └── tree >4mb
-    ├── Example 1 : List >slu
+        ├── id >02t
+        ├── include >a3r
+        ├── exclude >e18
+        ├── sort >05f
+        ├── metadata >oa2
+        └── tree >4mb
+    ├── Example 1 : List >01r
     └── Example 2 : Tree >029
 ├── REVISE !! Trees >00h
     ├── From a selected node >00f
@@ -149,15 +153,15 @@ Urtext Documentation >a5m
 └── Extension and Customization >01o
 /-- 
 defined in: >029
-flags: exclude_from_tree
 ID: 01a
 title: Table of Contents
+flags: exclude_from_tree
 --/}}
 
 About Urtext >>013
 Setup >>003
 Nodes >>01j
-Dynamic Nodes >>01r
+Dynamic Nodes >>e82
 Node Trees >>00h
 Links >>00j
 

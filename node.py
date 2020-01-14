@@ -104,6 +104,8 @@ class UrtextNode:
         node_contents = ''.join(node_contents)
         if self.split: # don't include the split marker
             node_contents = node_contents.replace('%','',1)
+        # if self.compact: # don't include the split marker
+        #     node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
 
     @classmethod
@@ -169,24 +171,23 @@ class UrtextNode:
         #
         # otherwise, title is the first non white-space line
         #
-        stripped_contents = self.strip_metadata(contents=contents).strip().split('\n')
+        stripped_contents_lines = self.strip_metadata(contents=contents).strip().split('\n')
 
         index = 0
-        last_character = len(stripped_contents) - 1
-        while stripped_contents[index] == r'\s':
-            if index == last_character:
-                self.title = '(untitled)'
-                return
+        last_line = len(stripped_contents_lines) - 1
+        while stripped_contents_lines[index].strip() in ['','%']:
+            if index == last_line:
+                return '(untitled)'
             index += 1
 
-        first_line = stripped_contents[index][:100].replace('{{','').replace('}}', '')
+        first_line = stripped_contents_lines[index][:100].replace('{{','').replace('}}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
         first_line = re.sub('┌──','',first_line, re.DOTALL)
        
         # make conditional?
-        first_line = first_line.replace('%','',1)
-        irst_line = first_line.replace('^','',1)
+        first_line = re.sub(r'^[\s]*\^','',first_line)           # compact node opening wrapper
+        first_line = re.sub(r'^\%(?!%)','',first_line)
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):

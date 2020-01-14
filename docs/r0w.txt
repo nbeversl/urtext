@@ -1,10 +1,12 @@
 Syntaxes :
 
-	The { {  and } } wrappers is part of the CONTAINING node, not part of the node it encloses.
 
-	The % character becomes part of the node FOLLOWING it.
+	The { {  and } } wrapper are within the ranges of the CONTAINING node, not the node they enclose.
 
-	The ^ character also becomes part of the node FOLLOWING it.
+	The % character gets included in the range of the node FOLLOWING it.
+	
+	The ^ character also gets included in the range of the node FOLLOWING it.
+
 
 
 /-- ID:r0w

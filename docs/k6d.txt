@@ -1,24 +1,22 @@
 Split Nodes
 
-A node region can be split into two separate nodes using the `%` character as the first character on a line. The `%` character is the syntactic equivalent of two closing curly braces followed by a space and two opening curly braces, closing the previous node and opening new one. 
+A node region can be split into two separate nodes by placing the `%` character as the first character on a line. Each node must then have its own ID, which you can either generate manually (see Inserting a Node ID manually >04s) or with the split node shortkey (below, >0mn).
 
+	{{ First Example Split Node /-- ID: jym --/
 
-{{ First Example Split Node /-- ID: jym --/
+	This node must contain its own ID (above).
 
-This node must contain its own ID (above).
+	% 
 
-% 
+	Second Example split Node
 
-Second Example split Node
+	This node also contains its own ID (below)
 
- /-- 
-id: ftz
-timestamp: <Thu., Oct. 31, 2019, 12:20 PM>
---/ }}
+	 /-- id: ftz --/ }}
 
-Note using a `%` symbol at the file level (outside of an inline node wrapper) is equivalent to dividing the file into multiple parts; inline nodes generated inside any of these parts will be children only of their containing node, not of any other root nodes in the same file.
+Note using a `%` symbol at the file level (outside of an inline node wrapper) is equivalent to dividing the file into multiple file-level nodes; inline nodes generated inside any of these will be children only of their containing node, not of any other file-level nodes in the same file.
 
-{{ Creating Split Nodes
+{{ Shortkeys to Create Split Nodes
 
 	These also insert an ID directly above the split marker.
 

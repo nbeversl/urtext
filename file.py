@@ -26,7 +26,7 @@ symbol_length = {
     '}}' : 2,
     '>>' : 2,
     '\n' : 1,
-    '^\%(?!%)' : 1
+    '^\%(?!%)' : 0
 }
 
 class UrtextFile:
@@ -83,10 +83,10 @@ class UrtextFile:
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
                     break
+
             if non_newline_symbol < len(self.positions):
                 nested_levels[0] = [
-                    [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]
-                    ]]
+                    [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]] ]
                     ]
                            
         for index in range(non_newline_symbol, len(self.positions)):
@@ -123,8 +123,8 @@ class UrtextFile:
                 continue
 
             if self.symbols[position] == '^[\s]*\^':
-                if [last_position, position + 1] not in nested_levels[nested]:
-                    nested_levels[nested].append([last_position, position + 1])
+                if [last_position, position] not in nested_levels[nested] and position > last_position:
+                    nested_levels[nested].append([last_position, position])
                 nested += 1 
                 last_position = position + 1
                 compact_node_open = True
@@ -133,15 +133,19 @@ class UrtextFile:
             if compact_node_open and self.symbols[position] == '\n':
                 # TODO: this could be refactored with what is below
                 
-                if [last_position, position] not in nested_levels[nested]: # avoid duplicates
+                # avoid duplicates but note here we leave in ranges of [x:x] since
+                # we want to retain the compact nodes's \n marker
+                
+
+                if [last_position, position] not in nested_levels[nested]: 
                     nested_levels[nested].append([last_position, position])
-               
+
                 compact_node = node.create_urtext_node(
                     self.filename, 
                     contents=''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
-                        ])[1:].strip(), # omit the leading/training whitespace and the '^' character itself:
+                        ]).lstrip().replace('^','',1), # omit the leading/training whitespace and the '^' character itself:
                     compact = True)
 
                 compact_node_open = False
@@ -150,15 +154,14 @@ class UrtextFile:
                     compact_node, # node
                     nested_levels[nested] # ranges
                     ):
-                    	pass
-                    #print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
+                    print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
                 
                 else:
                     self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
                 
                 del nested_levels[nested]
                 nested -= 1
-                last_position = position + 1
+                last_position = position
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 continue
@@ -168,19 +171,19 @@ class UrtextFile:
                 
                 if [last_position, position ] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
-            
+                
                 # file level nodes are root nodes, with multiples permitted
                 root = True if nested == 0 else False
 
                 split = False
+                
                 # determine whether this is a node made by a split marker (%)
                 start_position = nested_levels[nested][0][0]
-                end_position = nested_levels[nested][-1][1]
-                if start_position >= 0 and contents[start_position-1] == '%':
+                end_position = nested_levels[nested][-1][1]         
+                if start_position >= 0 and contents[start_position] == '%':
                     split = True
                 if end_position < len(contents) and contents[end_position] == '%':
-                    split = True
-                                                    
+                    split = True                                                 
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
@@ -201,8 +204,6 @@ class UrtextFile:
 
                 del nested_levels[nested]
 
-               
-
                 if self.symbols[position] == '^\%(?!%)':
                     last_position = position
                     continue
@@ -221,15 +222,19 @@ class UrtextFile:
         ### handle last (lowest) remaining node at the file level
         
         if nested_levels == {} or nested_levels[0] == [] and last_position > 0:
+        
             # everything else in the file is part of another node.
             nested_levels[0] = [[last_position, self.file_length]]
                
         elif nested_levels == {} or nested_levels[0] == []:
+
             # everything else in the file is other nodes.
             nested_levels[0] = [[0, self.file_length]]  
         
+
         elif [last_position + 1, self.file_length] not in nested_levels[0]:
-            nested_levels[0].append([last_position + 1, self.file_length])
+
+            nested_levels[0].append([last_position, self.file_length])
 
         node_contents = ''.join([contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]])
         root_node = node.create_urtext_node(
@@ -247,7 +252,7 @@ class UrtextFile:
             print(self.filename)
 
     def add_node(self, new_node, ranges):
-      
+        
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges

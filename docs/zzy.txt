@@ -1,7 +1,12 @@
 Metadata Keys
 ├── flags
 │   └── exclude_from_tree
-│       └── Table of Contents >01a
+│       ├── Example Source Node 2 >00v
+│       ├── Example Dynamic Node Title >016
+│       ├── Example Source Node 1 >017
+│       ├── Table of Contents >01a
+│       ├── Example Source Node 3 >01b
+│       └── Example Source Node 4 >01c
 ├── home
 │   └── a5m
 │       └── project_settings >00l
@@ -15,13 +20,18 @@ Metadata Keys
 │   └── work-related
 │       └── Node Metadata >00x
 ├── tag
+│   ├── example_node
+│   │   ├── Example Source Node 2 >00v
+│   │   ├── Example Source Node 1 >017
+│   │   ├── Example Source Node 3 >01b
+│   │   └── Example Source Node 4 >01c
+│   ├── exclude_this
+│   │   └── Example Source Node 2 >00v
 │   └── groceries
 │       └── Node Metadata >00x
 └── tags
     ├── coming
     │   └── Files >00p
-    ├── practicing
-    │   └── Started this tree: >yal
     ├── python
     │   ├── Python >0ow
     │   ├── Python >83e
@@ -29,7 +39,7 @@ Metadata Keys
     │   ├── Python >n2m
     │   └── Python >xor
     ├── pythonista
-    │   ├──  >0yn
+    │   ├── Pythonista >0yn
     │   ├── Pythonista >agg
     │   ├── Pythonista >c3y
     │   ├── Pythonista >c7r

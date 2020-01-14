@@ -24,8 +24,6 @@ Generating a node ID manually
 
 }}
 
-
-
 /-- ID:rfp
 Timestamp:<Wed., Oct. 30, 2019, 04:37 PM>
 --/

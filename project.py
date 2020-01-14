@@ -88,10 +88,9 @@ class UrtextProject:
         index_dir = os.path.join(self.path, "index")
         
         if exists_in(os.path.join(self.path, "index"), indexname="urtext"):
-            self.ix = open_dir(os.path.join(self.path, "index"),
-                               indexname="urtext")
+            self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
 
-        self.init_lock.acquire() 
+        #self.init_lock.acquire() 
 
         # if os.path.exists(os.path.join(self.path, "save.p")):
         #     self.log_item('Loading project from pickle')
@@ -104,13 +103,17 @@ class UrtextProject:
         #     self.dynamic_nodes = saved_state.dynamic_nodes
         #     self.alias_nodes = saved_state.alias_nodes
                 
-        initializing = threading.Thread(
-            target=self._initialize_project, kwargs={'import_project':import_project})
-        initializing.start()
-        
+        #initializing = threading.Thread(
+            #target=self._initialize_project, kwargs={'import_project':import_project, 'init_project':init_project})
+        #initializing.start()
+
+        # For synchronous loading only:
+        self._initialize_project(import_project=import_project, init_project=init_project)
         self.loaded = True
 
-    def _initialize_project(self, import_project):
+    def _initialize_project(self, 
+        import_project=False, 
+        init_project=False):
 
         # Files
 
@@ -145,7 +148,7 @@ class UrtextProject:
         
         self._update()
 
-        self.init_lock.release()
+        #self.init_lock.release()
 
     def node_id_generator(self):
         chars = [
@@ -233,11 +236,29 @@ class UrtextProject:
         
         return filename
 
+    def rewrite_titles(self,filename):
+        title_marker_regex = r'\|.*?>[0-9,a-z]{3}\b'
+        original_contents = self.full_file_contents(filename=filename)
+        new_contents = original_contents
+        matches = re.findall(title_marker_regex, new_contents)
+        if matches:
+            for match in matches:
+                node_id = match[-3:]
+                if node_id in self.nodes:
+                    title = self.nodes[node_id].title
+                else:
+                    title = ' ? '
+                new_contents = new_contents.replace(match, '| '+title+' >'+node_id)
+        if new_contents != original_contents:
+            return new_contents 
+
+        return False
+
     """
     Tree building
     """
     def set_tree_elements(self, filename):
-        """ Builds tree elements within the file, after the file is parsed."""
+        """ Builds tree elements within the file's nodes, after the file is parsed."""
 
         parsed_items = self.files[filename].parsed_items
         positions = sorted(parsed_items.keys())
@@ -282,11 +303,9 @@ class UrtextProject:
                 continue
             """
             if this is a compact node, its parent is the node right before it.
-
             """
-            
                 
-            if self.nodes[node].compact or self.nodes[node].split:
+            if self.nodes[node].compact or self.nodes[node].split:               
                 parent = self.get_parent(node)
                 self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
                 continue
@@ -354,10 +373,7 @@ class UrtextProject:
         if len(ID_tags) > 1:
             self.log_item('Multiple ID tags in >' + new_node.id +
                           ', using the first one found.')
-            print('ERROR LOGGING, ID_tags:')
-            print(ID_tags)
-
-
+        
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
             self.get_settings_from(new_node)
@@ -893,13 +909,18 @@ class UrtextProject:
     Removing and renaming files
     """
     def remove_file(self, filename):
-        """ removes the file from the project object """
+
+        if self.ix: 
+            self.writer = AsyncWriter(self.ix)
+
+        """ removes the node_ids from the whoosh search index """
         if filename in self.files:
             for node_id in self.files[filename].nodes:
+                if self.ix:
+                    self.writer.delete_by_term('path', node_id)
                 for target_id in list(self.dynamic_nodes):
                     if self.dynamic_nodes[target_id].source_id == node_id:
                         del self.dynamic_nodes[target_id]
-
                 for tagname in list(self.tagnames):
                     for value in list(self.tagnames[tagname]):
                         if value in self.tagnames[tagname]:  
@@ -912,12 +933,16 @@ class UrtextProject:
                     del self.nodes[node_id]
                     
             del self.files[filename]
+
+        if self.ix:
+            self.writer.commit()
         
         return None
 
     def delete_file(self, filename):
         self.remove_file(filename)
         os.remove(os.path.join(self.path, filename))
+
         self.update_lock.acquire()        
         self.updating = threading.Thread(
             target=self._update)
@@ -1446,7 +1471,6 @@ class UrtextProject:
             return
         sync_project_to_calendar(self, google_calendar_id)
 
-
     def pop_node(self, position=None, filename=None, node_id=None):
         if not node_id:
             node_id = self.get_node_id_from_position(filename, position)
@@ -1460,11 +1484,20 @@ class UrtextProject:
         end = self.nodes[node_id].ranges[-1][1]
 
         file_contents = self.full_file_contents(node_id=node_id)
+        
         popped_node_id = node_id
 
         filename = self.nodes[node_id].filename
         popped_node_contents = file_contents[start:end].strip()
         
+        if self.nodes[node_id].split:
+            popped_node_contents = popped_node_contents[1:] # strip the '%'
+
+        if self.nodes[node_id].compact:
+            # Strip whitspace + '^'
+            popped_node_contents = popped_node_contents.lstrip()
+            popped_node_contents = popped_node_contents[1:]
+
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n',
@@ -1504,9 +1537,6 @@ class UrtextProject:
         node_id = random.choice(list(self.nodes))
         return node_id
 
-    
-
-
 
     """
     Methods used with watchdog
@@ -1527,7 +1557,7 @@ class UrtextProject:
         return (True,'')
 
     def on_modified(self, 
-            filename, 
+            filename,
             watchdog=False):
     
         if watchdog:
@@ -1546,6 +1576,7 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True,'')
+        
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
 
         self.update_lock.acquire()
@@ -1558,6 +1589,10 @@ class UrtextProject:
     def file_update(self, filename):
 
         self.parse_file(filename)
+        rewritten_contents = self.rewrite_titles(filename)
+        if rewritten_contents:
+            self.set_file_contents(filename, rewritten_contents)
+            self.parse_file(filename, re_index=True)
         self._update()
         
 
@@ -1572,8 +1607,7 @@ class UrtextProject:
                                     new_filename)
             self.handle_renamed(old_filename, new_filename)
         return (True,'')
-
-
+å
     """
     Locking
     """

@@ -1,24 +1,5 @@
-/-- tags: practicing <Wed., Jul. 10, 2019, 07:18 PM> --/
 
-Started this tree:
-
-{{
 /-- 
 ID: 1af
 defined in: >yal
---/}}
-
-[[ ID:1af
-	tree:1ae
- ]]
-
-Slowing down the thought process. Thinking of one element at a time, like coding. Breaking the problem down into small parts.
-
-Think about those 88 keys. Practice just sitting there. We never practice just sitting there.
-
-<Wed., Jul. 10, 2019, 07:26 PM> What I'm going to do today is 
-
-
-/-- ID:yal
-Timestamp:<Fri., Dec. 13, 2019, 08:59 AM>
 --/

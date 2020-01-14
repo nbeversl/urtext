@@ -10,8 +10,6 @@ Think of a node as a region of paper with flexible and open-ended length.
 
    /-- ID:01h --/ }}
 
-
-
 {{ File Level Nodes
 
 	A file-level node is any node at the outermost level of a single file. It may or may not contain other nodes nested inside it.
@@ -47,8 +45,6 @@ Think of a node as a region of paper with flexible and open-ended length.
 
 			%%-END /-- id: 83e; tags:python--/ }}
 	
-
-
 	The file is created, named and saved automatically. It has whitespace on top and a metadata block at the bottom containing a node ID and a timestamp of the creation date and time.
 
 	/--  id: ekz	--/ }}

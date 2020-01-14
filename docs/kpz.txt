@@ -12,8 +12,7 @@ For contents requiring only a single line, such as list items, very short notes,
 
 			Shift-Control-^ 
 
-% 	
-			Pythonista /-- id:0yn --/ /-- tags:pythonista --/
+% 	 		Pythonista /-- id:0yn --/ /-- tags:pythonista --/
 
 			Urtext Keys : ^
 

@@ -5,9 +5,7 @@ About Urtext
 
     {{ Description
         
-        Urtext is a syntax and compiler for writing text that can organize and modify itself based on rules embedded directly into its own content. 
-
-        It is a structured but flexible syntax that allows freeform, fragmentary writing while permitting gradual aggregation of content with other content. You can start with a single note and build it gradually into a large, structured document. Urtext parses content into outlines (trees) that can also have recursive (tangled) structure.
+        Urtext is a syntax and compiler for writing in plaintext. It uses a structured but flexible syntax that allows freeform, fragmentary writing while permitting gradual aggregation of content with other content, across many files. You can start with a single note and build it gradually into a large, structured document that can organize and modify itself based on instructions and metadata embedded in its own content.  Urtext parses content into outlines (trees) that can also have recursive (tangled) structure.
 
         Urtext is designed for both organized and freeform/disorganized use. 
 
@@ -43,7 +41,7 @@ About Urtext
 
             - Urtext uses plain text files. Plaintext is fast, human-readable, flexible, cross-platform, device-portable, and future-proof.
 
-            - Urtext can compile and organize content spread across hundreds or thousands of files.
+            - Urtext can compile, organize, and link content spread across hundreds or thousands of files.
 
             - Urtext files and content elements can be connected to one another in tree-like, recursive (tangled), and other non-hierarchical ways.
 
@@ -55,18 +53,17 @@ About Urtext
                
             - It can incorporate other plaintext syntaxes.
    
-            - There is no need to interact directly with the file system (creating, naming, saving, organizing files). File management is handled entirely by the compiler.
+            - There is no need to interact directly with the file system (creating, naming, saving, organizing files). File creation, naming and management is handled for you.
    
             - Extensible, hackable, customizable. This year's needs might not be next year's. One person's needs might not be another's.
    
             - Does not require years to master.
    
-            - Future-proof. No reliance on anything that may not exist in 5 or 100 years. 
+            - Future-proof. No reliance on anything that may not exist in 5 or 100 years. Urtext files themselves are in plaintext, which will never become unusable. The interpreter/compiler could theoretically be implemented in any other language desired, current, past or future. 
    
-            - Can be used on mobile devices without depending on live internet or cellular data; content can wholly reside on, and sync among, devices.  
+            - Does not depend on a cloud service. Though cloud services can be used to sync project files among devices, the interpreter itself is made not to depending on a live internet or cellular data connection; content wholly resides on the device being used.
 
             - It is open source. See here (>01o) for information on how to modify it for your own purposes.
-
 
             Being in plaintext and having a syntax specification, it can also be used with:
 

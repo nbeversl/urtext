@@ -1,32 +1,31 @@
 Node Metadata
+    
+    Metadata is data about the content, in the form of key/value pairs and timestamps. Other than a few reserved key/value pairs used for compiling, metadata is open for user-defined purposes. Keys and values of metadata tags are indexed automatically and searchable within the Urtext project (see >012). 
 
-    Metadata regions open with a forward-slash followed by two dashes and closes with two dashes followed by a forward slash. The only required metadata is a node ID. Additional user-defined metadata can be added into the same region, and additional metadata regions can be inserted arbitrarily anywhere inside a node.
+    Metadata regions in Urtext open with a forward-slash followed by two dashes and close with two dashes followed by a forward slash. Each metadata entry is a key/value pair, separated by a colon, with the value containing an optional timestamp. Examples:
 
-    Each metadata entry is a user-defined key/value pair, separated by a colon, with the value containing an optional timestamp. Examples:
-
-        /-- Purpose: work-related <Tue., Mar. 05, 2019, 03:25 PM> --/
+        /-- purpose: work-related <Tue., Mar. 05, 2019, 07:25 PM> --/
         /-- kind: gift_list --/
 
-    You can also string several entries together on one line, separated by semicolons:
+    The only required metadata is a node ID. Additional user-defined metadata can be added into the same region, and additional metadata regions can be inserted arbitrarily anywhere inside a node. You can also string several entries together on one line, separated by semicolons:
 
         /-- note: example note ; tag: groceries --/
 
-    Other than three reserved words (see below), metadata may have user-defined aribitrary keys and values. Keys and values of metadata tags are indexed automatically and searchable within the Urtext project (see >012). 
-
     Note that: 
 
-        -   A colon separates the metadata key from the value 
+        -   A colon separates the key from the value 
 
         -   All three components are optional; any content preceding a colon (if one is present) is interpreted as a key; content following the (first) colon is interpreted as a value. If no colon is present, the entry is read as a key with an empty value.
 
-        -   A timestamp anywhere in the value will be indexed as the timestamp for the whole metadata entry. If you put more than one timestamp in an entry, only the first one is indexed.
+        -   A timestamp anywhere in the value will be indexed as the timestamp for the whole metadata entry. If more than on timestamp appears in an entry, only the first one is indexed.
 
-        -   Indexing of metadata keys and values is not case-sensitive, except for:
+        -   Values are not case-sensitive, except for the values of the following keys:
 
                 title
                 notes
-                timestamp_format
-                filenames
+                timestamp_format 
+                    ( used in the project_settings node only : see >00l)
+                filenames 
 
 {{ Reserved Metadata Keys
                                                    
@@ -46,18 +45,17 @@ Node Metadata
 
             Index tags will sort the files in the Node List (>01i) . Any indexed nodes will sort before (above) the others, with lowest number appearing first. 
 
-            Remember unindexed notes display in order of creation, newest first. You can give the same index number to multiple nodes; in this case they sort with the most recent node first, within each index.
+            Remember unindexed notes display in order of creation, newest first, based on the value of the timestamp. You can give the same index number to multiple nodes; in this case they sort with the most recent node first, within each index.
+
             /-- ID:00z --/ }}
 
         {{  flags
 
-            The `flags` key is used to set node behavior. At present only the following exist; more may be added in the future:
+            The `flags` key is used to set node behavior. At present only the following exists:
 
             {{- exclude_from_tree
 
-                Excludes a node from being included in a tree. Because it is flagged `exclude_from_tree`, this node will not be shown in the table of contents. For an example, see Example 2 in "Dynamic Nodes" >029 /-- id: 1e3 --/ }}
-
-
+                Excludes a node from being included in a tree. For an example, see Example 2 in "Dynamic Nodes" >029. For more on tree, see >00h  /-- id: 1e3 --/ }}
 
         /-- id: cwb--/ }}
           
@@ -65,45 +63,11 @@ Node Metadata
                    
     /-- ID:011 --/ }}
 
+Next topics:
+
 Timestamps >>005
+Project Metadata List >>012
 
-{{  Project Metadata List  /-- ID:012 --/
-
-    Like the Node List (>01i), every project maintains a Metadata List, automatically written to a built-in file-level dynamic node. The Node ID `zzy` is reserved for the Metadata list. (See >01l for more information on Node IDs). To see the metadata list for the documentation, for instance, see node >>zzy.
- 
-{{   Opening the Metadata List 
-
-{{      Sublime /-- id: zm2 --/ /-- tags:sublime --/
-
-        Ctrl-Shift-U
-
-        Like any node, the Metadata List can be traversed in Sublime using Traverse Mode (>00w). You can also link to it from anywhere by its node ID, like this: >zzy. 
-
-        In Sublime Text there is also the alternative of using the "Find By Meta" command in Command Palette. Press Control-Shift-E or select "Urtext: Metadata List" from the Sublime command palette (Shift-Super-P). 
-
-%       Pythonista /-- ID: c7r --/ /-- tags:pythonista --/
-        
-        Urtext Keys: M
-
-%       Python /-- ID: 3bb --/
-
-        Get the filename by passing node ID 'zzy' to get_file_name() method and open it directly:
-
-        %%-PYTHON
-            UrtextProject.get_file_name(node_id)
-            """
-            Args:
-                node_id (string) : Node ID=
-            Returns:
-                string : filename **WITHOUT** path
-                or None
-            """
-        %%-END
-
-}} 
- /-- id: saa --/ }} 
-
-}}
 
 
 
