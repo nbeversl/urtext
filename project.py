@@ -12,7 +12,6 @@ import pickle
 from time import strftime
 from pytz import timezone
 import pytz
-import threading
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import AbstractStyle
@@ -56,28 +55,26 @@ class UrtextProject:
         self.other_projects = []
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
-        self.settings = {  # defaults
-            'logfile':'urtext_log.txt',
-            'timestamp_format':
-                ['%a., %b. %d, %Y, %I:%M %p', '%B %-d, %Y', '%B %Y', '%m-%d-%Y'],
-            'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
-            'node_list': 'zzz.txt',
-            'metadata_list': 'zzy.txt',
-            'console_log':'false',
-            'google_auth_token' : 'token.json',
-            'google_calendar_id' : None,
-            'timezone' : 'UTC' 
-        }
+        
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = {}  # { target : definition, etc.}
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
-        self.init_lock = threading.Lock()
-        self.update_lock = threading.Lock()
         self.loaded = False
-        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.settings = {  # defaults
+            'logfile':'urtext_log.txt',
+            'timestamp_format':
+                ['%a., %b. %d, %Y, %I:%M %p', '%B %-d, %Y', '%B %Y', '%m-%d-%Y'],
+            'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
+            'metadata_list': 'zzy.txt',
+            'console_log':'false',
+            'google_auth_token' : 'token.json',
+            'google_calendar_id' : None,
+            'timezone' : 'UTC' 
+        }
 
         # Whoosh
         self.schema = Schema(
@@ -90,8 +87,6 @@ class UrtextProject:
         if exists_in(os.path.join(self.path, "index"), indexname="urtext"):
             self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
 
-        #self.init_lock.acquire() 
-
         # if os.path.exists(os.path.join(self.path, "save.p")):
         #     self.log_item('Loading project from pickle')
         #     saved_state = pickle.load(open( os.path.join(self.path, "save.p"), "rb" ) )
@@ -103,10 +98,10 @@ class UrtextProject:
         #     self.dynamic_nodes = saved_state.dynamic_nodes
         #     self.alias_nodes = saved_state.alias_nodes
                 
+        #self.executor.submit(self._initialize_project) 
         #initializing = threading.Thread(
             #target=self._initialize_project, kwargs={'import_project':import_project, 'init_project':init_project})
-        #initializing.start()
-
+        
         # For synchronous loading only:
         self._initialize_project(import_project=import_project, init_project=init_project)
         self.loaded = True
@@ -145,10 +140,8 @@ class UrtextProject:
         self.update_metadata_list()
 
         self.compiled = True
-        
-        self._update()
 
-        #self.init_lock.release()
+        self._update()
 
     def node_id_generator(self):
         chars = [
@@ -172,17 +165,16 @@ class UrtextProject:
 
         self.rewrite_recursion()
 
+        modified_files = None
         if compile_project:
-            self.compile()
+            modified_files = self.compile()
                 
         self.update_node_list()
         self.update_metadata_list()
 
         pickle = PickledUrtextProject(self)
-
-        if self.update_lock.locked():
-            self.update_lock.release()
-
+        
+        return modified_files
 
     def parse_file(self, 
         filename,
@@ -718,20 +710,11 @@ class UrtextProject:
     Refreshers
     """
     def update_node_list(self):
-
-        """ Refreshes the Node List file """
+        """ Refreshes the Node List file, if it exists """
         if 'zzz' in self.nodes:
             node_list_file = self.nodes['zzz'].filename
-        else:
-            node_list_file = self.settings['node_list']
-        with open(os.path.join(self.path, node_list_file),
-                  'w',
-                  encoding='utf-8') as theFile:
-            theFile.write(self.list_nodes())
-            metadata = '/--\nid:zzz\ntitle: Node List\n--/'
-            theFile.write(metadata)
-            theFile.close()
-        self.parse_file(node_list_file)
+            contents = self.list_nodes() + '/--\nid:zzz\ntitle: Node List\n--/'
+            self.set_node_contents('zzz', contents)
 
     def update_metadata_list(self):
         """ Refreshes the Metadata List file """
@@ -757,19 +740,11 @@ class UrtextProject:
                 
         if 'zzy' in self.nodes:
             metadata_file = self.nodes['zzy'].filename
-        else:
-            metadata_file = self.settings['metadata_list']
-            
-        with open(os.path.join(self.path, metadata_file),
-                  'w',
-                  encoding='utf-8') as theFile:
+            contents = ''           
             for pre, _, node in RenderTree(root):
-                theFile.write("%s%s\n" % (pre, node.name))
-            metadata = '/--\nid:zzy\ntitle: Metadata List\n--/'
-            theFile.write(metadata)
-            theFile.close()
-        self.parse_file(metadata_file)
-
+                contents += "%s%s\n" % (pre, node.name)
+            contents += '/--\nid:zzy\ntitle: Metadata List\n--/'
+            self.set_node_contents('zzy', contents)
     """
     Metadata
     """
@@ -942,11 +917,7 @@ class UrtextProject:
     def delete_file(self, filename):
         self.remove_file(filename)
         os.remove(os.path.join(self.path, filename))
-
-        self.update_lock.acquire()        
-        self.updating = threading.Thread(
-            target=self._update)
-        self.updating.start()
+        future = self.executor.submit(self._update) 
 
     def handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -1228,8 +1199,6 @@ class UrtextProject:
         returns an array of node IDs of unindexed nodes, 
         in reverse order (most recent) by date 
         """
-        
-    
 
         unindexed_nodes = []
         for node_id in list(self.nodes):   
@@ -1245,7 +1214,7 @@ class UrtextProject:
     def indexed_nodes(self):
         """ returns an array of node IDs of indexed nodes, in indexed order """
 
-       
+        #self.update_lock.acquire()
         indexed_nodes_list = []
         for node_id in list(self.nodes):
             if self.nodes[node_id].metadata.get_tag('index') != []:
@@ -1257,6 +1226,7 @@ class UrtextProject:
                                       key=lambda item: item[1])
         for i in range(len(sorted_indexed_nodes)):
             sorted_indexed_nodes[i] = sorted_indexed_nodes[i][0]
+        #self.update_lock.release()   
         return sorted_indexed_nodes
 
     def root_nodes(self, primary=False):
@@ -1579,13 +1549,9 @@ class UrtextProject:
         
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
 
-        self.update_lock.acquire()
-        self.updating = threading.Thread(
-            target=self.file_update,
-            args=(filename,))
-        self.updating.start()
-        return self.updating
-
+        return self.executor.submit(self.file_update, filename)
+         
+        
     def file_update(self, filename):
 
         self.parse_file(filename)
@@ -1593,7 +1559,7 @@ class UrtextProject:
         if rewritten_contents:
             self.set_file_contents(filename, rewritten_contents)
             self.parse_file(filename, re_index=True)
-        self._update()
+        return self._update()
         
 
     def on_moved(self, filename):
@@ -1607,34 +1573,6 @@ class UrtextProject:
                                     new_filename)
             self.handle_renamed(old_filename, new_filename)
         return (True,'')
-å
-    """
-    Locking
-    """
-    def check_lock(self):
-        self.current_lock = self.get_current_lock()
-        if self.current_lock == self.machine_name:
-            return (True,'')
-        if not self.current_lock:
-            return self.lock()
-        print('compiling locked by '+self.current_lock)
-        return (False, self.current_lock)
-
-    def get_current_lock(self):
-        lock_file = os.path.join(self.path,'lock')
-        with open(lock_file, 'r', encoding='utf-8') as f:
-            contents = f.read()
-            f.close()
-        return contents
-
-    def lock(self):
-        lock_file = os.path.join(self.path,'lock')
-        with open (lock_file, 'w', encoding='utf-8') as f:
-            f.write(self.machine_name)
-            f.close()
-        print('WROTE '+self.machine_name+' to log file')
-        self.current_lock = self.machine_name
-
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
