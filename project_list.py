@@ -34,7 +34,7 @@ class ProjectList():
         if match:
             other_project = match.group(1)
             node_id = match.group(2)
-            if self.set_current_project(other_project):
+            if self.set_current_project_by_title(other_project):
                 print('PROJECT CHANGED TO ' + other_project)
 
         # from here, could just pass in the node ID instead of the full string
