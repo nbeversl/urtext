@@ -46,8 +46,13 @@ class UrtextProject:
                  watchdog=False):
 
         self.path = path
+        if not os.path.exists(os.path.join(self.path, "urtext_log.txt")):
+            with open(os.path.join(self.path, "urtext_log.txt"), "w") as f:
+                f.write('URTEXT LOG')
+                f.close()
         self.log = setup_logger('urtext_log',
                                 os.path.join(self.path, 'urtext_log.txt'))
+
         self.nodes = {}
         self.files = {}
         self.tagnames = {}
@@ -55,7 +60,6 @@ class UrtextProject:
         self.other_projects = []
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
-        
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = {}  # { target : definition, etc.}
@@ -69,12 +73,12 @@ class UrtextProject:
             'timestamp_format':
                 ['%a., %b. %d, %Y, %I:%M %p', '%B %-d, %Y', '%B %Y', '%m-%d-%Y'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
-            'metadata_list': 'zzy.txt',
             'console_log':'false',
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
             'timezone' : 'UTC' 
         }
+        self.title = self.path # default
 
         # Whoosh
         self.schema = Schema(
@@ -98,14 +102,11 @@ class UrtextProject:
         #     self.dynamic_nodes = saved_state.dynamic_nodes
         #     self.alias_nodes = saved_state.alias_nodes
                 
-        #self.executor.submit(self._initialize_project) 
-        #initializing = threading.Thread(
-            #target=self._initialize_project, kwargs={'import_project':import_project, 'init_project':init_project})
+        #     self.executor.submit(self._initialize_project, import_project=import_project, init_project=init_project) 
         
-        # For synchronous loading only:
         self._initialize_project(import_project=import_project, init_project=init_project)
         self.loaded = True
-
+    
     def _initialize_project(self, 
         import_project=False, 
         init_project=False):
@@ -117,14 +118,14 @@ class UrtextProject:
         for file in filelist:
             if self.filter_filenames(file) == None:
                 continue
-            self.parse_file(file, import_project=import_project)
+            self._parse_file(file, import_project=import_project)
 
         for file in self.to_import:
             self.import_file(file)
 
         if self.nodes == {}:
             if init_project == True:
-                self.log_item('Initalizing a new Urtext project in ' + path)
+                self.log_item('Initalizing a new Urtext project in ' + self.path)
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
@@ -176,7 +177,7 @@ class UrtextProject:
         
         return modified_files
 
-    def parse_file(self, 
+    def _parse_file(self, 
         filename,
         add=True, 
         import_project=False,
@@ -188,7 +189,8 @@ class UrtextProject:
             return
 
         # clear all node_id's defined from this file in case the file has changed
-        self.remove_file(os.path.basename(filename))
+        if os.path.basename(filename) in self.files:
+            self.remove_file(os.path.basename(filename))
 
         """
         Parse the file
@@ -473,7 +475,7 @@ class UrtextProject:
                 continue
             
             # re-parse the file in case it has changed
-            self.parse_file(self.nodes[target_id].filename)
+            self._parse_file(self.nodes[target_id].filename)
             self.build_alias_trees()  
             self.rewrite_recursion()                
             
@@ -671,7 +673,7 @@ class UrtextProject:
             if changed_file:
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
-                self.parse_file(changed_file)
+                self._parse_file(changed_file)
 
             self.build_alias_trees()  
             self.rewrite_recursion()           
@@ -702,7 +704,7 @@ class UrtextProject:
         """ project-aware alias for the Node set_content() method """
         content_changed = self.nodes[node_id].set_content(contents)
         if content_changed:
-            self.parse_file(self.nodes[node_id].filename)
+            self._parse_file(self.nodes[node_id].filename)
             return self.nodes[node_id].filename
         return False
 
@@ -824,7 +826,7 @@ class UrtextProject:
         new_file_contents += consolidated_metadata
         new_file_contents += file_contents[ranges[-1][1]:]
         self.set_file_contents(filename, new_file_contents)
-        self.parse_file(filename)
+        self._parse_file(filename)
 
     def build_tag_info(self):
         """ Rebuilds metadata for the entire project """
@@ -870,7 +872,7 @@ class UrtextProject:
 
         self.set_file_contents(filename,full_file_contents)
 
-        return self.parse_file(filename)
+        return self._parse_file(filename)
 
     def get_node_relationships(self, 
         node_id, 
@@ -884,15 +886,19 @@ class UrtextProject:
     Removing and renaming files
     """
     def remove_file(self, filename):
+        
+        # TODO:
+        # find another way to do this. 
+        # the writer is very slow, adding 18 seconds to a single project load
 
-        if self.ix: 
-            self.writer = AsyncWriter(self.ix)
+        # if self.ix: 
+        #     self.writer = AsyncWriter(self.ix)
 
         """ removes the node_ids from the whoosh search index """
         if filename in self.files:
             for node_id in self.files[filename].nodes:
-                if self.ix:
-                    self.writer.delete_by_term('path', node_id)
+                # if self.ix:
+                #     self.writer.delete_by_term('path', node_id)
                 for target_id in list(self.dynamic_nodes):
                     if self.dynamic_nodes[target_id].source_id == node_id:
                         del self.dynamic_nodes[target_id]
@@ -909,8 +915,8 @@ class UrtextProject:
                     
             del self.files[filename]
 
-        if self.ix:
-            self.writer.commit()
+        # if self.ix:
+        #     self.writer.commit()
         
         return None
 
@@ -969,7 +975,7 @@ class UrtextProject:
         filename = node_id + '.txt'
 
         self.set_file_contents( filename, contents )  
-        self.parse_file(filename)
+        self._parse_file(filename)
         return { 
                 'filename':filename, 
                 'id':node_id
@@ -1406,6 +1412,8 @@ class UrtextProject:
     def get_settings_from(self, node):
         for entry in node.metadata.entries:
             self.settings[entry.tag_name.lower()] = entry.value
+            if 'project_title' in self.settings:
+                self.title = self.settings['project_title']
 
     def get_file_name(self, node_id):
         if node_id in self.nodes:
@@ -1480,13 +1488,13 @@ class UrtextProject:
             f.write(remaining_node_contents)
             f.close()
 
-        self.parse_file(filename)
+        self._parse_file(filename)
 
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
             f.close()
 
-        self.parse_file(popped_node_id+'.txt')
+        self._parse_file(popped_node_id+'.txt')
         return start - 2 # returns where to put the cursor at the new marker
 
     def titles(self):
@@ -1521,7 +1529,7 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if filename in self.files:
             return (True,'')
-        self.parse_file(filename, re_index=True)
+        self._parse_file(filename, re_index=True)
         self.log_item(filename +' modified. Updating the project object')
         self.update()
         return (True,'')
@@ -1554,11 +1562,11 @@ class UrtextProject:
         
     def file_update(self, filename):
 
-        self.parse_file(filename)
+        self._parse_file(filename)
         rewritten_contents = self.rewrite_titles(filename)
         if rewritten_contents:
             self.set_file_contents(filename, rewritten_contents)
-            self.parse_file(filename, re_index=True)
+            self._parse_file(filename, re_index=True)
         return self._update()
         
 

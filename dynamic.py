@@ -104,7 +104,6 @@ class UrtextDynamicDefinition:
                 self.destination = destination
                 continue
 
-
             """
             target node ID
             """
