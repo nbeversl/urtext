@@ -13,7 +13,7 @@ class ProjectList():
             self.current_project = self.projects[0]
         
 
-    def _add_folder(self, folder):
+    def _add_folder(self, folder, import_project=False):
         """ recursively add folders to the list"""
         try:
             project = UrtextProject(folder)
@@ -21,7 +21,10 @@ class ProjectList():
             print('Added Urtext project '+project.title)
             print('from '+folder)
         except NoProject:
-            print('No project found in '+folder)
+            if import_project:
+                self.import_project(folder)
+            else:
+                print('No project found in '+folder)
         sub_dirs = next(os.walk(folder))[1]
         for subdir in sub_dirs:
             if subdir not in ['.git','.DS_Store','/']:
@@ -72,6 +75,12 @@ class ProjectList():
         for project in self.projects:
             titles.append(project.title)
         return titles
+    
+    def import_project(self, path):
+        project = UrtextProject(path, import_project=True)
+        print('Imported project '+project.title)
+        self.projects.append(project)
+        self.set_current_project_from_path(path)
 
     def get_current_project(self, path):
         for project in self.projects:

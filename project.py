@@ -116,11 +116,12 @@ class UrtextProject:
         filelist = os.listdir(self.path)
         
         for file in filelist:
+            print(file)
             if self.filter_filenames(file) == None:
-                continue
+                continue            
             self._parse_file(file, import_project=import_project)
-
-        for file in self.to_import:
+        
+       for file in self.to_import:
             self.import_file(file)
 
         if self.nodes == {}:
@@ -196,9 +197,8 @@ class UrtextProject:
         Parse the file
         """
         new_file = UrtextFile(os.path.join(self.path, filename))
-        if not new_file.nodes:
-            if import_project: 
-                self.to_import.append(filename)
+        if not new_file.nodes and import_project: 
+            self.to_import.append(filename)
             return
 
         """
@@ -955,7 +955,7 @@ class UrtextProject:
         """ Omit the log file """
         skip_files = [self.settings['logfile']]
         if filename in skip_files:
-            return
+            return None
 
         return filename
     
