@@ -197,6 +197,8 @@ class UrtextProject:
         """
         new_file = UrtextFile(os.path.join(self.path, filename))
         if not new_file.nodes:
+            if import_project: 
+                self.to_import.append(filename)
             return
 
         """
