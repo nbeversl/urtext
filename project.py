@@ -116,12 +116,11 @@ class UrtextProject:
         filelist = os.listdir(self.path)
         
         for file in filelist:
-            print(file)
             if self.filter_filenames(file) == None:
                 continue            
             self._parse_file(file, import_project=import_project)
         
-       for file in self.to_import:
+        for file in self.to_import:
             self.import_file(file)
 
         if self.nodes == {}:
