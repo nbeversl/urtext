@@ -14,7 +14,7 @@ class ProjectList():
         
 
     def _add_folder(self, folder, import_project=False):
-        """ recursively add folders to the list"""
+        """ recursively add folders """
         try:
             project = UrtextProject(folder)
             self.projects.append(UrtextProject(folder))
