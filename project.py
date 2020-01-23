@@ -63,6 +63,7 @@ class UrtextProject:
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = {}  # { target : definition, etc.}
+        self.dynamic_tags = {} # source_id : [ target_id, ... ]
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
@@ -79,7 +80,6 @@ class UrtextProject:
             'timezone' : 'UTC' 
         }
         self.title = self.path # default
-
         # Whoosh
         self.schema = Schema(
                 title=TEXT(stored=True),
@@ -223,6 +223,8 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)
         
+
+
         if re_index:
             self.re_search_index_file(filename)
 
@@ -348,6 +350,32 @@ class UrtextProject:
                 ]:
                     sub_node.name = 'RECURSION >' + sub_node.name
                     sub_node.children = []
+    
+    def _add_sub_tags(self, 
+        source_id, # ID containing the instruction
+        target_id, # ID to tag
+        tag, 
+        value, 
+        recursive=False):
+
+        if source_id not in self.dynamic_tags:
+            self.dynamic_tags[source_id] = []
+
+        children = self.nodes[target_id].tree_node.children
+        for child in children:
+            self.nodes[child.name].metadata.set_tag(
+                tag, 
+                value, 
+                from_node=source_id)
+            self.dynamic_tags[source_id].append(target_id)
+            self.rebuild_node_tag_info(child.name)
+            if recursive:
+                self.add_sub_tags(
+                    source_id,
+                    child.name,
+                    tag,
+                    value,
+                    recursive=recursive)
 
     """
     Parsing helpers
@@ -455,19 +483,12 @@ class UrtextProject:
     """
     Compiling dynamic nodes
     """
-    def compile(self):
+    def compile(self, skip_tags=False):
         """ Main method to compile dynamic nodes from their definitions """
-        # is list() part of the problem?
         
         modified_files = []
 
         for target_id in list(self.dynamic_nodes):
-            """
-            Make sure the target node exists.
-            """
-            if target_id not in self.dynamic_nodes:
-                print('dyanmic node list has changed ,skipping '+target_id)
-                continue
 
             source_id = self.dynamic_nodes[target_id].source_id
             if target_id not in self.nodes:
@@ -475,10 +496,8 @@ class UrtextProject:
                               ' points to nonexistent node >' + target_id)
                 continue
             
-            # re-parse the file in case it has changed
-            self._parse_file(self.nodes[target_id].filename)
-            self.build_alias_trees()  
-            self.rewrite_recursion()                
+            # Note we do not re-parse the file here, we assume the project is up to date
+            # with the files. Otherwise we would have to re-parse everywhere.              
             
             if target_id not in self.dynamic_nodes:
                 print('dynamic node list has changed ,skipping '+target_id)
@@ -524,6 +543,21 @@ class UrtextProject:
 
                 if dynamic_definition.export_to == 'node' and dynamic_definition.destination in self.nodes:
                     new_node_contents = exported_content
+
+            if dynamic_definition.tag_all_key and skip_tags:
+                continue
+
+            if dynamic_definition.tag_all_key and not skip_tags:
+        
+                self._add_sub_tags(
+                    source_id,
+                    target_id, 
+                    dynamic_definition.tag_all_key, 
+                    dynamic_definition.tag_all_value, 
+                    recursive=dynamic_definition.recursive)                    
+                self.compile(skip_tags=True)
+                continue
+                
 
             else:
                 # list of explicitly included node IDs
@@ -629,11 +663,14 @@ class UrtextProject:
                         included_nodes = sorted(
                             included_nodes,
                             key = lambda node: node.metadata.get_tag(
-                                dynamic_definition.sort_tagname))
+                                dynamic_definition.sort_tagname),
+                            reverse=dynamic_definition.reverse)
                     else:
                         included_nodes = sorted(
                             included_nodes,
-                            key = lambda node: node.date)
+                            key = lambda node: node.date,
+                            reverse = dynamic_definition.reverse
+                            )
 
                     for targeted_node in included_nodes:
                         if dynamic_definition.show == 'title':
@@ -676,8 +713,9 @@ class UrtextProject:
                     modified_files.append(changed_file)
                 self._parse_file(changed_file)
 
-            self.build_alias_trees()  
-            self.rewrite_recursion()           
+            self.build_alias_trees() 
+            self.rewrite_recursion()                
+     
 
         return modified_files
 
@@ -887,22 +925,13 @@ class UrtextProject:
     Removing and renaming files
     """
     def remove_file(self, filename):
-        
-        # TODO:
-        # find another way to do this. 
-        # the writer is very slow, adding 18 seconds to a single project load
-
-        # if self.ix: 
-        #     self.writer = AsyncWriter(self.ix)
-
-        """ removes the node_ids from the whoosh search index """
+    
         if filename in self.files:
             for node_id in self.files[filename].nodes:
-                # if self.ix:
-                #     self.writer.delete_by_term('path', node_id)
                 for target_id in list(self.dynamic_nodes):
                     if self.dynamic_nodes[target_id].source_id == node_id:
                         del self.dynamic_nodes[target_id]
+
                 for tagname in list(self.tagnames):
                     for value in list(self.tagnames[tagname]):
                         if value in self.tagnames[tagname]:  
@@ -913,12 +942,13 @@ class UrtextProject:
                                 del self.tagnames[tagname][value]
                 if node_id in self.nodes:
                     del self.nodes[node_id]
-                    
+                if node_id in self.dynamic_tags:
+                    for target_id in self.dynamic_tags[node_id]:
+                        if target_id in self.nodes:
+                            self.nodes[target_id].metadata.remove_dynamic_tags_from_node(node_id)
+
             del self.files[filename]
 
-        # if self.ix:
-        #     self.writer.commit()
-        
         return None
 
     def delete_file(self, filename):

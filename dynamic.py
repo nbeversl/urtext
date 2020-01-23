@@ -26,6 +26,10 @@ class UrtextDynamicDefinition:
         self.mirror = None
         self.mirror_include_all = None
         self.export = None
+        self.tag_all_key = None
+        self.tag_all_value = None
+        self.recursive = False
+        self.reverse = False
 
         entries = re.split(';|\n', contents)
 
@@ -82,6 +86,8 @@ class UrtextDynamicDefinition:
 
             if atoms[0] == 'sort':
                 self.sort_tagname = atoms[1]
+                if len(atoms) > 2 and atoms[2] == 'reverse':
+                    self.reverse = True
                 continue
 
             if atoms[0] == 'export':
@@ -103,6 +109,14 @@ class UrtextDynamicDefinition:
                 self.export_source = from_node
                 self.destination = destination
                 continue
+            """
+            Tag all subnodes
+            """
+            if atoms[0] == 'tag_all' and len(atoms) > 2:
+                self.tag_all_key = atoms[1]
+                self.tag_all_value = atoms[2]
+                if len(atoms) > 3 and atoms[3] == 'r':
+                    self.recursive = True
 
             """
             target node ID

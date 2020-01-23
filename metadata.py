@@ -95,13 +95,19 @@ class NodeMetadata:
             if entry.tag_name.lower() == tagname.lower():
                 value = entry.value
                 if tagname not in self.case_sensitive_values:
-
                     value = value.lower()
                 values.append(value)  # allows for multiple tags of the same name
         return values
 
-    def set_tag(self, key, value):
-        self.entries.append(MetadataEntry(key, value, None))
+    def set_tag(self, key, value, from_node=None):
+        new_entry = MetadataEntry(key, value, None, from_node=from_node)
+        if new_entry not in self.entries:
+            self.entries.append(new_entry)
+
+    def remove_dynamic_tags_from_node(self, node_id):
+        for entry in self.entries:
+            if entry.from_node == node_id:
+                del self.entries[entry] 
 
     def get_date(self, tagname):
         """only works after the project has set the dt_stamp from dt_string"""
@@ -122,11 +128,12 @@ class NodeMetadata:
         return groups_list
 
 class MetadataEntry:  # container for a single metadata entry
-    def __init__(self, tag, value, dtstring):
+    def __init__(self, tag, value, dtstring, from_node=None):
         self.tag_name = tag.strip()
         self.value = value
         self.dtstring = dtstring
         self.dtstamp = None
+        self.from_node = from_node
 
     def log(self):
         print('tag: %s' % self.tag_name)

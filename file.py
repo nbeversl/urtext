@@ -278,9 +278,9 @@ class UrtextFile:
         except UnicodeDecodeError:
             self.log_item('UnicodeDecode Error: ' + filename)
             return None
-        except:
-            print('Urtext not including ' + self.filename)
-            return None
+        # except:
+        #     print('Urtext not including ' + self.filename)
+        #     return None
 
     def log_error(self, message, position):
  
