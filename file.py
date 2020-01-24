@@ -252,7 +252,7 @@ class UrtextFile:
             print(self.filename)
 
     def add_node(self, new_node, ranges):
-        
+
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges

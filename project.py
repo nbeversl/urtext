@@ -77,8 +77,9 @@ class UrtextProject:
             'console_log':'false',
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
-            'timezone' : 'UTC' 
+            'timezone' : ['UTC'] 
         }
+        self.default_timezone = None
         self.title = self.path # default
         # Whoosh
         self.schema = Schema(
@@ -129,6 +130,7 @@ class UrtextProject:
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
+        self.default_timezone = timezone(self.settings['timezone'][0])
         # must be done once manually on project init
         for node_id in list(self.nodes):  
             self.parse_meta_dates(node_id)
@@ -141,7 +143,7 @@ class UrtextProject:
         self.update_metadata_list()
 
         self.compiled = True
-
+        
         self._update()
 
     def node_id_generator(self):
@@ -402,12 +404,6 @@ class UrtextProject:
     def parse_meta_dates(self, node_id):
         """ Parses dates (requires that timestamp_format already be set) """
 
-        timestamp_format = self.settings['timestamp_format']
-        default_timezone = timezone(self.settings['timezone'])
-
-        if isinstance(timestamp_format, str):
-            timestamp_format = [timestamp_format]
-
         for entry in self.nodes[node_id].metadata.entries:
             if entry.dtstring:
                 dt_stamp = self.date_from_timestamp(entry.dtstring) 
@@ -421,10 +417,9 @@ class UrtextProject:
                                   node_id)
 
     def date_from_timestamp(self, datestamp_string):
-        timestamp_format = self.settings['timestamp_format']
-        default_timezone = timezone(self.settings['timezone'])
+        timestamp_formats = self.settings['timestamp_format']
         dt_stamp = None
-        for this_format in timestamp_format:
+        for this_format in timestamp_formats:
             dt_format = '<' + this_format + '>'
             try:
                 dt_stamp = datetime.datetime.strptime(datestamp_string, dt_format)
@@ -432,7 +427,7 @@ class UrtextProject:
                 continue
         if dt_stamp:
             if dt_stamp.tzinfo == None:
-                dt_stamp = default_timezone.localize(dt_stamp) 
+                dt_stamp = self.default_timezone.localize(dt_stamp) 
             return dt_stamp
         return None
 
@@ -899,11 +894,7 @@ class UrtextProject:
             if entry.tag_name.lower() != 'title':
                 if entry.tag_name not in self.tagnames:
                     self.tagnames[entry.tag_name] = {}
-                if not isinstance(entry.value, list):
-                    entryvalues = [entry.value]
-                else:
-                    entryvalues = entry.value
-                for value in entryvalues:
+                for value in entry.values:
                     if value not in self.tagnames[entry.tag_name]:
                         self.tagnames[entry.tag_name][value] = []
                     self.tagnames[entry.tag_name][value].append(node)
@@ -1000,7 +991,7 @@ class UrtextProject:
             # set from project_settings 
             return None
         """ Omit the log file """
-        skip_files = [self.settings['logfile']]
+        skip_files = [self.settings['logfile'][0]]
         if filename in skip_files:
             return None
 
@@ -1275,7 +1266,7 @@ class UrtextProject:
             if self.nodes[node_id].metadata.get_tag('index') != []:
                 indexed_nodes_list.append([
                     node_id,
-                    int((self.nodes[node_id].metadata.get_tag('index')[0]))
+                    int((self.nodes[node_id].metadata.get_first_tag('index')))
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list,
                                       key=lambda item: item[1])
@@ -1382,7 +1373,6 @@ class UrtextProject:
     def get_node_id_from_position(self, filename, position):
         """ Given a position, returns the Node ID it's in """
         for node_id in self.files[os.path.basename(filename)].nodes:
-           
             if self.is_in_node(position, node_id):
                 return node_id
         return None
@@ -1451,18 +1441,22 @@ class UrtextProject:
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
 
-        default_timezone = timezone(self.settings['timezone'])
         if date.tzinfo == None:
-            date = timezone(self.settings['timezone']).localize(date)             
-
+            date = self.default_timezone.localize(date)             
         timestamp_format = '<' + self.settings['timestamp_format'][0] + '>'
         return date.strftime(timestamp_format)
 
     def get_settings_from(self, node):
         for entry in node.metadata.entries:
-            self.settings[entry.tag_name.lower()] = entry.value
-            if 'project_title' in self.settings:
-                self.title = self.settings['project_title']
+            self.settings[entry.tag_name.lower()] = entry.values
+        if 'project_title' in self.settings:
+            self.title = self.settings['project_title'][0]
+        self.default_timezone = timezone(self.settings['timezone'][0])
+
+    def get_home(self):
+        if self.settings['home']:
+            return self.settings['home'][0]
+        return None
 
     def get_file_name(self, node_id):
         if node_id in self.nodes:

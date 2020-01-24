@@ -25,8 +25,8 @@ def timeline(project, nodes):
     """ given an Urtext Project and nodes, generates a timeline """
 
     found_stuff = []
-    timestamp_formats = project.settings['timestamp_format']
-    default_timezone = timezone(project.settings['timezone'])
+    timestamp_formats = project.settings['timestamp_format'][0]
+
     for node in nodes:
         full_contents = project.nodes[node.id].content_only()
 
@@ -52,7 +52,7 @@ def timeline(project, nodes):
             except:
                 datetime_obj = datetime.datetime.strptime(
                     timestamp, '%A, %B %d, %Y, %I:%M %p')
-            datetime_obj = default_timezone.localize(datetime_obj)
+            datetime_obj = project.default_timezone.localize(datetime_obj)
             position = contents.find(timestamp)
             lines = contents.split('\n')
             for num, line in enumerate(lines, 1):

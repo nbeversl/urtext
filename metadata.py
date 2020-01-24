@@ -48,8 +48,6 @@ class NodeMetadata:
 
             if line.strip() == '':
                 continue
-
-            value = ''
             
             """
             For lines containing a datestamp
@@ -65,43 +63,32 @@ class NodeMetadata:
             # strip the datestamp for parsing
             line_without_datestamp = line.replace('<' + dt_string + '>', '')
 
+            values = []
             if ':' in line_without_datestamp:
                 key = line_without_datestamp.split(":", 1)[0].strip().lower()
-                if key == "timestamp":
-                    value = dt_string
-
-                else:
-                    value = ''.join(line.split(":", 1)[1:]).strip()
+                value_list = ''.join(line.split(":", 1)[1:]).split('|')
+                for value in value_list:
                     if key not in self.case_sensitive_values:
-                        value = value.lower()
-                    if '|' in value:
-                        items = value.split('|')
-                        value = []
-                        for item in items:
-                            if item.strip() != '':
-                                value.append(item.strip())
+                        value = value.lower().strip()
+                    values.append(value.strip())
             else:
                 key = '(no_key)'
-                value = line.strip('--/')
-
-            if value:
-                self.entries.append(MetadataEntry(key, value, dt_string))
+                values = [ line.strip('--/') ]
+            if values:
+                self.entries.append(MetadataEntry(key, values, dt_string))
 
     def get_tag(self, tagname):
-        """ returns an array of values for the given tagname """
+        """ returns a list of values for the given tagname """
         values = []
         tagname = tagname.lower()
         for entry in self.entries:
             if entry.tag_name.lower() == tagname.lower():
-                value = entry.value
-                if tagname not in self.case_sensitive_values:
-                    value = value.lower()
-                values.append(value)  # allows for multiple tags of the same name
+                values.extend(entry.values)  # allows for multiple tags of the same name
         return values
 
     def get_first_tag(self, tagname):
         values = self.get_tag(tagname)
-        if len(values) > 0:
+        if values:
             return values[0]
         return ''
 
@@ -136,14 +123,14 @@ class NodeMetadata:
 
 class MetadataEntry:  # container for a single metadata entry
     def __init__(self, tag, value, dtstring, from_node=None):
-        self.tag_name = tag.strip()
-        self.value = value
+        self.tag_name = tag.strip() # string
+        self.values = value         # always a list
         self.dtstring = dtstring
         self.dtstamp = None
         self.from_node = from_node
 
     def log(self):
         print('tag: %s' % self.tag_name)
-        print('value: %s' % self.value)
+        print('value: %s' % self.values)
         print('datetimestring: %s' % self.dtstring)
         print('datetimestamp: %s' % self.dtstamp)

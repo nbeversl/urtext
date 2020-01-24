@@ -72,19 +72,19 @@ class UrtextNode:
         self.compact = compact
         self.split = split
         self.metadata = metadata
-        
-        if self.metadata.get_tag('ID'):
-            node_id = self.metadata.get_tag('ID')[0].lower().strip()
+ 
+        if self.metadata.get_first_tag('id'):
+            node_id = self.metadata.get_first_tag('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
 
-        title_tag = self.metadata.get_tag('title')
-        if len(title_tag) > 0 and title_tag[0] == 'project_settings':
+        title_tag = self.metadata.get_first_tag('title')
+        if title_tag and title_tag == 'project_settings':
             self.project_settings = True
 
         self.parent = None
-        self.index = self.metadata.get_tag('index')
-        self.reset_node()                
+        self.index = self.metadata.get_first_tag('index')
+        self.reset_node()         
  
     def reset_node(self):
         self.tree_node = Node(self.id)
@@ -164,10 +164,9 @@ class UrtextNode:
         # check for title metadata
         #
         if metadata:
-            title_tag = metadata.get_tag('title')
-            if len(title_tag) > 0: 
-                title = title_tag[0]
-                return title
+            title_tag = metadata.get_first_tag('title')
+            if title_tag: 
+                return title_tag
         #
         # otherwise, title is the first non white-space line
         #
@@ -191,9 +190,8 @@ class UrtextNode:
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
-        if len(self.metadata.get_tag(
-                'ID')) > 0:  # title is the first many lines if not set
-            return self.metadata.get_tag('ID')[0]
+        if len(self.metadata.get_first_tag('ID')):  # title is the first many lines if not set
+            return self.metadata.get_first_tag('ID')
         return self.id  # don't include links in the title, for traversing files clearly.
 
     def log(self):
@@ -204,7 +202,7 @@ class UrtextNode:
 
     def consolidate_metadata(self, one_line=False):
         
-        if one_line == True:
+        if one_line:
             line_separator = '; '
         else:
             line_separator = '\n'
@@ -213,22 +211,20 @@ class UrtextNode:
         for entry in self.metadata.entries:
             if entry.tag_name not in tags:
                 tags[entry.tag_name] = []
-            entry_value = entry.value
-            if isinstance(entry.value, str):
-                entry_value = [entry_value]
-            for value in entry_value:
-                tags[entry.tag_name].append(value)
+            timestamp = ''
+            if entry.dtstring:
+                timestamp = ' '+entry.dtstring
+            for value in entry.values:
+                tags[entry.tag_name].append(value+timestamp)
         new_metadata = '\n/-- '
+        
         if not one_line: 
             new_metadata += '\n'
             new_metadata += line_separator
 
         for tag in tags:
             new_metadata += tag + ': '
-            if isinstance(tags[tag], list):
-                new_metadata += ' | '.join(tags[tag])
-            else:
-                new_metadata += tags[tag]
+            new_metadata += ' | '.join(tags[tag])
             new_metadata += line_separator
         if one_line:
             new_metadata = new_metadata[:-2] + ' '
