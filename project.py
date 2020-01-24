@@ -222,15 +222,13 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)
-        
-
 
         if re_index:
             self.re_search_index_file(filename)
 
         if update:
             self._update()
-        
+
         return filename
 
     def rewrite_titles(self,filename):
@@ -412,24 +410,32 @@ class UrtextProject:
 
         for entry in self.nodes[node_id].metadata.entries:
             if entry.dtstring:
-                dt_stamp = None
-                for this_format in timestamp_format:
-                    dt_format = '<' + this_format + '>'
-                    try:
-                        dt_stamp = datetime.datetime.strptime(entry.dtstring, dt_format)
-                    except:
-                        continue
+                dt_stamp = self.date_from_timestamp(entry.dtstring) 
                 if dt_stamp:
-                    if dt_stamp.tzinfo == None:
-                        dt_stamp = default_timezone.localize(dt_stamp) 
                     self.nodes[node_id].metadata.dt_stamp = dt_stamp
                     if entry.tag_name == 'timestamp':
                         self.nodes[node_id].date = dt_stamp
-                    continue
                 else:
                     self.log_item('Timestamp ' + entry.dtstring +
                                   ' not in any specified date format in >' +
                                   node_id)
+
+    def date_from_timestamp(self, datestamp_string):
+        timestamp_format = self.settings['timestamp_format']
+        default_timezone = timezone(self.settings['timezone'])
+        dt_stamp = None
+        for this_format in timestamp_format:
+            dt_format = '<' + this_format + '>'
+            try:
+                dt_stamp = datetime.datetime.strptime(datestamp_string, dt_format)
+            except:
+                continue
+        if dt_stamp:
+            if dt_stamp.tzinfo == None:
+                dt_stamp = default_timezone.localize(dt_stamp) 
+            return dt_stamp
+        return None
+
 
     def detach_excluded_tree_nodes(self, root_id, flag='tree'):
         
@@ -485,7 +491,6 @@ class UrtextProject:
     """
     def compile(self, skip_tags=False):
         """ Main method to compile dynamic nodes from their definitions """
-        
         modified_files = []
 
         for target_id in list(self.dynamic_nodes):
@@ -659,12 +664,21 @@ class UrtextProject:
                     """
                     otherwise this is a list, so sort the nodes
                     """
-                    if dynamic_definition.sort_tagname != None:
-                        included_nodes = sorted(
-                            included_nodes,
-                            key = lambda node: node.metadata.get_tag(
-                                dynamic_definition.sort_tagname),
-                            reverse=dynamic_definition.reverse)
+                    if dynamic_definition.sort_tagname:
+
+                        if dynamic_definition.sort_tagname == 'timestamp':
+                            included_nodes = sorted(
+                                included_nodes,
+                                key = lambda node: node.date,
+                                reverse=dynamic_definition.reverse)
+
+                        else:
+                            included_nodes = sorted(
+                                included_nodes,
+                                key = lambda node: node.metadata.get_tag(
+                                    dynamic_definition.sort_tagname),
+                                reverse=dynamic_definition.reverse)
+
                     else:
                         included_nodes = sorted(
                             included_nodes,
@@ -698,7 +712,6 @@ class UrtextProject:
                 title = dynamic_definition.metadata['title'] + '\n'
 
             updated_node_contents = '\n' + title + new_node_contents + built_metadata
-
             """
             add indentation if specified
             """
@@ -716,7 +729,6 @@ class UrtextProject:
             self.build_alias_trees() 
             self.rewrite_recursion()                
      
-
         return modified_files
 
     def export_nodes(self, node_list, args):
@@ -1587,12 +1599,10 @@ class UrtextProject:
             return (True,'')
         
         self.log_item('MODIFIED ' + filename +' - Updating the project object')
-
         return self.executor.submit(self.file_update, filename)
          
         
     def file_update(self, filename):
-
         self._parse_file(filename)
         rewritten_contents = self.rewrite_titles(filename)
         if rewritten_contents:
