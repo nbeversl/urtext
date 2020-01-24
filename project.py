@@ -672,11 +672,17 @@ class UrtextProject:
                                 key = lambda node: node.date,
                                 reverse=dynamic_definition.reverse)
 
+                        elif dynamic_definition.sort_tagname == 'title':
+                            included_nodes = sorted(
+                                included_nodes,
+                                key = lambda node: node.title.lower(),
+                                reverse=dynamic_definition.reverse)
+
                         else:
                             included_nodes = sorted(
                                 included_nodes,
-                                key = lambda node: node.metadata.get_tag(
-                                    dynamic_definition.sort_tagname),
+                                key = lambda node: node.metadata.get_first_tag(
+                                    dynamic_definition.sort_tagname).lower(),
                                 reverse=dynamic_definition.reverse)
 
                     else:

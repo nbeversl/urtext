@@ -99,6 +99,13 @@ class NodeMetadata:
                 values.append(value)  # allows for multiple tags of the same name
         return values
 
+    def get_first_tag(self, tagname):
+        values = self.get_tag(tagname)
+        if len(values) > 0:
+            return values[0]
+        return ''
+
+
     def set_tag(self, key, value, from_node=None):
         new_entry = MetadataEntry(key, value, None, from_node=from_node)
         if new_entry not in self.entries:
