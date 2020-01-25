@@ -65,7 +65,7 @@ class UrtextNode:
         self.id = None
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.date = default_date # default
+        self.date = default_date # default, modified by the project
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
@@ -183,6 +183,7 @@ class UrtextNode:
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
         first_line = re.sub('┌──','',first_line, re.DOTALL)
+        first_line = re.sub('\|','',first_line, re.DOTALL) # pipe character cannot be in node names
        
         # make conditional?
         first_line = re.sub(r'^[\s]*\^','',first_line)           # compact node opening wrapper

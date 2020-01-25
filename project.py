@@ -33,6 +33,7 @@ from .export import UrtextExport
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
+title_marker_regex = r'\|.*?>[0-9,a-z]{3}\b'
 
 class UrtextProject:
     """ Urtext project object """
@@ -119,10 +120,11 @@ class UrtextProject:
         for file in filelist:
             if self.filter_filenames(file) == None:
                 continue            
-            self._parse_file(file, import_project=import_project)
+            self._parse_file(file)
         
-        for file in self.to_import:
-            self.import_file(file)
+        if import_project:
+            for file in self.to_import:
+                self.import_file(file)
 
         if self.nodes == {}:
             if init_project == True:
@@ -156,7 +158,8 @@ class UrtextProject:
 
     def _update(self, 
         compile_project=True, 
-        update_lists=True):
+        update_lists=True,
+        modified_files=[]):
 
         """ 
         Main method to keep the project updated. 
@@ -168,9 +171,8 @@ class UrtextProject:
 
         self.rewrite_recursion()
 
-        modified_files = None
         if compile_project:
-            modified_files = self.compile()
+            modified_files = self.compile(modified_files=modified_files)
                 
         self.update_node_list()
         self.update_metadata_list()
@@ -181,10 +183,7 @@ class UrtextProject:
 
     def _parse_file(self, 
         filename,
-        add=True, 
-        import_project=False,
         re_index=False,
-        update=False
         ):
     
         if self.filter_filenames(os.path.basename(filename)) == None:
@@ -198,7 +197,7 @@ class UrtextProject:
         Parse the file
         """
         new_file = UrtextFile(os.path.join(self.path, filename))
-        if not new_file.nodes and import_project: 
+        if not new_file.nodes: 
             self.to_import.append(filename)
             return
 
@@ -228,13 +227,10 @@ class UrtextProject:
         if re_index:
             self.re_search_index_file(filename)
 
-        if update:
-            self._update()
-
         return filename
 
     def rewrite_titles(self,filename):
-        title_marker_regex = r'\|.*?>[0-9,a-z]{3}\b'
+        
         original_contents = self.full_file_contents(filename=filename)
         new_contents = original_contents
         matches = re.findall(title_marker_regex, new_contents)
@@ -276,7 +272,7 @@ class UrtextProject:
                 for other_node in [
                         node_id for node_id in self.files[filename].nodes
                         if node_id != node ]:  
-                    # Careful ...
+
                     if self.is_in_node(position, other_node):
                         parent_node = other_node
                         alias_node = Node(inserted_node_id)
@@ -288,7 +284,6 @@ class UrtextProject:
 
             if self.nodes[node].root_node:
                 continue
-
 
             """
             in case this node begins the file and is an an inline node,
@@ -392,8 +387,7 @@ class UrtextProject:
             else:
                 self.dynamic_nodes[target_id] = new_node.dynamic_definitions[target_id]
 
-        ID_tags = new_node.metadata.get_tag('ID')
-        if len(ID_tags) > 1:
+        if len(new_node.metadata.get_tag('ID')) > 1:
             self.log_item('Multiple ID tags in >' + new_node.id +
                           ', using the first one found.')
         
@@ -417,18 +411,15 @@ class UrtextProject:
                                   node_id)
 
     def date_from_timestamp(self, datestamp_string):
-        timestamp_formats = self.settings['timestamp_format']
         dt_stamp = None
-        for this_format in timestamp_formats:
-            dt_format = '<' + this_format + '>'
+        for this_format in self.settings['timestamp_format']:
             try:
-                dt_stamp = datetime.datetime.strptime(datestamp_string, dt_format)
+                dt_stamp = datetime.datetime.strptime(datestamp_string, '<' + this_format + '>')
+                if dt_stamp.tzinfo == None:
+                    dt_stamp = self.default_timezone.localize(dt_stamp) 
+                return dt_stamp                
             except:
                 continue
-        if dt_stamp:
-            if dt_stamp.tzinfo == None:
-                dt_stamp = self.default_timezone.localize(dt_stamp) 
-            return dt_stamp
         return None
 
 
@@ -484,9 +475,8 @@ class UrtextProject:
     """
     Compiling dynamic nodes
     """
-    def compile(self, skip_tags=False):
+    def compile(self, skip_tags=False, modified_files=[]):
         """ Main method to compile dynamic nodes from their definitions """
-        modified_files = []
 
         for target_id in list(self.dynamic_nodes):
 
@@ -1605,10 +1595,12 @@ class UrtextProject:
     def file_update(self, filename):
         self._parse_file(filename)
         rewritten_contents = self.rewrite_titles(filename)
+        modified_files = []
         if rewritten_contents:
             self.set_file_contents(filename, rewritten_contents)
             self._parse_file(filename, re_index=True)
-        return self._update()
+            modified_files.append(filename)
+        return self._update(modified_files=modified_files)
         
 
     def on_moved(self, filename):

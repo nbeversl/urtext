@@ -126,7 +126,7 @@ class MetadataEntry:  # container for a single metadata entry
         self.tag_name = tag.strip() # string
         self.values = value         # always a list
         self.dtstring = dtstring
-        self.dtstamp = None
+        self.dtstamp = None         # set by project
         self.from_node = from_node
 
     def log(self):
