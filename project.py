@@ -1593,15 +1593,13 @@ class UrtextProject:
          
         
     def file_update(self, filename):
-        self._parse_file(filename)
         rewritten_contents = self.rewrite_titles(filename)
         modified_files = []
         if rewritten_contents:
             self.set_file_contents(filename, rewritten_contents)
-            self._parse_file(filename, re_index=True)
-            modified_files.append(filename)
+            modified_files.append(filename)     
+        self._parse_file(filename, re_index=True)        
         return self._update(modified_files=modified_files)
-        
 
     def on_moved(self, filename):
         unlocked, lock_name = self.check_lock()

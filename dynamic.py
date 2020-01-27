@@ -50,7 +50,7 @@ class UrtextDynamicDefinition:
             """
             add metadata to target node
             """
-            if atoms[0] == 'metadata' and len(atoms) > 2:
+            if atoms[0].lower() == 'metadata' and len(atoms) > 2:
                 self.metadata[atoms[1]] = ':'.join(
                     atoms[2:]) 
                 continue
@@ -61,36 +61,36 @@ class UrtextDynamicDefinition:
             """
             indentation
             """
-            if atoms[0] == 'mirror':
+            if atoms[0].lower() == 'mirror':
                 self.mirror = atoms[1]
-                if len(atoms) > 2 and atoms[2] == 'include':
+                if len(atoms) > 2 and atoms[2].lower() == 'include':
                     self.mirror_include_all = True
                 continue
 
-            if atoms[0] == 'indent':
+            if atoms[0].lower() == 'indent':
                 self.spaces = int(atoms[1])
                 continue
 
-            if atoms[0] == 'tree':
+            if atoms[0].lower() == 'tree':
                 self.tree = atoms[1]
                 continue
 
-            if atoms[0] == 'interlinks':
+            if atoms[0].lower() == 'interlinks':
                 self.interlinks = atoms[1]
                 continue
 
-            if atoms[0] == 'omit':
+            if atoms[0].lower() == 'omit':
                 self.omit = atoms[1:]
                 continue
 
 
-            if atoms[0] == 'sort':
+            if atoms[0].lower() == 'sort':
                 self.sort_tagname = atoms[1]
-                if len(atoms) > 2 and atoms[2] == 'reverse':
+                if len(atoms) > 2 and atoms[2].lower() == 'reverse':
                     self.reverse = True
                 continue
 
-            if atoms[0] == 'export':
+            if atoms[0].lower() == 'export':
                 if len(atoms) < 5 :
                     continue
 
@@ -99,9 +99,9 @@ class UrtextDynamicDefinition:
                 node_or_file = atoms[3]
                 destination = atoms[4]
 
-                if export_format not in ['markdown','html','plaintext']:
+                if export_format.lower() not in ['markdown','html','plaintext']:
                     continue
-                if node_or_file not in ['node','file']:
+                if node_or_file.lower() not in ['node','file']:
                     continue
 
                 self.export = export_format
@@ -112,7 +112,7 @@ class UrtextDynamicDefinition:
             """
             Tag all subnodes
             """
-            if atoms[0] == 'tag_all' and len(atoms) > 2:
+            if atoms[0].lower() == 'tag_all' and len(atoms) > 2:
                 self.tag_all_key = atoms[1]
                 self.tag_all_value = atoms[2]
                 if len(atoms) > 3 and atoms[3] == 'r':
@@ -121,29 +121,29 @@ class UrtextDynamicDefinition:
             """
             target node ID
             """
-            if atoms[0] == 'id':
+            if atoms[0].lower() == 'id':
                 self.target_id = re.search(node_id_regex, atoms[1]).group(0)
                 continue
             """
             show contents, title
             """
-            if atoms[0] == 'show':
-                if atoms[1] == 'title':
+            if atoms[0].lower() == 'show':
+                if atoms[1].lower() == 'title':
                     self.show = 'title'
-                if atoms[1] == 'timeline':
+                if atoms[1].lower() == 'timeline':
                     self.show = 'timeline'
                 continue
             """
             exclude/include meta
             """
-            if atoms[0] == 'include':
-                if atoms[1] == 'all':
+            if atoms[0].lower() == 'include':
+                if atoms[1].lower() == 'all':
                     self.include_or = 'all'
                     continue
 
-                if atoms[1] == 'metadata' and len(atoms) > 3:
+                if atoms[1].lower() == 'metadata' and len(atoms) > 3:
                     
-                    if atoms[2] == 'and':
+                    if atoms[2].lower() == 'and':
                         and_group = []
                         key = atoms[3]
                         values = atoms[4:]
@@ -151,7 +151,7 @@ class UrtextDynamicDefinition:
                             and_group.append((key,value)) 
                         self.include_and.append(and_group)
                         
-                    elif atoms[2] == 'or':
+                    elif atoms[2].lower() == 'or':
                         key = atoms[3]
                         values = atoms[4:]
                         for value in values:
@@ -163,10 +163,10 @@ class UrtextDynamicDefinition:
                             self.include_or.append((key,value))
                     continue
 
-            if atoms[0] == 'exclude':
-                if atoms[1] == 'metadata' and len(atoms) > 3:
+            if atoms[0].lower() == 'exclude':
+                if atoms[1].lower() == 'metadata' and len(atoms) > 3:
                     
-                    if atoms[2] == 'and':
+                    if atoms[2].lower() == 'and':
                         and_group = []
                         key = atoms[3]
                         values = atoms[4:]
@@ -174,7 +174,7 @@ class UrtextDynamicDefinition:
                             and_group.append((key,value)) 
                         self.exclude_and.append(and_group)
                         
-                    elif atoms[2] == 'or':
+                    elif atoms[2].lower() == 'or':
                         key = atoms[3]
                         values = atoms[4:]
                         for value in values:

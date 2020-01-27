@@ -13,19 +13,19 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     '{{', # inline node opening wrapper
     '}}', # inline node closing wrapper
     '>>', # node pointer
-    '\n',
+    '[\n$]',
     ] ]
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
-    '^[\s]*\^',           # compact node opening wrapper
+    '^[^\S\n]*\^',           # compact node opening wrapper
     '^\%(?!%)'          # split node marker
     ] ])
 
 symbol_length = {
-    '^[\s]*\^':1,
+    '^[^\S\n]*\^':0,
     '{{' : 2,
     '}}' : 2,
     '>>' : 2,
-    '\n' : 1,
+    '[\n$]' : 0,
     '^\%(?!%)' : 0
 }
 
@@ -77,9 +77,10 @@ class UrtextFile:
         only if a compact node is open.
         """
         non_newline_symbol = 0
+
         if self.positions:
             
-            while self.symbols[self.positions[non_newline_symbol]] == '\n':
+            while self.symbols[self.positions[non_newline_symbol]] == '[\n$]':
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
                     break
@@ -88,7 +89,7 @@ class UrtextFile:
                 nested_levels[0] = [
                     [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]] ]
                     ]
-                           
+                
         for index in range(non_newline_symbol, len(self.positions)):
 
             position = self.positions[index]
@@ -122,7 +123,9 @@ class UrtextFile:
 
                 continue
 
-            if self.symbols[position] == '^[\s]*\^':
+            if self.symbols[position] == '^[^\S\n]*\^':
+
+
                 if [last_position, position] not in nested_levels[nested] and position > last_position:
                     nested_levels[nested].append([last_position, position])
                 nested += 1 
@@ -130,13 +133,9 @@ class UrtextFile:
                 compact_node_open = True
                 continue
                 
-            if compact_node_open and self.symbols[position] == '\n':
+            if compact_node_open and self.symbols[position] == '[\n$]':
                 # TODO: this could be refactored with what is below
-                
-                # avoid duplicates but note here we leave in ranges of [x:x] since
-                # we want to retain the compact nodes's \n marker
-                
-
+            
                 if [last_position, position] not in nested_levels[nested]: 
                     nested_levels[nested].append([last_position, position])
 
@@ -216,6 +215,7 @@ class UrtextFile:
                     return self.log_error('Stray closing wrapper', position)  
                 
         if nested != 0:
+            #TODO -- if a compact node closes the file, this error will be thrown.
             self.log_error('Missing closing wrapper', position)
             return None
 
