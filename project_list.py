@@ -63,6 +63,14 @@ class ProjectList():
                 return True
         return False
 
+    def nav_current(self):
+        nav = self.current_project.get_home()
+        if not nav:
+            nav = self.current_project.nav_current()
+        if not nav:
+            return None
+        return nav
+
     def set_current_project_from_path(self, path):
         for project in self.projects:
             if project.path == path:

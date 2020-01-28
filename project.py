@@ -72,6 +72,7 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.settings = {  # defaults
             'logfile':'urtext_log.txt',
+            'home': None,
             'timestamp_format':
                 ['%a., %b. %d, %Y, %I:%M %p', '%B %-d, %Y', '%B %Y', '%m-%d-%Y'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
@@ -485,10 +486,11 @@ class UrtextProject:
                 self.log_item('Dynamic node definition >' + source_id +
                               ' points to nonexistent node >' + target_id)
                 continue
-            
-            # Note we do not re-parse the file here, we assume the project is up to date
-            # with the files. Otherwise we would have to re-parse everywhere.              
-            
+
+            filename = self.nodes[target_id].filename
+            self._parse_file(filename)
+            self._update(compile_project=False)
+
             if target_id not in self.dynamic_nodes:
                 print('dynamic node list has changed ,skipping '+target_id)
                 continue
@@ -716,9 +718,7 @@ class UrtextProject:
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
                 self._parse_file(changed_file)
-
-            self.build_alias_trees() 
-            self.rewrite_recursion()                
+                self._update(compile_project=False)
      
         return modified_files
 
@@ -951,7 +951,8 @@ class UrtextProject:
         return None
 
     def delete_file(self, filename):
-        self.remove_file(filename)
+    	  
+        self.remove_file(os.path.basename(filename))
         os.remove(os.path.join(self.path, filename))
         future = self.executor.submit(self._update) 
 
@@ -1206,6 +1207,12 @@ class UrtextProject:
         self.nav_index -= 1
         return last_node
 
+    def nav_current(self):
+        if not self.check_nav_history():
+            return None
+        if self.nav_index in self.navigation:
+            return self.navigation[self.nav_index]
+        return None
 
     def check_nav_history(self):
 
