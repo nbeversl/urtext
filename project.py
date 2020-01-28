@@ -33,7 +33,7 @@ from .export import UrtextExport
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
-title_marker_regex = r'\|.*?>[0-9,a-z]{3}\b'
+title_marker_regex = r'\|.*?>{1,2}[0-9,a-z]{3}\b'
 
 class UrtextProject:
     """ Urtext project object """
@@ -242,7 +242,10 @@ class UrtextProject:
                     title = self.nodes[node_id].title
                 else:
                     title = ' ? '
-                new_contents = new_contents.replace(match, '| '+title+' >'+node_id)
+                bracket = '>'
+                if re.search(node_pointer_regex, match):
+                    bracket += '>'
+                new_contents = new_contents.replace(match, '| '+title+' '+bracket+node_id)
         if new_contents != original_contents:
             return new_contents 
 
@@ -680,11 +683,18 @@ class UrtextProject:
                             )
 
                     for targeted_node in included_nodes:
+
                         if dynamic_definition.show == 'title':
-                            show_contents = targeted_node.title
+                             new_node_contents += ''.join([ 
+                                targeted_node.title,
+                                ' >',
+                                targeted_node.id,
+                                '\n'
+                                ]) 
                         if dynamic_definition.show == 'full_contents':
-                            show_contents = targeted_node.content_only().strip('\n').strip()
-                        new_node_contents += '- '+show_contents + ' >' + targeted_node.id + '\n'
+                            new_node_contents += '| '+targeted_node.title + ' >'+targeted_node.id + '\n'
+                            new_node_contents += ' - - - - - - - - - - - - - - - -\n'
+                            new_node_contents += targeted_node.content_only().strip('\n').strip() + '\n'
             """
             add metadata to dynamic node
             """
@@ -975,7 +985,8 @@ class UrtextProject:
         """ Omit system files """
         if filename[0] == '.':
             return None
-        
+        if 'urtext_log' in filename:
+            return None
         if not filename.endswith('.txt'):
             # FUTURE:
             # save and check these in an optional list of other extensions 

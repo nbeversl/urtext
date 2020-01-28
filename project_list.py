@@ -16,10 +16,11 @@ class ProjectList():
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
         try:
-            project = UrtextProject(folder)
-            self.projects.append(UrtextProject(folder))
-            print('Added Urtext project '+project.title)
-            print('from '+folder)
+            if os.path.basename(folder) not in ['index','img','files']:
+                project = UrtextProject(folder)
+                self.projects.append(UrtextProject(folder))
+                print('Added Urtext project '+project.title)
+                print('from '+folder)
         except NoProject:
             if import_project:
                 self.import_project(folder)
