@@ -30,10 +30,11 @@ from .node import UrtextNode
 from .export import UrtextExport
 
 #from .google_calendar import sync_project_to_calendar
-node_id_regex = r'\b[0-9,a-z]{3}\b'
+
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
 title_marker_regex = r'\|.*?>{1,2}[0-9,a-z]{3}\b'
+node_id_regex = r'\b[0-9,a-z]{3}\b'
 
 class UrtextProject:
     """ Urtext project object """
@@ -523,12 +524,13 @@ class UrtextProject:
                 else:
                     new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
-            if dynamic_definition.export:
+            if dynamic_definition.export: #
                 
                 exported = UrtextExport(self) 
                 exported_content = exported.export_from(
                      dynamic_definition.export_source,
-                     kind=dynamic_definition.export
+                     kind=dynamic_definition.export,
+                     as_single_file=True # TOdO should be option 
                     )
 
                 if dynamic_definition.export_to == 'file':

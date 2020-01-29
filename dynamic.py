@@ -94,14 +94,14 @@ class UrtextDynamicDefinition:
                 if len(atoms) < 5 :
                     continue
 
-                export_format = atoms[1]
-                from_node = atoms[2]
-                node_or_file = atoms[3]
-                destination = atoms[4]
+                export_format = atoms[1].lower()
+                from_node = atoms[2].lower()
+                node_or_file = atoms[3].lower()
+                destination = atoms[4].lower()
 
-                if export_format.lower() not in ['markdown','html','plaintext']:
+                if export_format not in ['markdown','html','plaintext']:
                     continue
-                if node_or_file.lower() not in ['node','file']:
+                if node_or_file not in ['node','file']:
                     continue
 
                 self.export = export_format
