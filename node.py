@@ -72,6 +72,7 @@ class UrtextNode:
         self.compact = compact
         self.split = split
         self.metadata = metadata
+        self.points = {}
  
         if self.metadata.get_first_tag('id'):
             node_id = self.metadata.get_first_tag('id').lower().strip()

@@ -72,12 +72,14 @@ class UrtextExport:
         Public method to export a tree of nodes from a given root node
         """
         self.visited_nodes = []
+        self.mapped_positions = {}
+        self.final_content = ''
 
         """
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
-        exported_content = self._add_node_content(
+        exported_content, points = self._add_node_content(
             root_node_id,
             as_single_file=as_single_file,
             strip_urtext_syntax=strip_urtext_syntax,
@@ -86,10 +88,12 @@ class UrtextExport:
             kind=kind,
             )
 
-        return exported_content
+        return exported_content, points
 
     def _add_node_content(self, 
             root_node_id,                               # node to start from
+            offset=0,
+            points = {},
             as_single_file=False,                       # Recursively add contents from node pointers?
             strip_urtext_syntax=True,                   # for HTML, strip Urtext syntax?
             style_titles=True,                          # style titles ????
@@ -99,7 +103,7 @@ class UrtextExport:
             single_node_only=False                      # stop at this node, no inline nodes
             ):         
         """
-        Recursively add a node and its inline nodes and node pointers 
+        Recursively add nodes, its inline nodes and node pointers, in order
         from a given starting node, keeping track of nesting level, and wrapping in markup.        
         """    
        
@@ -126,11 +130,17 @@ class UrtextExport:
         """
         For all inline ranges of the node,
         """
+        added_contents = ''
+        if points == {}:
+            points = {0:root_node_id}
+
         for single_range in ranges:
+    
+           
             """ 
             Iterate through all ranges of this node 
             """
-            # accumulate new contents to add to exported_contents
+
             added_contents = '' 
                 
             """
@@ -197,38 +207,49 @@ class UrtextExport:
                     title,
                     '<'+heading_tag+'>'+title+'</'+heading_tag+'>',
                     1)
-                
+
+            added_contents = self.replace_node_links(added_contents, kind)
+            
+            points_locations = sorted(points.keys())
+            points[points_locations[-1]+len(added_contents)] = root_node_id
+
+            """
+            For this single range of text, replace node pointers with their contents,
+            which cals this function recursively.
+            """
+            if as_single_file:
+
+                added_contents, points = self.replace_node_pointers(
+                    added_contents, 
+                    nested,
+                    kind,
+                    points=points,
+                    as_single_file=True,
+                    strip_urtext_syntax=strip_urtext_syntax,
+                    style_titles=style_titles,
+                    exclude=exclude)
+
+            """
+            If replacing node pointers into a single file,
+            replace them in the same recursive way 
+            """
             exported_contents += added_contents
 
-            exported_contents = self.replace_node_links(exported_contents, kind)
-            
             """
             If this is end of the node, mark it complete
             """
             if single_range[1] == ranges[-1][1]:
+                
                 self.visited_nodes.append(root_node_id)
-                """
-                If replacing node pointers into a single file,
-                replace them in the same recursive way 
-                """
-                if as_single_file:
-                    exported_contents = self.replace_node_pointers(
-                        exported_contents, 
-                        nested,
-                        kind,
-                        as_single_file=True,
-                        strip_urtext_syntax=strip_urtext_syntax,
-                        style_titles=style_titles,
-                        exclude=exclude
-                        )     
-
+               
             """
             If we are adding subnodes, find the node_id of the node immediately following this range
             and add it, assuming we are including all sub-nodes.
             TODO: Add checking in here for excluded nodes
             """
-            if not single_node_only and single_range[1] < ranges[-1][1] or self.project.nodes[root_node_id].split:
- 
+        
+            if not single_node_only and single_range[1] < ranges[-1][1]:
+
                 # get the node in the space immediately following this RANGE
                 next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
 
@@ -241,13 +262,16 @@ class UrtextExport:
                     else:
 
                         next_nested = nested
-                        if not self.project.nodes[root_node_id].split:
+
+                        if not split:
                             next_nested+=1
+
                         """
                         recursively add the node in the next range and its subnodes
                         """
-                        exported_contents += self._add_node_content(
-                            next_node,                        
+                        new_contents, points = self._add_node_content(
+                            next_node,
+                            points=points,       
                             as_single_file=as_single_file,
                             strip_urtext_syntax=strip_urtext_syntax,
                             style_titles=style_titles,
@@ -256,56 +280,66 @@ class UrtextExport:
                             nested=next_nested
                             )
 
-                       
-
+                        exported_contents += new_contents
+    
         exported_contents += self._closing_wrapper(kind)
-
-        return exported_contents 
+        
+        return exported_contents, points
 
     def replace_node_pointers(self, 
         contents, 
         nested, 
         kind,
+        points={},
         as_single_file=False,                       
         strip_urtext_syntax=True,                   
         style_titles=True,                          
         exclude=[]):
 
         patterns = [titled_node_pointer_regex, node_pointer_regex]
-
+        matches = []
+        lex = {}
         for pattern in patterns:
+            matches.extend(re.findall(pattern, contents))
+        for match in matches:
+            location = contents.find(match)
+            lex[location] = match
+        locations = sorted(lex.keys())
 
-            node_links = re.findall(pattern, contents)        
+        for location in locations:
+
+            match = lex[location]
+            node_id = match[-3:]
+
+            points_locations = sorted(points.keys())
+            points[points_locations[-1]+location] = node_id
+
+            """
+            Avoid recursion
+            """
+            if node_id in self.visited_nodes:
+                inserted_contents = '\n' + '#' * nested + ' <><><>< RECURSION : '+ node_id + ' ><><><>' 
+                continue       
             
-            for match in node_links:
+            self.visited_nodes.append(node_id)
 
-                node_id = match[-3:]
+            if node_id not in self.project.nodes:
+                print('NODE MARKER >>'+node_id+' not in project, skipping')
+                continue                            
 
-                """
-                Avoid recursion
-                """
-                if node_id in self.visited_nodes:
-                    inserted_contents = '\n' + '#' * nested + ' <><><>< RECURSION : '+ node_id + ' ><><><>' 
-                    continue       
-                
-                self.visited_nodes.append(node_id)
+            inserted_contents, points = self._add_node_content(
+                node_id, 
+                points=points,
+                nested=nested+1,
+                as_single_file=True,
+                kind=kind,
+                strip_urtext_syntax=strip_urtext_syntax,
+                style_titles=style_titles
+                )
 
-                if node_id not in self.project.nodes:
-                    print('NODE MARKER >>'+node_id+' not in project, skipping')
-                    continue                            
-                
-                inserted_contents = self._add_node_content(
-                    node_id, 
-                    nested=nested+1,
-                    as_single_file=False,
-                    kind=kind,
-                    strip_urtext_syntax=strip_urtext_syntax,
-                    style_titles=style_titles
-                    )
-                    
-                contents = contents.replace(match, inserted_contents)
+            contents = contents.replace(match, inserted_contents)
 
-        return contents
+        return contents, points
 
 
     def replace_node_links(self, contents, kind):
@@ -505,5 +539,7 @@ class UrtextExport:
         return contents_from_file 
 
 
-
-
+def merge_two_dicts(x, y):
+    z = x.copy()   # start with x's keys and values
+    z.update(y)    # modifies z with y's keys and values & returns None
+    return z

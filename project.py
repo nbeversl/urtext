@@ -494,6 +494,8 @@ class UrtextProject:
             filename = self.nodes[target_id].filename
             self._parse_file(filename)
             self._update(compile_project=False)
+            
+            points = {} # temporary
 
             if target_id not in self.dynamic_nodes:
                 print('dynamic node list has changed ,skipping '+target_id)
@@ -527,7 +529,7 @@ class UrtextProject:
             if dynamic_definition.export: #
                 
                 exported = UrtextExport(self) 
-                exported_content = exported.export_from(
+                exported_content, points = exported.export_from(
                      dynamic_definition.export_source,
                      kind=dynamic_definition.export,
                      as_single_file=True # TOdO should be option 
@@ -726,12 +728,15 @@ class UrtextProject:
                                                dynamic_definition.spaces)
 
             changed_file = self.set_node_contents(target_id, updated_node_contents)
-            if changed_file:
+            
+            
+            if changed_file:    
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
                 self._parse_file(changed_file)
                 self._update(compile_project=False)
-     
+            self.nodes[target_id].points = points
+            
         return modified_files
 
     def export_nodes(self, node_list, args):
@@ -749,7 +754,7 @@ class UrtextProject:
             root_node_id, 
             kind='plaintext',
             as_single_file=True)
-        return contents
+        return contents[0]
     
     def export_project(self, args):
         pass 
