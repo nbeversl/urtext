@@ -752,10 +752,27 @@ class UrtextProject:
         #contents = export.from_root_id(root_node_id)
         contents = export.export_from(
             root_node_id, 
+            offset=self.nodes[root_node_id].ranges[0][0],
             kind='plaintext',
             as_single_file=True)
         return contents[0]
     
+
+    def get_source_node(self, filename, position):
+        exported_node_id = self.get_node_id_from_position(filename, position)
+        points = self.nodes[exported_node_id].points
+        if not points:
+            return None, None
+        node_start_point = self.nodes[exported_node_id].ranges[0][0]
+        print(position)
+
+
+        indexes = sorted(points.keys())
+        for index in range(0, len(indexes)):
+            if position >= indexes[index] and position < indexes[index+1]:
+                print(self.nodes[exported_node_id].points[indexes[index+1]])
+                return self.nodes[exported_node_id].points[indexes[index+1]]
+
     def export_project(self, args):
         pass 
 

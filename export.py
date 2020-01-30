@@ -79,7 +79,7 @@ class UrtextExport:
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
-        exported_content, points = self._add_node_content(
+        exported_content, points, offset = self._add_node_content(
             root_node_id,
             as_single_file=as_single_file,
             strip_urtext_syntax=strip_urtext_syntax,
@@ -116,26 +116,11 @@ class UrtextExport:
         file_contents = self.project.full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
         split = self.project.nodes[root_node_id].split
-
-        """
-        Wrap the title
-        """  
-        exported_contents += self._wrap_title(kind, root_node_id, nested)
         
-        """
-        Insert opening node wrapper
-        """
-        exported_contents += self._opening_wrapper(kind, root_node_id, nested)        
-       
-        """
-        For all inline ranges of the node,
-        """
-        added_contents = ''
         if points == {}:
-            points = {0:root_node_id}
+            points = {offset:root_node_id}
 
         for single_range in ranges:
-    
            
             """ 
             Iterate through all ranges of this node 
@@ -146,11 +131,22 @@ class UrtextExport:
             """
             If this is the node's first range:
             """
+            if single_range == ranges[0]:
 
-            if single_range == ranges[0] and kind == 'html' and not strip_urtext_syntax:
+                """
+                Wrap the title
+                """  
+                added_contents += self._wrap_title(kind, root_node_id, nested)
+                
+                """
+                Insert opening node wrapper
+                """
+                added_contents += self._opening_wrapper(kind, root_node_id, nested)       
 
-                # add Urtext styled {{ wrapper
-                added_contents += OPENING_BRACKETS
+                if kind == 'html' and not strip_urtext_syntax:
+
+                    # add Urtext styled {{ wrapper
+                    added_contents += OPENING_BRACKETS
 
             """
             Get and add the range's contents
@@ -209,9 +205,9 @@ class UrtextExport:
                     1)
 
             added_contents = self.replace_node_links(added_contents, kind)
-            
-            points_locations = sorted(points.keys())
-            points[points_locations[-1]+len(added_contents)] = root_node_id
+            offset += len(added_contents) 
+
+            points[offset] = ( root_node_id, single_range[0] ) # returns node ID and exact FILE location
 
             """
             For this single range of text, replace node pointers with their contents,
@@ -219,15 +215,17 @@ class UrtextExport:
             """
             if as_single_file:
 
-                added_contents, points = self.replace_node_pointers(
+                added_contents, points, offset = self.replace_node_pointers(
                     added_contents, 
                     nested,
                     kind,
+                    offset=offset,
                     points=points,
                     as_single_file=True,
                     strip_urtext_syntax=strip_urtext_syntax,
                     style_titles=style_titles,
                     exclude=exclude)
+
 
             """
             If replacing node pointers into a single file,
@@ -269,8 +267,9 @@ class UrtextExport:
                         """
                         recursively add the node in the next range and its subnodes
                         """
-                        new_contents, points = self._add_node_content(
+                        new_contents, points, offset = self._add_node_content(
                             next_node,
+                            offset=offset,
                             points=points,       
                             as_single_file=as_single_file,
                             strip_urtext_syntax=strip_urtext_syntax,
@@ -284,12 +283,13 @@ class UrtextExport:
     
         exported_contents += self._closing_wrapper(kind)
         
-        return exported_contents, points
+        return exported_contents, points, offset
 
     def replace_node_pointers(self, 
-        contents, 
+        contents,        
         nested, 
         kind,
+        offset=0, 
         points={},
         as_single_file=False,                       
         strip_urtext_syntax=True,                   
@@ -311,8 +311,7 @@ class UrtextExport:
             match = lex[location]
             node_id = match[-3:]
 
-            points_locations = sorted(points.keys())
-            points[points_locations[-1]+location] = node_id
+            offset += location
 
             """
             Avoid recursion
@@ -327,8 +326,9 @@ class UrtextExport:
                 print('NODE MARKER >>'+node_id+' not in project, skipping')
                 continue                            
 
-            inserted_contents, points = self._add_node_content(
+            inserted_contents, points, offset = self._add_node_content(
                 node_id, 
+                offset=offset,
                 points=points,
                 nested=nested+1,
                 as_single_file=True,
@@ -339,7 +339,7 @@ class UrtextExport:
 
             contents = contents.replace(match, inserted_contents)
 
-        return contents, points
+        return contents, points, offset
 
 
     def replace_node_links(self, contents, kind):
