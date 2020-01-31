@@ -124,12 +124,10 @@ class UrtextFile:
                 continue
 
             if self.symbols[position] == '^[^\S\n]*\^':
-
-
                 if [last_position, position] not in nested_levels[nested] and position > last_position:
                     nested_levels[nested].append([last_position, position])
                 nested += 1 
-                last_position = position + 1
+                last_position = position # + 1 remove for debugging
                 compact_node_open = True
                 continue
                 
@@ -168,7 +166,7 @@ class UrtextFile:
             # If this closes a node:
             if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
                 
-                if [last_position, position ] not in nested_levels[nested]: # avoid duplicates
+                if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
                 # file level nodes are root nodes, with multiples permitted

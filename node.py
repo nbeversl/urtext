@@ -105,8 +105,8 @@ class UrtextNode:
         node_contents = ''.join(node_contents)
         if self.split: # don't include the split marker
             node_contents = node_contents.replace('%','',1)
-        # if self.compact: # don't include the split marker
-        #     node_contents = node_contents.lstrip().replace('^','',1)
+        if self.compact: # don't include the split marker
+             node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
 
     @classmethod

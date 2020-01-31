@@ -179,7 +179,7 @@ class UrtextProject:
         self.update_node_list()
         self.update_metadata_list()
 
-        pickle = PickledUrtextProject(self)
+        #pickle = PickledUrtextProject(self)
         
         return modified_files
 
@@ -532,7 +532,8 @@ class UrtextProject:
                 exported_content, points = exported.export_from(
                      dynamic_definition.export_source,
                      kind=dynamic_definition.export,
-                     as_single_file=True # TOdO should be option 
+                     as_single_file=True, # TOdO should be option 
+                     clean_whitespace=True
                     )
 
                 if dynamic_definition.export_to == 'file':
@@ -764,14 +765,13 @@ class UrtextProject:
         if not points:
             return None, None
         node_start_point = self.nodes[exported_node_id].ranges[0][0]
-        print(position)
-
 
         indexes = sorted(points.keys())
         for index in range(0, len(indexes)):
             if position >= indexes[index] and position < indexes[index+1]:
-                print(self.nodes[exported_node_id].points[indexes[index+1]])
-                return self.nodes[exported_node_id].points[indexes[index+1]]
+                node, target_position = self.nodes[exported_node_id].points[indexes[index]]
+                offset = position - indexes[index]
+                return node, target_position+offset
 
     def export_project(self, args):
         pass 
@@ -1381,7 +1381,9 @@ class UrtextProject:
         filename = self.nodes[child_node_id].filename
         start_of_node = self.nodes[child_node_id].ranges[0][0]
         distance_back = 1
-        
+        if start_of_node == 0 and self.nodes[child_node_id].compact:
+            return self.files[filename].root_nodes[0]
+
         parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
         while not parent_node and distance_back < start_of_node:
             distance_back += 1
