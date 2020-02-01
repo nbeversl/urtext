@@ -64,7 +64,7 @@ class UrtextProject:
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.settings_initialized = False
-        self.dynamic_nodes = {}  # { target : definition, etc.}
+        self.dynamic_nodes = []  # { target : definition, etc.}
         self.dynamic_tags = {} # source_id : [ target_id, ... ]
         self.compiled = False
         self.alias_nodes = []
@@ -175,9 +175,10 @@ class UrtextProject:
 
         if compile_project:
             modified_files = self.compile(modified_files=modified_files)
-                
-        self.update_node_list()
-        self.update_metadata_list()
+            
+        if update_lists:
+            self.update_node_list()
+            self.update_metadata_list()
 
         #pickle = PickledUrtextProject(self)
         
@@ -226,8 +227,8 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self.rebuild_node_tag_info(node_id)
 
-        if re_index:
-            self.re_search_index_file(filename)
+            if re_index:
+                self.re_search_index_file(filename)
 
         return filename
 
@@ -259,11 +260,9 @@ class UrtextProject:
         """ Builds tree elements within the file's nodes, after the file is parsed."""
 
         parsed_items = self.files[filename].parsed_items
-        positions = sorted(parsed_items.keys())
+        positions = sorted(parsed_items)
 
-        for index in range(len(positions)):
-
-            position = positions[index]
+        for index, position in enumerate(positions):
 
             node = parsed_items[position]
 
@@ -348,7 +347,7 @@ class UrtextProject:
                 if sub_node.name in [
                         ancestor.name for ancestor in sub_node.ancestors
                 ]:
-                    sub_node.name = 'RECURSION >' + sub_node.name
+                    sub_node.name = 'RECURSION : ' + self.nodes[sub_node.name].title + ' >'+sub_node.name
                     sub_node.children = []
     
     def _add_sub_tags(self, 
@@ -377,24 +376,52 @@ class UrtextProject:
                     value,
                     recursive=recursive)
 
+
+    def target_id_defined(self, check_id):
+        for definition in self.dynamic_nodes:
+            if definition.target_id and definition.target_id == check_id:
+                return definition.source_id
+        return
+
+    def target_file_defined(self, file):
+        for definition in self.dynamic_nodes:
+            if definition.target_file and definition.target_file == file:
+                return definition.source_id
+        return
+
+
     """
     Parsing helpers
     """
     def add_node(self, new_node):
         """ Adds a node to the project object """
 
-        for target_id in new_node.dynamic_definitions.keys():
-            if target_id in self.dynamic_nodes:
-                self.log_item('Node >' + target_id +
-                              ' has duplicate definition in >' + new_node.id +
-                              '. Keeping the definition in >' +
-                              self.dynamic_nodes[target_id].source_id + '.')
+        for definition in new_node.dynamic_definitions:
+
+            if definition.target_id:
+                defined = self.target_id_defined(definition.target_id)
+                if defined and defined != new_node.id:
+                    self.log_item('Node >' + definition.target_id +
+                                  ' has duplicate definition in >' + new_node.id +
+                                  '. Keeping the definition in >' +
+                                  defined + '.')
             else:
-                self.dynamic_nodes[target_id] = new_node.dynamic_definitions[target_id]
+                self.dynamic_nodes.append(definition)
+            
+            if definition.target_file:
+
+                defined = self.target_file_defined(definition.target_file)
+                if defined and defined != new_node.id:
+                    self.log_item('File ' + definition.file +
+                                  ' has duplicate definition in >' + new_node.id +
+                                  '. Keeping the definition in >' +
+                                  defined + '.')
+            else:
+                self.dynamic_nodes.append(definition)
 
         if len(new_node.metadata.get_tag('ID')) > 1:
             self.log_item('Multiple ID tags in >' + new_node.id +
-                          ', using the first one found.')
+                          ', '+', '.join(new_node.metadata.get_tag('ID'))+' ( using the first one found.')
         
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
@@ -420,10 +447,12 @@ class UrtextProject:
         for this_format in self.settings['timestamp_format']:
             try:
                 dt_stamp = datetime.datetime.strptime(datestamp_string, '<' + this_format + '>')
+                if not dt_stamp:
+                    continue
                 if dt_stamp.tzinfo == None:
                     dt_stamp = self.default_timezone.localize(dt_stamp) 
                 return dt_stamp                
-            except:
+            except ValueError:
                 continue
         return None
 
@@ -472,9 +501,11 @@ class UrtextProject:
             if this_node.name in self.nodes:
                 tree_render += "%s%s" % (pre, self.nodes[
                     this_node.name].title) + ' >' + this_node.name + '\n'
-            else:
+            elif this_node.name[0:9] == 'RECURSION':
+                tree_render += "%s%s" % (pre, this_node.name + '\n')   
+            else: 
                 tree_render += "%s%s" % (pre, '? (Missing Node): >' +
-                                         this_node.name + '\n')
+                                     this_node.name + '\n')
         return tree_render
 
     """
@@ -483,25 +514,28 @@ class UrtextProject:
     def compile(self, skip_tags=False, modified_files=[]):
         """ Main method to compile dynamic nodes from their definitions """
 
-        for target_id in list(self.dynamic_nodes):
+        for dynamic_definition in list(self.dynamic_nodes):
 
-            source_id = self.dynamic_nodes[target_id].source_id
-            if target_id not in self.nodes:
-                self.log_item('Dynamic node definition >' + source_id +
-                              ' points to nonexistent node >' + target_id)
+            source_id = dynamic_definition.source_id
+
+            # exporting is the only the thing using target files at this moment
+            if not dynamic_definition.target_id and not dynamic_definition.export:
                 continue
 
-            filename = self.nodes[target_id].filename
-            self._parse_file(filename)
-            self._update(compile_project=False)
+            if dynamic_definition.target_id:
+                target_id = dynamic_definition.target_id
+
+                if target_id not in list(self.nodes):
+                    self.log_item('Dynamic node definition >' + source_id +
+                                  ' points to nonexistent node >' + target_id)
+                    continue
+
+                filename = self.nodes[target_id].filename
+            
+            # self._parse_file(filename)
+            # self._update(compile_project=False)
             
             points = {} # temporary
-
-            if target_id not in self.dynamic_nodes:
-                print('dynamic node list has changed ,skipping '+target_id)
-                continue
-
-            dynamic_definition = self.dynamic_nodes[target_id]
 
             new_node_contents = ''
 
@@ -532,17 +566,19 @@ class UrtextProject:
                 exported_content, points = exported.export_from(
                      dynamic_definition.export_source,
                      kind=dynamic_definition.export,
+                     exclude=[target_id], # prevents recursion
                      as_single_file=True, # TOdO should be option 
                      clean_whitespace=True
                     )
 
-                if dynamic_definition.export_to == 'file':
-                    with open(os.path.join(self.path, dynamic_definition.destination), 'w', encoding ='utf-8') as f:
+                if dynamic_definition.target_file:
+                    with open(os.path.join(self.path, dynamic_definition.target_file), 'w', encoding ='utf-8') as f:
                         f.write(exported_content)
                         f.close()
+                    if not dynamic_definition.target_id:
+                        continue
 
-                if dynamic_definition.export_to == 'node' and dynamic_definition.destination in self.nodes:
-                    new_node_contents = exported_content
+                new_node_contents = exported_content
 
             if dynamic_definition.tag_all_key and skip_tags:
                 continue
@@ -629,6 +665,8 @@ class UrtextProject:
                         included_nodes.append(indiv_node_id)
 
                 for item in dynamic_definition.include_or:
+                    if len(item) < 2:
+                        continue
                     key, value = item[0], item[1]
                     if value in self.tagnames[key]:
                         added_nodes = self.tagnames[key][value]
@@ -653,7 +691,7 @@ class UrtextProject:
                 build timeline if specified
                 """
                 if dynamic_definition.show == 'timeline':
-                    new_node_contents += timeline(self, included_nodes)
+                     new_node_contents += timeline(self, included_nodes)
 
                 else:
                     """
@@ -690,16 +728,21 @@ class UrtextProject:
                     for targeted_node in included_nodes:
 
                         if dynamic_definition.show == 'title':
-                             new_node_contents += ''.join([ 
+                             new_node_contents = ''.join([
+                                new_node_contents, 
                                 targeted_node.title,
                                 ' >',
                                 targeted_node.id,
                                 '\n'
                                 ]) 
                         if dynamic_definition.show == 'full_contents':
-                            new_node_contents += '| '+targeted_node.title + ' >'+targeted_node.id + '\n'
-                            new_node_contents += ' - - - - - - - - - - - - - - - -\n'
-                            new_node_contents += targeted_node.content_only().strip('\n').strip() + '\n'
+                            new_node_contents = ''.join([
+                                new_node_contents,
+                                '| ',targeted_node.title, ' >', targeted_node.id,'\n',
+                                ' - - - - - - - - - - - - - - - -\n',
+                                targeted_node.content_only().strip('\n').strip(),
+                                '\n'
+                                ])
             """
             add metadata to dynamic node
             """
@@ -730,12 +773,11 @@ class UrtextProject:
 
             changed_file = self.set_node_contents(target_id, updated_node_contents)
             
-            
             if changed_file:    
                 if changed_file not in modified_files:
                     modified_files.append(changed_file)
                 self._parse_file(changed_file)
-                self._update(compile_project=False)
+                self._update(compile_project=False, update_lists=False)
             self.nodes[target_id].points = points
             
         return modified_files
@@ -745,36 +787,31 @@ class UrtextProject:
             node_list = [node_list]
         pass
 
-    def export_file (self, filename, args):
-        pass
 
     def export_from_root_node(self, root_node_id):
         export = UrtextExport(self)
-        #contents = export.from_root_id(root_node_id)
         contents = export.export_from(
             root_node_id, 
-            offset=self.nodes[root_node_id].ranges[0][0],
             kind='plaintext',
             as_single_file=True)
         return contents[0]
     
 
     def get_source_node(self, filename, position):
+        if filename not in self.files:
+            return None, None
         exported_node_id = self.get_node_id_from_position(filename, position)
         points = self.nodes[exported_node_id].points
         if not points:
             return None, None
         node_start_point = self.nodes[exported_node_id].ranges[0][0]
 
-        indexes = sorted(points.keys())
+        indexes = sorted(points)
         for index in range(0, len(indexes)):
             if position >= indexes[index] and position < indexes[index+1]:
                 node, target_position = self.nodes[exported_node_id].points[indexes[index]]
                 offset = position - indexes[index]
                 return node, target_position+offset
-
-    def export_project(self, args):
-        pass 
 
     def set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
@@ -818,11 +855,11 @@ class UrtextProject:
                 
         if 'zzy' in self.nodes:
             metadata_file = self.nodes['zzy'].filename
-            contents = ''           
+            contents = []           
             for pre, _, node in RenderTree(root):
-                contents += "%s%s\n" % (pre, node.name)
-            contents += '/--\nid:zzy\ntitle: Metadata List\n--/'
-            self.set_node_contents('zzy', contents)
+                contents.append("%s%s\n" % (pre, node.name))
+            contents.append('/--\nid:zzy\ntitle: Metadata List\n--/')
+            self.set_node_contents('zzy', ''.join(contents))
     """
     Metadata
     """
@@ -961,9 +998,9 @@ class UrtextProject:
     
         if filename in self.files:
             for node_id in self.files[filename].nodes:
-                for target_id in list(self.dynamic_nodes):
-                    if self.dynamic_nodes[target_id].source_id == node_id:
-                        del self.dynamic_nodes[target_id]
+                for index, definition in enumerate(self.dynamic_nodes):
+                    if definition.source_id == node_id:
+                        del self.dynamic_nodes[index]
 
                 for tagname in list(self.tagnames):
                     for value in list(self.tagnames[tagname]):
@@ -1302,9 +1339,8 @@ class UrtextProject:
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list,
                                       key=lambda item: item[1])
-        for i in range(len(sorted_indexed_nodes)):
-            sorted_indexed_nodes[i] = sorted_indexed_nodes[i][0]
-        #self.update_lock.release()   
+        for index, node in enumerate(sorted_indexed_nodes):
+            sorted_indexed_nodes[index] = node[0] 
         return sorted_indexed_nodes
 
     def root_nodes(self, primary=False):
@@ -1398,17 +1434,19 @@ class UrtextProject:
 
     def is_in_node(self, position, node_id):
         """ Given a position, and node_id, returns whether the position is in the node """
+
         for this_range in self.nodes[node_id].ranges:
-           
             if position >= this_range[0] and position <= this_range[1]:
                 return True
         return False
 
     def get_node_id_from_position(self, filename, position):
         """ Given a position, returns the Node ID it's in """
-        for node_id in self.files[os.path.basename(filename)].nodes:
-            if self.is_in_node(position, node_id):
-                return node_id
+        filename = os.path.basename(filename)
+        if filename in self.files:
+            for node_id in self.files[os.path.basename(filename)].nodes:
+                if self.is_in_node(position, node_id):
+                    return node_id
         return None
 
     def get_link(self, string, position=0):
@@ -1555,8 +1593,9 @@ class UrtextProject:
 
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
-            '\n',
-            '>>',
+            '\n| ',
+            self.nodes[popped_node_id].title,
+             '>>',
             popped_node_id,
             '\n',
             file_contents[end + 2:]])
@@ -1642,7 +1681,8 @@ class UrtextProject:
         if rewritten_contents:
             self.set_file_contents(filename, rewritten_contents)
             modified_files.append(filename)     
-        self._parse_file(filename, re_index=True)        
+        self._parse_file(filename, re_index=True)
+              
         return self._update(modified_files=modified_files)
 
     def on_moved(self, filename):
@@ -1701,9 +1741,9 @@ def build_metadata(tags, one_line=False):
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')
-    for index in range(len(content_lines)):
-        if content_lines[index].strip() != '':
-            content_lines[index] = ' ' * spaces + content_lines[index]
+    for index, line in enumerate(content_lines):
+        if line.strip() != '':
+            content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
 

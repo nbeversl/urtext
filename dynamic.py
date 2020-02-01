@@ -12,6 +12,7 @@ class UrtextDynamicDefinition:
 
         self.spaces = 0
         self.target_id = None
+        self.target_file = None
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
@@ -90,25 +91,17 @@ class UrtextDynamicDefinition:
                     self.reverse = True
                 continue
 
-            if atoms[0].lower() == 'export':
-                if len(atoms) < 5 :
-                    continue
+            if atoms[0].lower() == 'export' and len(atoms) > 2:
 
                 export_format = atoms[1].lower()
                 from_node = atoms[2].lower()
-                node_or_file = atoms[3].lower()
-                destination = atoms[4].lower()
-
+                
                 if export_format not in ['markdown','html','plaintext']:
-                    continue
-                if node_or_file not in ['node','file']:
                     continue
 
                 self.export = export_format
-                self.export_to = node_or_file
                 self.export_source = from_node
-                self.destination = destination
-                continue
+
             """
             Tag all subnodes
             """
@@ -124,6 +117,13 @@ class UrtextDynamicDefinition:
             if atoms[0].lower() == 'id':
                 self.target_id = re.search(node_id_regex, atoms[1]).group(0)
                 continue
+            """
+            target file
+            """
+            if atoms[0].lower() == 'file':
+                self.target_file = atoms[1]
+                continue
+
             """
             show contents, title
             """

@@ -12,10 +12,8 @@ OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123;&#123;</span>'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
-"""
-Required abilities:
 
-"""
+
 class UrtextExport:
 
     def __init__(self, project):
@@ -31,8 +29,9 @@ class UrtextExport:
         contents = contents.replace('{{','')
         contents = contents.replace('}}','')
         contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
+        contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents        
- 
+
     def _opening_wrapper(self, kind, node_id, nested):
         wrappers = { 
             'html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
@@ -125,6 +124,9 @@ class UrtextExport:
         if points == {}:
             points = {0:root_node_id}
 
+        if root_node_id in exclude:
+            return added_contents, points
+
         for single_range in ranges:
             
             points[len(added_contents)] = ( root_node_id, single_range[0] ) # returns node ID and exact FILE location
@@ -165,7 +167,7 @@ class UrtextExport:
                             line = lines[index]
                             if line[0] != '-':
                                 break
-                        range_contentss += '</ul>'
+                        range_contents += '</ul>'
 
                     """
                     For non-list items, wrap them in a <div>
@@ -209,7 +211,7 @@ class UrtextExport:
 
             if clean_whitespace:
                 added_contents = added_contents.strip('\n ')
-                added_contents = '\n' + added_contents + '\n'
+                added_contents = '\n' + added_contents + '\n\n'
 
             """
             For this single range of text, replace node pointers with their contents,
@@ -296,7 +298,7 @@ class UrtextExport:
         for match in matches:
             location = added_contents.find(match)
             lex[location] = match
-        locations = sorted(lex.keys())
+        locations = sorted(lex)
 
         for location in locations:
 
@@ -341,9 +343,7 @@ class UrtextExport:
     def replace_node_links(self, contents, kind):
         """ replace node links, including titled ones, with exported versions """
 
-        patterns = [titled_link_regex,  node_link_regex]
-
-        for pattern in patterns:
+        for pattern in [titled_link_regex,  node_link_regex]:
 
             node_links = re.findall(pattern, contents)
 
@@ -355,14 +355,14 @@ class UrtextExport:
 
                 if node_id not in self.project.nodes:
                     
-                    print('Skipping node ID '+node_id+', not in project')
+                    contents = contents.replace(match, '[ MISSING LINK : '+node_id+' ] ')
                     continue
 
                 title = self.project.nodes[node_id].title
 
                 if kind == 'html':
 
-                    filename = self.project.nodes[root_node_id].filename
+                    filename = self.project.nodes[node_id].filename
                     
                     if node_id in self.project.files[filename].nodes:
                         link = '#'+node_id
@@ -485,57 +485,3 @@ class UrtextExport:
             return html
 
         return render_list(start_point, 1, [])
-
-    """ Older stuff - not sure it's needed"""
-
-    def node(self, node_id, kind):
-        """ export a single node to a file (why?) """
-        
-        if kind == 'plaintext':
-            contents = self.project.nodes[node_id].content_only()
-            filename = self.project.nodes[node_id].title
-            if not filename:
-                filename = self.project.nodes[node_id].metadata.get_tag('filename')[0]
-            if not filename:
-                filename = node_id
-            filename = filename.strip()
-
-        if self.extensions[kind] not in filename:
-            filename += self.extensions[kind]
-
-        with open(os.path.join(self.project.path, filename), 'w', encoding="utf-8") as f:
-            f.write(contents)
-            f.close()
-
-    def _add_content(self, from_file=None, exclude=[], from_node_id=None):
-        
-        if from_node_id:
-            start = self.project.nodes[from_node_id].ranges[0][0]
-            end = self.project.nodes[from_node_id].ranges[-1][1]
-        elif from_file:
-            start = 0
-            end = self.project.files[from_file].file_length
-        if not from_file:
-            file_name = self.project.nodes[from_node_id].filename
-        else:
-            file_name = from_file
-
-        contents_from_file = ''
-        full_file_contents = self.project.full_file_contents(file_name)[start:end]
-        contents_from_file = full_file_contents
-        exclude_ranges = []
-        for node_id in exclude:
-            if node_id in self.project.files[file_name]:
-                for this_range in self.project.nodes[node_id].ranges:
-                    exclude_ranges.append(this_range)
-        exclude_ranges = sorted(exclude_ranges, key = lambda range: range[0] )
-        for this_range in exclude_ranges:
-            cut_content = full_file_contents[this_range[0], this_range[1]]
-            contents_from_file = contents_from_file.replace(cut_content,'')
-        return contents_from_file 
-
-
-def merge_two_dicts(x, y):
-    z = x.copy()   # start with x's keys and values
-    z.update(y)    # modifies z with y's keys and values & returns None
-    return z

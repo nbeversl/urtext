@@ -32,15 +32,14 @@ def create_urtext_node(
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
 
     possible_defs = ['[['+section for section in contents.split('[[') ]
-    dynamic_definitions = {}
+    dynamic_definitions = []
     for possible_def in possible_defs:
         match = re.match(dynamic_definition_regex, possible_def)        
         if match:
             match = match.group(0).strip('[[').strip(']]')
             dynamic_definition = UrtextDynamicDefinition(match)
-            if dynamic_definition.target_id != None:
-                dynamic_definition.source_id = new_node.id
-                dynamic_definitions[dynamic_definition.target_id] = dynamic_definition
+            dynamic_definition.source_id = new_node.id
+            dynamic_definitions.append(dynamic_definition)
 
     new_node.dynamic_definitions = dynamic_definitions
 
