@@ -10,10 +10,6 @@ import pytz
 from anytree import Node
 from anytree import PreOrderIter
 
-"""
-Dynamic definitions in the form:
-{ target_id : definition, ..., ... }
-"""
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
