@@ -253,12 +253,13 @@ def _compile(self, skip_tags=False, modified_files=[]):
                             ]) 
                     if dynamic_definition.show == 'full_contents':
                         new_node_contents = ''.join([
-                            new_node_contents,
-                            '| ',targeted_node.title, ' >', targeted_node.id,'\n',
+                            new_node_contents,                            
                             ' - - - - - - - - - - - - - - - -\n',
+                            '| ',targeted_node.title, ' >', targeted_node.id,'\n',
                             targeted_node.content_only().strip('\n').strip(),
                             '\n'
                             ])
+
         """
         add metadata to dynamic node
         """

@@ -39,7 +39,7 @@ compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
 
 symbol_length = {
     '^[^\S\n]*\^':0,
-    '{{' : 2,
+    '{{' : 0,
     '}}' : 2,
     '>>' : 2,
     '[\n$]' : 0,
@@ -119,8 +119,8 @@ class UrtextFile:
             if self.symbols[position] == '{{':
 
                 # begin tracking the ranges of the next outer one
-                if [last_position, position + 2] not in nested_levels[nested]:
-                    nested_levels[nested].append([last_position, position + 2])
+                if [last_position, position] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position])
 
                 # add another level of depth
                 nested += 1 
