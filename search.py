@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-
+from whoosh.writing import AsyncWriter
 def rebuild_search_index(self):
     
     self.ix = create_in(os.path.join(self.path, "index"),

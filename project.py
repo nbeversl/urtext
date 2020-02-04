@@ -1045,7 +1045,28 @@ def setup_logger(name, log_file, level=logging.INFO):
     logger.addHandler(handler)
     return logger
 
+def build_metadata(tags, one_line=False):
+    """ Note this is a method from node.py. Could be refactored """
 
+    if one_line:
+        line_separator = '; '
+    else:
+        line_separator = '\n'
+    new_metadata = '/-- '
+    if not one_line: 
+        new_metadata += line_separator
+    for tag in tags:
+        new_metadata += tag + ': '
+        if isinstance(tags[tag], list):
+            new_metadata += ' | '.join(tags[tag])
+        else:
+            new_metadata += tags[tag]
+        new_metadata += line_separator
+    if one_line:
+        new_metadata = new_metadata[:-2] + ' '
+
+    new_metadata += '--/'
+    return new_metadata 
 def creation_date(path_to_file):
     """
     Try to get the date that a file was created, falling back to when it was
