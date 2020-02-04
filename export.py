@@ -1,8 +1,22 @@
-""" 
-Export
-
-These should be re-tested. 
+# -*- coding: utf-8 -*-
 """
+This file is part of Urtext.
+
+Urtext is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Urtext is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
+
 import os
 import re
 from .node import UrtextNode
@@ -115,7 +129,7 @@ class UrtextExport:
         """
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
-        file_contents = self.project.full_file_contents(filename)        
+        file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
         split = self.project.nodes[root_node_id].split
         
@@ -297,6 +311,8 @@ class UrtextExport:
                 visited_nodes=visited_nodes
                )
     
+        if kind == 'markdown':
+            added_contents = strip_leading_space(added_contents)
         return added_contents, points, visited_nodes
 
 
@@ -364,7 +380,7 @@ class UrtextExport:
 
             visited_nodes.append(node_id)
 
-            
+        
         return added_contents, points, visited_nodes
 
 
@@ -407,3 +423,10 @@ class UrtextExport:
                     contents = contents.replace(match, '"'+title+'"') # TODO - make quote wrapper optional
         
         return contents
+
+def strip_leading_space(text):
+    result = []
+    for line in text.split('\n'):
+        result.append(line.lstrip())
+    return '\n'.join(result)
+

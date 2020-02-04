@@ -1,4 +1,22 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+"""
+This file is part of Urtext.
+
+Urtext is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Urtext is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
 # dependencies:
 # googleapiclient
 # httplib2
@@ -48,4 +66,22 @@ def sync_project_to_calendar(project, calendar_id):
         content = project.nodes[node_id].contents()
         event = service.events().insert(calendarId=calendar_id, body=google_calendar_event).execute()
         print ('Event created: %s' % (event.get('htmlLink')))
-        
+
+"""
+not currently used
+"""
+"""
+def get_google_auth_token(self):
+    return os.path.join(self.path, self.settings['google_auth_token'])
+
+def get_google_credentials(self):
+    return os.path.join(self.path, 'credentials.json')
+
+def get_service_account_private_key(self):
+    return os.path.join(self.path, self.settings['google_service_account_private_key'])
+def sync_to_google_calendar(self):
+    google_calendar_id = self.settings['google_calendar_id']
+    if not google_calendar_id:
+        return
+    sync_project_to_calendar(self, google_calendar_id)
+"""

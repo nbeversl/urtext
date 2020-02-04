@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+This file is part of Urtext.
+
+Urtext is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Urtext is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
+
+"""
+
 from .project import UrtextProject, node_id_regex, NoProject
 import re
 import os
@@ -38,7 +57,7 @@ class ProjectList():
             other_project = match.group(1)
             node_id = match.group(2)
             if self.set_current_project_by_title(other_project):
-                print('PROJECT CHANGED TO ' + other_project)
+                print('Urtext project switched to ' + other_project)
 
         # from here, could just pass in the node ID instead of the full string
         return self.current_project.get_link(string, position=position)
@@ -95,6 +114,18 @@ class ProjectList():
         for project in self.projects:
             if project.path == path:
                 return project
+        return None
+
+    def init_new_project(self, path):
+        if path in self.project_titles():
+            print('Path already in use.')
+            return None
+        if not os.path.exists(path):
+            os.makedirs(path)
+        project = UrtextProject(path, init_project=True)
+        if project:
+            self.projects.append(project)
+            self.set_current_project_from_path(path)
         return None
 
     def get_node_link(self, string):
