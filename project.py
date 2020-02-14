@@ -53,7 +53,7 @@ from .watchdog import watchdog_functions
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
-title_marker_regex = r'\|.*?>{1,2}[0-9,a-z]{3}\b'
+title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 
 functions = []
@@ -84,11 +84,6 @@ class UrtextProject:
                  watchdog=False):
 
         self.path = path
-        if not os.path.exists(os.path.join(self.path, "urtext_log.txt")):
-            with open(os.path.join(self.path, "urtext_log.txt"), "w") as f:
-                f.write('URTEXT LOG')
-                f.close()
-
         self.log = None
         self.nodes = {}
         self.files = {}
@@ -110,7 +105,21 @@ class UrtextProject:
             'logfile':'urtext_log.txt',
             'home': None,
             'timestamp_format':
-                ['%a., %b. %d, %Y, %I:%M %p', '%B %-d, %Y', '%B %Y', '%m-%d-%Y'],
+                [   
+                '%a., %b. %d, %Y, %I:%M %p', 
+                '%B %-d, %Y', 
+                '%B %Y', 
+                '%m-%d-%Y',
+                '%a., %b. %d, %Y, %I:%M %p %z', 
+                '%a., %b. %d, %Y, %I:%M %p',
+                '%A, %B %d, %Y, %I:%M %p',
+                '%B %d, %Y, %I:%M %p',
+                '%B %d, %Y, %I:%M%p',
+                '%B %Y',
+                '%Y',
+                '%B %d, %Y',
+                '%A, %B %d, %Y, %I:%M%p'
+                ],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log':'false',
             'google_auth_token' : 'token.json',
@@ -145,8 +154,9 @@ class UrtextProject:
         #     self.executor.submit(self._initialize_project, import_project=import_project, init_project=init_project) 
         
         self._initialize_project(import_project=import_project, init_project=init_project)
-        self.log = setup_logger('urtext_log',
-                        os.path.join(self.path, 'urtext_log.txt'))
+
+        self.log = self.setup_logger('urtext_log', os.path.join(self.path, 'urtext_log.txt'))
+
         self.loaded = True
 
     def _initialize_project(self, 
@@ -359,6 +369,7 @@ class UrtextProject:
                     continue
                 if dt_stamp.tzinfo == None:
                     dt_stamp = self.default_timezone.localize(dt_stamp) 
+
                 return dt_stamp                
             except ValueError:
                 continue
@@ -783,10 +794,12 @@ class UrtextProject:
             distance_back += 1
             parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
 
-        while self.nodes[child_node_id].split and not self.nodes[child_node_id].compact and self.nodes[parent_node].split :
-            if self.nodes[parent_node].root_node:
-                break
-            parent_node = self.get_parent(parent_node)
+        # if this is a split node, keep getting the parent until we're out of a split.
+        if self.nodes[child_node_id].split:
+            while self.nodes[parent_node].split:
+                if self.nodes[parent_node].root_node:
+                    break
+                parent_node = self.get_parent(parent_node)
 
         return parent_node
 
@@ -937,7 +950,7 @@ class UrtextProject:
             file_contents[0:start - 2],
             '\n| ',
             self.nodes[popped_node_id].title,
-             '>>',
+             ' >>',
             popped_node_id,
             '\n',
             file_contents[end + 2:]])
@@ -945,14 +958,14 @@ class UrtextProject:
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
             f.close()
-
-        self._parse_file(filename)
+        self.executor.submit(self._parse_file, filename) 
 
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
             f.close()
 
-        self._parse_file(popped_node_id+'.txt')
+        self.executor.submit(self._parse_file, popped_node_id+'.txt') 
+
         return start - 2 # returns where to put the cursor at the new marker
 
     def titles(self):
@@ -972,6 +985,30 @@ class UrtextProject:
     def random_node(self):
         node_id = random.choice(list(self.nodes))
         return node_id
+    
+    def replace_links(self, original_id, new_id='', new_project=''):
+        if not new_id and not new_project:
+            return None
+        replacement = '>'+original_id
+        if new_id:
+            replacement = '>'+new_id
+        if new_project:
+            replacement = '{"'+new_project+'"}'+replacement
+        patterns_to_replace = [
+            r'\|.*?\s>{1,2}',   # replace title markers before anything else
+            r'[^\}]>>',              # then node pointers
+            r'[^\}]>' ]              # finally node links
+
+        for filename in list(self.files):
+            contents = self._full_file_contents(filename)
+            new_contents = contents
+            for pattern in patterns_to_replace:
+                links = re.findall(pattern + original_id, new_contents)
+                for link in links:
+                    new_contents = new_contents.replace(link, replacement, 1)
+            if contents != new_contents:
+                self._set_file_contents(filename, new_contents)
+                self.executor.submit(self._file_update, filename)
 
     def on_modified(self, 
             filename,
@@ -996,6 +1033,14 @@ class UrtextProject:
         
         self._log_item('MODIFIED ' + filename +' - Updating the project object')
         return self.executor.submit(self._file_update, filename)
+
+    def add_file(self, filename):
+        self.executor.submit(self._parse_file, filename) 
+        return self.executor.submit(self._update)
+
+    def remove_file(self, filename):
+        self._remove_file(filename) 
+        return self.executor.submit(self._update)
          
     def _file_update(self, filename):
         rewritten_contents = self._rewrite_titles(filename)
@@ -1004,13 +1049,30 @@ class UrtextProject:
             self._set_file_contents(filename, rewritten_contents)
             modified_files.append(filename)     
         self._parse_file(filename, re_index=True)
-              
         return self._update(modified_files=modified_files)
     
     def get_file_name(self, node_id):
         if node_id in self.nodes:
             return self.nodes[node_id].filename
         return None
+
+    def setup_logger(self, name, log_file, level=logging.INFO):
+        if not os.path.exists(os.path.join(self.path, log_file)):
+            with open(os.path.join(self.path, log_file), "w") as f:
+                f.write('URTEXT LOG')
+                f.close()
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        if not os.path.exists(log_file):
+            with open(log_file, 'w', encoding='utf-8') as theFile:
+                theFile.close()
+        logger = logging.getLogger(name)
+        handler = logging.FileHandler(log_file, mode='a')
+        handler.setFormatter(formatter)
+        logger.setLevel(level)
+        logger.addHandler(handler)
+        return logger
+
+
 
 
 class NoProject(Exception):
@@ -1033,17 +1095,6 @@ class PickledUrtextProject:
 Helpers 
 """
 
-def setup_logger(name, log_file, level=logging.INFO):
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-    if not os.path.exists(log_file):
-        with open(log_file, 'w', encoding='utf-8') as theFile:
-            theFile.close()
-    logger = logging.getLogger(name)
-    handler = logging.FileHandler(log_file, mode='a')
-    handler.setFormatter(formatter)
-    logger.setLevel(level)
-    logger.addHandler(handler)
-    return logger
 
 def build_metadata(tags, one_line=False):
     """ Note this is a method from node.py. Could be refactored """

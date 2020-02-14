@@ -75,7 +75,6 @@ class UrtextFile:
                 start = loc.span()[0]
                 self.symbols[start] = compiled_symbol.pattern
 
-        #self.positions = sorted([key for key in self.symbols.keys() if key != -1])
         self.positions = sorted([key for key in self.symbols if key != -1])
 
     def parse(self, contents):
