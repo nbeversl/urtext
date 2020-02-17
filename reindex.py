@@ -97,4 +97,4 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
     return renamed_files
 
-reindex_functions = [ _rename_file_nodes ]
+reindex_functions = [ _rename_file_nodes, reindex_files ]

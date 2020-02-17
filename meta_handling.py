@@ -20,7 +20,8 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 Metadata
 """
-
+import datetime
+import re 
 
 def tag_other_node(self, node_id, tag_contents):
     """adds a metadata tag to a node programmatically"""

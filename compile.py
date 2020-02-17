@@ -180,15 +180,20 @@ def _compile(self, skip_tags=False, modified_files=[]):
                 if indiv_node_id not in included_nodes:
                     included_nodes.append(indiv_node_id)
 
-            for item in dynamic_definition.include_or:
-                if len(item) < 2:
-                    continue
-                key, value = item[0], item[1]
-                if value in self.tagnames[key]:
-                    added_nodes = self.tagnames[key][value]
-                    for indiv_node_id in added_nodes:
-                        if indiv_node_id not in included_nodes:
-                            included_nodes.append(indiv_node_id)
+            if dynamic_definition.include_or == 'all':
+                included_nodes = list(self.nodes.keys())
+                included_nodes.remove(dynamic_definition.target_id)
+
+            else:
+                for item in dynamic_definition.include_or:
+                    if len(item) < 2:
+                        continue
+                    key, value = item[0], item[1]
+                    if value in self.tagnames[key]:
+                        added_nodes = self.tagnames[key][value]
+                        for indiv_node_id in added_nodes:
+                            if indiv_node_id not in included_nodes:
+                                included_nodes.append(indiv_node_id)
 
             for item in dynamic_definition.exclude_or:
                 key, value = item[0], item[1]
@@ -207,7 +212,9 @@ def _compile(self, skip_tags=False, modified_files=[]):
             build timeline if specified
             """
             if dynamic_definition.show == 'timeline':
-                 new_node_contents += timeline(self, included_nodes)
+                if target_id in included_nodes:
+                    included_nodes.remove(target_id)
+                new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
             else:
                 """

@@ -20,65 +20,75 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 from pytz import timezone
+from .node import UrtextNode 
 
-def timeline(project, nodes):
+def timeline(project, nodes, kind=None):
     """ given an Urtext Project and nodes, generates a timeline """
 
     found_stuff = []
     timestamp_formats = project.settings['timestamp_format']
 
     for node in nodes:
-        full_contents = project.nodes[node.id].content_only()
-
-        timestamp_regex = '<.*?>'
-        timestamps = re.findall(timestamp_regex, full_contents)
-        id_date = node.date
-        contents = full_contents
-        found_thing = {}
-        found_thing['filename'] = node.id
-        found_thing['kind'] = 'from Node ID'
-        found_thing['date'] = id_date
-        found_thing['contents'] = contents[:150]
-        found_stuff.append(found_thing)
-
-        for timestamp in timestamps:
-            contents = full_contents
+        
+        # metadata datestamps
+        if kind in [None, 'meta']:
+            id_date = node.date
+            contents = project.nodes[node.id].content_only()
             found_thing = {}
-            for ts_format in timestamp_formats: 
-                print(ts_format)
-                print(timestamp)
-                try:
-                    datetime_obj = datetime.datetime.strptime(timestamp, '<'+ts_format+'>')
-                    if not datetime_obj:
-                        continue
-                except ValueError as err:
-                    continue
-                if datetime_obj.tzinfo == None:
-                    datetime_obj = project.default_timezone.localize(datetime_obj)
-                print(datetime_obj)
-                position = contents.find(timestamp)
-                lines = contents.split('\n')
-                for num, line in enumerate(lines, 1):
-                    if timestamp in line:
-                        line_number = num
-                if len(contents) < 150:
-                    relevant_text = contents
-                elif position < 150:
-                    relevant_text = contents[:position + 150]
-                elif len(contents) < 300:
-                    relevant_text = contents[position - 150:]
-                else:
-                    relevant_text = contents[position - 150:position +
-                                             150]  # pull the nearby text
-                relevant_text = relevant_text.replace('<' + timestamp + '>',
-                                                      '[ ...STAMP... ]')
+            found_thing['filename'] = node.id
+            found_thing['kind'] = 'from Node ID'
+            found_thing['date'] = id_date
+            found_thing['contents'] = contents[:150]
+            found_stuff.append(found_thing)
 
-                found_thing['filename'] = node.id + ':' + str(line_number)
-                found_thing['kind'] = 'as inline timestamp '
-                found_thing['date'] = datetime_obj
-                found_thing['contents'] = relevant_text
-                found_stuff.append(found_thing)
-    print(found_stuff)
+        # inline timestamps
+        if kind in [None, 'inline']:
+
+            full_contents = project.nodes[node.id].content_only()
+            full_contents = UrtextNode.strip_metadata(contents=full_contents).split('\n')
+
+            for num, line in enumerate(full_contents, 1):
+
+                timestamp_regex = '<.*?>'
+                timestamps = re.findall(timestamp_regex, line)
+
+                for timestamp in timestamps:
+                    
+                    found_thing = {}
+                    for ts_format in timestamp_formats: 
+                        try:
+                            datetime_obj = datetime.datetime.strptime(timestamp, '<'+ts_format+'>')
+                            if not datetime_obj:
+                                continue
+                        except ValueError as err:
+                            continue
+                        if datetime_obj.tzinfo == None:
+                            datetime_obj = project.default_timezone.localize(datetime_obj)
+                        
+                        # position = contents.find(timestamp)
+                        # lines = contents.split('\n')
+                        # for num, line in enumerate(lines, 1):
+                        #     if timestamp in line:
+                        #         line_number = num
+
+                        # if len(contents) < 150:
+                        #     relevant_text = contents
+                        # elif position < 150:
+                        #     relevant_text = contents[:position + 150]
+                        # elif len(contents) < 300:
+                        #     relevant_text = contents[position - 150:]
+                        # else:
+                        #     relevant_text = contents[position - 150:position +
+                        #                              150]  # pull the nearby text
+                        relevant_text = line.replace('<' + timestamp + '>',
+                                                              '[ ...STAMP... ]')
+
+                        found_thing['filename'] = node.id + ':' + str(num)
+                        found_thing['kind'] = 'as inline timestamp '
+                        found_thing['date'] = datetime_obj
+                        found_thing['contents'] = relevant_text
+                        found_stuff.append(found_thing)
+
     sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)
     start_date = sorted_stuff[0]['contents']
     timeline = ''

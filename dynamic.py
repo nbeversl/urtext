@@ -48,6 +48,7 @@ class UrtextDynamicDefinition:
         self.tag_all_value = None
         self.recursive = False
         self.reverse = False
+        self.timeline_type = None
 
         entries = re.split(';|\n', contents)
 
@@ -149,6 +150,11 @@ class UrtextDynamicDefinition:
                     self.show = 'title'
                 if atoms[1].lower() == 'timeline':
                     self.show = 'timeline'
+                if len(atoms) > 2:
+                    if atoms[2].lower() == 'meta':
+                        self.timeline_type = 'meta'
+                    if atoms[2].lower() == 'inline':
+                        self.timeline_type = 'inline'
                 continue
             """
             exclude/include meta
