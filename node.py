@@ -155,8 +155,7 @@ class UrtextNode:
                     dynamic_definition, '')
         return stripped_contents
 
-    def content_only(self):
-
+    def content_only(self, contents=''):
         contents = self.strip_metadata(contents=self.contents())
         contents = self.strip_dynamic_definitions(contents=contents)
         return contents

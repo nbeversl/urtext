@@ -49,6 +49,7 @@ class UrtextDynamicDefinition:
         self.recursive = False
         self.reverse = False
         self.timeline_type = None
+        self.search = None
 
         entries = re.split(';|\n', contents)
 
@@ -102,6 +103,9 @@ class UrtextDynamicDefinition:
                 self.omit = atoms[1:]
                 continue
 
+            if atoms[0].lower() == 'search':
+                self.search = atoms[1]
+                continue
 
             if atoms[0].lower() == 'sort':
                 self.sort_tagname = atoms[1]

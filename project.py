@@ -35,9 +35,7 @@ from anytree import Node, RenderTree, PreOrderIter
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
-from whoosh.qparser import QueryParser
-from whoosh.highlight import UppercaseFormatter
-from whoosh.analysis import StemmingAnalyzer
+from whoosh.analysis import StandardAnalyzer
 from whoosh.writing import AsyncWriter
 
 from .timeline import timeline
@@ -127,19 +125,7 @@ class UrtextProject:
             'timezone' : ['UTC'] 
         }
         self.default_timezone = None
-        self.title = self.path # default
-        
-        # Whoosh
-        self.schema = Schema(
-                title=TEXT(stored=True),
-                path=ID(stored=True),
-                content=TEXT(stored=True, analyzer=StemmingAnalyzer()))
-
-        index_dir = os.path.join(self.path, "index")
-        
-        if exists_in(os.path.join(self.path, "index"), indexname="urtext"):
-            self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
-
+        self.title = self.path # d
         # if os.path.exists(os.path.join(self.path, "save.p")):
         #     self._log_item('Loading project from pickle')
         #     saved_state = pickle.load(open( os.path.join(self.path, "save.p"), "rb" ) )
@@ -156,6 +142,17 @@ class UrtextProject:
         self._initialize_project(import_project=import_project, init_project=init_project)
 
         self.log = self.setup_logger('urtext_log', os.path.join(self.path, 'urtext_log.txt'))
+
+        if not exists_in(os.path.join(self.path, "index"), indexname="urtext"):
+            if not os.path.exists(os.path.join(self.path, "index")):
+                os.mkdir(os.path.join(self.path, "index"))
+            schema = Schema(
+                title=TEXT(stored=True),
+                path=ID(unique=True, stored=True),
+                content=TEXT(stored=True, analyzer=StandardAnalyzer()))
+            create_in(os.path.join(self.path, "index"), schema, indexname="urtext")
+        
+        self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
 
         self.loaded = True
 
@@ -242,7 +239,7 @@ class UrtextProject:
         """
         Parse the file
         """
-        new_file = UrtextFile(os.path.join(self.path, filename))
+        new_file = UrtextFile(os.path.join(self.path, filename), search_index=self.ix)
         if not new_file.nodes: 
             self.to_import.append(filename)
             return
@@ -269,9 +266,6 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._rebuild_node_tag_info(node_id)
-
-            if re_index:
-                self.re_search_index_file(filename)
 
         return filename
 

@@ -20,6 +20,7 @@ import os
 import re
 from .node import UrtextNode
 from . import node
+from whoosh.writing import AsyncWriter
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -48,22 +49,22 @@ symbol_length = {
 
 class UrtextFile:
 
-    def __init__(self, filename):
+    def __init__(self, filename, search_index=None):
         
         self.nodes = {}
         self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
-        self.lex_and_parse()
+        self.lex_and_parse(search_index=search_index)
 
-    def lex_and_parse(self):
+    def lex_and_parse(self, search_index=None):
         contents = self.get_file_contents()
         if not contents:
             return
         self.file_length = len(contents)
         self.lex(contents)
-        self.parse(contents)
+        self.parse(contents, search_index=search_index)
 
     def lex(self, contents):
         """ locate syntax symbols """
@@ -77,7 +78,7 @@ class UrtextFile:
 
         self.positions = sorted([key for key in self.symbols if key != -1])
 
-    def parse(self, contents):
+    def parse(self, contents, search_index=None):
 
         """
         Counters and trackers
@@ -87,7 +88,8 @@ class UrtextFile:
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
         split = False
-        
+        if search_index:
+        	writer = AsyncWriter(search_index)
         """
         If there are node syntax symbols in the file,
         find the first non-newline symbol. Newlines are significant
@@ -214,6 +216,14 @@ class UrtextFile:
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
 
+                if search_index:
+                    stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
+                    stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents)
+
+                    writer.update_document(title=new_node.title,
+                            path=new_node.id,
+                            content=stripped_contents)
+
                 self.parsed_items[nested_levels[nested][0][0]] = new_node.id
 
                 del nested_levels[nested]
@@ -258,13 +268,23 @@ class UrtextFile:
             root=True,
             split=split # use most recent value; if previous closed node is split, this is split.
             )
-       
+        
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
         
+        if search_index:
+            stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
+            stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents )
+
+            writer.update_document(title=root_node.title,
+                            path=root_node.id,
+                            content=stripped_contents)
+            writer.commit()
+
         if len(self.root_nodes) == 0:
             print('NO ROOT NODES')
             print(self.filename)
+
 
     def add_node(self, new_node, ranges):
 

@@ -211,11 +211,15 @@ def _compile(self, skip_tags=False, modified_files=[]):
             """
             build timeline if specified
             """
+
             if dynamic_definition.show == 'timeline':
                 if target_id in included_nodes:
                     included_nodes.remove(target_id)
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
+            elif dynamic_definition.search and self.ix:
+                new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
+ 
             else:
                 """
                 otherwise this is a list, so sort the nodes
