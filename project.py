@@ -328,8 +328,8 @@ class UrtextProject:
                                   ' has duplicate definition in >' + new_node.id +
                                   '. Keeping the definition in >' +
                                   defined + '.')
-            else:
-                self.dynamic_nodes.append(definition)
+                else:
+                    self.dynamic_nodes.append(definition)
 
         if len(new_node.metadata.get_tag('ID')) > 1:
             self._log_item('Multiple ID tags in >' + new_node.id +
@@ -585,7 +585,8 @@ class UrtextProject:
             node_id = self.next_index()            
         contents = "\n\n\n"
         contents += "/-- ID:" + node_id + '\n'
-        contents += 'Timestamp:' + self.timestamp(date) + '\n'
+        contents += 'timestamp:' + self.timestamp(date) + '\n'
+        contents += 'from: '+ platform.node() + '\n'
         for key in metadata:
             contents += key + ": " + metadata[key] + '\n'
         contents += "--/"
@@ -684,13 +685,11 @@ class UrtextProject:
         self.nav_index += 1
 
     def nav_reverse(self):
+        if not self.check_nav_history():
+            return None
 
         if self.nav_index == 0:
             self._log_item('index is already at the beginning.')
-            return None
-
-
-        if not self.check_nav_history():
             return None
 
         last_node = self.navigation[self.nav_index - 1]
@@ -706,7 +705,7 @@ class UrtextProject:
 
     def check_nav_history(self):
 
-        if len(self.navigation) == -1:
+        if len(self.navigation) == 0:
             self._log_item('There is no nav history')
             return None
 
@@ -813,7 +812,6 @@ class UrtextProject:
         public
         Given a position, returns the Node ID it's in 
         """
-
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[os.path.basename(filename)].nodes:
@@ -965,7 +963,7 @@ class UrtextProject:
     def titles(self):
         title_list = {}
         for node_id in self.nodes:
-            title_list[self.nodes[node_id].title] = node_id
+            title_list[self.nodes[node_id].title] = (self.title, node_id)
         return title_list
 
     def complete_tag(self, fragment):
@@ -990,8 +988,8 @@ class UrtextProject:
             replacement = '{"'+new_project+'"}'+replacement
         patterns_to_replace = [
             r'\|.*?\s>{1,2}',   # replace title markers before anything else
-            r'[^\}]>>',              # then node pointers
-            r'[^\}]>' ]              # finally node links
+            r'[^\}]>>',         # then node pointers
+            r'[^\}]>' ]         # finally node links
 
         for filename in list(self.files):
             contents = self._full_file_contents(filename)

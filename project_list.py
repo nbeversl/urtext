@@ -28,8 +28,11 @@ class ProjectList():
         self.base_path = base_path
         self._add_folder(base_path)
         self.current_project = None
+        self.navigation = []
+        self.nav_index = -1
         if self.projects:
             self.current_project = self.projects[0]
+
 
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
@@ -50,19 +53,29 @@ class ProjectList():
                 self._add_folder(os.path.join(folder, subdir))
 
     def get_link(self, string, position=0):
-        project_link_r = re.compile(r'{\"(.*?)\"}>([0-9,a-z]{3})\b')
-        match = project_link_r.search(string)
-        if match:
-            other_project = match.group(1)
-            node_id = match.group(2)
-            if self.set_current_project_by_title(other_project):
-                print('Urtext project switched to ' + other_project)
+        project_link_r = re.compile(r'{\"(.*?)\"}(>([0-9,a-z]{3})\b)')
+        project_name = project_link_r.search(string)
+        if project_name:
+            other_project = project_name.group(1)
+            self.set_current_project(other_project)
+            if len(project_name.groups()) == 2:
+                node_id = project_name.group(3)
+            else:
+                node_id = self.nav_current()
+            self.current_project.nav_new(node_id)
+            if node_id:
+                return ('NODE', 
+                    node_id, 
+                    self.current_project.nodes[node_id].ranges[0][0])
+            return None
 
         # from here, could just pass in the node ID instead of the full string
-        return self.current_project.get_link(string, position=position)
+        link = self.current_project.get_link(string, position=position)
+        self.current_project.nav_new(link[1])
+        return link
 
     def on_modified(self, filename):
-        if self.set_current_project_from_path(os.path.dirname(filename)):
+        if self.set_current_project(os.path.dirname(filename)):
             return self.current_project.on_modified(filename)            
         return None
         
@@ -85,27 +98,25 @@ class ProjectList():
             project = self._get_project_from_path(title_or_path) 
         return project
 
-    def set_current_project_by_title(self, title):
-        for project in self.projects:
-            if project.title == title:
-                self.current_project = project
-                return True
-        return False
+    def set_current_project(self, title_or_path):
+        project = None
+        project = self._get_project_from_title(title_or_path) 
+        if not project:
+            project = self._get_project_from_path(title_or_path)
+        if project and project != self.current_project:
+           self.current_project = project
+           return print('Urtext project switched to ' + self.current_project.title)
+        return project
 
     def nav_current(self):
-        nav = self.current_project.nav_current()        
-        if not nav:
-            nav = self.current_project.get_home()
-        if not nav:
+        node_id = self.current_project.nav_current()        
+        if not node_id:
+            node_id = self.current_project.get_home()
+        if not node_id:
+            node_id = self.current_project.random_node()
+        if not node_id:
             return None
-        return nav
-
-    def set_current_project_from_path(self, path):
-        for project in self.projects:
-            if project.path == path:
-                self.current_project = project
-                return True
-        return False
+        return node_id
 
     def project_titles(self):
         titles = []
@@ -117,7 +128,7 @@ class ProjectList():
         project = UrtextProject(path, import_project=True)
         print('Imported project '+project.title)
         self.projects.append(project)
-        self.set_current_project_from_path(path)
+        self.set_current_project(path)
 
     def get_current_project(self, path):
         for project in self.projects:
@@ -134,7 +145,7 @@ class ProjectList():
         project = UrtextProject(path, init_project=True)
         if project:
             self.projects.append(project)
-            self.set_current_project_from_path(path)
+            self.set_current_project(path)
         return None
 
     def move_file(self, filename, to_project):
@@ -169,5 +180,67 @@ class ProjectList():
         old_project = self.get_project(old_project_path_or_title)
         new_project = self.get_project(new_project_path_or_title)
         old_project.replace_links(node_id, new_project=new_project.title)
+    
+    def titles(self):
+        title_list = {}
+        for project in self.projects:
+            for node_id in project.nodes:
+                title_list[project.nodes[node_id].title] = (project.title, node_id)
+        return title_list
+
+    """
+    Project List Navigation
+    """
+
+    def nav_advance(self):
+        if not self.check_nav_history():
+            return None
+
+        # return if the index is already at the end
+        if self.nav_index == len(self.navigation) - 1:
+            print('index is at the end.')
+            return None
         
+        self.nav_index += 1
+        project, node_id = self.navigation[self.nav_index]
+        self.get_project(project).nav_advance()
+        self.set_current_project(project)
+        return node_id
+
+    def nav_new(self, node_id, project=None):
+        if not project:
+            project = self.current_project
+
+        # don't re-remember consecutive duplicate links
+        if self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
+            return
+
+        # add the newly opened file as the new "HEAD"
+        del self.navigation[self.nav_index+1:]
+        self.navigation.append((project.title, node_id))
+        self.current_project.nav_new(node_id)
+        self.nav_index += 1
+
+    def nav_reverse(self):
+        if not self.check_nav_history():
+            return None
+
+        if self.nav_index == 0:
+            print('index is already at the beginning.')
+            return None
+
+        project, last_node = self.navigation[self.nav_index - 1]
+        self.get_project(project).nav_reverse()
+        self.set_current_project(project)
+        self.nav_index -= 1
+        return last_node
+
+    def check_nav_history(self):
+
+        if len(self.navigation) == 0:
+            print('There is no nav history')
+            return None
+
+        return True
+
 

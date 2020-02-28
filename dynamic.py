@@ -114,7 +114,6 @@ class UrtextDynamicDefinition:
                 continue
 
             if atoms[0].lower() == 'export' and len(atoms) > 2:
-
                 export_format = atoms[1].lower()
                 from_node = atoms[2].lower()
                 

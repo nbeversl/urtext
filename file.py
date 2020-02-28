@@ -21,6 +21,7 @@ import re
 from .node import UrtextNode
 from . import node
 from whoosh.writing import AsyncWriter
+import concurrent.futures
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -40,7 +41,7 @@ compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
 
 symbol_length = {
     '^[^\S\n]*\^':0,
-    '{{' : 0,
+    '{{' : 2,
     '}}' : 2,
     '>>' : 2,
     '[\n$]' : 0,
@@ -56,7 +57,9 @@ class UrtextFile:
         self.filename = filename
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.lex_and_parse(search_index=search_index)
+        
 
     def lex_and_parse(self, search_index=None):
         contents = self.get_file_contents()
@@ -88,6 +91,7 @@ class UrtextFile:
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
         split = False
+
         if search_index:
         	writer = AsyncWriter(search_index)
         """
@@ -99,6 +103,7 @@ class UrtextFile:
 
         if self.positions:
             
+            # find the first non-newline position
             while self.symbols[self.positions[non_newline_symbol]] == '[\n$]':
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
@@ -120,8 +125,8 @@ class UrtextFile:
             if self.symbols[position] == '{{':
 
                 # begin tracking the ranges of the next outer one
-                if [last_position, position] not in nested_levels[nested]:
-                    nested_levels[nested].append([last_position, position])
+                if [last_position, position + 2] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position + 2])
 
                 # add another level of depth
                 nested += 1 
@@ -143,10 +148,12 @@ class UrtextFile:
                 continue
 
             if self.symbols[position] == '^[^\S\n]*\^':
-                if [last_position, position] not in nested_levels[nested] and position > last_position:
-                    nested_levels[nested].append([last_position, position])
+                # TODO - FIGURE OUT WHY ADDING + 1 to these positions to correct the 
+                # parsing causes exporting to skip entire regions
+                if [last_position, position  ] not in nested_levels[nested] and position  > last_position:
+                    nested_levels[nested].append([last_position, position ])
                 nested += 1 
-                last_position = position # + 1 remove for debugging
+                last_position = position + 1 # + 1 remove for debugging
                 compact_node_open = True
                 continue
                 
@@ -165,7 +172,8 @@ class UrtextFile:
                     compact = True)
 
                 compact_node_open = False
-                
+                looking_for_parent = compact_node.id
+
                 if not self.add_node(
                     compact_node, # node
                     nested_levels[nested] # ranges
@@ -220,7 +228,9 @@ class UrtextFile:
                     stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
                     stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents)
 
-                    writer.update_document(title=new_node.title,
+                    self.executor.submit( 
+                            writer.update_document, 
+                            title=new_node.title,
                             path=new_node.id,
                             content=stripped_contents)
 
@@ -232,7 +242,7 @@ class UrtextFile:
                     last_position = position
                     continue
 
-                last_position = position + 2
+                last_position = position + 2 
 
                 nested -= 1
 
@@ -268,7 +278,7 @@ class UrtextFile:
             root=True,
             split=split # use most recent value; if previous closed node is split, this is split.
             )
-        
+    
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
         
@@ -276,10 +286,12 @@ class UrtextFile:
             stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
             stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents )
 
-            writer.update_document(title=root_node.title,
-                            path=root_node.id,
-                            content=stripped_contents)
-            writer.commit()
+            self.executor.submit( 
+                writer.update_document,
+                title=root_node.title,
+                path=root_node.id,
+                content=stripped_contents)
+            self.executor.submit( writer.commit )
 
         if len(self.root_nodes) == 0:
             print('NO ROOT NODES')

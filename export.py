@@ -87,7 +87,7 @@ class UrtextExport:
         """
         Public method to export a tree of nodes from a given root node
         """
-
+        visited_nodes = []
         """
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
@@ -148,6 +148,7 @@ class UrtextExport:
         locations = []
         for single_range in ranges:
             locations.extend(self.get_node_pointers_with_locations(file_contents[single_range[0]:single_range[1]]))
+            """ locations contain tuple of (location, matched_text)"""
 
         """sort the node pointers in order of occurrence and remember the node_ids"""
         node_pointer_locations = {}
@@ -159,7 +160,8 @@ class UrtextExport:
         
         for single_range in ranges:
             
-            points[len(added_contents)] = ( root_node_id, single_range[0] ) # returns node ID and exact FILE location
+            # returns node ID and exact FILE location
+            points[len(added_contents)] = ( root_node_id, single_range[0] ) 
 
             """
             If this is the node's first range:
@@ -259,7 +261,7 @@ class UrtextExport:
 
                 # get the node in the space immediately following this RANGE
                 next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
-
+                
                 if next_node and next_node not in visited_nodes:
 
                     """ for HTML, if this is a dynamic node and contains a tree, add the tree"""
@@ -313,6 +315,7 @@ class UrtextExport:
     
         if kind == 'markdown':
             added_contents = strip_leading_space(added_contents)
+       
         return added_contents, points, visited_nodes
 
 
@@ -341,7 +344,7 @@ class UrtextExport:
         visited_nodes=[]):
 
         locations = sorted(matches)
-        
+
         for location in locations:
 
             match = matches[location]
@@ -377,9 +380,8 @@ class UrtextExport:
             # POSSIBLY may need to add here:
             # points [ len(added_contents) ] = whatever the sending ID was??? ]
             added_contents += remaining_contents
-
+           
             visited_nodes.append(node_id)
-
         
         return added_contents, points, visited_nodes
 

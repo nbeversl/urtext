@@ -47,6 +47,8 @@ def _set_tree_elements(self, filename):
             continue
         """
         if this is a compact node, its parent is the node right before it.
+        <Thu., Feb. 27, 2020, 08:00 AM -0500>
+        This is actually not true.The node right before it could be another compact node.
         """
             
         if self.nodes[node].compact or self.nodes[node].split:               

@@ -74,10 +74,11 @@ def _compile(self, skip_tags=False, modified_files=[]):
                 new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
         if dynamic_definition.export: #
+
             exclude=[]
             if dynamic_definition.target_id:
             	exclude.append(target_id)
-            	
+
             exported = UrtextExport(self) 
             exported_content, points = exported.export_from(
                  dynamic_definition.export_source,
@@ -213,8 +214,12 @@ def _compile(self, skip_tags=False, modified_files=[]):
             """
 
             if dynamic_definition.show == 'timeline':
-                if target_id in included_nodes:
-                    included_nodes.remove(target_id)
+                print(target_id)
+                for node in included_nodes:
+                    print(node.id)
+                    if node.id == target_id:
+                        print('FOUND' +target_id)
+                        included_nodes.remove(node)
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
             elif dynamic_definition.search and self.ix:
