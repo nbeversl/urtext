@@ -30,11 +30,12 @@ def _compile(self, skip_tags=False, modified_files=[]):
     for dynamic_definition in list(self.dynamic_nodes):
 
         source_id = dynamic_definition.source_id
-
+        print(dynamic_definition)
         # exporting is the only the thing using target files at this moment
         if not dynamic_definition.target_id and not dynamic_definition.export:
+            print('SHIT')
             continue
-
+        
         if dynamic_definition.target_id:
             target_id = dynamic_definition.target_id
 
@@ -73,6 +74,7 @@ def _compile(self, skip_tags=False, modified_files=[]):
             else:
                 new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
+        
         if dynamic_definition.export: #
 
             exclude=[]
@@ -96,7 +98,7 @@ def _compile(self, skip_tags=False, modified_files=[]):
                     continue
 
             new_node_contents = exported_content
-
+        
         if dynamic_definition.tag_all_key and skip_tags:
             continue
 
@@ -211,14 +213,13 @@ def _compile(self, skip_tags=False, modified_files=[]):
             included_nodes = [self.nodes[node_id] for node_id in included_nodes]
             """
             build timeline if specified
-            """
+            """ 
+            
 
             if dynamic_definition.show == 'timeline':
-                print(target_id)
                 for node in included_nodes:
                     print(node.id)
                     if node.id == target_id:
-                        print('FOUND' +target_id)
                         included_nodes.remove(node)
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
@@ -226,6 +227,7 @@ def _compile(self, skip_tags=False, modified_files=[]):
                 new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
  
             else:
+                
                 """
                 otherwise this is a list, so sort the nodes
                 """

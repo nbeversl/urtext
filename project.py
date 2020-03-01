@@ -309,7 +309,7 @@ class UrtextProject:
         """ Adds a node to the project object """
 
         for definition in new_node.dynamic_definitions:
-
+            
             if definition.target_id:
                 defined = self._target_id_defined(definition.target_id)
                 if defined and defined != new_node.id:
@@ -317,9 +317,9 @@ class UrtextProject:
                                   ' has duplicate definition in >' + new_node.id +
                                   '. Keeping the definition in >' +
                                   defined + '.')
-            else:
-                self.dynamic_nodes.append(definition)
-            
+                else:
+                    self.dynamic_nodes.append(definition)
+                
             if definition.target_file:
 
                 defined = self._target_file_defined(definition.target_file)

@@ -92,6 +92,9 @@ class UrtextExport:
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
+        if kind == 'markdown':
+            clean_whitespace = True
+            
         exported_content, points, visited_nodes = self._add_node_content(
             root_node_id,
             as_single_file=as_single_file,
@@ -429,6 +432,8 @@ class UrtextExport:
 def strip_leading_space(text):
     result = []
     for line in text.split('\n'):
-        result.append(line.lstrip())
+        if '├──' not in line and '└──' not in line:
+            line = line.lstrip()
+        result.append(line)
     return '\n'.join(result)
 
