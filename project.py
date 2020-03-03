@@ -32,6 +32,7 @@ from pytz import timezone
 import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
+import diff_match_patch as dmp_module
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
@@ -152,6 +153,9 @@ class UrtextProject:
                 content=TEXT(stored=True, analyzer=StandardAnalyzer()))
             create_in(os.path.join(self.path, "index"), schema, indexname="urtext")
         
+        if not os.path.exists(os.path.join(self.path, "history")):
+            os.mkdir(os.path.join(self.path, "history"))
+
         self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
 
         self.loaded = True
@@ -199,7 +203,7 @@ class UrtextProject:
         return itertools.product(chars, repeat=3)
 
     def _update(self, 
-        compile_project=True, 
+        compile_project=True,
         update_lists=True,
         modified_files=[]):
 
@@ -224,10 +228,7 @@ class UrtextProject:
         
         return modified_files
 
-    def _parse_file(self, 
-        filename,
-        re_index=False,
-        ):
+    def _parse_file(self, filename):
     
         if self._filter_filenames(os.path.basename(filename)) == None:
             return
@@ -510,7 +511,7 @@ class UrtextProject:
     Removing and renaming files
     """
     def _remove_file(self, filename):
-    
+       
         if filename in self.files:
             for node_id in self.files[filename].nodes:
                 for index, definition in enumerate(self.dynamic_nodes):
@@ -540,7 +541,7 @@ class UrtextProject:
     	  
         self._remove_file(os.path.basename(filename))
         os.remove(os.path.join(self.path, filename))
-        future = self.executor.submit(self._update) 
+        future = self.executor.submit(self._update)
 
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -670,13 +671,19 @@ class UrtextProject:
             return None
         
         self.nav_index += 1
+        while self.navigation[self.nav_index] not in self.nodes:
+            # possible the node to advance to has been deleted
+            del self.navigation[self.nav_index]
+            if self.nav_index == len(self.navigation):
+                return None
+
         return self.navigation[self.nav_index]
 
 
     def nav_new(self, node_id):
 
         # don't re-remember consecutive duplicate links
-        if self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
+        if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
             return
 
         # add the newly opened file as the new "HEAD"
@@ -694,17 +701,23 @@ class UrtextProject:
 
         last_node = self.navigation[self.nav_index - 1]
         self.nav_index -= 1
+        while self.navigation[self.nav_index] not in self.nodes:
+            # possible the node to reverse to has been deleted
+            del self.navigation[self.nav_index]
+            self.nav_index -= 1
+            if self.nav_index == -1:
+                return None
         return last_node
 
     def nav_current(self):
+
         if not self.check_nav_history():
             return None
-        if self.nav_index in self.navigation:
+        if self.nav_index < len(self.navigation):
             return self.navigation[self.nav_index]
         return None
 
     def check_nav_history(self):
-
         if len(self.navigation) == 0:
             self._log_item('There is no nav history')
             return None
@@ -1002,14 +1015,8 @@ class UrtextProject:
                 self._set_file_contents(filename, new_contents)
                 self.executor.submit(self._file_update, filename)
 
-    def on_modified(self, 
-            filename,
-            watchdog=False):
+    def on_modified(self, filename):
     
-        if watchdog:
-            unlocked, lock_name = self.check_lock()
-            if not unlocked:
-                return (False, lock_name)
         do_not_update = [
             'index', 
             os.path.basename(self.path),
@@ -1019,12 +1026,22 @@ class UrtextProject:
         for node_id in ['zzz','zzy']:
             if node_id in self.nodes:
                do_not_update.append(self.nodes[node_id].filename)
+        
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
-            return (True,'')
+            return (True, '')
         
         self._log_item('MODIFIED ' + filename +' - Updating the project object')
         return self.executor.submit(self._file_update, filename)
+         
+    def _file_update(self, filename):
+        rewritten_contents = self._rewrite_titles(filename)
+        modified_files = []
+        if rewritten_contents:
+            self._set_file_contents(filename, rewritten_contents)
+            modified_files.append(filename)     
+        self._parse_file(filename)
+        return self._update(modified_files=modified_files)
 
     def add_file(self, filename):
         self.executor.submit(self._parse_file, filename) 
@@ -1033,15 +1050,6 @@ class UrtextProject:
     def remove_file(self, filename):
         self._remove_file(filename) 
         return self.executor.submit(self._update)
-         
-    def _file_update(self, filename):
-        rewritten_contents = self._rewrite_titles(filename)
-        modified_files = []
-        if rewritten_contents:
-            self._set_file_contents(filename, rewritten_contents)
-            modified_files.append(filename)     
-        self._parse_file(filename, re_index=True)
-        return self._update(modified_files=modified_files)
     
     def get_file_name(self, node_id):
         if node_id in self.nodes:
@@ -1064,7 +1072,63 @@ class UrtextProject:
         logger.addHandler(handler)
         return logger
 
+    def snapshot(self, filename, contents):
+        
+        filename = os.path.basename(filename)
+        if filename not in self.files:
+            return None
+        history_file = filename.replace('.txt','.urtext-history')
+        now = int(time.time())
+        if os.path.exists(os.path.join(self.path, 'history', history_file)):
+            with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
+                file_history = pickle.load(f)
+            if contents != file_history[self.most_recent_history(file_history)]:
+                file_history[now] = contents
+        else:
+            file_history = {}
+            file_history[now] = contents
+        pickle.dump( file_history, open( os.path.join(self.path, 'history', history_file), "wb" ) )
+        return print('UPDATED THE FILE')
 
+    def snapshot_diff(self, filename, contents):
+        dmp = dmp_module.diff_match_patch()
+        filename = os.path.basename(filename)
+        if filename not in self.files:
+            return None
+        history_file = filename.replace('.txt','.urtext-history')
+        now = int(time.time())
+        if os.path.exists(os.path.join(self.path, 'history', history_file)):
+            with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
+                file_history = pickle.load(f)
+            if contents != file_history[self.most_recent_history(file_history)]:
+                latest_history = self.apply_patches(file_history)
+                file_history[now] = dmp.patch_make(latest_history, contents)
+        else:
+            file_history = {}
+            file_history[now] = contents
+        pickle.dump( file_history, open( os.path.join(self.path, 'history', history_file), "wb" ) )
+        return print('UPDATED THE FILE')
+
+    def apply_patches(self, history, distance_back=0):
+        dmp = dmp_module.diff_match_patch()
+        times = sorted(history.keys())
+        original = history[times[0]]
+        for index in range(1,len(times)-distance_back):
+            next_patches = history[times[index]]
+            original = dmp.patch_apply(next_patches, original)[0]
+        return original
+
+
+    def get_history(self, filename):
+        filename = os.path.basename(filename)
+        history_file = filename.replace('.txt','.urtext-history')
+        history_dir = os.path.join(self.path, 'history', history_file)
+        file_history = pickle.load(open(history_dir, "rb" )) 
+        return file_history
+
+    def most_recent_history(self, history):
+        times = sorted(history.keys())
+        return times[-1]
 
 
 class NoProject(Exception):
@@ -1110,6 +1174,7 @@ def build_metadata(tags, one_line=False):
 
     new_metadata += '--/'
     return new_metadata 
+
 def creation_date(path_to_file):
     """
     Try to get the date that a file was created, falling back to when it was

@@ -24,16 +24,18 @@ import os
 """
 compile method for the UrtextProject class
 """
-def _compile(self, skip_tags=False, modified_files=[]):
+def _compile(self, 
+    skip_tags=False, 
+    modified_files=[]):
     """ Main method to compile dynamic nodes from their definitions """
 
     for dynamic_definition in list(self.dynamic_nodes):
 
         source_id = dynamic_definition.source_id
-        print(dynamic_definition)
+
         # exporting is the only the thing using target files at this moment
         if not dynamic_definition.target_id and not dynamic_definition.export:
-            print('SHIT')
+
             continue
         
         if dynamic_definition.target_id:
@@ -99,11 +101,10 @@ def _compile(self, skip_tags=False, modified_files=[]):
 
             new_node_contents = exported_content
         
-        if dynamic_definition.tag_all_key and skip_tags:
-            continue
 
-        if dynamic_definition.tag_all_key and not skip_tags:
-    
+        if dynamic_definition.tag_all_key:
+            if skip_tags:
+                continue
             self._add_sub_tags(
                 source_id,
                 target_id, 
@@ -218,7 +219,7 @@ def _compile(self, skip_tags=False, modified_files=[]):
 
             if dynamic_definition.show == 'timeline':
                 for node in included_nodes:
-                    print(node.id)
+
                     if node.id == target_id:
                         included_nodes.remove(node)
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)

@@ -92,11 +92,14 @@ class NodeMetadata:
             return values[0]
         return ''
 
-
-    def set_tag(self, key, value, from_node=None):
-        new_entry = MetadataEntry(key, value, None, from_node=from_node)
+    def add_tag(self, 
+        key, 
+        value,
+        from_node=None):
+        new_entry = MetadataEntry(key, [value], None, from_node=from_node)
         if new_entry not in self.entries:
             self.entries.append(new_entry)
+
 
     def remove_dynamic_tags_from_node(self, node_id):
         for entry in self.entries:

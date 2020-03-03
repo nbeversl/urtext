@@ -82,22 +82,20 @@ def _rebuild_node_tag_info(self, node):
                     self.tagnames[entry.tag_name][value] = []
                 self.tagnames[entry.tag_name][value].append(node)
 
-
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction
     target_id, # ID to tag
     tag, 
     value, 
     recursive=False):
-
     if source_id not in self.dynamic_tags:
         self.dynamic_tags[source_id] = []
-
+    
     children = self.nodes[target_id].tree_node.children
     for child in children:
-        self.nodes[child.name].metadata.set_tag(
+        self.nodes[child.name].metadata.add_tag(
             tag, 
-            value, 
+            value,
             from_node=source_id)
         self.dynamic_tags[source_id].append(target_id)
         self._rebuild_node_tag_info(child.name)

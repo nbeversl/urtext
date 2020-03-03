@@ -109,10 +109,12 @@ class ProjectList():
         return project
 
     def nav_current(self):
-        node_id = self.current_project.nav_current()        
+        node_id = self.current_project.nav_current()     
         if not node_id:
+            print('GETTING HOME')
             node_id = self.current_project.get_home()
         if not node_id:
+            print('GETTING RANDOM NODE')
             node_id = self.current_project.random_node()
         if not node_id:
             return None
@@ -160,6 +162,20 @@ class ProjectList():
             )        
         to_project.add_file(filename)
         return True
+
+    # future
+    # def move_all_linked_nodes(self, filename, to_project):
+    #     to_project = self.get_project(to_project)
+    #     if not to_project:
+    #         return None
+    #     filename = os.path.basename(filename)
+    #     self.current_project.remove_file(filename)
+    #     os.rename(
+    #         os.path.join( self.current_project.path, filename),
+    #         os.path.join( to_project.path, filename)
+    #         )        
+    #     to_project.add_file(filename)
+    #     return True
         
     def get_node_link(self, string):
 
@@ -193,17 +209,26 @@ class ProjectList():
     """
 
     def nav_advance(self):
-        if not self.check_nav_history():
-            return None
+
+        self.nav_index += 1
 
         # return if the index is already at the end
-        if self.nav_index == len(self.navigation) - 1:
+        if self.nav_index >= len(self.navigation):
             print('index is at the end.')
+            self.nav_index -= 1
             return None
+            
+        # Here we only need the project, not the node_id
+        project, _node_id = self.navigation[self.nav_index]
+        node_id = self.get_project(project).nav_advance()
         
-        self.nav_index += 1
-        project, node_id = self.navigation[self.nav_index]
-        self.get_project(project).nav_advance()
+        while node_id != _node_id:
+            # possible the node to advance to has been deleted
+            # sync the project list's navigation with the project's
+            del self.navigation[self.nav_index]
+            if self.nav_index == len(self.navigation):
+                return None
+
         self.set_current_project(project)
         return node_id
 
@@ -212,7 +237,7 @@ class ProjectList():
             project = self.current_project
 
         # don't re-remember consecutive duplicate links
-        if self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
+        if len(self.navigation) > self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
             return
 
         # add the newly opened file as the new "HEAD"
@@ -222,25 +247,25 @@ class ProjectList():
         self.nav_index += 1
 
     def nav_reverse(self):
-        if not self.check_nav_history():
-            return None
 
-        if self.nav_index == 0:
-            print('index is already at the beginning.')
-            return None
-
-        project, last_node = self.navigation[self.nav_index - 1]
-        self.get_project(project).nav_reverse()
-        self.set_current_project(project)
         self.nav_index -= 1
-        return last_node
-
-    def check_nav_history(self):
-
-        if len(self.navigation) == 0:
-            print('There is no nav history')
+        if self.nav_index <= -1:
+            print('index is already at the beginning.')
+            self.nav_index = -1
             return None
+        # Here we only need the project, not the node_id
+        project, _last_node = self.navigation[self.nav_index]
+        last_node = self.get_project(project).nav_reverse()
 
-        return True
+        while last_node != _last_node:
+            # possible the node to reverse to has been deleted
+            # sync the project list's navigation with the project's
+            del self.navigation[self.nav_index]
+            self.nav_index -= 1
+            if self.nav_index == -1:
+                return None
 
+        self.set_current_project(project)
+        
+        return last_node
 
