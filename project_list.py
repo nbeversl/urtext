@@ -231,7 +231,7 @@ class ProjectList():
     def delete_file(self, file_name, project=None):
         if not project:
             project = self.current_project
-        file_name = os.path.base_name(file_name)
+        file_name = os.path.basename(file_name)
         node_ids = project.delete_file(file_name)
         for node_id in node_ids:
             navigation_entry = (project.title, node_id)

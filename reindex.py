@@ -1,3 +1,5 @@
+import os
+
 """ 
 Reindexing (renaming) Files 
 """
