@@ -20,6 +20,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from .project import UrtextProject, node_id_regex, NoProject
 import re
 import os
+import sys
 
 class ProjectList():
 
@@ -52,7 +53,13 @@ class ProjectList():
             if subdir not in ['.git','.DS_Store','/']:
                 self._add_folder(os.path.join(folder, subdir))
 
-    def get_link(self, string, position=0):
+    def get_link_and_set_project(self, string, position=0):
+        """
+        Given a line of text, looks for a link to a node or project
+        with node, sets the current project to the containing project,
+        and returns the link information. Does not update navigation,
+        this should be done by the calling procedure.
+        """
         project_link_r = re.compile(r'{\"(.*?)\"}(>([0-9,a-z]{3})\b)')
         project_name = project_link_r.search(string)
         if project_name:
@@ -62,7 +69,6 @@ class ProjectList():
                 node_id = project_name.group(3)
             else:
                 node_id = self.nav_current()
-            self.current_project.nav_new(node_id)
             if node_id:
                 return ('NODE', 
                     node_id, 
@@ -71,7 +77,6 @@ class ProjectList():
 
         # from here, could just pass in the node ID instead of the full string
         link = self.current_project.get_link(string, position=position)
-        self.current_project.nav_new(link[1])
         return link
 
     def on_modified(self, filename):
@@ -95,7 +100,7 @@ class ProjectList():
         project = None
         project = self._get_project_from_title(title_or_path) 
         if not project:
-            project = self._get_project_from_path(title_or_path) 
+            project = self._get_project_from_title(title_or_path) 
         return project
 
     def set_current_project(self, title_or_path):
@@ -210,62 +215,61 @@ class ProjectList():
 
     def nav_advance(self):
 
-        self.nav_index += 1
-
-        # return if the index is already at the end
-        if self.nav_index >= len(self.navigation):
-            print('index is at the end.')
-            self.nav_index -= 1
+        if not self.navigation:
             return None
             
-        # Here we only need the project, not the node_id
-        project, _node_id = self.navigation[self.nav_index]
-        node_id = self.get_project(project).nav_advance()
+        if self.nav_index == len(self.navigation) - 1:
+            return
         
-        while node_id != _node_id:
-            # possible the node to advance to has been deleted
-            # sync the project list's navigation with the project's
-            del self.navigation[self.nav_index]
-            if self.nav_index == len(self.navigation):
-                return None
-
+        self.nav_index += 1
+        
+        project, next_node = self.navigation[self.nav_index]
         self.set_current_project(project)
-        return node_id
+       
+        return next_node
+    
+    def delete_file(self, file_name, project=None):
+        if not project:
+            project = self.current_project
+        file_name = os.path.base_name(file_name)
+        node_ids = project.delete_file(file_name)
+        for node_id in node_ids:
+            navigation_entry = (project.title, node_id)
+            while navigation_entry in self.navigation:
+                index = self.navigation.index(navigation_entry)
+                del self.navigation[index]
+                if self.nav_index > index: # >= ?
+                    self.nav_index -= 1
 
     def nav_new(self, node_id, project=None):
         if not project:
             project = self.current_project
 
         # don't re-remember consecutive duplicate links
-        if len(self.navigation) > self.nav_index > -1 and node_id == self.navigation[self.nav_index]:
+        if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
             return
 
         # add the newly opened file as the new "HEAD"
-        del self.navigation[self.nav_index+1:]
+        self.nav_index += 1
+        del self.navigation[self.nav_index:]
+
         self.navigation.append((project.title, node_id))
         self.current_project.nav_new(node_id)
-        self.nav_index += 1
 
     def nav_reverse(self):
-
-        self.nav_index -= 1
-        if self.nav_index <= -1:
-            print('index is already at the beginning.')
-            self.nav_index = -1
-            return None
-        # Here we only need the project, not the node_id
-        project, _last_node = self.navigation[self.nav_index]
-        last_node = self.get_project(project).nav_reverse()
-
-        while last_node != _last_node:
-            # possible the node to reverse to has been deleted
-            # sync the project list's navigation with the project's
-            del self.navigation[self.nav_index]
-            self.nav_index -= 1
-            if self.nav_index == -1:
-                return None
-
-        self.set_current_project(project)
         
+        if not self.navigation:
+            print('no nav history')
+            return None
+            
+        if self.nav_index == 0:
+            print('index is already at the beginning.')
+            return None
+        
+        self.nav_index -= 1
+
+        project, last_node = self.navigation[self.nav_index]
+        self.set_current_project(project)
+       
         return last_node
 

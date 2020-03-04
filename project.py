@@ -538,10 +538,17 @@ class UrtextProject:
         return None
 
     def delete_file(self, filename):
-    	  
+        node_ids = list(self.files[filename].nodes)
         self._remove_file(os.path.basename(filename))
         os.remove(os.path.join(self.path, filename))
         future = self.executor.submit(self._update)
+        for node_id in node_ids:
+            while node_id in self.navigation:
+                index = self.navigation.index(node_id)
+                del self.navigation[index]
+                if self.nav_index > index: # >= ?
+                    self.nav_index -= 1
+        return node_ids
 
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -664,19 +671,17 @@ class UrtextProject:
     def nav_advance(self):
         if not self.check_nav_history():
             return None
-
+        print('PROJECT:')
+        print(self.navigation)
+        print(self.nav_index)
+        
         # return if the index is already at the end
         if self.nav_index == len(self.navigation) - 1:
-            self._log_item('index is at the end.')
+            self._log_item('project index is at the end.')
             return None
         
         self.nav_index += 1
-        while self.navigation[self.nav_index] not in self.nodes:
-            # possible the node to advance to has been deleted
-            del self.navigation[self.nav_index]
-            if self.nav_index == len(self.navigation):
-                return None
-
+       
         return self.navigation[self.nav_index]
 
 
@@ -690,23 +695,26 @@ class UrtextProject:
         del self.navigation[self.nav_index+1:]
         self.navigation.append(node_id)
         self.nav_index += 1
+        print('PROJECT:')
+        print(self.navigation)
+        print(self.nav_index)
+
 
     def nav_reverse(self):
         if not self.check_nav_history():
             return None
 
-        if self.nav_index == 0:
-            self._log_item('index is already at the beginning.')
+        if self.nav_index < 0:
+            self._log_item('project index is already at the beginning.')
             return None
 
         last_node = self.navigation[self.nav_index - 1]
         self.nav_index -= 1
-        while self.navigation[self.nav_index] not in self.nodes:
-            # possible the node to reverse to has been deleted
-            del self.navigation[self.nav_index]
-            self.nav_index -= 1
-            if self.nav_index == -1:
-                return None
+
+        print('PROJECT:')
+        print(self.navigation)
+        print(self.nav_index)
+
         return last_node
 
     def nav_current(self):
@@ -714,6 +722,11 @@ class UrtextProject:
         if not self.check_nav_history():
             return None
         if self.nav_index < len(self.navigation):
+            print('PROJECT:')
+            print(self.navigation)
+            print(self.nav_index)
+
+
             return self.navigation[self.nav_index]
         return None
 
@@ -1077,7 +1090,7 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if filename not in self.files:
             return None
-        history_file = filename.replace('.txt','.urtext-history')
+        history_file = filename.replace('.txt','.pkl')
         now = int(time.time())
         if os.path.exists(os.path.join(self.path, 'history', history_file)):
             with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
@@ -1095,7 +1108,7 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if filename not in self.files:
             return None
-        history_file = filename.replace('.txt','.urtext-history')
+        history_file = filename.replace('.txt','.pkl')
         now = int(time.time())
         if os.path.exists(os.path.join(self.path, 'history', history_file)):
             with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
@@ -1121,7 +1134,7 @@ class UrtextProject:
 
     def get_history(self, filename):
         filename = os.path.basename(filename)
-        history_file = filename.replace('.txt','.urtext-history')
+        history_file = filename.replace('.txt','.pkl')
         history_dir = os.path.join(self.path, 'history', history_file)
         file_history = pickle.load(open(history_dir, "rb" )) 
         return file_history
