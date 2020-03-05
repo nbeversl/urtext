@@ -20,7 +20,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from .project import UrtextProject, node_id_regex, NoProject
 import re
 import os
-import sys
 
 class ProjectList():
 

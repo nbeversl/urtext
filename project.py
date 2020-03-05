@@ -669,8 +669,9 @@ class UrtextProject:
     """
 
     def nav_advance(self):
-        if not self.check_nav_history():
+        if not self.navigation:
             return None
+
         print('PROJECT:')
         print(self.navigation)
         print(self.nav_index)
@@ -692,25 +693,26 @@ class UrtextProject:
             return
 
         # add the newly opened file as the new "HEAD"
-        del self.navigation[self.nav_index+1:]
-        self.navigation.append(node_id)
         self.nav_index += 1
+        del self.navigation[self.nav_index:]
+        self.navigation.append(node_id)
+        
         print('PROJECT:')
         print(self.navigation)
         print(self.nav_index)
 
 
     def nav_reverse(self):
-        if not self.check_nav_history():
+        if not self.navigation:
             return None
 
-        if self.nav_index < 0:
+        if self.nav_index == 0:
             self._log_item('project index is already at the beginning.')
             return None
 
-        last_node = self.navigation[self.nav_index - 1]
         self.nav_index -= 1
-
+        last_node = self.navigation[self.nav_index]
+        
         print('PROJECT:')
         print(self.navigation)
         print(self.nav_index)
@@ -719,23 +721,13 @@ class UrtextProject:
 
     def nav_current(self):
 
-        if not self.check_nav_history():
-            return None
-        if self.nav_index < len(self.navigation):
-            print('PROJECT:')
-            print(self.navigation)
-            print(self.nav_index)
-
-
-            return self.navigation[self.nav_index]
-        return None
-
-    def check_nav_history(self):
-        if len(self.navigation) == 0:
-            self._log_item('There is no nav history')
+        if not self.navigation:
             return None
 
-        return True
+        print('PROJECT:')
+        print(self.navigation)
+        print(self.nav_index)
+        return self.navigation[self.nav_index]
 
     """ 
     Cataloguing Nodes
