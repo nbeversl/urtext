@@ -251,7 +251,6 @@ class ProjectList():
         # add the newly opened file as the new "HEAD"
         self.nav_index += 1
         del self.navigation[self.nav_index:]
-
         self.navigation.append((project.title, node_id))
         self.current_project.nav_new(node_id)
 

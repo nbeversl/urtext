@@ -671,10 +671,6 @@ class UrtextProject:
     def nav_advance(self):
         if not self.navigation:
             return None
-
-        print('PROJECT:')
-        print(self.navigation)
-        print(self.nav_index)
         
         # return if the index is already at the end
         if self.nav_index == len(self.navigation) - 1:
@@ -697,10 +693,6 @@ class UrtextProject:
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
         
-        print('PROJECT:')
-        print(self.navigation)
-        print(self.nav_index)
-
 
     def nav_reverse(self):
         if not self.navigation:
@@ -713,10 +705,6 @@ class UrtextProject:
         self.nav_index -= 1
         last_node = self.navigation[self.nav_index]
         
-        print('PROJECT:')
-        print(self.navigation)
-        print(self.nav_index)
-
         return last_node
 
     def nav_current(self):
@@ -724,9 +712,6 @@ class UrtextProject:
         if not self.navigation:
             return None
 
-        print('PROJECT:')
-        print(self.navigation)
-        print(self.nav_index)
         return self.navigation[self.nav_index]
 
     """ 
