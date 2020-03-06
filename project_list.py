@@ -59,22 +59,29 @@ class ProjectList():
         and returns the link information. Does not update navigation,
         this should be done by the calling procedure.
         """
-        project_link_r = re.compile(r'{\"(.*?)\"}(>([0-9,a-z]{3})\b)')
+        node_id = None
+        project_link_r = re.compile(r'{\"(.*?)\"}(>([0-9,a-z]{3})\b)?')
         project_name = project_link_r.search(string)
+        
+        """ If a project name has been specified, locate the project and node """
         if project_name:
             other_project = project_name.group(1)
-            self.set_current_project(other_project)
-            if len(project_name.groups()) == 2:
+            if not self.set_current_project(other_project):
+                return None
+            if project_name.group(2):
+                """ If a node ID is included, and it exists, link to it """
                 node_id = project_name.group(3)
-            else:
-                node_id = self.nav_current()
-            if node_id:
-                return ('NODE', 
-                    node_id, 
-                    self.current_project.nodes[node_id].ranges[0][0])
-            return None
+                if node_id in self.current_project.nodes:
+                    return ('NODE', 
+                        node_id, 
+                        self.current_project.nodes[node_id].ranges[0][0])
+            """ else (for both cases): """
+            node_id = self.current_project.nav_current()
+            return ('NODE', 
+                node_id, 
+                self.current_project.nodes[node_id].ranges[0][0])         
 
-        # from here, could just pass in the node ID instead of the full string
+        """ Otherwise, just search the link for a link in the current project """
         link = self.current_project.get_link(string, position=position)
         return link
 
@@ -109,7 +116,7 @@ class ProjectList():
             project = self._get_project_from_path(title_or_path)
         if project and project != self.current_project:
            self.current_project = project
-           return print('Urtext project switched to ' + self.current_project.title)
+           print('Urtext project switched to ' + self.current_project.title)
         return project
 
     def nav_current(self):
@@ -163,8 +170,15 @@ class ProjectList():
         os.rename(
             os.path.join( self.current_project.path, filename),
             os.path.join( to_project.path, filename)
-            )        
+            )
         to_project.add_file(filename)
+
+        # also move the history file
+        history_file = filename.replace('.txt','.pkl')
+        if os.path.exists(os.path.join(self.current_project.path, 'history', history_file)):
+            os.rename(os.path.join(self.current_project.path, 'history', history_file),
+                  os.path.join(to_project.path, 'history', history_file))
+
         return True
 
     # future

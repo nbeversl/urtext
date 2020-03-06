@@ -48,9 +48,6 @@ def _compile(self,
 
             filename = self.nodes[target_id].filename
         
-        # self._parse_file(filename)
-        # self._update(compile_project=False)
-        
         points = {} # temporary
 
         new_node_contents = ''

@@ -709,10 +709,12 @@ class UrtextProject:
 
     def nav_current(self):
 
-        if not self.navigation:
-            return None
-
-        return self.navigation[self.nav_index]
+        if self.navigation:
+            return self.navigation[self.nav_index]
+        alternative = self.get_home()
+        if not alternative:
+            alternative = self.random_node()
+        return alternative
 
     """ 
     Cataloguing Nodes
@@ -1062,59 +1064,45 @@ class UrtextProject:
         logger.addHandler(handler)
         return logger
 
-    def snapshot(self, filename, contents):
-        
-        filename = os.path.basename(filename)
-        if filename not in self.files:
-            return None
-        history_file = filename.replace('.txt','.pkl')
-        now = int(time.time())
-        if os.path.exists(os.path.join(self.path, 'history', history_file)):
-            with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
-                file_history = pickle.load(f)
-            if contents != file_history[self.most_recent_history(file_history)]:
-                file_history[now] = contents
-        else:
-            file_history = {}
-            file_history[now] = contents
-        pickle.dump( file_history, open( os.path.join(self.path, 'history', history_file), "wb" ) )
-        return print('UPDATED THE FILE')
-
     def snapshot_diff(self, filename, contents):
         dmp = dmp_module.diff_match_patch()
         filename = os.path.basename(filename)
         if filename not in self.files:
             return None
-        history_file = filename.replace('.txt','.pkl')
         now = int(time.time())
-        if os.path.exists(os.path.join(self.path, 'history', history_file)):
-            with open( os.path.join(self.path, 'history', history_file), "rb" ) as f:
-                file_history = pickle.load(f)
-            if contents != file_history[self.most_recent_history(file_history)]:
-                latest_history = self.apply_patches(file_history)
-                file_history[now] = dmp.patch_make(latest_history, contents)
-        else:
+        history_file = filename.replace('.txt','.pkl')
+        file_history = self.get_history(filename)
+        if not file_history:
             file_history = {}
             file_history[now] = contents
-        pickle.dump( file_history, open( os.path.join(self.path, 'history', history_file), "wb" ) )
-        return print('UPDATED THE FILE')
+            with open( os.path.join(self.path, 'history', history_file), "wb") as f:
+                pickle.dump(file_history, f )
+
+            return
+        else:
+            latest_history = self.apply_patches(file_history)
+            if contents != latest_history:
+                file_history[now] = dmp.patch_make(latest_history, contents)
+                with open( os.path.join(self.path, 'history', history_file), "wb") as f:
+                    pickle.dump(file_history, f )
 
     def apply_patches(self, history, distance_back=0):
         dmp = dmp_module.diff_match_patch()
         times = sorted(history.keys())
         original = history[times[0]]
         for index in range(1,len(times)-distance_back):
-            next_patches = history[times[index]]
-            original = dmp.patch_apply(next_patches, original)[0]
+            next_patch = history[times[index]]
+            original = dmp.patch_apply(next_patch, original)[0]
         return original
-
 
     def get_history(self, filename):
         filename = os.path.basename(filename)
-        history_file = filename.replace('.txt','.pkl')
-        history_dir = os.path.join(self.path, 'history', history_file)
-        file_history = pickle.load(open(history_dir, "rb" )) 
-        return file_history
+        history_file = filename.replace('.txt','.pkl')        
+        if os.path.exists(os.path.join(self.path, 'history', history_file)):
+            with open(os.path.join(self.path, 'history', history_file), "rb") as f:
+                file_history = pickle.load(f)
+            return file_history
+        return None
 
     def most_recent_history(self, history):
         times = sorted(history.keys())
