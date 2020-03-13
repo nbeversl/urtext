@@ -42,17 +42,23 @@ def _compile(self,
             target_id = dynamic_definition.target_id
 
             if target_id not in list(self.nodes):
-                self._log_item('Dynamic node definition >' + source_id +
+                self._log_item('Dynamic node definition in >' + source_id +
                               ' points to nonexistent node >' + target_id)
                 continue
 
             filename = self.nodes[target_id].filename
-        
-        points = {} # temporary
+
+        if self.compiled:
+            self._parse_file(filename)
+            self._update(compile_project=False)
+
+        points = {}
 
         new_node_contents = ''
 
-        if dynamic_definition.tree and dynamic_definition.tree in self.nodes:
+        if dynamic_definition.tree:
+            if dynamic_definition.tree not in self.nodes:
+                continue
             new_node_contents += self.show_tree_from(dynamic_definition.tree)
 
         if dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
@@ -182,7 +188,11 @@ def _compile(self,
                     included_nodes.append(indiv_node_id)
 
             if dynamic_definition.include_or == 'all':
-                included_nodes = list(self.nodes.keys())
+                included_nodes = self.all_nodes()
+                included_nodes.remove(dynamic_definition.target_id)
+
+            if dynamic_definition.include_or == 'indexed':
+                included_nodes = self.indexed_nodes()
                 included_nodes.remove(dynamic_definition.target_id)
 
             else:
@@ -212,7 +222,6 @@ def _compile(self,
             """
             build timeline if specified
             """ 
-            
 
             if dynamic_definition.show == 'timeline':
                 for node in included_nodes:
@@ -310,8 +319,11 @@ def _compile(self,
             if changed_file not in modified_files:
                 modified_files.append(changed_file)
             self._parse_file(changed_file)
-            self._update(compile_project=False, update_lists=False)
+            self._update(compile_project=False)
+
         self.nodes[target_id].points = points
+        if dynamic_definition.tree:
+            self.nodes[target_id].is_tree = True
         
     return modified_files
 

@@ -227,6 +227,10 @@ class UrtextExport:
             """
             Add the range contents only after the title, if any.
             """
+            if kind == 'markdown':
+                range_contents = strip_leading_space(range_contents)
+                if self.project.nodes[root_node_id].is_tree:
+                    range_contents  = insert_leading_tab(range_contents )
 
             added_contents += range_contents
 
@@ -241,7 +245,7 @@ class UrtextExport:
                     title,
                     '<'+heading_tag+'>'+title+'</'+heading_tag+'>',
                     1)
-
+            
             added_contents = self.replace_node_links(added_contents, kind)
 
             if clean_whitespace:
@@ -294,7 +298,9 @@ class UrtextExport:
                             clean_whitespace=clean_whitespace,
                             visited_nodes=visited_nodes
                             )
-
+            
+       
+                              
         """
         For this single range of text, replace node pointers with their contents,
         which cals this function recursively.
@@ -315,10 +321,8 @@ class UrtextExport:
                 clean_whitespace=clean_whitespace,
                 visited_nodes=visited_nodes
                )
-    
-        if kind == 'markdown':
-            added_contents = strip_leading_space(added_contents)
-       
+
+
         return added_contents, points, visited_nodes
 
 
@@ -423,16 +427,29 @@ class UrtextExport:
                 
                     contents = contents.replace(match, '<a href="'+link+'">'+title+'</a>')
 
-                if kind in ['plaintext','markdown']:
+                if kind == 'plaintext':
 
                     contents = contents.replace(match, '"'+title+'"') # TODO - make quote wrapper optional
         
+                if kind == 'markdown':
+
+                    link = '#' + title.lower().replace(' ','-');
+                    contents = contents.replace(match, '['+title+']('+link+')') # TODO - make quote wrapper optional
+
         return contents
+
+def insert_leading_tab(text):
+    result = ['\n\t']
+    for line in text.split('\n'):
+        result.append(line)
+        result.append('\n\t')
+    return ''.join(result)
+
 
 def strip_leading_space(text):
     result = []
     for line in text.split('\n'):
-        if '├──' not in line and '└──' not in line:
+        if '├' not in line and '└' and '─' not in line:
             line = line.lstrip()
         result.append(line)
     return '\n'.join(result)

@@ -1,5 +1,5 @@
 from anytree import Node, RenderTree, PreOrderIter
-from anytree.render import AbstractStyle
+from anytree.render import ContStyle
 
 """
 Tree building
@@ -138,9 +138,9 @@ def show_tree_from(self,
 
     self._detach_excluded_tree_nodes(start_point)
 
-    no_line = AbstractStyle('    ','├── ','└── ')
+    #no_line = AbstractStyle('    ','├── ','└── ')
 
-    for pre, _, this_node in RenderTree(start_point,style=no_line ):
+    for pre, _, this_node in RenderTree(start_point,style=ContStyle ):
         if this_node.name in self.nodes:
             tree_render += "%s%s" % (pre, self.nodes[
                 this_node.name].title) + ' >' + this_node.name + '\n'

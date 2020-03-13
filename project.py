@@ -204,7 +204,6 @@ class UrtextProject:
 
     def _update(self, 
         compile_project=True,
-        update_lists=True,
         modified_files=[]):
 
         """ 
@@ -220,10 +219,6 @@ class UrtextProject:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
 
-        if update_lists:
-            self.update_node_list()
-            self._update_metadata_list()
-
         #pickle = PickledUrtextProject(self)
         
         return modified_files
@@ -234,14 +229,20 @@ class UrtextProject:
             return
 
         # clear all node_id's defined from this file in case the file has changed
+        already_in_project = False
         if os.path.basename(filename) in self.files:
+            already_in_project = True
             self._remove_file(os.path.basename(filename))
 
         """
         Parse the file
         """
-        new_file = UrtextFile(os.path.join(self.path, filename), search_index=self.ix)
+        new_file = UrtextFile(os.path.join(self.path, filename), #search_index=self.ix
+        )
         if not new_file.nodes: 
+            if already_in_project:
+                self._log_item('LOST FILE while re-parsing '+filename)
+                return False
             self.to_import.append(filename)
             return
 
@@ -403,24 +404,18 @@ class UrtextProject:
             return self.nodes[node_id].filename
         return False
 
-    """
-    Refreshers
-    """
-    def update_node_list(self):
-        """ Refreshes the Node List file, if it exists """
-        if 'zzz' in self.nodes:
-            node_list_file = self.nodes['zzz'].filename
-            contents = self.list_nodes() + '/--\nid:zzz\ntitle: Node List\n--/'
-            self._set_node_contents('zzz', contents)
 
-    def _update_metadata_list(self):
+    def _get_metadata_list(self, keys=[]):
         """ Refreshes the Metadata List file """
 
-        root = Node('Metadata Keys')
-        for key in sorted([
+        if not keys:
+            keys = sorted([
                 k for k in self.tagnames
                 if k.lower() not in ['defined in', 'id', 'timestamp', 'index']
-        ]):
+            ])
+
+        root = Node('Metadata Keys')
+        for key in keys:
             s = Node(key)
             s.parent = root
             for value in sorted(self.tagnames[key]):
@@ -435,14 +430,11 @@ class UrtextProject:
                         else: # debugging
                             print(node_id+ ' WAS LOST (DEBUGGING)')
                 
-        if 'zzy' in self.nodes:
-            metadata_file = self.nodes['zzy'].filename
-            contents = []           
-            for pre, _, node in RenderTree(root):
-                contents.append("%s%s\n" % (pre, node.name))
-            contents.append('/--\nid:zzy\ntitle: Metadata List\n--/')
-            self._set_node_contents('zzy', ''.join(contents))
-
+        contents = []           
+        for pre, _, node in RenderTree(root):
+            contents.append("%s%s\n" % (pre, node.name))
+            
+        return ''.join(contents)
 
     def _adjust_ranges(self, filename, from_position, amount):
         """ 
@@ -765,6 +757,11 @@ class UrtextProject:
             sorted_indexed_nodes[index] = node[0] 
         return sorted_indexed_nodes
 
+    def all_nodes(self):
+        all_nodes = self.indexed_nodes()
+        all_nodes.extend(self.unindexed_nodes())
+        return all_nodes
+
     def root_nodes(self, primary=False):
         """
         Returns the IDs of all the root (file level) nodes
@@ -1015,9 +1012,9 @@ class UrtextProject:
             self.settings['logfile'],
             ]
 
-        for node_id in ['zzz','zzy']:
-            if node_id in self.nodes:
-               do_not_update.append(self.nodes[node_id].filename)
+        # for node_id in ['zzz','zzy']:
+        #     if node_id in self.nodes:
+        #        do_not_update.append(self.nodes[node_id].filename)
         
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
@@ -1043,10 +1040,13 @@ class UrtextProject:
         self._remove_file(filename) 
         return self.executor.submit(self._update)
     
-    def get_file_name(self, node_id):
+    def get_file_name(self, node_id, absolute=False):
+        filename = None
         if node_id in self.nodes:
-            return self.nodes[node_id].filename
-        return None
+            filename = self.nodes[node_id].filename
+        if absolute:
+            filename = os.path.join(self.path, filename)
+        return filename
 
     def setup_logger(self, name, log_file, level=logging.INFO):
         if not os.path.exists(os.path.join(self.path, log_file)):

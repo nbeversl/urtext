@@ -163,8 +163,13 @@ class UrtextDynamicDefinition:
             exclude/include meta
             """
             if atoms[0].lower() == 'include':
+
                 if atoms[1].lower() == 'all':
                     self.include_or = 'all'
+                    continue
+
+                if atoms[1].lower() == 'indexed':
+                    self.include_or = 'indexed'
                     continue
 
                 if atoms[1].lower() == 'metadata' and len(atoms) > 3:

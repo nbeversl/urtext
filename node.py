@@ -73,6 +73,7 @@ class UrtextNode:
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
+        self.is_tree = False
         self.dynamic = False
         self.id = None
         self.root_node = root
@@ -115,6 +116,11 @@ class UrtextNode:
         for segment in self.ranges:
             node_contents.append(file_contents[segment[0]:segment[1]])
         node_contents = ''.join(node_contents)
+
+        # Strip out all Urtext node marker  Syntax.
+        # FUTURE: There may be a cleaner way to accomplish this at parse-time.
+        node_contents = node_contents.replace('{{','')
+        node_contents = node_contents.replace('}}','')
         if self.split: # don't include the split marker
             node_contents = node_contents.replace('%','',1)
         if self.compact: # don't include the split marker
