@@ -19,6 +19,8 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from whoosh.writing import AsyncWriter
 from whoosh.qparser import QueryParser
 from whoosh.highlight import UppercaseFormatter
+import concurrent.futures
+from concurrent.futures import ALL_COMPLETED
 
 def rebuild_search_index(self):
     
@@ -26,43 +28,23 @@ def rebuild_search_index(self):
 
     for node_id in self.nodes:
         node = self.nodes[node_id]
+        fs = []
         try:
-            writer.update_document(title=node.title,
+            fs.append(self.aux_executor.submit(writer.update_document, 
+                            title=node.title,
                             path=node.id,
-                            content=node.content_only())
+                            content=node.content_only()))
         except:
             print('ERROR in '+node_id)
 
+    concurrent.futures.wait(fs, timeout=None, return_when=ALL_COMPLETED)
     writer.commit()
     
-def search(self, string):
-
-    final_results = ''
-    shown_nodes = []
-
-    with self.ix.searcher() as searcher:
-        qp = QueryParser("content", self.ix.schema)
-        query = qp.parse(string)
-        results = searcher.search(query, limit=1000)
-        results.formatter = UppercaseFormatter()
-        final_results += 'Total Results: ' + str(len(results)) + '\n\n'
-        final_results +='\n----------------------------------\n'
-        for result in results:
-            node_id = result['path']
-            if node_id in self.nodes and node_id not in shown_nodes:
-                final_results += ''.join([
-                    self.nodes[node_id].title,' >', node_id, '\n',
-                    result.highlights("content"),
-                    '\n----------------------------------\n'])
-                shown_nodes.append(node_id)
-            else:
-                final_results += node_id + ' ( No longer in the project. Update the search index. )\n\n'
-
-    return final_results
-
 def search_term(self, string, exclude=[]):
     
     with self.ix.searcher() as searcher:
+        if not searcher.up_to_date():
+            seacher = searcher.refresh()
         qp = QueryParser("content", self.ix.schema)
         query = qp.parse(string)
         results = searcher.search(query, limit=1000)
@@ -75,4 +57,4 @@ def search_term(self, string, exclude=[]):
             final_results += self.nodes[node_id].title + ' >'+node_id +'\n - - - - - - - - - - - - - - - -\n\n' + result.highlights("content").strip('\t').strip() +'\r\r'
         return final_results
 
-search_functions = [ rebuild_search_index, search, search_term ]
+search_functions = [ rebuild_search_index, search_term ]

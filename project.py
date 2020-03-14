@@ -100,6 +100,7 @@ class UrtextProject:
         self.ix = None
         self.loaded = False
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.settings = {  # defaults
             'logfile':'urtext_log.txt',
             'home': None,
@@ -123,7 +124,8 @@ class UrtextProject:
             'console_log':'false',
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
-            'timezone' : ['UTC'] 
+            'timezone' : ['UTC'],
+            'search_index' : ['yes'],
         }
         self.default_timezone = None
         self.title = self.path # d
@@ -228,28 +230,40 @@ class UrtextProject:
         if self._filter_filenames(os.path.basename(filename)) == None:
             return
 
-        # clear all node_id's defined from this file in case the file has changed
+        search_index = None
+        if self.settings['search_index'][0] == 'yes':
+            search_index=self.ix
+        
         already_in_project = False
+        old_hash = None
         if os.path.basename(filename) in self.files:
             already_in_project = True
-            self._remove_file(os.path.basename(filename))
+            old_hash = self.files[filename].hash
 
         """
         Parse the file
         """
-        new_file = UrtextFile(os.path.join(self.path, filename), #search_index=self.ix
-        )
+        new_file = UrtextFile(
+            os.path.join(self.path, filename), 
+            previous_hash=old_hash,
+            search_index=search_index
+            )
+        
+        if not new_file.changed:
+            return filename
+
         if not new_file.nodes: 
             if already_in_project:
                 self._log_item('LOST FILE while re-parsing '+filename)
                 return False
             self.to_import.append(filename)
-            return
+
+        # clear all node_id's defined from this file since the file has changed
+        self._remove_file(os.path.basename(filename))
 
         """
         re-add the filename and all its nodes to the project
         """
-        
         self.files[new_file.basename] = new_file
         for node_id in new_file.nodes:
             if self._is_duplicate_id(node_id, filename):

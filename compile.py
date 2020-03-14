@@ -49,6 +49,7 @@ def _compile(self,
             filename = self.nodes[target_id].filename
 
         if self.compiled:
+            # now here the index is getting rewritten for every single file containing a dynamic node.
             self._parse_file(filename)
             self._update(compile_project=False)
 
@@ -67,6 +68,7 @@ def _compile(self,
                 omit=dynamic_definition.omit)
 
         if dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
+            
             if dynamic_definition.mirror_include_all:
                 # TODO prevent nodes being repeatedly mirrored inside themselves.
                 start = self.nodes[dynamic_definition.mirror].ranges[0][0]
@@ -191,9 +193,10 @@ def _compile(self,
                 included_nodes = self.all_nodes()
                 included_nodes.remove(dynamic_definition.target_id)
 
-            if dynamic_definition.include_or == 'indexed':
+            elif dynamic_definition.include_or == 'indexed':
                 included_nodes = self.indexed_nodes()
-                included_nodes.remove(dynamic_definition.target_id)
+                if dynamic_definition.target_id in included_nodes:
+                    included_nodes.remove(dynamic_definition.target_id)
 
             else:
                 for item in dynamic_definition.include_or:
@@ -314,7 +317,7 @@ def _compile(self,
                                            dynamic_definition.spaces)
 
         changed_file = self._set_node_contents(target_id, updated_node_contents)
-        
+
         if changed_file:    
             if changed_file not in modified_files:
                 modified_files.append(changed_file)

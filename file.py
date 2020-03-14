@@ -22,6 +22,8 @@ from .node import UrtextNode
 from . import node
 from whoosh.writing import AsyncWriter
 import concurrent.futures
+from concurrent.futures import ALL_COMPLETED
+import hashlib
 
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -50,24 +52,41 @@ symbol_length = {
 
 class UrtextFile:
 
-    def __init__(self, filename, search_index=None):
+    def __init__(self, filename, previous_hash=None, search_index=None):
         
         self.nodes = {}
         self.root_nodes = []
         self.filename = filename
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
+        self.search_index_updates = []
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-        self.lex_and_parse(search_index=search_index)
+        self.search_index = search_index
+        self.changed = True
+        contents = self.get_file_contents()        
+        self.hash = self.hash_contents(contents)
+        if self.hash == previous_hash:
+            self.changed = False
+            pass
+        else:
+            print('FILE CHANGED : '+self.filename)
+            if self.search_index:
+               self.writer = AsyncWriter(search_index)
+            self.lex_and_parse(contents, search_index=search_index)
         
-
-    def lex_and_parse(self, search_index=None):
-        contents = self.get_file_contents()
+    def lex_and_parse(self, contents, search_index=None):
         if not contents:
             return
-        self.file_length = len(contents)
+
+        self.file_length = len(contents)        
         self.lex(contents)
         self.parse(contents, search_index=search_index)
+
+    def hash_contents(self, contents):
+        r = bytearray(contents,'utf-8')
+        md5 = hashlib.md5()
+        md5.update(r)
+        return md5.digest()
 
     def lex(self, contents):
         """ locate syntax symbols """
@@ -92,8 +111,6 @@ class UrtextFile:
         compact_node_open = False
         split = False
 
-        if search_index:
-        	writer = AsyncWriter(search_index)
         """
         If there are node syntax symbols in the file,
         find the first non-newline symbol. Newlines are significant
@@ -224,15 +241,7 @@ class UrtextFile:
                 if not self.add_node(new_node, nested_levels[nested]):
                     return self.log_error('Node missing ID', position)
 
-                if search_index:
-                    stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
-                    stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents)
-
-                    self.executor.submit( 
-                            writer.update_document, 
-                            title=new_node.title,
-                            path=new_node.id,
-                            content=stripped_contents)
+                self.update_search_index(new_node, node_contents)
 
                 self.parsed_items[nested_levels[nested][0][0]] = new_node.id
 
@@ -282,21 +291,22 @@ class UrtextFile:
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
         
-        if search_index:
-            stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
-            stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents )
-
-            self.executor.submit( 
-                writer.update_document,
-                title=root_node.title,
-                path=root_node.id,
-                content=stripped_contents)
-            self.executor.submit( writer.commit )
+        self.update_search_index(root_node, node_contents)
 
         if len(self.root_nodes) == 0:
             print('NO ROOT NODES')
             print(self.filename)
-
+            
+        elif self.search_index:
+            self.executor.submit(self.commit_writer)
+    
+    def commit_writer(self):
+         concurrent.futures.wait(
+            self.search_index_updates, 
+            timeout=None, 
+            return_when=ALL_COMPLETED) 
+         self.writer.commit()
+         print('Search index updated.' + self.filename)
 
     def add_node(self, new_node, ranges):
 
@@ -325,9 +335,19 @@ class UrtextFile:
         except UnicodeDecodeError:
             self.log_item('UnicodeDecode Error: ' + filename)
             return None
-        # except:
-        #     print('Urtext not including ' + self.filename)
-        #     return None
+
+    def update_search_index(self, new_node, node_contents):
+        if self.search_index:
+            stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
+            stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents)
+            self.search_index_updates.append(
+                self.executor.submit( 
+                    self.writer.update_document, 
+                    title=new_node.title,
+                    path=new_node.id,
+                    content=stripped_contents)
+                )
+
 
     def log_error(self, message, position):
  
