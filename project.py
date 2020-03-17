@@ -250,7 +250,7 @@ class UrtextProject:
             )
         
         if not new_file.changed:
-            return filename
+            return False
 
         if not new_file.nodes: 
             if already_in_project:
@@ -468,15 +468,13 @@ class UrtextProject:
             filename = self.nodes[node_id].filename
         if not filename:
             return
-        with open(os.path.join(self.path, filename), 'r',
-                  encoding='utf-8') as theFile:
+        with open(os.path.join(self.path, filename), 'r', encoding='utf-8') as theFile:
             file_contents = theFile.read()
             theFile.close()
         return file_contents
 
     def _set_file_contents(self, filename, contents):
-        with open(os.path.join(self.path, filename),
-                  'w', encoding='utf-8') as theFile:
+        with open(os.path.join(self.path, filename), 'w', encoding='utf-8') as theFile:
             theFile.write(contents)
             theFile.close()
         return
@@ -544,8 +542,9 @@ class UrtextProject:
         return None
 
     def delete_file(self, filename):
+        filename = os.path.basename(filename)
         node_ids = list(self.files[filename].nodes)
-        self._remove_file(os.path.basename(filename))
+        self._remove_file(filename)
         os.remove(os.path.join(self.path, filename))
         future = self.executor.submit(self._update)
         for node_id in node_ids:
@@ -1109,11 +1108,17 @@ class UrtextProject:
             original = dmp.patch_apply(next_patch, original)[0]
         return original
 
+    def get_version(self, filename, distance_back=0):
+        history = self.get_history(filename)
+        version = self.apply_patches(history, distance_back)
+        return version
+
     def get_history(self, filename):
         filename = os.path.basename(filename)
-        history_file = filename.replace('.txt','.pkl')        
-        if os.path.exists(os.path.join(self.path, 'history', history_file)):
-            with open(os.path.join(self.path, 'history', history_file), "rb") as f:
+        history_file = os.path.join(self.path, 'history', filename.replace('.txt','.pkl'))
+        print(history_file)
+        if os.path.exists(history_file):
+            with open(history_file, "rb") as f:
                 file_history = pickle.load(f)
             return file_history
         return None

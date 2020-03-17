@@ -50,6 +50,7 @@ class UrtextDynamicDefinition:
         self.reverse = False
         self.timeline_type = None
         self.search = None
+        self.separator = '\n' # default
 
         entries = re.split(';|\n', contents)
 
@@ -89,6 +90,11 @@ class UrtextDynamicDefinition:
 
             if atoms[0].lower() == 'indent':
                 self.spaces = int(atoms[1])
+                continue
+
+            if atoms[0].lower() == 'separator':
+                separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
+                self.separator = separator
                 continue
 
             if atoms[0].lower() == 'tree':

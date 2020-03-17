@@ -69,10 +69,9 @@ class UrtextFile:
             self.changed = False
             pass
         else:
-            print('FILE CHANGED : '+self.filename)
             if self.search_index:
-               self.writer = AsyncWriter(search_index)
-            self.lex_and_parse(contents, search_index=search_index)
+               self.writer = AsyncWriter(self.search_index)
+            self.lex_and_parse(contents, search_index=self.search_index)
         
     def lex_and_parse(self, contents, search_index=None):
         if not contents:

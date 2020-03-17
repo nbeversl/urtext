@@ -48,9 +48,7 @@ def _compile(self,
 
             filename = self.nodes[target_id].filename
 
-        if self.compiled:
-            # now here the index is getting rewritten for every single file containing a dynamic node.
-            self._parse_file(filename)
+        if self.compiled and self._parse_file(filename):
             self._update(compile_project=False)
 
         points = {}
@@ -271,23 +269,25 @@ def _compile(self,
 
                 for targeted_node in included_nodes:
 
-                    if dynamic_definition.show == 'title':
-                         new_node_contents = ''.join([
-                            new_node_contents, 
+                    if dynamic_definition.show == 'title':                
+                        new_node_contents += ''.join([
                             targeted_node.title,
                             ' >',
                             targeted_node.id,
-                            '\n'
-                            ]) 
-                    if dynamic_definition.show == 'full_contents':
-                        new_node_contents = ''.join([
-                            new_node_contents,                            
-                            ' - - - - - - - - - - - - - - - -\n',
-                            '| ',targeted_node.title, ' >', targeted_node.id,'\n',
-                            targeted_node.content_only().strip('\n').strip(),
-                            '\n'
+                            dynamic_definition.separator
                             ])
 
+                    if dynamic_definition.show == 'full_contents':                           
+                        new_node_contents += ''.join([
+                            ' - - - - - - - - - - - - - - - -\n'
+                            '| ',
+                             targeted_node.title,
+                            ' >',
+                             targeted_node.id,
+                             '\n',
+                             targeted_node.content_only().strip('\n').strip(),
+                             dynamic_definition.separator
+                             ])
         """
         add metadata to dynamic node
         """
