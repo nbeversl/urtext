@@ -47,8 +47,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
     for index in range(0, len(filename_template)):
         if 'DATE' in filename_template[index]:
-            date_template = filename_template[index].replace('DATE',
-                                                             '').strip()
+            date_template = filename_template[index].replace('DATE', '').strip()
             filename_template[index] = 'DATE'
 
     for filename in filenames:
@@ -60,14 +59,16 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         # start with the filename template, replace each element
         new_filename = ' - '.join(filename_template)
-        new_filename = new_filename.replace('TITLE', root_node.title)
+        new_filename = new_filename.replace(
+            'TITLE', 
+            root_node.title)
         
         if root_node_id not in indexed_nodes and date_template != None:
             new_filename = new_filename.replace(
-                'DATE',
+                'DATE', 
                 datetime.datetime.strftime(root_node.date, date_template))
         else:
-            new_filename = new_filename.replace('DATE -', '')
+            new_filename = new_filename.replace('DATE', '')
         
         if reindex == True:
             padded_prefix = '{number:0{width}d}'.format(
@@ -80,6 +81,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
         new_filename = new_filename.replace('.', ' ')
         new_filename = new_filename.replace('’', "'")
         new_filename = new_filename.replace(':', "-")
+        new_filename = new_filename.strip('-').strip();
         new_filename += '.txt'
 
         if new_filename not in used_names:
