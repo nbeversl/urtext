@@ -322,7 +322,7 @@ def _compile(self,
             if changed_file not in modified_files:
                 modified_files.append(changed_file)
             self._parse_file(changed_file)
-            self._update(compile_project=False)
+            modified_files = self._update(compile_project=False, modified_files=modified_files)
 
         self.nodes[target_id].points = points
         if dynamic_definition.tree:

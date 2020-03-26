@@ -223,7 +223,7 @@ class UrtextProject:
             self.compiled = True
 
         #pickle = PickledUrtextProject(self)
-        
+ 
         return modified_files
 
     def _parse_file(self, filename):
@@ -929,7 +929,6 @@ class UrtextProject:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
             self.settings[key] = values
-        print(self.settings)
         self.default_timezone = timezone(self.settings['timezone'][0])
 
     def get_home(self):
@@ -1041,10 +1040,6 @@ class UrtextProject:
             os.path.basename(self.path),
             self.settings['logfile'],
             ]
-
-        # for node_id in ['zzz','zzy']:
-        #     if node_id in self.nodes:
-        #        do_not_update.append(self.nodes[node_id].filename)
         
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
