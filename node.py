@@ -58,7 +58,6 @@ def create_urtext_node(
 
     return new_node
 
-
 class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, 
@@ -98,8 +97,8 @@ class UrtextNode:
 
         self.parent = None
         self.index = self.metadata.get_first_tag('index')
-        self.reset_node()         
- 
+        self.reset_node()
+
     def reset_node(self):
         self.tree_node = Node(self.id)
 

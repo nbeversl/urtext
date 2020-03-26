@@ -93,6 +93,7 @@ class UrtextDynamicDefinition:
                 continue
 
             if atoms[0].lower() == 'separator':
+                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
                 separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
                 self.separator = separator
                 continue

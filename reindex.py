@@ -81,9 +81,16 @@ def _rename_file_nodes(self, filenames, reindex=False):
         new_filename = new_filename.replace('’', "'")
         new_filename = new_filename.replace(':', "-")
         new_filename += '.txt'
+
         if new_filename not in used_names:
-            renamed_files[old_filename] = new_filename
+
+            renamed_files[os.path.join(self.path, old_filename)] = os.path.join(self.path, new_filename)
             used_names.append(new_filename)
+
+            # add history files
+            old_history_file = old_filename.replace('.txt','.pkl')
+            new_history_file = new_filename.replace('.txt','.pkl')
+            renamed_files[os.path.join(self.path, old_history_file)] = os.path.join(self.path, new_history_file)
 
         else:
             self._log_item('Renaming ' + old_filename +
@@ -94,20 +101,12 @@ def _rename_file_nodes(self, filenames, reindex=False):
         old_filename = filename
         new_filename = renamed_files[old_filename]
 
-        old_history_file = old_filename.replace('.txt','.pkl')
-        new_history_file = new_filename.replace('.txt','.pkl')
-
         self._log_item('renaming ' + old_filename + ' to ' + new_filename)
 
-        os.rename(os.path.join(self.path, old_filename),
-                  os.path.join(self.path, new_filename))
+        os.rename(old_filename, new_filename)
 
-        # Rename history files.
-        if os.path.exists(os.path.join(self.path, 'history', old_history_file)):
-            os.rename(os.path.join(self.path, 'history', old_history_file),
-                  os.path.join(self.path, 'history', new_history_file))
-
-        self._handle_renamed(old_filename, new_filename)
+        if old_filename[-4:].lower() == '.txt': # skip history files
+            self._handle_renamed(old_filename, new_filename)
 
     return renamed_files
 

@@ -126,6 +126,7 @@ class UrtextProject:
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
             'search_index' : ['yes'],
+            'always_oneline_meta' : False,
         }
         self.default_timezone = None
         self.title = self.path # d
@@ -588,22 +589,28 @@ class UrtextProject:
 
         return filename
     
-    def new_file_node(self, date=None, metadata = {}, node_id=None):
+    def new_file_node(self, 
+        date=None, 
+        metadata = {}, 
+        node_id=None,
+        one_line=None
+        ):
+        
         """ add a new FILE-level node programatically """
 
         if date == None:
             date = datetime.datetime.now()
 
-        if not node_id:
-            node_id = self.next_index()            
-        contents = "\n\n\n"
-        contents += "/-- ID:" + node_id + '\n'
-        contents += 'timestamp:' + self.timestamp(date) + '\n'
-        contents += 'from: '+ platform.node() + '\n'
-        for key in metadata:
-            contents += key + ": " + metadata[key] + '\n'
-        contents += "--/"
+        if one_line == None:
+            one_line = self.settings['always_oneline_meta']
 
+        if not node_id:
+            node_id = self.next_index()   
+        metadata['id'] = node_id
+        metadata['timestamp'] = self.timestamp(date)
+        metadata['from'] = platform.node()
+        metadata_block = build_metadata(metadata, one_line=one_line)
+        contents = '\n\n\n' +metadata_block
         filename = node_id + '.txt'
 
         self._set_file_contents( filename, contents )  
@@ -617,12 +624,15 @@ class UrtextProject:
             date=None, 
             contents='', 
             metadata={},
-            one_line=False,
+            one_line=None,
             include_timestamp=False):
             
         if contents == '':
             contents = ' '
         
+        if one_line == None:
+            one_line = self.settings['always_oneline_meta']
+            
         node_id = self.next_index()
         metadata['id']=node_id
         if include_timestamp:
@@ -907,12 +917,19 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
         for entry in node.metadata.entries:
-            self.settings[entry.tag_name.lower()] = entry.values
-        if 'project_title' in self.settings:
-            self.title = self.settings['project_title'][0]
-        if 'console_log' in self.settings:
-            self.settings['console_log'] = self.settings['console_log'][0]
-
+            key = entry.tag_name.lower()
+            values = entry.values
+            if key == 'project_title':
+                self.title = values[0]
+                continue
+            if key == 'console_log':
+                self.settings[key] = values[0]
+                continue
+            if key == 'always_oneline_meta':
+                self.settings[key] = True if values[0].lower() == 'true' else False
+                continue
+            self.settings[key] = values
+        print(self.settings)
         self.default_timezone = timezone(self.settings['timezone'][0])
 
     def get_home(self):
@@ -1057,6 +1074,8 @@ class UrtextProject:
         filename = None
         if node_id in self.nodes:
             filename = self.nodes[node_id].filename
+        else:
+            return None
         if absolute:
             filename = os.path.join(self.path, filename)
         return filename
