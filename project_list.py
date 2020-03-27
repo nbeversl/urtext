@@ -160,9 +160,19 @@ class ProjectList():
             self.set_current_project(path)
         return None
 
-    def move_file(self, filename, to_project):
+    def move_file(self, 
+        filename, 
+        to_project,
+        replace_links=True):
+        """
+        Move a file from one project to another, checking for
+        node ID duplication in the new project location, and 
+        optionally replacing links to every affected node.
+        """
+
         to_project = self.get_project(to_project)
         if not to_project:
+            print('Destination project `'+ to_project +'` was not found.')
             return None
         filename = os.path.basename(filename)
         self.current_project.remove_file(filename)
@@ -170,7 +180,19 @@ class ProjectList():
             os.path.join( self.current_project.path, filename),
             os.path.join( to_project.path, filename)
             )
-        to_project.add_file(filename)
+        try:
+            to_project.add_file(filename)
+        except Exception as exception:
+            return exception
+
+        affected_nodes = self._UrtextProjectList.current_project.files[filename].nodes.keys()
+
+        if replace_links:
+            for node_id in affected_nodes:
+                self.replace_links(
+                    self._UrtextProjectList.current_project.title,
+                    to_project.title,                   
+                    node_id)
 
         # also move the history file
         history_file = filename.replace('.txt','.pkl')
@@ -179,6 +201,12 @@ class ProjectList():
                   os.path.join(to_project.path, 'history', history_file))
 
         return True
+
+    def get_all_tagnames(self):
+        tag_names = []
+        for project in self.projects:
+            tag_names.extend(project.tagnames['tags'].keys())
+        return tag_names
 
     # future
     # def move_all_linked_nodes(self, filename, to_project):

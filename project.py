@@ -87,8 +87,7 @@ class UrtextProject:
         self.nodes = {}
         self.files = {}
         self.tagnames = {}
-        self.zero_page = ''
-        self.other_projects = []
+        self.tagnames['tags']= {} # create this by default
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
@@ -263,13 +262,18 @@ class UrtextProject:
         self._remove_file(os.path.basename(filename))
 
         """
+        Check the file for duplicate nodes
+        """
+        duplicate_nodes = self._check_file_for_duplicates(new_file)
+        if duplicate_nodes:
+            return duplicate_nodes
+
+        """
         re-add the filename and all its nodes to the project
         """
-        self.files[new_file.basename] = new_file
+        self.files[new_file.basename] = new_file  
+
         for node_id in new_file.nodes:
-            if self._is_duplicate_id(node_id, filename):
-                self._remove_file(new_file.basename)
-                return None
             self._add_node(new_file.nodes[node_id])
         
         """
@@ -284,7 +288,22 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self._rebuild_node_tag_info(node_id)
 
-        return filename
+        return None
+
+    def _check_file_for_duplicates(self, file_obj):
+        duplicate_nodes = {}
+        for node_id in file_obj.nodes:
+            duplicate_filename = self._is_duplicate_id(node_id, file_obj.filename)
+            if duplicate_filename:
+                duplicate_nodes[node_id] = duplicate_filename
+
+        if duplicate_nodes:
+            self._log_item('Duplicate node ID(s) found in '+file_obj.filename)
+            for node_id in duplicate_nodes:
+                self._log_item(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
+            return duplicate_nodes
+
+        return False
 
     def _rewrite_titles(self,filename):
         
@@ -893,10 +912,7 @@ class UrtextProject:
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
         if node_id in self.nodes:
-            self._log_item('Duplicate node ID ' + node_id + ' in ' + filename +
-                          ' -- already used in ' +
-                          self.nodes[node_id].filename + ' (>' + node_id + ')')
-            return True
+            return self.nodes[node_id].filename
         return False
 
     def _log_item(self, item):
@@ -1054,12 +1070,19 @@ class UrtextProject:
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
             modified_files.append(filename)     
-        self._parse_file(filename)
+        any_duplicate_ids = self._parse_file(filename)
         return self._update(modified_files=modified_files)
-
+        
     def add_file(self, filename):
-        self.executor.submit(self._parse_file, filename) 
-        return self.executor.submit(self._update)
+        """ 
+        We parse syncronously for now, so we can raise an exception
+        if moving files between projects.
+        """
+        any_duplicate_ids = self._parse_file(filename)
+        if any_duplicate_ids:
+            raise Exception('Duplicate Nodes IDs printed to console.', any_duplicate_ids)
+        else:
+            return self.executor.submit(self._update)
 
     def remove_file(self, filename):
         self._remove_file(filename) 
