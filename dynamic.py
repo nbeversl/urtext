@@ -51,9 +51,9 @@ class UrtextDynamicDefinition:
         self.timeline_type = None
         self.search = None
         self.separator = '\n' # default
+        self.separator_full_content = None # default
 
         entries = re.split(';|\n', contents)
-
         for entry in entries:
             
             if entry.strip().lower() == 'oneline_meta':
@@ -75,6 +75,19 @@ class UrtextDynamicDefinition:
                 self.metadata[atoms[1]] = ':'.join(
                     atoms[2:]) 
                 continue
+
+            if atoms[0].lower() == 'separator_full_content':
+                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
+                separator_full_content = bytes(atoms[1], "utf-8").decode("unicode_escape")
+                self.separator_full_content = separator_full_content
+                continue
+            
+            if atoms[0].lower() == 'separator':
+                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
+                separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
+                self.separator = separator
+                continue
+
             """
             use case-insensitive values for the rest
             """
@@ -82,45 +95,39 @@ class UrtextDynamicDefinition:
             """
             indentation
             """
-            if atoms[0].lower() == 'mirror':
+            if atoms[0] == 'mirror':
                 self.mirror = atoms[1]
-                if len(atoms) > 2 and atoms[2].lower() == 'include':
+                if len(atoms) > 2 and atoms[2] == 'include':
                     self.mirror_include_all = True
                 continue
 
-            if atoms[0].lower() == 'indent':
+            if atoms[0] == 'indent':
                 self.spaces = int(atoms[1])
                 continue
-
-            if atoms[0].lower() == 'separator':
-                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
-                separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
-                self.separator = separator
-                continue
-
-            if atoms[0].lower() == 'tree':
+          
+            if atoms[0] == 'tree':
                 self.tree = atoms[1]
                 continue
 
-            if atoms[0].lower() == 'interlinks':
+            if atoms[0] == 'interlinks':
                 self.interlinks = atoms[1]
                 continue
 
-            if atoms[0].lower() == 'omit':
+            if atoms[0] == 'omit':
                 self.omit = atoms[1:]
                 continue
 
-            if atoms[0].lower() == 'search':
+            if atoms[0] == 'search':
                 self.search = atoms[1]
                 continue
 
-            if atoms[0].lower() == 'sort':
+            if atoms[0] == 'sort':
                 self.sort_tagname = atoms[1]
                 if len(atoms) > 2 and atoms[2].lower() == 'reverse':
                     self.reverse = True
                 continue
 
-            if atoms[0].lower() == 'export' and len(atoms) > 2:
+            if atoms[0] == 'export' and len(atoms) > 2:
                 export_format = atoms[1].lower()
                 from_node = atoms[2].lower()
                 
@@ -133,7 +140,7 @@ class UrtextDynamicDefinition:
             """
             Tag all subnodes
             """
-            if atoms[0].lower() == 'tag_all' and len(atoms) > 2:
+            if atoms[0] == 'tag_all' and len(atoms) > 2:
                 self.tag_all_key = atoms[1]
                 self.tag_all_value = atoms[2]
                 if len(atoms) > 3 and atoms[3] == 'r':
@@ -142,46 +149,46 @@ class UrtextDynamicDefinition:
             """
             target node ID
             """
-            if atoms[0].lower() == 'id':
+            if atoms[0] == 'id':
                 self.target_id = re.search(node_id_regex, atoms[1]).group(0)
                 continue
             """
             target file
             """
-            if atoms[0].lower() == 'file':
+            if atoms[0] == 'file':
                 self.target_file = atoms[1]
                 continue
 
             """
             show contents, title
             """
-            if atoms[0].lower() == 'show':
-                if atoms[1].lower() == 'title':
+            if atoms[0] == 'show':
+                if atoms[1] == 'title':
                     self.show = 'title'
-                if atoms[1].lower() == 'timeline':
+                if atoms[1] == 'timeline':
                     self.show = 'timeline'
                 if len(atoms) > 2:
-                    if atoms[2].lower() == 'meta':
+                    if atoms[2] == 'meta':
                         self.timeline_type = 'meta'
-                    if atoms[2].lower() == 'inline':
+                    if atoms[2] == 'inline':
                         self.timeline_type = 'inline'
                 continue
             """
             exclude/include meta
             """
-            if atoms[0].lower() == 'include':
+            if atoms[0] == 'include':
 
-                if atoms[1].lower() == 'all':
+                if atoms[1] == 'all':
                     self.include_or = 'all'
                     continue
 
-                if atoms[1].lower() == 'indexed':
+                if atoms[1] == 'indexed':
                     self.include_or = 'indexed'
                     continue
 
-                if atoms[1].lower() == 'metadata' and len(atoms) > 3:
+                if atoms[1] == 'metadata' and len(atoms) > 3:
                     
-                    if atoms[2].lower() == 'and':
+                    if atoms[2] == 'and':
                         and_group = []
                         key = atoms[3]
                         values = atoms[4:]
@@ -189,7 +196,7 @@ class UrtextDynamicDefinition:
                             and_group.append((key,value)) 
                         self.include_and.append(and_group)
                         
-                    elif atoms[2].lower() == 'or':
+                    elif atoms[2] == 'or':
                         key = atoms[3]
                         values = atoms[4:]
                         for value in values:
@@ -201,10 +208,10 @@ class UrtextDynamicDefinition:
                             self.include_or.append((key,value))
                     continue
 
-            if atoms[0].lower() == 'exclude':
-                if atoms[1].lower() == 'metadata' and len(atoms) > 3:
+            if atoms[0] == 'exclude':
+                if atoms[1] == 'metadata' and len(atoms) > 3:
                     
-                    if atoms[2].lower() == 'and':
+                    if atoms[2] == 'and':
                         and_group = []
                         key = atoms[3]
                         values = atoms[4:]
@@ -212,7 +219,7 @@ class UrtextDynamicDefinition:
                             and_group.append((key,value)) 
                         self.exclude_and.append(and_group)
                         
-                    elif atoms[2].lower() == 'or':
+                    elif atoms[2] == 'or':
                         key = atoms[3]
                         values = atoms[4:]
                         for value in values:

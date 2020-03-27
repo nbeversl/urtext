@@ -277,17 +277,17 @@ def _compile(self,
                             dynamic_definition.separator
                             ])
 
-                    if dynamic_definition.show == 'full_contents':                           
-                        new_node_contents += ''.join([
-                            ' - - - - - - - - - - - - - - - -\n'
-                            '| ',
-                             targeted_node.title,
-                            ' >',
-                             targeted_node.id,
-                             '\n',
-                             targeted_node.content_only().strip('\n').strip(),
-                             dynamic_definition.separator
-                             ])
+                    if dynamic_definition.show == 'full_contents':     
+                        if dynamic_definition.separator_full_content:
+                            header = dynamic_definition.separator_full_content
+                        else:
+                            header = self.settings['separator_full_content']
+                        header = header.replace('TITLE', targeted_node.title)
+                        header = header.replace('LINK', '>'+ str(targeted_node.id))
+                        header = header.replace('DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
+                        header = bytes(header, "utf-8").decode("unicode_escape")
+                        new_node_contents += ''.join([ 
+                            header, targeted_node.content_only().strip('\n').strip() ])
         """
         add metadata to dynamic node
         """
@@ -329,7 +329,6 @@ def _compile(self,
             self.nodes[target_id].is_tree = True
         
     return modified_files
-
 
 def build_metadata(tags, one_line=False):
     """ Note this is a method from node.py. Could be refactored """

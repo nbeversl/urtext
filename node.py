@@ -104,6 +104,12 @@ class UrtextNode:
 
     def duplicate_tree(self):
         return duplicate_tree(self.tree_node)
+    
+    def get_date(self, format_string=''):
+        if self.metadata.get_date('timestamp'):
+            datestamp = self.metadata.get_date('timestamp')[0].strftime(format_string)
+            return datestamp
+        return '(no date)'
 
     def contents(self):
         with open(os.path.join(self.project_path, self.filename),

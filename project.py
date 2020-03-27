@@ -126,6 +126,7 @@ class UrtextProject:
             'timezone' : ['UTC'],
             'search_index' : ['yes'],
             'always_oneline_meta' : False,
+            'separator_full_content' : '\n——————- LINK \n' # default
         }
         self.default_timezone = None
         self.title = self.path # d
@@ -932,19 +933,33 @@ class UrtextProject:
         return date.strftime(timestamp_format)
 
     def _get_settings_from(self, node):
+        single_values = [
+            'console_log',
+            'separator_full_content'
+        ]
+
         for entry in node.metadata.entries:
             key = entry.tag_name.lower()
             values = entry.values
+          
             if key == 'project_title':
                 self.title = values[0]
-                continue
-            if key == 'console_log':
-                self.settings[key] = values[0]
                 continue
             if key == 'always_oneline_meta':
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
-            self.settings[key] = values
+            for item in single_values:
+                print(key)
+                print(item)
+                print(values)
+                if key == item:
+                    print(key)
+                    print('FOUND')
+                    self.settings[key] = values[0]
+                
+            if key not in self.settings:
+                self.settings[key] = values
+  
         self.default_timezone = timezone(self.settings['timezone'][0])
 
     def get_home(self):

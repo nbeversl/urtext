@@ -33,7 +33,8 @@ class NodeMetadata:
                 'project_title',
                 'timezone',
                 'timestamp_format',
-                'filenames' ]
+                'filenames',
+                'separator_full_content' ]
 
         self.raw_meta_data = ''
         for section in re.findall(meta, full_contents):
@@ -70,7 +71,9 @@ class NodeMetadata:
                 for value in value_list:
                     if key not in self.case_sensitive_values:
                         value = value.lower().strip()
-                    values.append(value.strip())
+                    if key != 'separator_full_content':
+                        value = value.strip()
+                    values.append(value)
             else:
                 key = '(no_key)'
                 values = [ line.strip('--/') ]
