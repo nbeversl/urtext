@@ -941,6 +941,7 @@ class UrtextProject:
         for entry in node.metadata.entries:
             key = entry.tag_name.lower()
             values = entry.values
+            found = False
           
             if key == 'project_title':
                 self.title = values[0]
@@ -949,15 +950,11 @@ class UrtextProject:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
             for item in single_values:
-                print(key)
-                print(item)
-                print(values)
                 if key == item:
-                    print(key)
-                    print('FOUND')
                     self.settings[key] = values[0]
-                
-            if key not in self.settings:
+                    found = True
+                    break
+            if not found:                                   
                 self.settings[key] = values
   
         self.default_timezone = timezone(self.settings['timezone'][0])
