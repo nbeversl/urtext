@@ -52,6 +52,7 @@ class UrtextDynamicDefinition:
         self.search = None
         self.separator = '\n' # default
         self.separator_full_content = None # default
+        self.preformat = False
 
         entries = re.split(';|\n', contents)
         for entry in entries:
@@ -107,6 +108,10 @@ class UrtextDynamicDefinition:
           
             if atoms[0] == 'tree':
                 self.tree = atoms[1]
+                continue
+
+            if atoms[0] == 'preformat':
+                self.preformat = True if atoms[1].lower() == 'true' else False
                 continue
 
             if atoms[0] == 'interlinks':

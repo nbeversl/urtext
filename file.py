@@ -124,12 +124,15 @@ class UrtextFile:
                 non_newline_symbol += 1
                 if non_newline_symbol == len(self.positions):
                     break
-
-            if non_newline_symbol < len(self.positions):
+            """
+            BUG FIX HERE
+            """
+            
+            if non_newline_symbol < len(self.positions) and self.symbols[self.positions[non_newline_symbol]] not in [ '>>' ] :
                 nested_levels[0] = [
                     [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]] ]
                     ]
-                
+        
         for index in range(non_newline_symbol, len(self.positions)):
 
             position = self.positions[index]

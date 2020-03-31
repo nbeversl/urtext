@@ -85,14 +85,14 @@ def _compile(self,
             exclude=[]
             if dynamic_definition.target_id:
             	exclude.append(target_id)
-
             exported = UrtextExport(self) 
             exported_content, points = exported.export_from(
                  dynamic_definition.export_source,
                  kind=dynamic_definition.export,
                  exclude =exclude, # prevents recurssion
                  as_single_file=True, # TOdO should be option 
-                 clean_whitespace=True
+                 clean_whitespace=True,
+                 preformat = dynamic_definition.preformat
                 )
             
             if dynamic_definition.target_file:

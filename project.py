@@ -120,7 +120,7 @@ class UrtextProject:
                 '%A, %B %d, %Y, %I:%M%p'
                 ],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
-            'console_log':'false',
+            'console_log': False,
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
@@ -919,7 +919,7 @@ class UrtextProject:
     def _log_item(self, item):
         if self.log:
             self.log.info(item + '\n')
-            if self.settings['console_log'].lower() == 'true':          
+            if self.settings['console_log']:          
                 print(item)
         else:
             print(item)
@@ -934,8 +934,12 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
         single_values = [
-            'console_log',
             'separator_full_content'
+        ]
+        single_boolean_values = [
+            'always_oneline_meta',
+            'preformat',
+            'console_log'
         ]
 
         for entry in node.metadata.entries:
@@ -944,16 +948,20 @@ class UrtextProject:
             found = False
           
             if key == 'project_title':
+                # this one sets a project object property, not the settings dict
                 self.title = values[0]
                 continue
-            if key == 'always_oneline_meta':
+
+            if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
+
             for item in single_values:
                 if key == item:
                     self.settings[key] = values[0]
                     found = True
                     break
+                    
             if not found:                                   
                 self.settings[key] = values
   
@@ -1087,12 +1095,13 @@ class UrtextProject:
         
     def add_file(self, filename):
         """ 
-        We parse syncronously for now, so we can raise an exception
+        parse syncronously for now, so we can raise an exception
         if moving files between projects.
         """
         any_duplicate_ids = self._parse_file(filename)
         if any_duplicate_ids:
-            raise Exception('Duplicate Nodes IDs printed to console.', any_duplicate_ids)
+            raise Exception('File moved but not added to destination project. Duplicate Nodes IDs printed to console.', any_duplicate_ids)
+            # Don't need to update destination project.
         else:
             return self.executor.submit(self._update)
 

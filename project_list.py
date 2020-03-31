@@ -175,7 +175,10 @@ class ProjectList():
             print('Destination project `'+ to_project +'` was not found.')
             return None
         filename = os.path.basename(filename)
-        self.current_project.remove_file(filename)
+        affected_nodes = self.current_project.files[filename].nodes.keys()
+        
+        self.current_project.remove_file(filename) # also updates the source project
+        
         os.rename(
             os.path.join( self.current_project.path, filename),
             os.path.join( to_project.path, filename)
@@ -185,12 +188,10 @@ class ProjectList():
         except Exception as exception:
             return exception
 
-        affected_nodes = self._UrtextProjectList.current_project.files[filename].nodes.keys()
-
         if replace_links:
             for node_id in affected_nodes:
                 self.replace_links(
-                    self._UrtextProjectList.current_project.title,
+                    self.current_project.title,
                     to_project.title,                   
                     node_id)
 
