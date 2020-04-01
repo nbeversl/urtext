@@ -90,14 +90,29 @@ def _build_alias_trees(self):
             new_node = Node('MISSING NODE ' + node_id)
 
 def _rewrite_recursion(self):
+    """
+    If alias nodes have themselves as ancestors, 
+    prevent recursion.
+    """
 
     for node in self.alias_nodes:
-        all_nodes = PreOrderIter(node)
+
+        """ Iterate the entire tree from this node """
+        all_nodes = PreOrderIter(node) 
+
         for sub_node in all_nodes:
-            if sub_node.name in [
-                    ancestor.name for ancestor in sub_node.ancestors
-            ]:
-                sub_node.name = 'RECURSION : ' + self.nodes[sub_node.name].title + ' >'+sub_node.name
+            """ 
+            .name in this context is the node ID.
+            In case it has already been marked as recursion,
+            we always want just the last 3 characters.
+            """
+            alias_node_id = sub_node.name[-3:]
+ 
+            if alias_node_id in [ancestor.name for ancestor in sub_node.ancestors]:
+
+                sub_node.name = '! RECURSION : ' + self.nodes[alias_node_id].title + ' >'+alias_node_id
+
+                """ prevent recursion by ending the tree here """
                 sub_node.children = []
 
 def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
@@ -144,7 +159,7 @@ def show_tree_from(self,
         if this_node.name in self.nodes:
             tree_render += "%s%s" % (pre, self.nodes[
                 this_node.name].title) + ' >' + this_node.name + '\n'
-        elif this_node.name[0:9] == 'RECURSION':
+        elif this_node.name[0:11] == '! RECURSION':
             tree_render += "%s%s" % (pre, this_node.name + '\n')   
         else: 
             tree_render += "%s%s" % (pre, '? (Missing Node): >' +

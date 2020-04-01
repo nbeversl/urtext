@@ -288,8 +288,8 @@ def duplicate_tree(original_node):
 
     new_root = Node(original_node.name)
 
-    all_nodes = PreOrderIter(original_node,
-                             maxlevel=2)  # iterate immediate children only
+    # iterate immediate children only
+    all_nodes = PreOrderIter(original_node, maxlevel=2)  
 
     for node in all_nodes:
         if node == original_node:
