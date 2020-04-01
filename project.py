@@ -221,9 +221,6 @@ class UrtextProject:
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
-        else:
-        	print('from _update')
-        	print(modified_files)
 
         #pickle = PickledUrtextProject(self)
  
