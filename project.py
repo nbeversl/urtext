@@ -221,6 +221,9 @@ class UrtextProject:
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
+        else:
+        	print('from _update')
+        	print(modified_files)
 
         #pickle = PickledUrtextProject(self)
  
@@ -574,7 +577,8 @@ class UrtextProject:
                 del self.navigation[index]
                 if self.nav_index > index: # >= ?
                     self.nav_index -= 1
-        return node_ids
+        
+        return future
 
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -1089,7 +1093,8 @@ class UrtextProject:
         modified_files = []
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-            modified_files.append(filename)     
+            modified_files.append(filename)
+              
         any_duplicate_ids = self._parse_file(filename)
         return self._update(modified_files=modified_files)
         

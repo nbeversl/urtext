@@ -49,7 +49,7 @@ def _compile(self,
             filename = self.nodes[target_id].filename
 
         if self.compiled and self._parse_file(filename):
-            self._update(compile_project=False)
+            self._update(compile_project=False, modified_files=modified_files)
 
         points = {}
 
@@ -114,7 +114,7 @@ def _compile(self,
                 dynamic_definition.tag_all_key, 
                 dynamic_definition.tag_all_value, 
                 recursive=dynamic_definition.recursive)                    
-            self._compile(skip_tags=True)
+            self._compile(skip_tags=True, modified_files=modified_files)
             continue
             
 
@@ -323,11 +323,9 @@ def _compile(self,
                 modified_files.append(changed_file)
             self._parse_file(changed_file)
             modified_files = self._update(compile_project=False, modified_files=modified_files)
-
         self.nodes[target_id].points = points
         if dynamic_definition.tree:
             self.nodes[target_id].is_tree = True
-        
     return modified_files
 
 def build_metadata(tags, one_line=False):
