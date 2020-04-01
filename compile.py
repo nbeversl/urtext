@@ -272,7 +272,7 @@ def _compile(self,
                     if dynamic_definition.show == 'title':                
                         new_node_contents += ''.join([
                             targeted_node.title,
-                            ' >',
+                            ' >>',
                             targeted_node.id,
                             dynamic_definition.separator
                             ])
@@ -283,7 +283,7 @@ def _compile(self,
                         else:
                             header = self.settings['separator_full_content']
                         header = header.replace('TITLE', targeted_node.title)
-                        header = header.replace('LINK', '>'+ str(targeted_node.id))
+                        header = header.replace('LINK', '>>'+ str(targeted_node.id))
                         header = header.replace('DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
                         header = bytes(header, "utf-8").decode("unicode_escape")
                         new_node_contents += ''.join([ 
