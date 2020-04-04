@@ -37,7 +37,6 @@ class UrtextDynamicDefinition:
         self.tree = None
         self.sort_tagname = None
         self.metadata = {}
-        self.show = 'full_contents'
         self.oneline_meta = False
         self.interlinks = None
         self.omit=[]
@@ -50,9 +49,10 @@ class UrtextDynamicDefinition:
         self.reverse = False
         self.timeline_type = None
         self.search = None
-        self.separator = '\n' # default
+        self.show = 'TITLE LINK\n' # default
         self.separator_full_content = None # default
         self.preformat = False
+        self.display = 'list'
 
         entries = re.split(';|\n', contents)
         for entry in entries:
@@ -87,6 +87,13 @@ class UrtextDynamicDefinition:
                 # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
                 separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
                 self.separator = separator
+                continue   
+
+            """
+            format string
+            """
+            if atoms[0] == 'show':
+                self.show = atoms[1]
                 continue
 
             """
@@ -164,20 +171,16 @@ class UrtextDynamicDefinition:
                 self.target_file = atoms[1]
                 continue
 
-            """
-            show contents, title
-            """
-            if atoms[0] == 'show':
-                if atoms[1] == 'title':
-                    self.show = 'title'
-                if atoms[1] == 'timeline':
-                    self.show = 'timeline'
-                if len(atoms) > 2:
-                    if atoms[2] == 'meta':
+            
+
+            if atoms[0] == 'timeline':
+                self.timeline = True
+                if len(atoms) > 1:
+                    if atoms[1] == 'meta':
                         self.timeline_type = 'meta'
-                    if atoms[2] == 'inline':
+                    if atoms[1] == 'inline':
                         self.timeline_type = 'inline'
-                continue
+                    continue
             """
             exclude/include meta
             """

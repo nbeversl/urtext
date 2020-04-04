@@ -935,7 +935,7 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
         single_values = [
-            'separator_full_content'
+            'show'
         ]
         single_boolean_values = [
             'always_oneline_meta',

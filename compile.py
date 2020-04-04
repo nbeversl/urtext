@@ -20,6 +20,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from .export import UrtextExport
 from .timeline import timeline
 import os
+import re
 
 """
 compile method for the UrtextProject class
@@ -269,25 +270,64 @@ def _compile(self,
 
                 for targeted_node in included_nodes:
 
-                    if dynamic_definition.show == 'title':                
-                        new_node_contents += ''.join([
-                            targeted_node.title,
-                            ' >>',
-                            targeted_node.id,
-                            dynamic_definition.separator
-                            ])
+                    shah = '%&&&&888' #FUTURE = possibly randomize
+                    item_format = dynamic_definition.show
+                    item_format = bytes(item_format, "utf-8").decode("unicode_escape")
+                    tokens = [
+                        'TITLE',
+                        'LINK',
+                        'DATE',
+                        'CONTENTS',
+                        'TAGS',
+                    ]
 
-                    if dynamic_definition.show == 'full_contents':     
-                        if dynamic_definition.separator_full_content:
-                            header = dynamic_definition.separator_full_content
-                        else:
-                            header = self.settings['separator_full_content']
-                        header = header.replace('TITLE', targeted_node.title)
-                        header = header.replace('LINK', '>>'+ str(targeted_node.id))
-                        header = header.replace('DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
-                        header = bytes(header, "utf-8").decode("unicode_escape")
-                        new_node_contents += ''.join([ 
-                            header, targeted_node.content_only().strip('\n').strip() ])
+                    # tokenize everything to make sure we only
+                    # replace it when intended
+                    for token in tokens:
+                        item_format = item_format.replace(token, shah+token)
+                    if shah + 'TITLE' in item_format:
+                        item_format = item_format.replace(shah + 'TITLE', targeted_node.title)
+                    if shah + 'LINK' in item_format:
+                        item_format = item_format.replace(shah + 'LINK', '>>'+ str(targeted_node.id))
+                    if shah + 'DATE' in item_format:
+                        item_format = item_format.replace(shah + 'DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
+                    if shah + 'CONTENTS' in item_format:
+                        item_format = item_format.replace(shah + 'CONTENTS', targeted_node.content_only().strip('\n').strip())
+
+                    
+                    tags_thing = re.compile(shah+'TAGS'+'(\(.*\))?', re.DOTALL)
+                   
+                    tag_match = re.search(tags_thing, item_format)
+                    
+                    if tag_match:
+                       
+                        tags = ''
+                        #TODO refactor. This should be a method of Metadata
+                        # Should also be able to get the tag names and then consolidated values for each tagname,
+                        # even if they are in separate metadata items
+
+                        suffix = ''
+                      
+                        if tag_match.group(1):
+                            suffix = tag_match.group(1)
+                           
+                            tag_list = tag_match.group(1)[1:-1].split(',')
+                            for index in range(len(tag_list)):
+                                tag_list[index] = tag_list[index].strip().lower()
+                         
+
+
+                        for entry in targeted_node.metadata.entries:
+                            if tag_match.group(1) and entry.tag_name not in tag_list:
+                                continue
+                            tags += entry.tag_name + ': '
+                            tags += ' '.join([value for value in entry.values ])
+                            tags += '; '
+                        
+                        item_format = item_format.replace(shah + 'TAGS' + suffix, tags)
+
+                    new_node_contents += item_format
+                        
         """
         add metadata to dynamic node
         """

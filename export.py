@@ -373,8 +373,7 @@ class UrtextExport:
             Avoid recursion
             """
             if node_id in visited_nodes:
-                inserted_contents = '\n' + '#' * nested + ' <><><>< RECURSION : '+ node_id + ' ><><><>'
-                #added_contents += inserted_contents 
+                inserted_contents = '\n' + '#' * nested + ' ! RECURSION : '+ node_id
                 continue       
             
             if node_id not in self.project.nodes:

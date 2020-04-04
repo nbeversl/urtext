@@ -106,10 +106,7 @@ class UrtextNode:
         return duplicate_tree(self.tree_node)
     
     def get_date(self, format_string=''):
-        if self.metadata.get_date('timestamp'):
-            datestamp = self.metadata.get_date('timestamp')[0].strftime(format_string)
-            return datestamp
-        return '(no date)'
+        return self.date.strftime(format_string)
 
     def contents(self):
         with open(os.path.join(self.project_path, self.filename),
@@ -292,17 +289,18 @@ def duplicate_tree(original_node):
     all_nodes = PreOrderIter(original_node, maxlevel=2)  
 
     for node in all_nodes:
+
         if node == original_node:
             continue
 
         if node.name in [ancestor.name for ancestor in node.ancestors]:
 
-            recursion_name = 'RECURSION ' + node.name
-            new_node = Node(recursion_name)
+            new_node = Node('! RECURSION :' + node.name)
             new_node.parent = new_root
             continue
 
         if node.parent == original_node:
+            """ Recursively apply this function to children's children """
             new_node = duplicate_tree(node)
             new_node.parent = new_root
     
