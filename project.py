@@ -949,9 +949,7 @@ class UrtextProject:
             key = entry.keyname
             values = entry.values
             found = False
-            print(key)
-            print(values)
-            
+           
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
                 self.title = values[0]

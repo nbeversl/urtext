@@ -95,7 +95,6 @@ class NodeMetadata:
 
     def get_first_meta_value(self, keyname):
         values = self.get_meta_value(keyname)
-        print(values)
         if values:
             return values[0]
         return ''
