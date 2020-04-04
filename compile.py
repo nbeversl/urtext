@@ -139,8 +139,8 @@ def _compile(self,
                 for node_id in excluded_nodes:
                     included_nodes.discard(node_id)
 
-                # Never include a dynamic node in itself.
-                included_nodes.discard(dynamic_definition.target_id)
+            # Never include a dynamic node in itself.
+            included_nodes.discard(dynamic_definition.target_id)
 
             """
             Assemble the final node collection into a list
@@ -151,10 +151,6 @@ def _compile(self,
             build timeline if specified
             """ 
             if dynamic_definition.show == 'timeline':
-                for node in included_nodes:
-
-                    if node.id == target_id:
-                        included_nodes.remove(node)
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
             elif dynamic_definition.search and self.ix:
@@ -320,11 +316,13 @@ def _build_group_and(self, groups):
             
             key, value = pair[0], pair[1]
 
-            if value.lower() == 'all':
-                for value in self.keynames[key]:
-                    new_group = new_group.union(set(self.keynames[key][value])) 
-            elif key in self.keynames and value in self.keynames[key]:
-                new_group = new_group.union(set(self.keynames[key][value]))
+            if key in self.keynames:
+                
+                if value.lower() == 'all':
+                    for value in self.keynames[key]:
+                        new_group = new_group.union(set(self.keynames[key][value])) 
+                elif value in self.keynames[key]:
+                    new_group = new_group.union(set(self.keynames[key][value]))
 
         final_group = final_group.union(new_group)
 
@@ -339,7 +337,7 @@ def _build_group_or(self, groups):
 
         for pair in group:
             key, value = pair[0], pair[1]
-            if value in self.keynames[key]:
+            if key in self.keynames and value in self.keynames[key]:
                 final_group = final_group.union(set(self.keynames[key][value]))
 
         final_group = final_group.union(new_group)

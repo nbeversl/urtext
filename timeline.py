@@ -90,6 +90,8 @@ def timeline(project, nodes, kind=None):
                         found_stuff.append(found_thing)
 
     sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)
+    if not sorted_stuff:
+        return 'POSSIBLE ERROR. NO NODES FOUND FOR TIMELINE. timeline.py, line 94'
     start_date = sorted_stuff[0]['contents']
     timeline = ''
     for index in range(0, len(sorted_stuff) - 1):

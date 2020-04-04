@@ -937,7 +937,12 @@ class UrtextProject:
         single_values = [
             'format_string',
             'home',
-            'project_title'
+            'project_title',
+            'logfile',
+            'google_auth_token',
+            'google_calendar_id',
+
+
         ]
         single_boolean_values = [
             'always_oneline_meta',
