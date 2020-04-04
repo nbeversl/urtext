@@ -52,6 +52,7 @@ class UrtextDynamicDefinition:
         self.show = 'TITLE LINK\n' # default
         self.preformat = False
         self.display = 'list'
+        self.max = None
 
         entries = re.split(';|\n', contents)
         for entry in entries:
@@ -119,6 +120,14 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'search':
                 self.search = atoms[1]
                 continue
+
+            if atoms[0] == 'max':
+                maximum = atoms[1]
+                try:
+                    maximum = int(maximum)
+                except ValueError:
+                    maximum = None
+                self.max = maximum
 
             if atoms[0] == 'sort':
                 self.sort_keyname = atoms[1]

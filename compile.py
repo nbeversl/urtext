@@ -118,112 +118,38 @@ def _compile(self,
             self._compile(skip_tags=True, modified_files=modified_files)
             continue
             
-
         else:
-            # list of explicitly included node IDs
-            included_nodes = []
-
-            # list of explicitly excluded node IDs
-            excluded_nodes = []
-
-            # list of the nodes indicated by ALL the key/value pairs for AND inclusion
-            included_nodes_and = []
-
-            # for all AND key/value pairs in the dynamic definition   
-
-            for and_group in dynamic_definition.include_and:
-
-                this_and_group = []
-
-                for pair in and_group:
-                    
-                    key, value = pair[0], pair[1]
-
-                    # if the key/value pair is in the project
-                    if key in self.keynames and value in self.keynames[key]:
-
-                        # add its nodes to the list of possibly included nodes as its own set
-                        this_and_group.append(set(self.keynames[key][value]))
-
-                    else:
-                        # otherwise, this means no nodes result from this AND combination
-                        this_and_group = []
-                        break
-
-                if this_and_group:
-
-                    included_nodes.extend(
-                        list(set.intersection(*this_and_group))
-                        )
-
-            for and_group in dynamic_definition.exclude_and:
-
-                this_and_group = []
-
-                for pair in and_group:
-                    
-                    key, value = pair[0], pair[1]
-
-                    # if the key/value pair is in the project
-                    if key in self.keynames and value in self.keynames[key]:
-
-                        # add its nodes to the list of possibly included nodes as its own set
-                        this_and_group.append(set(self.keynames[key][value]))
-                        #included_nodes_and.append(set(self.keynames[key][value]))
-
-                    else:
-                        # otherwise, this means no nodes result from this AND combination
-                        this_and_group = []
-                        break
-
-                if this_and_group:
-
-                    excluded_nodes.extend(
-                        list(set.intersection(*this_and_group))
-                        )
-
-            # add all the these nodes to the list of nodes to be included, avoiding duplicates
-            for indiv_node_id in included_nodes_and:
-                if indiv_node_id not in included_nodes:
-                    included_nodes.append(indiv_node_id)
-
+ 
             if dynamic_definition.include_or == 'all':
-                included_nodes = self.all_nodes()
-                included_nodes.remove(dynamic_definition.target_id)
+                included_nodes = set(self.all_nodes())
 
             elif dynamic_definition.include_or == 'indexed':
-                included_nodes = self.indexed_nodes()
-                if dynamic_definition.target_id in included_nodes:
-                    included_nodes.remove(dynamic_definition.target_id)
-
+                included_nodes = set(self.indexed_nodes())
+            
             else:
-                for item in dynamic_definition.include_or:
-                    if len(item) < 2:
-                        continue
-                    key, value = item[0], item[1]
-                    if value in self.keynames[key]:
-                        added_nodes = self.keynames[key][value]
-                        for indiv_node_id in added_nodes:
-                            if indiv_node_id not in included_nodes:
-                                included_nodes.append(indiv_node_id)
-
-            for item in dynamic_definition.exclude_or:
-                key, value = item[0], item[1]
+                # AND key/value pairs
+                included_nodes = self._build_group_and(dynamic_definition.include_and)
+                excluded_nodes = self._build_group_and(dynamic_definition.exclude_and)
                 
-                if key in self.keynames and value in self.keynames[key]:
-                    excluded_nodes.extend(self.keynames[key][value])
+                # OR key/value pairs
+                included_nodes = included_nodes.union(self._build_group_or(dynamic_definition.include_or))
+                excluded_nodes = excluded_nodes.union(self._build_group_or(dynamic_definition.exclude_or))
 
-            for node in excluded_nodes:
-                if node in included_nodes:
-                    included_nodes.remove(node)
+                # remove the excluded nodes
+                for node_id in excluded_nodes:
+                    included_nodes.discard(node_id)
+
+                # Never include a dynamic node in itself.
+                included_nodes.discard(dynamic_definition.target_id)
+
             """
-            Assemble the node collection from the list
+            Assemble the final node collection into a list
             """
             included_nodes = [self.nodes[node_id] for node_id in included_nodes]
+            
             """
             build timeline if specified
             """ 
-
             if dynamic_definition.show == 'timeline':
                 for node in included_nodes:
 
@@ -267,6 +193,12 @@ def _compile(self,
                         reverse = dynamic_definition.reverse
                         )
 
+                """
+                Truncate the list if a maximum is specified
+                """            
+                if dynamic_definition.max:
+                    included_nodes = included_nodes[0:dynamic_definition.max]
+ 
                 for targeted_node in included_nodes:
 
                     shah = '%&&&&888' #FUTURE = possibly randomize
@@ -301,10 +233,9 @@ def _compile(self,
                             suffix = contents_match.group(1)
                             length_str = contents_match.group(1)[1:-1]
                             length = int(length_str)
-                            print(length)
                             if len(contents) > length:
-                                contents = contents[0:length]
-                        item_format = item_format.replace(shah + 'CONTENTS'+suffix, contents)
+                                contents = contents[0:length] + ' (...)'
+                        item_format = item_format.replace(shah + 'CONTENTS' + suffix, contents)
 
                     meta_syntax = re.compile(shah+'META'+'(\(.*\))?', re.DOTALL)                   
                     meta_match = re.search(meta_syntax, item_format)
@@ -376,6 +307,45 @@ def _compile(self,
             self.nodes[target_id].is_tree = True
     return modified_files
 
+
+def _build_group_and(self, groups):
+
+    final_group = set([])
+
+    for group in groups:
+
+        new_group = set([])
+
+        for pair in group:
+            
+            key, value = pair[0], pair[1]
+
+            if value.lower() == 'all':
+                for value in self.keynames[key]:
+                    new_group = new_group.union(set(self.keynames[key][value])) 
+            elif key in self.keynames and value in self.keynames[key]:
+                new_group = new_group.union(set(self.keynames[key][value]))
+
+        final_group = final_group.union(new_group)
+
+    return final_group
+
+def _build_group_or(self, groups):
+    final_group = set([])
+
+    for group in groups:
+
+        new_group = set([])
+
+        for pair in group:
+            key, value = pair[0], pair[1]
+            if value in self.keynames[key]:
+                final_group = final_group.union(set(self.keynames[key][value]))
+
+        final_group = final_group.union(new_group)
+        
+    return final_group
+
 def build_metadata(keynames, one_line=False):
     """ Note this is a method from node.py. Could be refactored """
 
@@ -407,4 +377,4 @@ def indent(contents, spaces=4):
             content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
-compile_functions = [_compile]
+compile_functions = [_compile, _build_group_and, _build_group_or]

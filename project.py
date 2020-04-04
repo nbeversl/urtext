@@ -948,7 +948,6 @@ class UrtextProject:
         for entry in node.metadata.entries:
             key = entry.keyname
             values = entry.values
-            found = False
            
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
@@ -959,15 +958,15 @@ class UrtextProject:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
 
-            for item in single_values:
-                if key == item:
-                    self.settings[key] = values[0]
-                  
-            if item not in single_values:
-                if key not in self.settings:
-                    self.settings[key] = []                                
-                self.settings[key].extend(values)
-  
+            if key in single_values:
+                self.settings[key] = values[0]
+                continue
+
+            if key not in self.settings:
+                self.settings[key] = []                                
+
+            self.settings[key].extend(values)
+
         self.default_timezone = timezone(self.settings['timezone'][0])
 
     def get_home(self):
