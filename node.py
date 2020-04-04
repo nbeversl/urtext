@@ -86,17 +86,17 @@ class UrtextNode:
         self.metadata = metadata
         self.points = {}
  
-        if self.metadata.get_first_tag('id'):
-            node_id = self.metadata.get_first_tag('id').lower().strip()
+        if self.metadata.get_first_meta_value('id'):
+            node_id = self.metadata.get_first_meta_value('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
 
-        title_tag = self.metadata.get_first_tag('title')
-        if title_tag and title_tag == 'project_settings':
+        title_value = self.metadata.get_first_meta_value('title')
+        if title_value and title_value == 'project_settings':
             self.project_settings = True
 
         self.parent = None
-        self.index = self.metadata.get_first_tag('index')
+        self.index = self.metadata.get_first_meta_value('index')
         self.reset_node()
 
     def reset_node(self):
@@ -184,9 +184,9 @@ class UrtextNode:
         # check for title metadata
         #
         if metadata:
-            title_tag = metadata.get_first_tag('title')
-            if title_tag: 
-                return title_tag
+            title_value = metadata.get_first_meta_value('title')
+            if title_value: 
+                return title_value
         #
         # otherwise, title is the first non white-space line
         #
@@ -211,8 +211,8 @@ class UrtextNode:
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
-        if len(self.metadata.get_first_tag('ID')):  # title is the first many lines if not set
-            return self.metadata.get_first_tag('ID')
+        if len(self.metadata.get_first_meta_value('ID')):  # title is the first many lines if not set
+            return self.metadata.get_first_meta_value('ID')
         return self.id  # don't include links in the title, for traversing files clearly.
 
     def log(self):
@@ -228,30 +228,38 @@ class UrtextNode:
         else:
             line_separator = '\n'
 
-        tags = {}
+        keynames = {}
         for entry in self.metadata.entries:
-            if entry.tag_name not in tags:
-                tags[entry.tag_name] = []
+            if entry.keyname not in keynames:
+                keynames[entry.keyname] = []
             timestamp = ''
             if entry.dtstring:
                 timestamp = ' '+entry.dtstring
             for value in entry.values:
-                tags[entry.tag_name].append(value+timestamp)
+                keynames[entry.keyname].append(value+timestamp)
         new_metadata = '\n/-- '
         
         if not one_line: 
             new_metadata += '\n'
             new_metadata += line_separator
 
-        for tag in tags:
-            new_metadata += tag + ': '
-            new_metadata += ' | '.join(tags[tag])
+        for keyname in keynames:
+            new_metadata += keyname + ': '
+            new_metadata += ' | '.join(keynames[keyname])
             new_metadata += line_separator
         if one_line:
             new_metadata = new_metadata[:-2] + ' '
 
         new_metadata += '--/'
         return new_metadata
+    
+
+    def get_all_meta_keynames(self):
+        keynames = []
+        for entry in self.metadata.entries:
+            if entry.keyname not in keynames:
+                keynames.append(entry.keyname)
+        return keynames
 
     def set_content(self, contents):
 

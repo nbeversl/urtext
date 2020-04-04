@@ -86,8 +86,8 @@ class UrtextProject:
         self.log = None
         self.nodes = {}
         self.files = {}
-        self.tagnames = {}
-        self.tagnames['tags']= {} # create this by default
+        self.keynames = {}
+        self.keynames['tags']= {} # create this by default
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
@@ -126,7 +126,7 @@ class UrtextProject:
             'timezone' : ['UTC'],
             'search_index' : ['yes'],
             'always_oneline_meta' : False,
-            'separator_full_content' : '\n——————- LINK \n' # default
+            'format_string': 'TITLE\n-\n',
         }
         self.default_timezone = None
         self.title = self.path # d
@@ -136,7 +136,7 @@ class UrtextProject:
            
         #     self.nodes = saved_state.nodes
         #     self.files = saved_state.files
-        #     self.tagnames = saved_state.tagnames
+        #     self.keynames = saved_state.keynames
         #     self.settings = saved_state.settings
         #     self.dynamic_nodes = saved_state.dynamic_nodes
         #     self.alias_nodes = saved_state.alias_nodes
@@ -287,7 +287,7 @@ class UrtextProject:
         self._set_tree_elements(new_file.basename)
 
         for node_id in new_file.nodes:
-            self._rebuild_node_tag_info(node_id)
+            self._rebuild_node_meta(node_id)
 
         return None
 
@@ -368,9 +368,9 @@ class UrtextProject:
                 else:
                     self.dynamic_nodes.append(definition)
 
-        if len(new_node.metadata.get_tag('ID')) > 1:
+        if len(new_node.metadata.get_meta_value('ID')) > 1:
             self._log_item('Multiple ID tags in >' + new_node.id +
-                          ', '+', '.join(new_node.metadata.get_tag('ID'))+' ( using the first one found.')
+                          ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
         
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
@@ -384,7 +384,7 @@ class UrtextProject:
                 dt_stamp = self._date_from_timestamp(entry.dtstring) 
                 if dt_stamp:
                     self.nodes[node_id].metadata.dt_stamp = dt_stamp
-                    if entry.tag_name == 'timestamp':
+                    if entry.keyname == 'timestamp':
                         self.nodes[node_id].date = dt_stamp
                 else:
                     self._log_item('Timestamp ' + entry.dtstring +
@@ -445,7 +445,7 @@ class UrtextProject:
 
         if not keys:
             keys = sorted([
-                k for k in self.tagnames
+                k for k in self.keynames
                 if k.lower() not in ['defined in', 'id', 'timestamp', 'index']
             ])
 
@@ -453,11 +453,11 @@ class UrtextProject:
         for key in keys:
             s = Node(key)
             s.parent = root
-            for value in sorted(self.tagnames[key]):
+            for value in sorted(self.keynames[key]):
                 t = Node(value)
                 t.parent = s
-                if value in self.tagnames[key]:
-                    for node_id in sorted(self.tagnames[key][value]):
+                if value in self.keynames[key]:
+                    for node_id in sorted(self.keynames[key][value]):
                         if node_id in self.nodes:
                             n = Node(self.nodes[node_id].title + ' >' +
                                      node_id)
@@ -543,20 +543,20 @@ class UrtextProject:
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
 
-                for tagname in list(self.tagnames):
-                    for value in list(self.tagnames[tagname]):
-                        if value in self.tagnames[tagname]:  
+                for keyname in list(self.keynames):
+                    for value in list(self.keynames[keyname]):
+                        if value in self.keynames[keyname]:  
                             # in case it's been removed
-                            if node_id in self.tagnames[tagname][value]:
-                                self.tagnames[tagname][value].remove(node_id)
-                            if len(self.tagnames[tagname][value]) == 0:
-                                del self.tagnames[tagname][value]
+                            if node_id in self.keynames[keyname][value]:
+                                self.keynames[keyname][value].remove(node_id)
+                            if len(self.keynames[keyname][value]) == 0:
+                                del self.keynames[keyname][value]
                 if node_id in self.nodes:
                     del self.nodes[node_id]
                 if node_id in self.dynamic_tags:
                     for target_id in self.dynamic_tags[node_id]:
                         if target_id in self.nodes:
-                            self.nodes[target_id].metadata.remove_dynamic_tags_from_node(node_id)
+                            self.nodes[target_id].metadata.remove_dynamic_meta_from_node(node_id)
 
             del self.files[filename]
 
@@ -775,7 +775,7 @@ class UrtextProject:
 
         unindexed_nodes = []
         for node_id in list(self.nodes):   
-            if self.nodes[node_id].metadata.get_tag('index') == []:
+            if self.nodes[node_id].metadata.get_meta_value('index') == []:
                 unindexed_nodes.append(node_id)
                 
         sorted_unindexed_nodes = sorted(
@@ -790,10 +790,10 @@ class UrtextProject:
         #self.update_lock.acquire()
         indexed_nodes_list = []
         for node_id in list(self.nodes):
-            if self.nodes[node_id].metadata.get_tag('index') != []:
+            if self.nodes[node_id].metadata.get_meta_value('index') != []:
                 indexed_nodes_list.append([
                     node_id,
-                    int((self.nodes[node_id].metadata.get_first_tag('index')))
+                    int((self.nodes[node_id].metadata.get_first_meta_value('index')))
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list,
                                       key=lambda item: item[1])
@@ -936,6 +936,7 @@ class UrtextProject:
     def _get_settings_from(self, node):
         single_values = [
             'show'
+            'format_string',
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -944,7 +945,7 @@ class UrtextProject:
         ]
 
         for entry in node.metadata.entries:
-            key = entry.tag_name.lower()
+            key = entry.keyname.lower()
             values = entry.values
             found = False
           
@@ -1037,9 +1038,9 @@ class UrtextProject:
     def complete_tag(self, fragment):
         fragment = fragment.lower().strip()
         length = len(fragment)
-        for tag in self.tagnames['tags'].keys():
-            if fragment == tag[:length].lower():
-                return tag
+        for keyname in self.keynames['tags'].keys():
+            if fragment == keyname[:length].lower():
+                return keyname
         return u''
 
     def random_node(self):
@@ -1198,7 +1199,7 @@ class PickledUrtextProject:
         
         self.nodes = project.nodes
         self.files = project.files
-        self.tagnames = project.tagnames
+        self.keynames = project.keynames
         self.settings = project.settings
         self.dynamic_nodes = project.dynamic_nodes
         self.alias_nodes = project.alias_nodes
@@ -1209,7 +1210,7 @@ Helpers
 """
 
 
-def build_metadata(tags, one_line=False):
+def build_metadata(keynames, one_line=False):
     """ Note this is a method from node.py. Could be refactored """
 
     if one_line:
@@ -1219,12 +1220,12 @@ def build_metadata(tags, one_line=False):
     new_metadata = '/-- '
     if not one_line: 
         new_metadata += line_separator
-    for tag in tags:
-        new_metadata += tag + ': '
-        if isinstance(tags[tag], list):
-            new_metadata += ' | '.join(tags[tag])
+    for keyname in keynames:
+        new_metadata += keyname + ': '
+        if isinstance(keynames[keyname], list):
+            new_metadata += ' | '.join(keynames[keyname])
         else:
-            new_metadata += tags[tag]
+            new_metadata += keynames[keyname]
         new_metadata += line_separator
     if one_line:
         new_metadata = new_metadata[:-2] + ' '

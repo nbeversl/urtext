@@ -34,7 +34,7 @@ class NodeMetadata:
                 'timezone',
                 'timestamp_format',
                 'filenames',
-                'separator_full_content' ]
+                ]
 
         self.raw_meta_data = ''
         for section in re.findall(meta, full_contents):
@@ -71,8 +71,6 @@ class NodeMetadata:
                 for value in value_list:
                     if key not in self.case_sensitive_values:
                         value = value.lower().strip()
-                    if key != 'separator_full_content':
-                        value = value.strip()
                     values.append(value)
             else:
                 key = '(no_key)'
@@ -80,22 +78,22 @@ class NodeMetadata:
             if values:
                 self.entries.append(MetadataEntry(key, values, dt_string))
 
-    def get_tag(self, tagname):
-        """ returns a list of values for the given tagname """
+    def get_meta_value(self, keyname):
+        """ returns a list of values for the given key """
         values = []
-        tagname = tagname.lower()
+        keyname = keyname.lower()
         for entry in self.entries:
-            if entry.tag_name.lower() == tagname.lower():
-                values.extend(entry.values)  # allows for multiple tags of the same name
+            if entry.keyname.lower() == keyname.lower():
+                values.extend(entry.values)  # allows for multiple keys of the same name
         return values
 
-    def get_first_tag(self, tagname):
-        values = self.get_tag(tagname)
+    def get_first_meta_value(self, keyname):
+        values = self.get_meta_value(keyname)
         if values:
             return values[0]
         return ''
 
-    def add_tag(self, 
+    def add_meta_entry(self, 
         key, 
         value,
         from_node=None):
@@ -104,16 +102,16 @@ class NodeMetadata:
             self.entries.append(new_entry)
 
 
-    def remove_dynamic_tags_from_node(self, node_id):
+    def remove_dynamic_meta_from_node(self, node_id):
         for entry in self.entries:
             if entry.from_node == node_id:
                 del self.entries[entry] 
 
-    def get_date(self, tagname):
+    def get_date(self, keyname):
         """only works after the project has set the dt_stamp from dt_string"""
-        tagname = tagname.lower()
+        keyname = keyname.lower()
         for entry in self.entries:
-            if entry.tag_name.lower() == tagname:
+            if entry.keyname.lower() == keyname:
                 return entry.dtstamp
 
     def log(self):
@@ -123,20 +121,20 @@ class NodeMetadata:
     def groups(self):  # not used?
         groups_list = []
         for entry in self.entries:
-            if entry.tag_name[0] == '_':
-                groups_list.append(entry.tag_name)
+            if entry.keyname[0] == '_':
+                groups_list.append(entry.keyname)
         return groups_list
 
 class MetadataEntry:  # container for a single metadata entry
-    def __init__(self, tag, value, dtstring, from_node=None):
-        self.tag_name = tag.strip() # string
+    def __init__(self, keyname, value, dtstring, from_node=None):
+        self.keyname = keyname.strip() # string
         self.values = value         # always a list
         self.dtstring = dtstring
         self.dtstamp = None         # set by project
         self.from_node = from_node
 
     def log(self):
-        print('tag: %s' % self.tag_name)
+        print('key: %s' % self.keyname)
         print('value: %s' % self.values)
         print('datetimestring: %s' % self.dtstring)
         print('datetimestamp: %s' % self.dtstamp)

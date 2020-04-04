@@ -140,11 +140,10 @@ def _compile(self,
                     key, value = pair[0], pair[1]
 
                     # if the key/value pair is in the project
-                    if key in self.tagnames and value in self.tagnames[key]:
+                    if key in self.keynames and value in self.keynames[key]:
 
                         # add its nodes to the list of possibly included nodes as its own set
-                        this_and_group.append(set(self.tagnames[key][value]))
-                        #included_nodes_and.append(set(self.tagnames[key][value]))
+                        this_and_group.append(set(self.keynames[key][value]))
 
                     else:
                         # otherwise, this means no nodes result from this AND combination
@@ -166,11 +165,11 @@ def _compile(self,
                     key, value = pair[0], pair[1]
 
                     # if the key/value pair is in the project
-                    if key in self.tagnames and value in self.tagnames[key]:
+                    if key in self.keynames and value in self.keynames[key]:
 
                         # add its nodes to the list of possibly included nodes as its own set
-                        this_and_group.append(set(self.tagnames[key][value]))
-                        #included_nodes_and.append(set(self.tagnames[key][value]))
+                        this_and_group.append(set(self.keynames[key][value]))
+                        #included_nodes_and.append(set(self.keynames[key][value]))
 
                     else:
                         # otherwise, this means no nodes result from this AND combination
@@ -202,8 +201,8 @@ def _compile(self,
                     if len(item) < 2:
                         continue
                     key, value = item[0], item[1]
-                    if value in self.tagnames[key]:
-                        added_nodes = self.tagnames[key][value]
+                    if value in self.keynames[key]:
+                        added_nodes = self.keynames[key][value]
                         for indiv_node_id in added_nodes:
                             if indiv_node_id not in included_nodes:
                                 included_nodes.append(indiv_node_id)
@@ -211,8 +210,8 @@ def _compile(self,
             for item in dynamic_definition.exclude_or:
                 key, value = item[0], item[1]
                 
-                if key in self.tagnames and value in self.tagnames[key]:
-                    excluded_nodes.extend(self.tagnames[key][value])
+                if key in self.keynames and value in self.keynames[key]:
+                    excluded_nodes.extend(self.keynames[key][value])
 
             for node in excluded_nodes:
                 if node in included_nodes:
@@ -240,15 +239,15 @@ def _compile(self,
                 """
                 otherwise this is a list, so sort the nodes
                 """
-                if dynamic_definition.sort_tagname:
+                if dynamic_definition.sort_keyname:
 
-                    if dynamic_definition.sort_tagname == 'timestamp':
+                    if dynamic_definition.sort_keyname == 'timestamp':
                         included_nodes = sorted(
                             included_nodes,
                             key = lambda node: node.date,
                             reverse=dynamic_definition.reverse)
 
-                    elif dynamic_definition.sort_tagname == 'title':
+                    elif dynamic_definition.sort_keyname == 'title':
                         included_nodes = sorted(
                             included_nodes,
                             key = lambda node: node.title.lower(),
@@ -257,8 +256,8 @@ def _compile(self,
                     else:
                         included_nodes = sorted(
                             included_nodes,
-                            key = lambda node: node.metadata.get_first_tag(
-                                dynamic_definition.sort_tagname).lower(),
+                            key = lambda node: node.metadata.get_first_meta_value(
+                                dynamic_definition.sort_keyname).lower(),
                             reverse=dynamic_definition.reverse)
 
                 else:
@@ -278,7 +277,7 @@ def _compile(self,
                         'LINK',
                         'DATE',
                         'CONTENTS',
-                        'TAGS',
+                        'META',
                     ]
 
                     # tokenize everything to make sure we only
@@ -291,40 +290,49 @@ def _compile(self,
                         item_format = item_format.replace(shah + 'LINK', '>>'+ str(targeted_node.id))
                     if shah + 'DATE' in item_format:
                         item_format = item_format.replace(shah + 'DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
-                    if shah + 'CONTENTS' in item_format:
-                        item_format = item_format.replace(shah + 'CONTENTS', targeted_node.content_only().strip('\n').strip())
-
-                    
-                    tags_thing = re.compile(shah+'TAGS'+'(\(.*\))?', re.DOTALL)
                    
-                    tag_match = re.search(tags_thing, item_format)
+                    contents_syntax = re.compile(shah+'CONTENTS'+'(\(\d*\))?', re.DOTALL)      
+                    contents_match = re.search(contents_syntax, item_format)
+
+                    if contents_match:
+                        suffix = ''
+                        contents = targeted_node.content_only().strip('\n').strip()
+                        if contents_match.group(1):
+                            suffix = contents_match.group(1)
+                            length_str = contents_match.group(1)[1:-1]
+                            length = int(length_str)
+                            print(length)
+                            if len(contents) > length:
+                                contents = contents[0:length]
+                        item_format = item_format.replace(shah + 'CONTENTS'+suffix, contents)
+
+                    meta_syntax = re.compile(shah+'META'+'(\(.*\))?', re.DOTALL)                   
+                    meta_match = re.search(meta_syntax, item_format)
                     
-                    if tag_match:
+                    if meta_match:
                        
-                        tags = ''
+                        meta = ''
                         #TODO refactor. This should be a method of Metadata
-                        # Should also be able to get the tag names and then consolidated values for each tagname,
-                        # even if they are in separate metadata items
 
                         suffix = ''
-                      
-                        if tag_match.group(1):
-                            suffix = tag_match.group(1)
-                           
-                            tag_list = tag_match.group(1)[1:-1].split(',')
-                            for index in range(len(tag_list)):
-                                tag_list[index] = tag_list[index].strip().lower()
-                         
 
-                        for entry in targeted_node.metadata.entries:
-                            if tag_match.group(1) and entry.tag_name not in tag_list:
+                        # if tags have been specified
+                        if meta_match.group(1):
+                            suffix = meta_match.group(1)                           
+                            meta_list = meta_match.group(1)[1:-1].split(',')
+                            for index in range(len(meta_list)):
+                                meta_list[index] = meta_list[index].strip().lower()
+                         
+                        keynames = targeted_node.get_all_meta_keynames()
+                        for keyname in keynames:
+                            if meta_match.group(1) and entry.keyname.lower() not in meta_list:
                                 continue
-                            tags += entry.tag_name + ': '
-                            tags += ' '.join([value for value in entry.values ])
-                            tags += '; '
+                            values = targeted_node.metadata.get_meta_value(keyname)
+                            meta += keyname + ': '
+                            meta += ' '.join([value for value in values ])
+                            meta += '; '
                         
-                        item_format = item_format.replace(shah + 'TAGS' + suffix, tags)
-                        
+                        item_format = item_format.replace(shah + 'META' + suffix, meta)
                         
                     new_node_contents += item_format
                         
@@ -368,7 +376,7 @@ def _compile(self,
             self.nodes[target_id].is_tree = True
     return modified_files
 
-def build_metadata(tags, one_line=False):
+def build_metadata(keynames, one_line=False):
     """ Note this is a method from node.py. Could be refactored """
 
     if one_line:
@@ -378,12 +386,12 @@ def build_metadata(tags, one_line=False):
     new_metadata = '/-- '
     if not one_line: 
         new_metadata += line_separator
-    for tag in tags:
-        new_metadata += tag + ': '
-        if isinstance(tags[tag], list):
-            new_metadata += ' | '.join(tags[tag])
+    for keyname in keynames:
+        new_metadata += keyname + ': '
+        if isinstance(keynames[keyname], list):
+            new_metadata += ' | '.join(keynames[keyname])
         else:
-            new_metadata += tags[tag]
+            new_metadata += keynames[keyname]
         new_metadata += line_separator
     if one_line:
         new_metadata = new_metadata[:-2] + ' '

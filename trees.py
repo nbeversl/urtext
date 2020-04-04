@@ -127,12 +127,12 @@ def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
             continue 
 
         # Otherwise, remove it from the tree if it is flagged
-        if flag == 'tree' and 'exclude_from_tree' in self.nodes[descendant.name].metadata.get_tag('flags'):
+        if flag == 'tree' and 'exclude_from_tree' in self.nodes[descendant.name].metadata.get_meta_value('flags'):
             descendant.parent = None
             continue
 
         # Otherwise, remove it from export if it is flagged
-        if flag == 'export' and 'exclude_from_export' in self.nodes[descendant.name].metadata.get_tag('flags'):
+        if flag == 'export' and 'exclude_from_export' in self.nodes[descendant.name].metadata.get_meta_value('flags'):
             descendant.parent = None
 
 

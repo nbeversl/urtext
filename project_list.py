@@ -203,11 +203,11 @@ class ProjectList():
 
         return True
 
-    def get_all_tagnames(self):
-        tag_names = []
+    def get_all_keynames(self):
+        keynames = []
         for project in self.projects:
-            tag_names.extend(project.tagnames['tags'].keys())
-        return tag_names
+            keynames.extend(project.keynames['tags'].keys())
+        return keynames
 
     # future
     # def move_all_linked_nodes(self, filename, to_project):

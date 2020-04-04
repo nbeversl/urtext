@@ -138,7 +138,7 @@ class UrtextExport:
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
         split = self.project.nodes[root_node_id].split
-        title_found = True if self.project.nodes[root_node_id].metadata.get_tag('title') else False
+        title_found = True if self.project.nodes[root_node_id].metadata.get_meta_value('title') else False
 
         if points == {}:
             points = {0:root_node_id}

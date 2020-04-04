@@ -70,17 +70,17 @@ def consolidate_metadata(self, node_id, one_line=False):
     self._set_file_contents(filename, new_file_contents)
     self._parse_file(filename)
 
-def _rebuild_node_tag_info(self, node):
+def _rebuild_node_meta(self, node):
     """ Rebuilds metadata info for a single node """
 
     for entry in self.nodes[node].metadata.entries:
-        if entry.tag_name.lower() != 'title':
-            if entry.tag_name not in self.tagnames:
-                self.tagnames[entry.tag_name] = {}
+        if entry.keyname.lower() != 'title':
+            if entry.keyname not in self.keynames:
+                self.keynames[entry.keyname] = {}
             for value in entry.values:
-                if value not in self.tagnames[entry.tag_name]:
-                    self.tagnames[entry.tag_name][value] = []
-                self.tagnames[entry.tag_name][value].append(node)
+                if value not in self.keynames[entry.keyname]:
+                    self.keynames[entry.keyname][value] = []
+                self.keynames[entry.keyname][value].append(node)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction
@@ -93,12 +93,12 @@ def _add_sub_tags(self,
     
     children = self.nodes[target_id].tree_node.children
     for child in children:
-        self.nodes[child.name].metadata.add_tag(
+        self.nodes[child.name].metadata.add_meta_entry(
             tag, 
             value,
             from_node=source_id)
         self.dynamic_tags[source_id].append(target_id)
-        self._rebuild_node_tag_info(child.name)
+        self._rebuild_node_meta(child.name)
         if recursive:
             self.add_sub_tags(
                 source_id,
@@ -107,4 +107,4 @@ def _add_sub_tags(self,
                 value,
                 recursive=recursive)
 
-metadata_functions = [ _add_sub_tags, _rebuild_node_tag_info, consolidate_metadata, tag_other_node]
+metadata_functions = [ _add_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]

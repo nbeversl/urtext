@@ -35,7 +35,7 @@ class UrtextDynamicDefinition:
         self.exclude_or = []
         self.exclude_and = []
         self.tree = None
-        self.sort_tagname = None
+        self.sort_keyname = None
         self.metadata = {}
         self.oneline_meta = False
         self.interlinks = None
@@ -50,7 +50,6 @@ class UrtextDynamicDefinition:
         self.timeline_type = None
         self.search = None
         self.show = 'TITLE LINK\n' # default
-        self.separator_full_content = None # default
         self.preformat = False
         self.display = 'list'
 
@@ -76,19 +75,7 @@ class UrtextDynamicDefinition:
                 self.metadata[atoms[1]] = ':'.join(
                     atoms[2:]) 
                 continue
-
-            if atoms[0].lower() == 'separator_full_content':
-                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
-                separator_full_content = bytes(atoms[1], "utf-8").decode("unicode_escape")
-                self.separator_full_content = separator_full_content
-                continue
             
-            if atoms[0].lower() == 'separator':
-                # https://stackoverflow.com/questions/4020539/process-escape-sequences-in-a-string-in-python
-                separator  = bytes(atoms[1], "utf-8").decode("unicode_escape") # python3
-                self.separator = separator
-                continue   
-
             """
             format string
             """
@@ -134,7 +121,7 @@ class UrtextDynamicDefinition:
                 continue
 
             if atoms[0] == 'sort':
-                self.sort_tagname = atoms[1]
+                self.sort_keyname = atoms[1]
                 if len(atoms) > 2 and atoms[2].lower() == 'reverse':
                     self.reverse = True
                 continue
