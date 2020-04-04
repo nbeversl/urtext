@@ -316,7 +316,6 @@ def _compile(self,
                                 tag_list[index] = tag_list[index].strip().lower()
                          
 
-
                         for entry in targeted_node.metadata.entries:
                             if tag_match.group(1) and entry.tag_name not in tag_list:
                                 continue
@@ -325,7 +324,8 @@ def _compile(self,
                             tags += '; '
                         
                         item_format = item_format.replace(shah + 'TAGS' + suffix, tags)
-
+                        
+                        
                     new_node_contents += item_format
                         
         """
