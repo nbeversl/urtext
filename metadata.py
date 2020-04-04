@@ -70,7 +70,8 @@ class NodeMetadata:
                 value_list = ''.join(line.split(":", 1)[1:]).split('|')
                 for value in value_list:
                     if key not in self.case_sensitive_values:
-                        value = value.lower().strip()
+                        value = value.lower()
+                    value = value.strip()
                     values.append(value)
             else:
                 key = '(no_key)'
@@ -83,12 +84,18 @@ class NodeMetadata:
         values = []
         keyname = keyname.lower()
         for entry in self.entries:
-            if entry.keyname.lower() == keyname.lower():
+            if entry.keyname == keyname:
                 values.extend(entry.values)  # allows for multiple keys of the same name
+        # if keyname == 'timestamp' and values == []:
+        #     # TODO - if there is nothing in an entry besides the timestamp,
+        #     # and the timestamp was asked for, return it as a string
+        #     pass
+
         return values
 
     def get_first_meta_value(self, keyname):
         values = self.get_meta_value(keyname)
+        print(values)
         if values:
             return values[0]
         return ''
@@ -111,7 +118,7 @@ class NodeMetadata:
         """only works after the project has set the dt_stamp from dt_string"""
         keyname = keyname.lower()
         for entry in self.entries:
-            if entry.keyname.lower() == keyname:
+            if entry.keyname == keyname:
                 return entry.dtstamp
 
     def log(self):
@@ -127,7 +134,7 @@ class NodeMetadata:
 
 class MetadataEntry:  # container for a single metadata entry
     def __init__(self, keyname, value, dtstring, from_node=None):
-        self.keyname = keyname.strip() # string
+        self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
         self.dtstamp = None         # set by project

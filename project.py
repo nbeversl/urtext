@@ -935,20 +935,23 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
         single_values = [
-            'show'
             'format_string',
+            'home',
+            'project_title'
         ]
         single_boolean_values = [
             'always_oneline_meta',
             'preformat',
-            'console_log'
+            'console_log',
         ]
 
         for entry in node.metadata.entries:
-            key = entry.keyname.lower()
+            key = entry.keyname
             values = entry.values
             found = False
-          
+            print(key)
+            print(values)
+            
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
                 self.title = values[0]
@@ -961,18 +964,16 @@ class UrtextProject:
             for item in single_values:
                 if key == item:
                     self.settings[key] = values[0]
-                    found = True
-                    break
-                    
-            if not found:                                   
-                self.settings[key] = values
+                  
+            if item not in single_values:
+                if key not in self.settings:
+                    self.settings[key] = []                                
+                self.settings[key].extend(values)
   
         self.default_timezone = timezone(self.settings['timezone'][0])
 
     def get_home(self):
-        if self.settings['home']:
-            return self.settings['home'][0]
-        return None
+        return self.settings['home']
 
     def next_index(self):
         index = random.choice(list(self._node_id_generator()))
