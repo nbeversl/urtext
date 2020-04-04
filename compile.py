@@ -247,7 +247,7 @@ def _compile(self,
                         if meta_match.group(1):
                             suffix = meta_match.group(1)                           
                             keynames = meta_match.group(1)[1:-1].split(',')
-                            for index in range(len(meta_list)):
+                            for index in range(len(keynames)):
                                 keynames[index] = keynames[index].strip().lower()
                         else: 
                             # default is to use all keynames
