@@ -236,27 +236,27 @@ def _compile(self,
                     meta_syntax = re.compile(shah+'META'+'(\(.*\))?', re.DOTALL)                   
                     meta_match = re.search(meta_syntax, item_format)
                     
+                    # if META format key is present
+                    #TODO refactor. This should be a method of Metadata
                     if meta_match:
                        
                         meta = ''
-                        #TODO refactor. This should be a method of Metadata
-
                         suffix = ''
 
                         # if tags have been specified
                         if meta_match.group(1):
                             suffix = meta_match.group(1)                           
-                            meta_list = meta_match.group(1)[1:-1].split(',')
+                            keynames = meta_match.group(1)[1:-1].split(',')
                             for index in range(len(meta_list)):
-                                meta_list[index] = meta_list[index].strip().lower()
-                         
-                        keynames = targeted_node.get_all_meta_keynames()
+                                keynames[index] = keynames[index].strip().lower()
+                        else: 
+                            # default is to use all keynames
+                            keynames = targeted_node.get_all_meta_keynames()
+                        
                         for keyname in keynames:
-                            if meta_match.group(1) and entry.keyname.lower() not in meta_list:
-                                continue
                             values = targeted_node.metadata.get_meta_value(keyname)
                             meta += keyname + ': '
-                            meta += ' '.join([value for value in values ])
+                            meta += ' '.join([value for value in values])
                             meta += '; '
                         
                         item_format = item_format.replace(shah + 'META' + suffix, meta)
@@ -328,19 +328,13 @@ def _build_group_and(self, groups):
 
     return final_group
 
-def _build_group_or(self, groups):
+def _build_group_or(self, group):
     final_group = set([])
 
-    for group in groups:
-
-        new_group = set([])
-
-        for pair in group:
-            key, value = pair[0], pair[1]
-            if key in self.keynames and value in self.keynames[key]:
-                final_group = final_group.union(set(self.keynames[key][value]))
-
-        final_group = final_group.union(new_group)
+    for pair in group:
+        key, value = pair[0], pair[1]
+        if key in self.keynames and value in self.keynames[key]:
+            final_group = final_group.union(set(self.keynames[key][value]))
         
     return final_group
 
