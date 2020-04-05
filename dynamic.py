@@ -53,6 +53,7 @@ class UrtextDynamicDefinition:
         self.preformat = False
         self.display = 'list'
         self.max = None
+        self.sort_type = 'alpha'
 
         entries = re.split(';|\n', contents)
         for entry in entries:
@@ -131,13 +132,15 @@ class UrtextDynamicDefinition:
 
             if atoms[0] == 'sort':
                 self.sort_keyname = atoms[1]
-                if len(atoms) > 2 and atoms[2].lower() == 'reverse':
+                if len(atoms) > 2 and 'reverse' in atoms[2:]:
                     self.reverse = True
+                if len(atoms) > 2 and 'timestamp' in atoms[2:]:
+                    self.sort_type = 'timestamp'
                 continue
 
             if atoms[0] == 'export' and len(atoms) > 2:
-                export_format = atoms[1].lower()
-                from_node = atoms[2].lower()
+                export_format = atoms[1]
+                from_node = atoms[2]
                 
                 if export_format not in ['markdown','html','plaintext']:
                     continue
@@ -166,8 +169,6 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'file':
                 self.target_file = atoms[1]
                 continue
-
-            
 
             if atoms[0] == 'timeline':
                 self.timeline = True

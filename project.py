@@ -383,7 +383,7 @@ class UrtextProject:
             if entry.dtstring:
                 dt_stamp = self._date_from_timestamp(entry.dtstring) 
                 if dt_stamp:
-                    self.nodes[node_id].metadata.dt_stamp = dt_stamp
+                    entry.dt_stamp = dt_stamp
                     if entry.keyname == 'timestamp':
                         self.nodes[node_id].date = dt_stamp
                 else:

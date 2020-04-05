@@ -158,36 +158,33 @@ def _compile(self,
  
             else:
                 
-                """
-                otherwise this is a list, so sort the nodes
-                """
+                """ otherwise this is a list. """
+                """ custom sort the nodes if a sort key is provided """
                 if dynamic_definition.sort_keyname:
 
-                    if dynamic_definition.sort_keyname == 'timestamp':
-                        included_nodes = sorted(
-                            included_nodes,
-                            key = lambda node: node.date,
-                            reverse=dynamic_definition.reverse)
+                    # If specified, sort by timestamp of the selected key
+                    if dynamic_definition.sort_type == 'timestamp':
+                        sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
+                    # ( Otherwise the sort type is alpha by string )
+
+                    # Title is not always given by metadata so we do this manually 
                     elif dynamic_definition.sort_keyname == 'title':
-                        included_nodes = sorted(
-                            included_nodes,
-                            key = lambda node: node.title.lower(),
-                            reverse=dynamic_definition.reverse)
+                        sort_func = lambda node: node.title.lower()
 
+                    # For all other keys, sort by key
                     else:
-                        included_nodes = sorted(
-                            included_nodes,
-                            key = lambda node: node.metadata.get_first_meta_value(
-                                dynamic_definition.sort_keyname).lower(),
-                            reverse=dynamic_definition.reverse)
+                        sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
 
                 else:
-                    included_nodes = sorted(
-                        included_nodes,
-                        key = lambda node: node.date,
-                        reverse = dynamic_definition.reverse
-                        )
+                    """ otherwise sort them by node date by default """
+                    sort_func = lambda node: node.date
+
+                # sort them using the determined sort function
+                included_nodes = sorted(
+                    included_nodes,
+                    key = sort_func,
+                    reverse=dynamic_definition.reverse)
 
                 """
                 Truncate the list if a maximum is specified

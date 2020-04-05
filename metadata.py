@@ -19,6 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 import datetime
+import pytz
 
 meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
                           re.DOTALL)  # \/--((?!\/--).)*--\/
@@ -114,11 +115,15 @@ class NodeMetadata:
                 del self.entries[entry] 
 
     def get_date(self, keyname):
-        """only works after the project has set the dt_stamp from dt_string"""
+        """
+        Returns the timestamp of the FIRST matching metadata entry with the given key.
+        Requires the project be compiled (dt_stamp set from dt_string)
+        """
         keyname = keyname.lower()
-        for entry in self.entries:
+         for entry in self.entries:
             if entry.keyname == keyname:
-                return entry.dtstamp
+                return entry.dt_stamp
+        return pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 
     def log(self):
         for entry in self.entries:
@@ -136,11 +141,11 @@ class MetadataEntry:  # container for a single metadata entry
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
-        self.dtstamp = None         # set by project
+        self.dt_stamp = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1)) # default or set by project
         self.from_node = from_node
 
     def log(self):
         print('key: %s' % self.keyname)
         print('value: %s' % self.values)
         print('datetimestring: %s' % self.dtstring)
-        print('datetimestamp: %s' % self.dtstamp)
+        print('datetimestamp: %s' % self.dt_stamp)
