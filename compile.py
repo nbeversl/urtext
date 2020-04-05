@@ -249,11 +249,11 @@ def _compile(self,
                         else: 
                             # default is to use all keynames
                             keynames = targeted_node.get_all_meta_keynames()
-                        
+
                         for keyname in keynames:
-                            values = targeted_node.metadata.get_meta_value(keyname)
+                            values = targeted_node.metadata.get_meta_value(keyname, substitute_timestamp=True)
                             meta += keyname + ': '
-                            meta += ' '.join([value for value in values])
+                            meta += ' '.join(values)
                             meta += '; '
                         
                         item_format = item_format.replace(shah + 'META' + suffix, meta)

@@ -23,6 +23,7 @@ import pytz
 
 meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
                           re.DOTALL)  # \/--((?!\/--).)*--\/
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,3,1))
 
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):
@@ -73,25 +74,31 @@ class NodeMetadata:
                     if key not in self.case_sensitive_values:
                         value = value.lower()
                     value = value.strip()
-                    values.append(value)
+                    if value:
+                        values.append(value)
             else:
                 key = '(no_key)'
                 values = [ line.strip('--/') ]
-            if values:
-                self.entries.append(MetadataEntry(key, values, dt_string))
 
-    def get_meta_value(self, keyname):
+            self.entries.append(MetadataEntry(key, values, dt_string))
+
+    def get_meta_value(self, 
+        keyname,
+        substitute_timestamp=False  # substitutes the timestamp as a string if no value
+        ):
         """ returns a list of values for the given key """
         values = []
         keyname = keyname.lower()
         for entry in self.entries:
             if entry.keyname == keyname:
                 values.extend(entry.values)  # allows for multiple keys of the same name
-        # if keyname == 'timestamp' and values == []:
-        #     # TODO - if there is nothing in an entry besides the timestamp,
-        #     # and the timestamp was asked for, return it as a string
-        #     pass
-
+        
+        if values == [] and substitute_timestamp == True:
+            for entry in self.entries:
+                if entry.keyname == keyname:
+                    if entry.dt_stamp != default_date:
+                        return [entry.dtstring]
+                        
         return values
 
     def get_first_meta_value(self, keyname):
@@ -117,13 +124,16 @@ class NodeMetadata:
     def get_date(self, keyname):
         """
         Returns the timestamp of the FIRST matching metadata entry with the given key.
-        Requires the project be compiled (dt_stamp set from dt_string)
+        Requires the project be parsed (dt_stamp set from dt_string)
         """
         keyname = keyname.lower()
-         for entry in self.entries:
+        for entry in self.entries:
             if entry.keyname == keyname:
+                
                 return entry.dt_stamp
-        return pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
+        # BUG IS RIGHT HERE ???
+        # Somehow this is overwriting
+        return pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
 
     def log(self):
         for entry in self.entries:
@@ -141,7 +151,7 @@ class MetadataEntry:  # container for a single metadata entry
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
-        self.dt_stamp = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1)) # default or set by project
+        self.dt_stamp = pytz.timezone('UTC').localize(datetime.datetime(1970,3,1)) # default or set by project
         self.from_node = from_node
 
     def log(self):

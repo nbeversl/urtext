@@ -74,7 +74,7 @@ def _rebuild_node_meta(self, node):
     """ Rebuilds metadata info for a single node """
 
     for entry in self.nodes[node].metadata.entries:
-        if entry.keyname.lower() != 'title':
+        if entry.keyname != 'title':
             if entry.keyname not in self.keynames:
                 self.keynames[entry.keyname] = {}
             for value in entry.values:

@@ -192,11 +192,11 @@ class UrtextProject:
             return None            
         
         # must be done once manually on project init
-        for node_id in list(self.nodes):  
-            self._parse_meta_dates(node_id)
+        for node_id in self.nodes:  
+            self._parse_meta_dates(node_id, initial=True)
         
         self._update()
-
+            
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -227,6 +227,12 @@ class UrtextProject:
         return modified_files
 
     def _parse_file(self, filename):
+        """
+        Parses a single file into the project.
+        Returns None if successful, or a list of duplicate nodes found
+        if duplicate nodes were found.
+        FUTURE: Should be cleaned up. Currently returns None, False or list.
+        """
     
         if self._filter_filenames(os.path.basename(filename)) == None:
             return
@@ -376,12 +382,12 @@ class UrtextProject:
         if new_node.project_settings:
             self._get_settings_from(new_node)
 
-    def _parse_meta_dates(self, node_id):
+    def _parse_meta_dates(self, node_id, initial=False):
         """ Parses dates (requires that timestamp_format already be set) """
 
         for entry in self.nodes[node_id].metadata.entries:
             if entry.dtstring:
-                dt_stamp = self._date_from_timestamp(entry.dtstring) 
+                dt_stamp = self._date_from_timestamp(entry.dtstring)
                 if dt_stamp:
                     entry.dt_stamp = dt_stamp
                     if entry.keyname == 'timestamp':
@@ -400,10 +406,9 @@ class UrtextProject:
                     continue
                 if dt_stamp.tzinfo == None:
                     dt_stamp = self.default_timezone.localize(dt_stamp) 
-
                 return dt_stamp                
             except ValueError:
-                continue
+                 continue
         return None
 
     def export_from_root_node(self, root_node_id):
@@ -1180,7 +1185,6 @@ class UrtextProject:
     def get_history(self, filename):
         filename = os.path.basename(filename)
         history_file = os.path.join(self.path, 'history', filename.replace('.txt','.pkl'))
-        print(history_file)
         if os.path.exists(history_file):
             with open(history_file, "rb") as f:
                 file_history = pickle.load(f)
