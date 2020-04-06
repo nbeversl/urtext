@@ -884,7 +884,8 @@ class UrtextProject:
 
         if re.search(url_scheme, string[position:]):
             url = re.search(url_scheme, string).group(0)
-            success = webbrowser.get().open(link[1])
+            print(url)
+            success = webbrowser.get().open(url)
             if not success:
                 self.log('Could not open tab using your "web_browser_path" setting')
             return ('HTTP', success)
@@ -892,7 +893,6 @@ class UrtextProject:
         
         if re.search(file_path, string):
             file_link = re.search(file_path, string).group(0)
-            print(file_link)
 
             success = False
             if os.path.exists(os.path.join(self.path,file_link)):
