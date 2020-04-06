@@ -33,6 +33,8 @@ import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
+import webbrowser
+import subprocess
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
@@ -871,13 +873,34 @@ class UrtextProject:
         return None
 
     def get_link(self, string, position=0):
-        """ Given a line of text passed from an editor, returns finds a node or web link """
+        """ 
+        Given a line of text passed from an editor, 
+        opens a web link, file, or returns a node,
+        in that order.
+        Returns a tuple of type and success/failure or node ID
+        """
         url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
 
         if re.search(url_scheme, string[position:]):
             url = re.search(url_scheme, string).group(0)
-            return ('HTTP', url)
+            success = webbrowser.get().open(link[1])
+            if not success:
+                self.log('Could not open tab using your "web_browser_path" setting')
+            return ('HTTP', success)
+
+        
+        if re.search(file_path, string):
+            file_link = re.search(file_path, string).group(0)
+            print(file_link)
+
+            success = False
+            if os.path.exists(os.path.join(self.path,file_link)):
+                success = subprocess.check_call(['open', os.path.join(self.path,file_link)])
+            return ('FILE', success)
+
         link = None
+        
         # first try looking around where the cursor is positioned
         for index in range(0, 4):
             if re.search(node_link_regex,
@@ -899,17 +922,17 @@ class UrtextProject:
             if re.search(node_link_regex, before_cursor):
                 link = re.search(node_link_regex, before_cursor).group(0)
 
-        if not link:
-            return None
+        if link:
 
-        node_id = link.split(':')[0].strip('>')
-        if node_id.strip() in self.nodes:
-            file_position = self.nodes[node_id].ranges[0][0]
-            return ('NODE', node_id, file_position)
-        else:
-            self._log_item('Node ' + node_id + ' is not in the project')
-            return None
-        self._log_item('No node ID found on this line.')
+            node_id = link.split(':')[0].strip('>')
+            if node_id.strip() in self.nodes:
+                file_position = self.nodes[node_id].ranges[0][0]
+                return ('NODE', node_id, file_position)
+            else:
+                self._log_item('Node ' + node_id + ' is not in the project')
+                return None
+
+        self._log_item('No node ID, web link, or file found on this line.')
         return None
 
     def build_timeline(self, nodes):

@@ -129,10 +129,7 @@ class NodeMetadata:
         keyname = keyname.lower()
         for entry in self.entries:
             if entry.keyname == keyname:
-                
                 return entry.dt_stamp
-        # BUG IS RIGHT HERE ???
-        # Somehow this is overwriting
         return pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
 
     def log(self):
