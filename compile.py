@@ -106,6 +106,10 @@ def _compile(self,
             new_node_contents = exported_content
         
 
+        # show access history
+        if dynamic_definition.number:
+            new_node_contents += self._show_access_history(dynamic_definition.number)
+
         if dynamic_definition.tag_all_key:
             if skip_tags:
                 continue
@@ -230,7 +234,7 @@ def _compile(self,
                                 contents = contents[0:length] + ' (...)'
                         item_format = item_format.replace(shah + 'CONTENTS' + suffix, contents)
 
-                    meta_syntax = re.compile(shah+'META'+'(\(.*\))?', re.DOTALL)                   
+                    meta_syntax = re.compile(shah+'META(_NOKEY)?(\(.*\))?', re.DOTALL)                   
                     meta_match = re.search(meta_syntax, item_format)
                     
                     # if META format key is present
@@ -239,6 +243,9 @@ def _compile(self,
                        
                         meta = ''
                         suffix = ''
+                        include_key = True
+                        if '_NOKEY' in meta_match.group(0):
+                            include_key = False
 
                         # if tags have been specified
                         if meta_match.group(1):
@@ -252,7 +259,8 @@ def _compile(self,
 
                         for keyname in keynames:
                             values = targeted_node.metadata.get_meta_value(keyname, substitute_timestamp=True)
-                            meta += keyname + ': '
+                            if include_key:
+                                meta += keyname + ': '
                             meta += ' '.join(values)
                             meta += '; '
                         

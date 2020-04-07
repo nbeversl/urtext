@@ -129,7 +129,8 @@ class UrtextProject:
             'format_string': 'TITLE\n-\n',
         }
         self.default_timezone = None
-        self.title = self.path # d
+        self.title = self.path # default
+
         # if os.path.exists(os.path.join(self.path, "save.p")):
         #     self._log_item('Loading project from pickle')
         #     saved_state = pickle.load(open( os.path.join(self.path, "save.p"), "rb" ) )
@@ -195,6 +196,8 @@ class UrtextProject:
         for node_id in self.nodes:  
             self._parse_meta_dates(node_id, initial=True)
         
+        self.access_history = self._get_access_history()
+
         self._update()
             
     def _node_id_generator(self):
@@ -733,7 +736,8 @@ class UrtextProject:
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
-        
+        self._push_access_history(node_id)
+         
 
     def nav_reverse(self):
         if not self.navigation:
@@ -922,7 +926,6 @@ class UrtextProject:
         if re.search(file_path, string):
             file_link = re.search(file_path, string).group(0)
             return ('FILE', os.path.join(self.path, file_link))
-
 
         self._log_item('No node ID, web link, or file found on this line.')
         return None
@@ -1161,6 +1164,9 @@ class UrtextProject:
         logger.addHandler(handler)
         return logger
 
+    """
+    File History
+    """
     def snapshot_diff(self, filename, contents):
         dmp = dmp_module.diff_match_patch()
         filename = os.path.basename(filename)
@@ -1174,7 +1180,7 @@ class UrtextProject:
             file_history[now] = contents
             with open( os.path.join(self.path, 'history', history_file), "wb") as f:
                 pickle.dump(file_history, f )
-
+                
             return
         else:
             latest_history = self.apply_patches(file_history)
@@ -1203,6 +1209,7 @@ class UrtextProject:
         if os.path.exists(history_file):
             with open(history_file, "rb") as f:
                 file_history = pickle.load(f)
+                f.close()
             return file_history
         return None
 
@@ -1210,6 +1217,45 @@ class UrtextProject:
         times = sorted(history.keys())
         return times[-1]
 
+    """
+    Access History
+    """
+
+    def _get_access_history(self):
+        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
+        if os.path.exists(accessed_file):
+            with open(accessed_file,"rb") as f:
+                try:
+                    access_history = pickle.load(f)
+                    return access_history
+                except EOFError as error:
+                    print(error)
+        return {}
+
+    def _save_access_history(self):
+        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
+        with open(accessed_file,"wb") as f:
+            pickle.dump(self.access_history, f)
+            f.close()
+
+
+    def _show_access_history(self, number=20):
+
+        dates = sorted(self.access_history.keys(), reverse=True)
+        display = ''
+        if number >= len(self.access_history):
+            number = len(self.access_history) - 1
+        for index in range(0, number):
+            node = self.access_history[dates[index]]
+            if node in self.nodes:
+                display += dates[index].strftime(self.settings['timestamp_format'][0])
+                display += ' ' + self.nodes[node].title + ' >>'+node + '\n'
+        return display
+
+
+    def _push_access_history(self, node_id):
+        self.access_history[datetime.datetime.now()] = node_id
+        self._save_access_history()
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

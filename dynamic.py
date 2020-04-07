@@ -54,7 +54,8 @@ class UrtextDynamicDefinition:
         self.display = 'list'
         self.max = None
         self.sort_type = 'alpha'
-
+        self.number = None
+        
         entries = re.split(';|\n', contents)
         for entry in entries:
             
@@ -105,6 +106,10 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'tree':
                 self.tree = atoms[1]
                 continue
+
+            if atoms[0] == 'access_history':
+                if len(atoms) > 1:
+                    self.number = int(atoms[1])
 
             if atoms[0] == 'preformat':
                 self.preformat = True if atoms[1].lower() == 'true' else False
