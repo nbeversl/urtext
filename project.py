@@ -33,8 +33,6 @@ import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
-import webbrowser
-import subprocess
 
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
@@ -883,21 +881,12 @@ class UrtextProject:
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
 
         if re.search(url_scheme, string[position:]):
-            url = re.search(url_scheme, string).group(0)
-            print(url)
-            success = webbrowser.get().open(url)
-            if not success:
-                self.log('Could not open tab using your "web_browser_path" setting')
-            return ('HTTP', success)
-
+            url = re.search(url_scheme, string).group(0)            
+            return ('HTTP', url)
         
         if re.search(file_path, string):
             file_link = re.search(file_path, string).group(0)
-
-            success = False
-            if os.path.exists(os.path.join(self.path,file_link)):
-                success = subprocess.check_call(['open', os.path.join(self.path,file_link)])
-            return ('FILE', success)
+            return ('FILE', os.path.join(self.path, file_link))
 
         link = None
         

@@ -274,6 +274,8 @@ class ProjectList():
             project = self.current_project
         file_name = os.path.basename(file_name)
         node_ids = project.delete_file(file_name)
+        
+
         for node_id in node_ids:
             navigation_entry = (project.title, node_id)
             while navigation_entry in self.navigation:
