@@ -881,8 +881,9 @@ class UrtextProject:
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
 
         if re.search(url_scheme, string[position:]):
-            url = re.search(url_scheme, string).group(0)            
+            url = re.search(url_scheme, string).group(0)
             return ('HTTP', url)
+
         
         if re.search(file_path, string):
             file_link = re.search(file_path, string).group(0)
