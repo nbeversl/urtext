@@ -303,6 +303,9 @@ def _compile(self,
                 modified_files.append(changed_file)
             self._parse_file(changed_file)
             modified_files = self._update(compile_project=False, modified_files=modified_files)
+            if dynamic_definition.export:
+                self.nodes[target_id].export_points = points
+
         self.nodes[target_id].points = points
         if dynamic_definition.tree:
             self.nodes[target_id].is_tree = True

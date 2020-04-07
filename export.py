@@ -123,7 +123,7 @@ class UrtextExport:
             single_node_only=False,                      # stop at this node, no inline nodes
             clean_whitespace=False,
             visited_nodes=[],
-            preformat=False
+            preformat=False,
             ):         
         """
         Recursively add nodes, its inline nodes and node pointers, in order

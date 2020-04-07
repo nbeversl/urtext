@@ -250,6 +250,9 @@ class ProjectList():
                 title_list[project.nodes[node_id].title] = (project.title, node_id)
         return title_list
 
+    def is_in_export(self, filename, position):
+        return self.current_project.is_in_export(filename, position)
+
     """
     Project List Navigation
     """

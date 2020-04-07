@@ -370,7 +370,7 @@ class UrtextProject:
 
                 defined = self._target_file_defined(definition.target_file)
                 if defined and defined != new_node.id:
-                    self._log_item('File ' + definition.file +
+                    self._log_item('File ' + definition.target_file +
                                   ' has duplicate definition in >' + new_node.id +
                                   '. Keeping the definition in >' +
                                   defined + '.')
@@ -856,7 +856,9 @@ class UrtextProject:
         private
         Given a position, and node_id, returns whether the position is in the node 
         """
-
+        if node_id not in self.nodes:
+            print('NOT IN PROJECT (DEBUGGING')
+            return False
         for this_range in self.nodes[node_id].ranges:
             if position >= this_range[0] and position <= this_range[1]:
                 return True
@@ -1252,10 +1254,26 @@ class UrtextProject:
                 display += ' ' + self.nodes[node].title + ' >>'+node + '\n'
         return display
 
-
     def _push_access_history(self, node_id):
         self.access_history[datetime.datetime.now()] = node_id
         self._save_access_history()
+
+    def is_in_export(self, filename, position):
+        node_id = self.get_node_id_from_position(filename, position)
+        if not node_id:
+            return False
+        export_points = self.nodes[node_id].export_points
+        if export_points:
+            for place in sorted(export_points):
+                if position > place:
+                    continue
+                return export_points[place][0]
+        return False
+
+    def get_file_and_position(self, node_id):
+        filename = self.get_file_name(node_id, absolute=True)
+        position = self.nodes[node_id].start_position()
+        return filename, position
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

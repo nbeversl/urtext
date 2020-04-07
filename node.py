@@ -73,6 +73,7 @@ class UrtextNode:
         self.ranges = [[0, 0]]
         self.tree = None
         self.is_tree = False
+        self.export_points = {}
         self.dynamic = False
         self.id = None
         self.root_node = root
@@ -85,7 +86,7 @@ class UrtextNode:
         self.split = split
         self.metadata = metadata
         self.points = {}
- 
+
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
@@ -98,6 +99,9 @@ class UrtextNode:
         self.parent = None
         self.index = self.metadata.get_first_meta_value('index')
         self.reset_node()
+
+    def start_position(self):
+        return self.ranges[0][0]
 
     def reset_node(self):
         self.tree_node = Node(self.id)
