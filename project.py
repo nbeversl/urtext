@@ -877,24 +877,12 @@ class UrtextProject:
         in that order.
         Returns a tuple of type and success/failure or node ID
         """
-        url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-        file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
-
-        if re.search(url_scheme, string[position:]):
-            url = re.search(url_scheme, string).group(0)
-            return ('HTTP', url)
-
         
-        if re.search(file_path, string):
-            file_link = re.search(file_path, string).group(0)
-            return ('FILE', os.path.join(self.path, file_link))
-
         link = None
         
         # first try looking around where the cursor is positioned
         for index in range(0, 4):
-            if re.search(node_link_regex,
-                         string[position - index:position - index + 5]):
+            if re.search(node_link_regex, string[position - index:position - index + 5]):
                 link = re.search(
                     node_link_regex,
                     string[position - index:position - index + 5]).group(0)
@@ -921,6 +909,20 @@ class UrtextProject:
             else:
                 self._log_item('Node ' + node_id + ' is not in the project')
                 return None
+
+
+        url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
+
+        if re.search(url_scheme, string[position:]):
+            url = re.search(url_scheme, string).group(0)
+            return ('HTTP', url)
+
+        
+        if re.search(file_path, string):
+            file_link = re.search(file_path, string).group(0)
+            return ('FILE', os.path.join(self.path, file_link))
+
 
         self._log_item('No node ID, web link, or file found on this line.')
         return None
