@@ -23,10 +23,11 @@ import re
 import datetime
 import logging
 import pytz
+import copy
 
 from anytree import Node
 from anytree import PreOrderIter
-
+from anytree import RenderTree
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
@@ -105,9 +106,6 @@ class UrtextNode:
 
     def reset_node(self):
         self.tree_node = Node(self.id)
-
-    def duplicate_tree(self):
-        return duplicate_tree(self.tree_node)
     
     def get_date(self, format_string=''):
         return self.date.strftime(format_string)
@@ -293,27 +291,4 @@ class UrtextNode:
         return True
         """ MUST re-parse now """
 
-def duplicate_tree(original_node):
 
-    new_root = Node(original_node.name)
-
-    # iterate immediate children only
-    all_nodes = PreOrderIter(original_node, maxlevel=2)  
-
-    for node in all_nodes:
-
-        if node == original_node:
-            continue
-
-        if node.name in [ancestor.name for ancestor in node.ancestors]:
-
-            new_node = Node('! RECURSION :' + node.name)
-            new_node.parent = new_root
-            continue
-
-        if node.parent == original_node:
-            """ Recursively apply this function to children's children """
-            new_node = duplicate_tree(node)
-            new_node.parent = new_root
-    
-    return new_root

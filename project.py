@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
+import inspect
+
 
 import re
 import datetime
@@ -146,7 +148,7 @@ class UrtextProject:
         
         self._initialize_project(import_project=import_project, init_project=init_project)
 
-        self.log = self.setup_logger('urtext_log', os.path.join(self.path, 'urtext_log.txt'))
+        self.log = self.setup_logger('urtext_log', 'urtext_log.txt')
 
         if not exists_in(os.path.join(self.path, "index"), indexname="urtext"):
             if not os.path.exists(os.path.join(self.path, "index")):
@@ -211,16 +213,19 @@ class UrtextProject:
     def _update(self, 
         compile_project=True,
         modified_files=[]):
-
+        curframe = inspect.currentframe()
+        calframe = inspect.getouterframes(curframe, 2)
+        
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
 
         # Build copies of trees wherever there are Node Pointers (>>)
-        self._build_alias_trees()  
-        self._rewrite_recursion()
-
+        # self._build_alias_trees()  
+        # self._rewrite_recursion()
+        
+        
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
@@ -1151,14 +1156,12 @@ class UrtextProject:
         return filename
 
     def setup_logger(self, name, log_file, level=logging.INFO):
-        if not os.path.exists(os.path.join(self.path, log_file)):
-            with open(os.path.join(self.path, log_file), "w") as f:
+        log_file = os.path.join(self.path, log_file)
+        if not os.path.exists(log_file):
+            with open(log_file, "w") as f:
                 f.write('URTEXT LOG')
                 f.close()
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        if not os.path.exists(log_file):
-            with open(log_file, 'w', encoding='utf-8') as theFile:
-                theFile.close()
         logger = logging.getLogger(name)
         handler = logging.FileHandler(log_file, mode='a')
         handler.setFormatter(formatter)
@@ -1245,13 +1248,13 @@ class UrtextProject:
 
         dates = sorted(self.access_history.keys(), reverse=True)
         display = ''
-        if number >= len(self.access_history):
+        if number == -1 or number >= len(self.access_history):
             number = len(self.access_history) - 1
         for index in range(0, number):
             node = self.access_history[dates[index]]
             if node in self.nodes:
                 display += dates[index].strftime(self.settings['timestamp_format'][0])
-                display += ' ' + self.nodes[node].title + ' >>'+node + '\n'
+                display += ' ' + self.nodes[node].title + ' >'+node + '\n'
         return display
 
     def _push_access_history(self, node_id):

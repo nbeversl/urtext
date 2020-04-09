@@ -30,7 +30,7 @@ def _compile(self,
     modified_files=[]):
     """ Main method to compile dynamic nodes from their definitions """
 
-    for dynamic_definition in list(self.dynamic_nodes):
+    for dynamic_definition in self.dynamic_nodes:
 
         source_id = dynamic_definition.source_id
 
@@ -104,12 +104,10 @@ def _compile(self,
                     continue
 
             new_node_contents = exported_content
-        
 
-        # show access history
-        if dynamic_definition.number:
-            new_node_contents += self._show_access_history(dynamic_definition.number)
-
+        if dynamic_definition.limit:
+            new_node_contents += self._show_access_history(dynamic_definition.limit)
+            
         if dynamic_definition.tag_all_key:
             if skip_tags:
                 continue
@@ -187,14 +185,14 @@ def _compile(self,
                 # sort them using the determined sort function
                 included_nodes = sorted(
                     included_nodes,
-                    key = sort_func,
+                    key = sort_func,#
                     reverse=dynamic_definition.reverse)
 
                 """
                 Truncate the list if a maximum is specified
                 """            
-                if dynamic_definition.max:
-                    included_nodes = included_nodes[0:dynamic_definition.max]
+                if dynamic_definition.limit:
+                    included_nodes = included_nodes[0:dynamic_definition.limit]
  
                 for targeted_node in included_nodes:
 
@@ -297,18 +295,26 @@ def _compile(self,
                                            dynamic_definition.spaces)
 
         changed_file = self._set_node_contents(target_id, updated_node_contents)
-
+        
         if changed_file:    
+            
             if changed_file not in modified_files:
                 modified_files.append(changed_file)
+
             self._parse_file(changed_file)
-            modified_files = self._update(compile_project=False, modified_files=modified_files)
+
+            modified_files = self._update(
+                compile_project=False, 
+                modified_files=modified_files)
+            
+
             if dynamic_definition.export:
                 self.nodes[target_id].export_points = points
 
         self.nodes[target_id].points = points
         if dynamic_definition.tree:
             self.nodes[target_id].is_tree = True
+            
     return modified_files
 
 

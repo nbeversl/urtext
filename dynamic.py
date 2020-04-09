@@ -18,10 +18,13 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
 import os
+import inspect
+import pprint
 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-
+function_regex = re.compile('([A-Z]+)(\(.*\))')
+key_value_regex = re.compile('(.+):(.+)')
 
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
@@ -37,7 +40,7 @@ class UrtextDynamicDefinition:
         self.tree = None
         self.sort_keyname = None
         self.metadata = {}
-        self.oneline_meta = False
+        self.oneline_meta = True
         self.interlinks = None
         self.omit=[]
         self.mirror = None
@@ -52,10 +55,225 @@ class UrtextDynamicDefinition:
         self.show = 'TITLE LINK\n' # default
         self.preformat = False
         self.display = 'list'
-        self.max = None
+        self.limit = None
         self.sort_type = 'alpha'
-        self.number = None
+        self.access_history = 0
         
+        #self.init_new_way(contents)
+        self.init_old_way(contents)
+    def init_new_way(self, contents):
+
+        new_way = False
+        """
+        new way
+        """        
+        for match in re.findall(function_regex,contents):
+            
+            new_way = True
+
+            func = match[0]
+            params = [param.strip() for param in match[1][1:-1].split(' ')]
+
+            if func == 'ACCESS_HISTORY':
+                if params:
+                    self.access_history = assign_as_int(params[0], self.access_history)
+                else:
+                    self.access_history = -1 # all
+
+            if not params:
+                continue
+
+            if func == 'ID':
+                self.target_id = params[0]
+                continue
+
+            if func == 'SHOW':
+                self.show = ' '.join(params)
+                continue
+
+            if func == 'TREE':
+                self.tree = params[0]
+                continue
+
+            if func == 'TIMELINE':
+                self.timeline = True
+                for param in params:
+                    if param == 'meta':
+                        self.timeline_type = 'meta'
+                        break
+                    if param == 'inline':
+                        self.timeline_type = 'inline'
+                        break
+                continue
+
+            if func == 'INCLUDE':
+                group = []
+                add_to_group = 'or'
+
+                for param in params:
+                    
+                    if param == 'all': 
+                        self.include_or = 'all'
+                        break
+
+                    if param == 'indexed':
+                        #TODO this shouldn't actually break.
+                        # should be combinable.
+                        self.include_or = 'indexed'
+                        break
+
+                    if param == 'and':
+                        add_to_group = 'and'
+                        continue
+
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+                        if len(key_value.groups()) > 2:
+                            timestamp = key_value.group(3)
+                        group.append((key,value))
+                
+                if group and add_to_group == 'and':
+                    self.include_and.extend(group)
+                elif group:
+                    self.include_or.extend(group)
+                continue
+
+            if func == 'EXCLUDE':
+                group = []
+                add_to_group = 'or'  
+
+                for param in params:
+
+                    if param == 'all': 
+                        self.exclude_or = 'all'
+                        break
+
+                    if param == 'indexed':
+                        self.exclude_or = 'indexed'
+                        #TODO this shouldn't actually break.
+                        # should be combinable.
+                        break
+
+                    if param == 'and':
+                        add_to_group = 'and'
+                        continue
+
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+                        if len(key_value.groups()) > 2:
+                            timestamp = key_value.group(3)
+                        group.append((key,value))
+
+                if group and add_to_group == 'and':
+                    self.exclude_and.extend(group)
+                elif group:
+                    self.exclude_or.extend(group)
+                continue
+
+            if func == "FORMAT":
+
+                for param in params:
+  
+                    if param == 'preformat':
+                        self.preformat = True
+                        continue
+
+                    if param == 'multiline_meta':
+                        self.oneline_meta = False
+                        continue
+                    
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+                        if key == 'indent':
+                            self.spaces = self.assign_as_int(value, self.spaces)
+                    continue
+                
+                continue
+
+            if func == 'SEARCH':
+                self.search = ' '.join(params)
+                continue
+
+            if func == 'LIMIT':
+                self.max = assign_as_int(params[0], self.max)
+                continue
+
+            if func == 'SORT':
+
+                for param in params:
+
+                    if param == 'reverse':
+                        self.reverse = True
+                        continue
+
+                    if param == 'timestamp':
+                        self.reverse = True
+                        continue
+                    
+                    if len(atoms) > 2 and 'timestamp' in atoms[2:]:
+                        self.sort_type = 'timestamp'
+
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+                        self.sort_keyname = key
+                        if value == 'timestamp':
+                            self.sort_type = 'timestamp'
+                        continue
+
+                    self.sort_keyname = params[0]
+
+                continue
+
+            if func == 'EXPORT':
+
+                for param in params:
+
+                    if param in ['markdown','html','plaintext']:
+                        self.export = param
+
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+
+                    # not sure if this is needed sstill
+                    # from_node = atoms[2]
+                continue
+
+            if func == 'FILE':
+                self.target_file = params[0]
+
+            if func == 'TAG_ALL':
+
+                for param in params:
+
+                    if param == 'recursive':
+                        self.recursive = True
+                        continue
+                    key_value = re.match(key_value_regex, param)
+                    if key_value:
+                        key = key_value.group(1)
+                        value = key_value.group(2)
+                        self.tag_all_key = key
+                        self.tag_all_value = value
+                
+                continue
+
+       
+    def init_old_way(self, contents):
+
+   
+        """
+        old way
+        """
         entries = re.split(';|\n', contents)
         for entry in entries:
             
@@ -93,11 +311,6 @@ class UrtextDynamicDefinition:
             """
             indentation
             """
-            if atoms[0] == 'mirror':
-                self.mirror = atoms[1]
-                if len(atoms) > 2 and atoms[2] == 'include':
-                    self.mirror_include_all = True
-                continue
 
             if atoms[0] == 'indent':
                 self.spaces = int(atoms[1])
@@ -111,10 +324,11 @@ class UrtextDynamicDefinition:
                 if len(atoms) > 1:
                     self.number = int(atoms[1])
 
-            if atoms[0] == 'preformat':
-                self.preformat = True if atoms[1].lower() == 'true' else False
-                continue
 
+            """
+            all part of interlinks stuff
+            not sure yet what to do with this.
+            """
             if atoms[0] == 'interlinks':
                 self.interlinks = atoms[1]
                 continue
@@ -122,6 +336,10 @@ class UrtextDynamicDefinition:
             if atoms[0] == 'omit':
                 self.omit = atoms[1:]
                 continue
+            
+            """
+            """
+
 
             if atoms[0] == 'search':
                 self.search = atoms[1]
@@ -217,7 +435,8 @@ class UrtextDynamicDefinition:
                         for value in values:
                             self.include_or.append((key,value))
                     continue
-
+           
+            
             if atoms[0] == 'exclude':
                 if atoms[1] == 'metadata' and len(atoms) > 3:
                     
@@ -241,3 +460,11 @@ class UrtextDynamicDefinition:
                         for value in values:
                             self.exclude_or.append((key,value))
                     continue
+
+    def assign_as_int(self, value, default):
+        try:
+            number = int(value)
+            return number
+        except ValueError:
+            return default
+
