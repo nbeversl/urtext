@@ -16,8 +16,6 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import inspect
-
 
 import re
 import datetime
@@ -57,8 +55,7 @@ node_link_regex = r'>[0-9,a-z]{3}\b'
 title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 
-functions = []
-functions.extend(trees_functions)
+functions = trees_functions
 functions.extend(compile_functions)
 functions.extend(metadata_functions)
 functions.extend(search_functions)
@@ -213,8 +210,6 @@ class UrtextProject:
     def _update(self, 
         compile_project=True,
         modified_files=[]):
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
         
         """ 
         Main method to keep the project updated. 

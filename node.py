@@ -23,7 +23,6 @@ import re
 import datetime
 import logging
 import pytz
-import copy
 
 from anytree import Node
 from anytree import PreOrderIter

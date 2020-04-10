@@ -87,6 +87,8 @@ def _compile(self,
             if dynamic_definition.target_id:
             	exclude.append(target_id)
             exported = UrtextExport(self) 
+            if not dynamic_definition.export_source:
+                continue 
             exported_content, points = exported.export_from(
                  dynamic_definition.export_source,
                  kind=dynamic_definition.export,

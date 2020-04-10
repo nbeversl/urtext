@@ -175,7 +175,7 @@ def show_tree_from(self,
                 if leaf.name not in [ancestor.name for ancestor in leaf.ancestors]: 
                     if leaf.name in self.nodes:
                         new_tree = self.duplicate_tree(self.nodes[leaf.name].tree_node, leaf)            
-                        leaf.children = list(new_tree.children)
+                        leaf.children = new_tree.children
         alias_nodes = has_aliases(start_point)
 
     self._detach_excluded_tree_nodes(start_point)
@@ -196,7 +196,6 @@ def show_tree_from(self,
 def duplicate_tree(self, original_node, leaf):
 
     new_root = Node(original_node.name)
-
     ancestors = [ancestor.name for ancestor in leaf.ancestors]
     ancestors.extend([ancestor.name for ancestor in original_node.ancestors])
     ancestors.append(leaf.name)
@@ -214,18 +213,23 @@ def duplicate_tree(self, original_node, leaf):
             new_node = Node('! RECURSION 2:' + node.name)
             new_node.parent = new_root
             continue
-
-        if 'ALIAS' in node.name:
-            if node.name[-3:] not in ancestors:
-                new_node = self.duplicate_tree(self.nodes[node.name[-3:]].tree_node, leaf)
-                new_node.parent = new_root
+ 
+        if 'ALIAS' in node.name and leaf:
+            node_id = node.name[-3:] 
+            if node_id not in ancestors:
+                if node_id in self.nodes:
+                    new_node = Node(node.name)
+                    new_node.parent = new_root
+                else:
+                    new_node = Node('! (Missing Node) >'+node_id)
+                    new_node.parent = new_root            
                 continue
             else:
-                new_node = Node(' RECURSION 3')
-                new_node.parent = new_root            
-
-        if node.parent == original_node:
+                new_node = Node(' !RECURSION 3:')
+                new_node.parent = new_root         
+            continue
            
+        if node.parent == original_node:
             """ Recursively apply this function to children's children """
             new_node = self.duplicate_tree(node, leaf)
             new_node.parent = new_root

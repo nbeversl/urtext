@@ -58,9 +58,10 @@ class UrtextDynamicDefinition:
         self.limit = None
         self.sort_type = 'alpha'
         self.access_history = 0
-        
-        #self.init_new_way(contents)
-        self.init_old_way(contents)
+        self.export_source = None
+        self.init_new_way(contents)
+        #self.init_old_way(contents)
+    
     def init_new_way(self, contents):
 
         new_way = False
@@ -68,12 +69,12 @@ class UrtextDynamicDefinition:
         new way
         """        
         for match in re.findall(function_regex,contents):
-            
+            print(match)
             new_way = True
 
             func = match[0]
             params = [param.strip() for param in match[1][1:-1].split(' ')]
-
+            
             if func == 'ACCESS_HISTORY':
                 if params:
                     self.access_history = assign_as_int(params[0], self.access_history)
@@ -126,12 +127,9 @@ class UrtextDynamicDefinition:
                         add_to_group = 'and'
                         continue
 
-                    key_value = re.match(key_value_regex, param)
-                    if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
-                        if len(key_value.groups()) > 2:
-                            timestamp = key_value.group(3)
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key:
+                        print(key,value,timestamp)
                         group.append((key,value))
                 
                 if group and add_to_group == 'and':
@@ -160,12 +158,8 @@ class UrtextDynamicDefinition:
                         add_to_group = 'and'
                         continue
 
-                    key_value = re.match(key_value_regex, param)
-                    if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
-                        if len(key_value.groups()) > 2:
-                            timestamp = key_value.group(3)
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key:
                         group.append((key,value))
 
                 if group and add_to_group == 'and':
@@ -186,10 +180,8 @@ class UrtextDynamicDefinition:
                         self.oneline_meta = False
                         continue
                     
-                    key_value = re.match(key_value_regex, param)
+                    key, value, timestamp = key_value_timestamp(param)
                     if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
                         if key == 'indent':
                             self.spaces = self.assign_as_int(value, self.spaces)
                     continue
@@ -216,13 +208,8 @@ class UrtextDynamicDefinition:
                         self.reverse = True
                         continue
                     
-                    if len(atoms) > 2 and 'timestamp' in atoms[2:]:
-                        self.sort_type = 'timestamp'
-
-                    key_value = re.match(key_value_regex, param)
-                    if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key:
                         self.sort_keyname = key
                         if value == 'timestamp':
                             self.sort_type = 'timestamp'
@@ -239,13 +226,11 @@ class UrtextDynamicDefinition:
                     if param in ['markdown','html','plaintext']:
                         self.export = param
 
-                    key_value = re.match(key_value_regex, param)
-                    if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
+                    key, value, timestamp = key_value_timestamp(param)
 
-                    # not sure if this is needed sstill
-                    # from_node = atoms[2]
+                    if key:
+                        if key == 'source':
+                            self.export_source = value
                 continue
 
             if func == 'FILE':
@@ -258,10 +243,8 @@ class UrtextDynamicDefinition:
                     if param == 'recursive':
                         self.recursive = True
                         continue
-                    key_value = re.match(key_value_regex, param)
-                    if key_value:
-                        key = key_value.group(1)
-                        value = key_value.group(2)
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key:
                         self.tag_all_key = key
                         self.tag_all_value = value
                 
@@ -467,4 +450,16 @@ class UrtextDynamicDefinition:
             return number
         except ValueError:
             return default
+
+def key_value_timestamp(param):
+    key = None
+    value = None
+    timestamp = None
+    key_value = re.match(key_value_regex, param)
+    if key_value:
+        key = key_value.group(1)
+        value = key_value.group(2)
+        if len(key_value.groups()) > 2:
+            timestamp = key_value.group(3)
+    return key, value, timestamp
 
