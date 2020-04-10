@@ -23,7 +23,7 @@ import pprint
 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-function_regex = re.compile('([A-Z]+)(\(.*\))')
+function_regex = re.compile('([A-Z]+)(\(.*?\))')
 key_value_regex = re.compile('(.+):(.+)')
 
 class UrtextDynamicDefinition:
