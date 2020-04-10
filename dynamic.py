@@ -25,6 +25,7 @@ parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 function_regex = re.compile('([A-Z]+)(\(.*?\))')
 key_value_regex = re.compile('(.+):(.+)')
+string_meta_regex = re.compile('(.+:)("[^"]+")')
 
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
@@ -69,12 +70,20 @@ class UrtextDynamicDefinition:
         new way
         """        
         for match in re.findall(function_regex,contents):
-            print(match)
+           
             new_way = True
 
             func = match[0]
-            params = [param.strip() for param in match[1][1:-1].split(' ')]
+            inside_parentheses = match[1][1:-1]
+            params = []
+
+            for string_meta in re.findall(string_meta_regex, inside_parentheses):
+                string_meta_match = ''.join(string_meta)
+                params.append(string_meta_match)
+                inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
             
+            params.extend([param.strip() for param in inside_parentheses.split(' ')])
+             
             if func == 'ACCESS_HISTORY':
                 if params:
                     self.access_history = assign_as_int(params[0], self.access_history)
@@ -205,7 +214,7 @@ class UrtextDynamicDefinition:
                         continue
 
                     if param == 'timestamp':
-                        self.reverse = True
+                        self.sort_type = True
                         continue
                     
                     key, value, timestamp = key_value_timestamp(param)
@@ -235,6 +244,7 @@ class UrtextDynamicDefinition:
 
             if func == 'FILE':
                 self.target_file = params[0]
+                continue
 
             if func == 'TAG_ALL':
 
@@ -250,7 +260,18 @@ class UrtextDynamicDefinition:
                 
                 continue
 
-       
+            if func == 'METADATA':
+                
+                for param in params:
+
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key:
+                        self.metadata[key] = value + ' '
+
+                    #TODO add timestamp
+
+                continue
+
     def init_old_way(self, contents):
 
    
@@ -452,6 +473,7 @@ class UrtextDynamicDefinition:
             return default
 
 def key_value_timestamp(param):
+
     key = None
     value = None
     timestamp = None
@@ -461,5 +483,7 @@ def key_value_timestamp(param):
         value = key_value.group(2)
         if len(key_value.groups()) > 2:
             timestamp = key_value.group(3)
+    if value:
+        value = value.strip('"') # strip quotation marks off string meta fields
     return key, value, timestamp
 
