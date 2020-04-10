@@ -53,7 +53,7 @@ class UrtextDynamicDefinition:
         self.reverse = False
         self.timeline_type = None
         self.search = None
-        self.show = 'TITLE LINK\n' # default
+        self.show = '$title $link\n' # default
         self.preformat = False
         self.display = 'list'
         self.limit = None
@@ -90,7 +90,8 @@ class UrtextDynamicDefinition:
                     self.access_history = self.assign_as_int(params[0], self.access_history)
                 else:
                     self.access_history = -1 # all
-
+                continue
+                
             if not params:
                 continue
 

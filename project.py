@@ -125,7 +125,7 @@ class UrtextProject:
             'timezone' : ['UTC'],
             'search_index' : ['yes'],
             'always_oneline_meta' : False,
-            'format_string': 'TITLE\n-\n',
+            'format_string': '$title\n-\n',
         }
         self.default_timezone = None
         self.title = self.path # default
