@@ -106,9 +106,9 @@ def _compile(self,
                     continue
 
             new_node_contents = exported_content
-
-        if dynamic_definition.limit:
-            new_node_contents += self._show_access_history(dynamic_definition.limit)
+        print(dynamic_definition.access_history)
+        if dynamic_definition.access_history:
+            new_node_contents += self._show_access_history(dynamic_definition.access_history)
             
         if dynamic_definition.tag_all_key:
             if skip_tags:
@@ -202,25 +202,25 @@ def _compile(self,
                     item_format = dynamic_definition.show
                     item_format = bytes(item_format, "utf-8").decode("unicode_escape")
                     tokens = [
-                        'TITLE',
-                        'LINK',
-                        'DATE',
-                        'CONTENTS',
-                        'META',
+                        '$title',
+                        '$link',
+                        '$date',
+                        '$contents',
+                        '$meta',
                     ]
 
                     # tokenize everything to make sure we only
                     # replace it when intended
                     for token in tokens:
                         item_format = item_format.replace(token, shah+token)
-                    if shah + 'TITLE' in item_format:
-                        item_format = item_format.replace(shah + 'TITLE', targeted_node.title)
-                    if shah + 'LINK' in item_format:
-                        item_format = item_format.replace(shah + 'LINK', '>>'+ str(targeted_node.id))
-                    if shah + 'DATE' in item_format:
-                        item_format = item_format.replace(shah + 'DATE', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
+                    if shah + '$title' in item_format:
+                        item_format = item_format.replace(shah + '$title', targeted_node.title)
+                    if shah + '$link' in item_format:
+                        item_format = item_format.replace(shah + '$link', '>>'+ str(targeted_node.id))
+                    if shah + '$date' in item_format:
+                        item_format = item_format.replace(shah + '$date', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
                    
-                    contents_syntax = re.compile(shah+'CONTENTS'+'(\(\d*\))?', re.DOTALL)      
+                    contents_syntax = re.compile(shah+'$contents'+'(\(\d*\))?', re.DOTALL)      
                     contents_match = re.search(contents_syntax, item_format)
 
                     if contents_match:
@@ -232,9 +232,9 @@ def _compile(self,
                             length = int(length_str)
                             if len(contents) > length:
                                 contents = contents[0:length] + ' (...)'
-                        item_format = item_format.replace(shah + 'CONTENTS' + suffix, contents)
+                        item_format = item_format.replace(shah + '$contents' + suffix, contents)
 
-                    meta_syntax = re.compile(shah+'META(_NOKEY)?(\(.*\))?', re.DOTALL)                   
+                    meta_syntax = re.compile(shah+'$meta(_nokey)?(\(.*\))?', re.DOTALL)                   
                     meta_match = re.search(meta_syntax, item_format)
                     
                     # if META format key is present
@@ -244,7 +244,7 @@ def _compile(self,
                         meta = ''
                         suffix = ''
                         include_key = True
-                        if '_NOKEY' in meta_match.group(0):
+                        if '_nokey' in meta_match.group(0):
                             include_key = False
 
                         # if tags have been specified
@@ -264,7 +264,7 @@ def _compile(self,
                             meta += ' '.join(values)
                             meta += '; '
                         
-                        item_format = item_format.replace(shah + 'META' + suffix, meta)
+                        item_format = item_format.replace(shah + '$meta' + suffix, meta)
                         
                     new_node_contents += item_format
                         

@@ -23,7 +23,7 @@ import pprint
 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-function_regex = re.compile('([A-Z]+)(\(.*?\))')
+function_regex = re.compile('([A-Z_]+)(\(.*?\))')
 key_value_regex = re.compile('(.+):(.+)')
 string_meta_regex = re.compile('(.+:)("[^"]+")')
 
@@ -83,10 +83,11 @@ class UrtextDynamicDefinition:
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
             
             params.extend([param.strip() for param in inside_parentheses.split(' ')])
-             
+           
             if func == 'ACCESS_HISTORY':
+                
                 if params:
-                    self.access_history = assign_as_int(params[0], self.access_history)
+                    self.access_history = self.assign_as_int(params[0], self.access_history)
                 else:
                     self.access_history = -1 # all
 
@@ -138,7 +139,6 @@ class UrtextDynamicDefinition:
 
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
-                        print(key,value,timestamp)
                         group.append((key,value))
                 
                 if group and add_to_group == 'and':
