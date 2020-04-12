@@ -782,7 +782,7 @@ class UrtextProject:
 
         unindexed_nodes = []
         for node_id in list(self.nodes):   
-            if self.nodes[node_id].metadata.get_meta_value('index') == []:
+            if not self.nodes[node_id].index:
                 unindexed_nodes.append(node_id)
                 
         sorted_unindexed_nodes = sorted(
@@ -797,10 +797,10 @@ class UrtextProject:
         #self.update_lock.acquire()
         indexed_nodes_list = []
         for node_id in list(self.nodes):
-            if self.nodes[node_id].metadata.get_meta_value('index') != []:
+            if self.nodes[node_id].index:
                 indexed_nodes_list.append([
                     node_id,
-                    int((self.nodes[node_id].metadata.get_first_meta_value('index')))
+                    self.nodes[node_id].index
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list,
                                       key=lambda item: item[1])
@@ -1127,11 +1127,12 @@ class UrtextProject:
         new_files = []
         for file in filelist:
             if self._filter_filenames(file) == None:
-                continue            
-            if os.basename(file) not in self.files:
+                continue
+
+            if os.path.basename(file) not in self.files:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
-                    new_files.append(os.basename(file))
+                    new_files.append(os.path.basename(file))
         return new_files
 
     def add_file(self, filename):
@@ -1264,10 +1265,12 @@ class UrtextProject:
 
     def _push_access_history(self, node_id, duplicate=False):
         if not duplicate:
-            for access_time in self.access_history:
+            for access_time in list(self.access_history):
                 if node_id == self.access_history[access_time]:
-                    self.access_history.remove(access_time)
-                    break
+                    del self.access_history[access_time]
+                    print('deleted' )
+                    print(node_id)
+                    print(access_time)
         self.access_history[datetime.datetime.now()] = node_id
         self._save_access_history()
 

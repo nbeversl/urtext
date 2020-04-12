@@ -86,6 +86,7 @@ class UrtextNode:
         self.split = split
         self.metadata = metadata
         self.points = {}
+        self.index = None
 
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
@@ -97,7 +98,10 @@ class UrtextNode:
             self.project_settings = True
 
         self.parent = None
-        self.index = self.metadata.get_first_meta_value('index')
+        self.index = self.assign_as_int(
+                self.metadata.get_first_meta_value('index'),
+                self.index)
+
         self.reset_node()
 
     def start_position(self):
@@ -289,5 +293,12 @@ class UrtextNode:
 
         return True
         """ MUST re-parse now """
+
+    def assign_as_int(self, value, default):
+        try:
+            number = int(value)
+            return number
+        except ValueError:
+            return default
 
 
