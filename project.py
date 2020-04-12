@@ -33,7 +33,6 @@ import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
-
 from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
 from whoosh.index import create_in, exists_in, open_dir
 from whoosh.analysis import StandardAnalyzer
@@ -215,11 +214,8 @@ class UrtextProject:
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
-
-        # Build copies of trees wherever there are Node Pointers (>>)
-        # self._build_alias_trees()  
-        # self._rewrite_recursion()
         
+        modified_files = self._check_for_new_files()
         
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
@@ -276,6 +272,7 @@ class UrtextProject:
         """
         duplicate_nodes = self._check_file_for_duplicates(new_file)
         if duplicate_nodes:
+            """ return list of duplicate nodes if duplicate nodes """
             return duplicate_nodes
 
         """
@@ -298,6 +295,7 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self._rebuild_node_meta(node_id)
 
+        """ returns None if successful """
         return None
 
     def _check_file_for_duplicates(self, file_obj):
@@ -1123,7 +1121,19 @@ class UrtextProject:
               
         any_duplicate_ids = self._parse_file(filename)
         return self._update(modified_files=modified_files)
-        
+
+    def _check_for_new_files(self):
+        filelist = os.listdir(self.path)
+        new_files = []
+        for file in filelist:
+            if self._filter_filenames(file) == None:
+                continue            
+            if os.basename(file) not in self.files:
+                duplicate_node_ids = self._parse_file(file)
+                if not duplicate_node_ids:
+                    new_files.append(os.basename(file))
+        return new_files
+
     def add_file(self, filename):
         """ 
         parse syncronously for now, so we can raise an exception
@@ -1252,7 +1262,12 @@ class UrtextProject:
                 display += ' ' + self.nodes[node].title + ' >'+node + '\n'
         return display
 
-    def _push_access_history(self, node_id):
+    def _push_access_history(self, node_id, duplicate=False):
+        if not duplicate:
+            for access_time in self.access_history:
+                if node_id == self.access_history[access_time]:
+                    self.access_history.remove(access_time)
+                    break
         self.access_history[datetime.datetime.now()] = node_id
         self._save_access_history()
 
@@ -1273,6 +1288,26 @@ class UrtextProject:
         position = self.nodes[node_id].start_position()
         return filename, position
 
+
+
+
+
+    """
+    Calendar
+    """
+    def export_to_ics(self):
+        c = Calendar()
+        for node_id in self.nodes:
+            e = Event()
+            urtext_node = self.nodes[node_id]
+            e.name = urtext_node.title
+            e.begin = urtext_node.date.isoformat()
+            #e.extra == [ContentLine(name="CONTENT", value=urtext.contents())]
+            c.add(e)
+        with open('my.ics', 'w') as f:
+            f.write(c)
+
+    
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
