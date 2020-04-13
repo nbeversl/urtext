@@ -124,7 +124,7 @@ class UrtextProject:
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
             'search_index' : ['yes'],
-            'always_oneline_meta' : False,
+            'always_oneline_meta' : True,
             'format_string': '$title\n-\n',
         }
         self.default_timezone = None
@@ -657,12 +657,14 @@ class UrtextProject:
             metadata={},
             one_line=None,
             include_timestamp=False):
-            
+        
         if contents == '':
             contents = ' '
         
         if one_line == None:
             one_line = self.settings['always_oneline_meta']
+
+        print(one_line)
             
         node_id = self.next_index()
         metadata['id']=node_id
