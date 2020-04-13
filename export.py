@@ -89,6 +89,7 @@ class UrtextExport:
         Public method to export a tree of nodes from a given root node
         """
         visited_nodes = []
+        points = {}
         """
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
@@ -104,8 +105,9 @@ class UrtextExport:
             exclude=exclude,
             kind=kind,
             clean_whitespace=clean_whitespace,
-            visited_nodes=[], # why won't this get set as default?
+            visited_nodes=visited_nodes, # why won't this get set as default?
             preformat=preformat,
+            points=points,
             )
 
         return exported_content, points
@@ -113,13 +115,13 @@ class UrtextExport:
     def _add_node_content(self, 
             root_node_id,                               # node to start from
             added_contents ='',
-            points = {},
             as_single_file=False,                       # Recursively add contents from node pointers?
             strip_urtext_syntax=True,                   # for HTML, strip Urtext syntax?
             style_titles=True,                          # style titles ????
             exclude=[],                                 # specify any nodes to exclude
             kind='plaintext',                           # format
-            nested=0,                                   # nested level (private)
+            nested=0,
+            points = {},                                   # nested level (private)
             single_node_only=False,                      # stop at this node, no inline nodes
             clean_whitespace=False,
             visited_nodes=[],
@@ -139,9 +141,6 @@ class UrtextExport:
         title = self.project.nodes[root_node_id].title
         split = self.project.nodes[root_node_id].split
         title_found = True if self.project.nodes[root_node_id].metadata.get_meta_value('title') else False
-
-        if points == {}:
-            points = {0:root_node_id}
 
         if root_node_id in exclude:
             return added_contents, points, visited_nodes
@@ -228,14 +227,18 @@ class UrtextExport:
                 range_contents = self.replace_node_links(range_contents, kind)
                 
             if single_range == ranges[0]:
+                # should this be range contents?
                 added_contents += self._wrap_title(kind, root_node_id, nested)
 
             ## NOT WORKING
             if not title_found and title in range_contents: 
                 range_contents = range_contents.replace(title,'',1)
                 title_found = True
+            
+            if clean_whitespace:
+                range_contents = range_contents.strip('\n ')
+                range_contents = '\n' + range_contents + '\n\n'
 
-            added_contents += range_contents
 
             if single_range != ranges[0] and kind == 'html':    
  
@@ -244,24 +247,30 @@ class UrtextExport:
                 """
         
                 heading_tag = 'h'+str(nested)
-                added_contents = added_contents.replace(  
+                range_contents = range_contents.replace(  
                     title,
                     '<'+heading_tag+'>'+title+'</'+heading_tag+'>',
                     1)
 
-            if clean_whitespace:
-                added_contents = added_contents.strip('\n ')
-                added_contents = '\n' + added_contents + '\n\n'
-            
             """
             If this is end of the node, mark it complete
             """
             if single_range[1] == ranges[-1][1]:
-                added_contents += self._closing_wrapper(kind)
-            
+                range_contents += self._closing_wrapper(kind)
+
+
+            """
+            points should be : given a point in an export, return which range of which node that is.
+            so: given the point, you have to know which range you're in
+            """
             # map the exported content to the source content.
             # (returns node ID and exact FILE location)
-            points[len(added_contents)] = ( root_node_id, single_range[0] )
+            # Note that each point will be relative to the beginning of the 
+            # containing node, not the beginning of the file containing the export.
+            
+            points[ (len(added_contents), len(added_contents)+ len(range_contents) ) ] = ( root_node_id, single_range[0] )
+
+            added_contents += range_contents
 
             """
             If we are adding subnodes, find the node_id of the node immediately following this range
@@ -330,9 +339,6 @@ class UrtextExport:
                )
 
         
-
-       
-        
         return added_contents, points, visited_nodes
 
 
@@ -384,7 +390,26 @@ class UrtextExport:
                 print('NODE MARKER >>'+node_id+' not in project, skipping')
                 continue                            
 
-            added_contents, points, visited_nodes = self._add_node_content(
+
+            # split points here:
+            points_so_far = {}
+            points_after_that = {}
+            for export_range in points:
+
+                if location in range(export_range[0], export_range[1]):
+                    points_so_far[ (export_range[0], location) ] = points[export_range]
+                    points_after_that[ (location, export_range[1]) ] = points[export_range]
+                    continue
+
+                if location > export_range[1]:
+                    points_after_that[export_range] = points[export_range]
+
+                if location < export_range[0]:
+                    points_so_far[export_range] = points[export_range]
+
+            length_before = len(added_contents)
+
+            added_contents, points_so_far, visited_nodes = self._add_node_content(
                 node_id, 
                 added_contents=first_contents,
                 points=points,
@@ -398,12 +423,19 @@ class UrtextExport:
                 preformat=preformat
                 )
 
-            # POSSIBLY may need to add here:
+            length_after = len(added_contents)
+            amount_added = length_after - length_before
+
+            for export_range in points_after_that:
+                points_so_far[ (export_range[0] + amount_added, export_range[1] + amount_added)  ] = points_after_that[export_range]
+
             #points [ len(added_contents) ] =  #whatever the sending ID was??? ]
             added_contents += remaining_contents
            
             visited_nodes.append(node_id)
-        
+            
+            points = points_so_far
+            
         return added_contents, points, visited_nodes
 
 

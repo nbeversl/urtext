@@ -18,8 +18,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
 import os
-import inspect
-import pprint
 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'

@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
+import pprint
 
 import re
 import datetime
@@ -1236,6 +1237,7 @@ class UrtextProject:
     """
 
     def _get_access_history(self):
+
         accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
         if os.path.exists(accessed_file):
             with open(accessed_file,"rb") as f:
@@ -1247,6 +1249,7 @@ class UrtextProject:
         return {}
 
     def _save_access_history(self):
+
         accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
         with open(accessed_file,"wb") as f:
             pickle.dump(self.access_history, f)
@@ -1267,36 +1270,32 @@ class UrtextProject:
         return display
 
     def _push_access_history(self, node_id, duplicate=False):
-        pass
 
-
-    #     if not duplicate:
-    #         for access_time in list(self.access_history):
-    #             if node_id == self.access_history[access_time]:
-    #                 del self.access_history[access_time]
-    #     self.access_history[datetime.datetime.now()] = node_id
-    #     self._save_access_history()
+        if not duplicate:
+            for access_time in list(self.access_history):
+                if node_id == self.access_history[access_time]:
+                    del self.access_history[access_time]
+        self.access_history[datetime.datetime.now()] = node_id
+        self._save_access_history()
 
     def is_in_export(self, filename, position):
+
         node_id = self.get_node_id_from_position(filename, position)
         if not node_id:
             return False
         export_points = self.nodes[node_id].export_points
         if export_points:
-            for place in sorted(export_points):
-                if position > place:
-                    continue
-                return export_points[place][0]
+            pprint.pprint(export_points)
+            for export_range in export_points:
+                if position in range(export_range[0],export_range[1]):
+                    # returns tuple (id, starting_position)
+                    return export_points[export_range]
         return False
 
     def get_file_and_position(self, node_id):
         filename = self.get_file_name(node_id, absolute=True)
         position = self.nodes[node_id].start_position()
         return filename, position
-
-
-
-
 
     """
     Calendar
