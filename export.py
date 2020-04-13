@@ -140,7 +140,7 @@ class UrtextExport:
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
         split = self.project.nodes[root_node_id].split
-        title_found = True if self.project.nodes[root_node_id].metadata.get_meta_value('title') else False
+        title_found = True if self.project.nodes[root_node_id].metadata.get_first_meta_value('title') else False
 
         if root_node_id in exclude:
             return added_contents, points, visited_nodes
@@ -219,7 +219,7 @@ class UrtextExport:
             if kind == 'markdown':
                 range_contents = strip_leading_space(range_contents)
                 if self.project.nodes[root_node_id].is_tree and preformat:
-                    range_contents  = insert_leading_tab(range_contents )
+                    range_contents = insert_leading_tab(range_contents )
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
                 ## Only replace node links if this is not a tree
@@ -227,8 +227,8 @@ class UrtextExport:
                 range_contents = self.replace_node_links(range_contents, kind)
                 
             if single_range == ranges[0]:
-                # should this be range contents?
-                added_contents += self._wrap_title(kind, root_node_id, nested)
+                # formerly in added_contents
+                range_contents += self._wrap_title(kind, root_node_id, nested)
 
             ## NOT WORKING
             if not title_found and title in range_contents: 
@@ -257,7 +257,6 @@ class UrtextExport:
             """
             if single_range[1] == ranges[-1][1]:
                 range_contents += self._closing_wrapper(kind)
-
 
             """
             points should be : given a point in an export, return which range of which node that is.
@@ -375,6 +374,8 @@ class UrtextExport:
             match = node_pointer_locations[location]
             node_id = match[-3:]
 
+            pointer_length = len(match)
+
             first_contents = added_contents.split(match)[0]
               
             remaining_contents = ''.join(added_contents.split(match)[1:])
@@ -394,25 +395,29 @@ class UrtextExport:
             # split points here:
             points_so_far = {}
             points_after_that = {}
-            for export_range in points:
 
-                if location in range(export_range[0], export_range[1]):
-                    points_so_far[ (export_range[0], location) ] = points[export_range]
-                    points_after_that[ (location, export_range[1]) ] = points[export_range]
+            length_up_to_pointer = len(first_contents)
+            
+            for export_range in points:
+                if length_up_to_pointer in range(export_range[0], export_range[1]):
+                    # need to adjust ranges here since we took out the pointer
+
+                    points_so_far[ (export_range[0], length_up_to_pointer) ] = points[export_range]
+                    points_after_that[ (length_up_to_pointer, export_range[1] - pointer_length) ] = points[export_range]
                     continue
 
-                if location > export_range[1]:
-                    points_after_that[export_range] = points[export_range]
-
-                if location < export_range[0]:
+                if length_up_to_pointer > export_range[1]:
                     points_so_far[export_range] = points[export_range]
+                    continue
 
-            length_before = len(added_contents)
-
+                if length_up_to_pointer < export_range[0]:
+                    points_after_that[(export_range[0]- pointer_length, export_range[1]-pointer_length)] = points[export_range]
+                    continue
+                    
             added_contents, points_so_far, visited_nodes = self._add_node_content(
                 node_id, 
                 added_contents=first_contents,
-                points=points,
+                points=points_so_far,
                 nested=nested+1,
                 as_single_file=True,
                 kind=kind,
@@ -424,12 +429,11 @@ class UrtextExport:
                 )
 
             length_after = len(added_contents)
-            amount_added = length_after - length_before
+            amount_added = length_after - length_up_to_pointer
 
             for export_range in points_after_that:
                 points_so_far[ (export_range[0] + amount_added, export_range[1] + amount_added)  ] = points_after_that[export_range]
 
-            #points [ len(added_contents) ] =  #whatever the sending ID was??? ]
             added_contents += remaining_contents
            
             visited_nodes.append(node_id)
