@@ -215,7 +215,7 @@ class UrtextProject:
         Should be called whenever file or directory content changes
         """
         
-        modified_files = self._check_for_new_files()
+        #modified_files = self._check_for_new_files(modified_files)
         
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
@@ -355,13 +355,16 @@ class UrtextProject:
         for definition in new_node.dynamic_definitions:
             
             if definition.target_id:
+                
                 defined = self._target_id_defined(definition.target_id)
+                
                 if defined and defined != new_node.id:
                     self._log_item('Node >' + definition.target_id +
                                   ' has duplicate definition in >' + new_node.id +
                                   '. Keeping the definition in >' +
                                   defined + '.')
                 else:
+                    print('ADDING DEF IN '+definition.source_id)
                     self.dynamic_nodes.append(definition)
                 
             if definition.target_file:
@@ -546,6 +549,7 @@ class UrtextProject:
         if filename in self.files:
             for node_id in self.files[filename].nodes:
                 for index, definition in enumerate(self.dynamic_nodes):
+                    
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
 
@@ -1264,15 +1268,15 @@ class UrtextProject:
         return display
 
     def _push_access_history(self, node_id, duplicate=False):
-        if not duplicate:
-            for access_time in list(self.access_history):
-                if node_id == self.access_history[access_time]:
-                    del self.access_history[access_time]
-                    print('deleted' )
-                    print(node_id)
-                    print(access_time)
-        self.access_history[datetime.datetime.now()] = node_id
-        self._save_access_history()
+        pass
+
+
+    #     if not duplicate:
+    #         for access_time in list(self.access_history):
+    #             if node_id == self.access_history[access_time]:
+    #                 del self.access_history[access_time]
+    #     self.access_history[datetime.datetime.now()] = node_id
+    #     self._save_access_history()
 
     def is_in_export(self, filename, position):
         node_id = self.get_node_id_from_position(filename, position)

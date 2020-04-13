@@ -31,12 +31,14 @@ def _compile(self,
     """ Main method to compile dynamic nodes from their definitions """
 
     for dynamic_definition in self.dynamic_nodes:
-
+        
+        print('RUNNING')
         source_id = dynamic_definition.source_id
+        print(source_id)
 
+        #print(self.dynamic_nodes)
         # exporting is the only the thing using target files at this moment
         if not dynamic_definition.target_id and not dynamic_definition.export:
-
             continue
         
         if dynamic_definition.target_id:
@@ -106,7 +108,8 @@ def _compile(self,
                     continue
 
             new_node_contents = exported_content
-        print(dynamic_definition.access_history)
+        
+        # BUG IS BETWEEN HERE
         if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
             
@@ -151,14 +154,16 @@ def _compile(self,
             """
             included_nodes = [self.nodes[node_id] for node_id in included_nodes]
             
-            """
-            build timeline if specified
-            """ 
+            #     """
+            #     build timeline if specified
+            #     """ 
+            # AND HERE
             if dynamic_definition.show == 'timeline':
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
-            elif dynamic_definition.search and self.ix:
-                new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
+            # POSSIBLE BUG HERE
+            # elif dynamic_definition.search and self.ix:
+            #     new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
  
             else:
                 
@@ -268,9 +273,9 @@ def _compile(self,
                         
                     new_node_contents += item_format
                         
-        """
-        add metadata to dynamic node
-        """
+        # """
+        # add metadata to dynamic node
+        # """
 
         metadata_values = { 
             'ID': [ target_id ],

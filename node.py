@@ -46,6 +46,7 @@ def create_urtext_node(
 
     possible_defs = ['[['+section for section in contents.split('[[') ]
     dynamic_definitions = []
+
     for possible_def in possible_defs:
         match = re.match(dynamic_definition_regex, possible_def)        
         if match:
