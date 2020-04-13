@@ -190,8 +190,6 @@ class UrtextExport:
             #     node_contents = node_contents.replace(title,'',1)
             #     title_found = True
 
-            range_contents += node_contents
-
             if kind == 'html':
                 """
                 Insert special HTML wrappers
