@@ -173,17 +173,19 @@ class UrtextExport:
             """
             if single_range == ranges[0]:
 
+                range_contents += self._wrap_title(kind, root_node_id, nested)
+
                 if kind == 'html' and not strip_urtext_syntax:
                     # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
-                # wrap the title
-                range_contents += self._wrap_title(kind, root_node_id, nested)
-
-            node_contents = file_contents[single_range[0]:single_range[1]]
-            node_contents = self._strip_urtext_syntax(node_contents)
+            """
+            Get and add the range's contents
+            """
+            range_contents += file_contents[single_range[0]:single_range[1]]
+            range_contents = self._strip_urtext_syntax(range_contents)
             
-            #Remove the title if it's duplicated in the wrapper
+            # Remove the title if it's duplicated in the wrapper
             # if not title_found and title in node_contents: 
             #     node_contents = node_contents.replace(title,'',1)
             #     title_found = True
@@ -233,8 +235,7 @@ class UrtextExport:
                 ## Only replace node links if this is not a tree
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
-                
-        
+
             if clean_whitespace:
                 range_contents = range_contents.strip('\n ')
                 range_contents = '\n' + range_contents + '\n\n'

@@ -106,7 +106,6 @@ def _compile(self,
 
             new_node_contents = exported_content
         
-        # BUG IS BETWEEN HERE
         if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
             
@@ -151,10 +150,10 @@ def _compile(self,
             """
             included_nodes = [self.nodes[node_id] for node_id in included_nodes]
             
-            #     """
-            #     build timeline if specified
-            #     """ 
-            # AND HERE
+            """
+            build timeline if specified
+            """ 
+
             if dynamic_definition.show == 'timeline':
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
 
@@ -311,7 +310,6 @@ def _compile(self,
                 compile_project=False, 
                 modified_files=modified_files)
             
-
             if dynamic_definition.export:
                 self.nodes[target_id].export_points = points
 
