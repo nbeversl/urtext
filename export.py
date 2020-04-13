@@ -166,9 +166,6 @@ class UrtextExport:
                 visited_nodes.append(location[1])
 
         for single_range in ranges:
-            
-            # returns node ID and exact FILE location
-            points[len(added_contents)] = ( root_node_id, single_range[0] ) 
 
             """
             If this is the node's first range:
@@ -261,7 +258,11 @@ class UrtextExport:
             """
             if single_range[1] == ranges[-1][1]:
                 added_contents += self._closing_wrapper(kind)
-               
+            
+            # map the exported content to the source content.
+            # (returns node ID and exact FILE location)
+            points[len(added_contents)] = ( root_node_id, single_range[0] )
+
             """
             If we are adding subnodes, find the node_id of the node immediately following this range
             and add it, assuming we are including all sub-nodes.
@@ -310,7 +311,7 @@ class UrtextExport:
         For this single range of text, replace node pointers with their contents,
         which cals this function recursively.
         """
-        
+            
         if as_single_file:
 
             added_contents, points, visited_nodes = self.replace_node_pointers(
@@ -328,7 +329,10 @@ class UrtextExport:
                 preformat=preformat
                )
 
+        
 
+       
+        
         return added_contents, points, visited_nodes
 
 
