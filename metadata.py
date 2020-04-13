@@ -23,7 +23,7 @@ import pytz
 
 meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
                           re.DOTALL)  # \/--((?!\/--).)*--\/
-default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,3,1))
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):

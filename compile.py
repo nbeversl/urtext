@@ -32,11 +32,8 @@ def _compile(self,
 
     for dynamic_definition in self.dynamic_nodes:
         
-        print('RUNNING')
         source_id = dynamic_definition.source_id
-        print(source_id)
-
-        #print(self.dynamic_nodes)
+        
         # exporting is the only the thing using target files at this moment
         if not dynamic_definition.target_id and not dynamic_definition.export:
             continue

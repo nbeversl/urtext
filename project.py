@@ -215,7 +215,7 @@ class UrtextProject:
         Should be called whenever file or directory content changes
         """
         
-        #modified_files = self._check_for_new_files(modified_files)
+        modified_files = self._check_for_new_files(modified_files)
         
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
@@ -364,7 +364,6 @@ class UrtextProject:
                                   '. Keeping the definition in >' +
                                   defined + '.')
                 else:
-                    print('ADDING DEF IN '+definition.source_id)
                     self.dynamic_nodes.append(definition)
                 
             if definition.target_file:
@@ -1126,17 +1125,17 @@ class UrtextProject:
         any_duplicate_ids = self._parse_file(filename)
         return self._update(modified_files=modified_files)
 
-    def _check_for_new_files(self):
+    def _check_for_new_files(self, modified_files):
         filelist = os.listdir(self.path)
         new_files = []
         for file in filelist:
             if self._filter_filenames(file) == None:
                 continue
-
             if os.path.basename(file) not in self.files:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
                     new_files.append(os.path.basename(file))
+        modified_files.extend(new_files)
         return new_files
 
     def add_file(self, filename):
