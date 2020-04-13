@@ -1284,6 +1284,7 @@ class UrtextProject:
         if not node_id:
             return False
         export_points = self.nodes[node_id].export_points
+        print(export_points)
         if export_points:
             pprint.pprint(export_points)
             for export_range in export_points:

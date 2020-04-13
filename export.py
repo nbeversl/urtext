@@ -42,7 +42,7 @@ class UrtextExport:
         contents = UrtextNode.strip_contents(contents)
         contents = contents.replace('{{','')
         contents = contents.replace('}}','')
-        contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
+        contents = re.sub(r'^\%[^%]', '', contents, flags=re.MULTILINE)
         contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents        
 
@@ -166,22 +166,30 @@ class UrtextExport:
 
         for single_range in ranges:
 
+            range_contents = ''
+
             """
             If this is the node's first range:
             """
             if single_range == ranges[0]:
 
                 if kind == 'html' and not strip_urtext_syntax:
-
                     # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
-            """
-            Get and add the range's contents
-            """
-            range_contents = file_contents[single_range[0]:single_range[1]]
-            range_contents = self._strip_urtext_syntax(range_contents)
+                # wrap the title
+                range_contents += self._wrap_title(kind, root_node_id, nested)
+
+            node_contents = file_contents[single_range[0]:single_range[1]]
+            node_contents = self._strip_urtext_syntax(node_contents)
             
+            #Remove the title if it's duplicated in the wrapper
+            # if not title_found and title in node_contents: 
+            #     node_contents = node_contents.replace(title,'',1)
+            #     title_found = True
+
+            range_contents += node_contents
+
             if kind == 'html':
                 """
                 Insert special HTML wrappers
@@ -219,22 +227,14 @@ class UrtextExport:
             if kind == 'markdown':
                 range_contents = strip_leading_space(range_contents)
                 if self.project.nodes[root_node_id].is_tree and preformat:
-                    range_contents = insert_leading_tab(range_contents )
+                    range_contents = insert_leading_tab(range_contents)
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
                 ## Only replace node links if this is not a tree
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
                 
-            if single_range == ranges[0]:
-                # formerly in added_contents
-                range_contents += self._wrap_title(kind, root_node_id, nested)
-
-            ## NOT WORKING
-            if not title_found and title in range_contents: 
-                range_contents = range_contents.replace(title,'',1)
-                title_found = True
-            
+        
             if clean_whitespace:
                 range_contents = range_contents.strip('\n ')
                 range_contents = '\n' + range_contents + '\n\n'
@@ -411,7 +411,7 @@ class UrtextExport:
                     continue
 
                 if length_up_to_pointer < export_range[0]:
-                    points_after_that[(export_range[0]- pointer_length, export_range[1]-pointer_length)] = points[export_range]
+                    points_after_that[(export_range[0]- pointer_length, export_range[1] - pointer_length)] = points[export_range]
                     continue
                     
             added_contents, points_so_far, visited_nodes = self._add_node_content(
