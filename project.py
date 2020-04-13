@@ -663,8 +663,6 @@ class UrtextProject:
         
         if one_line == None:
             one_line = self.settings['always_oneline_meta']
-
-        print(one_line)
             
         node_id = self.next_index()
         metadata['id']=node_id
