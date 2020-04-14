@@ -63,6 +63,7 @@ class UrtextFile:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.search_index = search_index
         self.changed = True
+        self.is_parseable = True
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)
         if self.hash == previous_hash:
@@ -289,15 +290,14 @@ class UrtextFile:
             root=True,
             split=split # use most recent value; if previous closed node is split, this is split.
             )
-    
+        
         if not self.add_node(root_node, nested_levels[0]):                
             return self.log_error('Root node without ID', 0)
         
         self.update_search_index(root_node, node_contents)
 
         if len(self.root_nodes) == 0:
-            print('NO ROOT NODES')
-            print(self.filename)
+            return self.log_error('No root nodes found', 0)
             
         elif self.search_index:
             self.executor.submit(self.commit_writer)
@@ -352,7 +352,8 @@ class UrtextFile:
 
 
     def log_error(self, message, position):
- 
+
+        self.is_parseable = False
         self.nodes = {}
         self.parsed_items = {}
         self.root_nodes = []

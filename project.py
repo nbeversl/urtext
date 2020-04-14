@@ -245,9 +245,9 @@ class UrtextProject:
         if not new_file.changed:
             return False
 
-        if not new_file.nodes: 
+        if not new_file.is_parseable: 
             if already_in_project:
-                self._log_item('LOST FILE while re-parsing '+filename)
+                self._log_item('Unable to re-parse '+filename+ ', dropping it from the project.')
                 return False
             self.to_import.append(filename)
 
