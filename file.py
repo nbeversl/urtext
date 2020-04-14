@@ -38,7 +38,7 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     ] ]
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
     '^[^\S\n]*\^',           # compact node opening wrapper
-    '^\%(?!%)'          # split node marker
+    '^\%[^%]'          # split node marker
     ] ])
 
 symbol_length = {

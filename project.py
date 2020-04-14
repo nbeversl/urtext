@@ -207,24 +207,7 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
-    def _update(self, 
-        compile_project=True,
-        modified_files=[]):
-        
-        """ 
-        Main method to keep the project updated. 
-        Should be called whenever file or directory content changes
-        """
-        
-        modified_files = self._check_for_new_files(modified_files)
-        
-        if compile_project:
-            modified_files = self._compile(modified_files=modified_files)
-            self.compiled = True
 
-        #pickle = PickledUrtextProject(self)
- 
-        return modified_files
 
     def _parse_file(self, filename):
         """
@@ -525,7 +508,7 @@ class UrtextProject:
         date = creation_date(os.path.join(self.path, filename))
         now = datetime.datetime.now()
         contents = '\n\n'
-        contents += "/-- ID:" + self.next_index() + '\n'
+        contents += "/-- id:" + self.next_index() + '\n'
         contents += 'timestamp:' + self.timestamp(date) + '\n'
         contents += 'imported:' + self.timestamp(now) + '\n'
         contents += " --/"
@@ -683,7 +666,7 @@ class UrtextProject:
         new_node = self.add_inline_node()
         insertion = new_node[0]
         new_node_id = new_node[1]
-        dynamic_def =   '[[ id:'+ new_node_id +'; '
+        dynamic_def =   '[[ id('+ new_node_id +'); '
         dynamic_def +=  'interlinks:'+node_id
         dynamic_def += ' ]]'
 
@@ -829,6 +812,8 @@ class UrtextProject:
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
+                print(filename)
+                print((self.files[filename].root_nodes))
                 root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
 
@@ -1116,6 +1101,7 @@ class UrtextProject:
     
         do_not_update = [
             'index', 
+            'history',
             os.path.basename(self.path),
             self.settings['logfile'],
             ]
@@ -1128,14 +1114,36 @@ class UrtextProject:
         return self.executor.submit(self._file_update, filename)
          
     def _file_update(self, filename):
-        rewritten_contents = self._rewrite_titles(filename)
         modified_files = []
+        rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
             modified_files.append(filename)
-              
+
+        # re-parse the file
         any_duplicate_ids = self._parse_file(filename)
+
+        #update the project
         return self._update(modified_files=modified_files)
+
+    def _update(self, 
+        compile_project=True,
+        modified_files=[]):
+        
+        """ 
+        Main method to keep the project updated. 
+        Should be called whenever file or directory content changes
+        """
+        
+        modified_files = self._check_for_new_files(modified_files)
+        
+        if compile_project:
+            modified_files = self._compile(modified_files=modified_files)
+            self.compiled = True
+
+        #pickle = PickledUrtextProject(self)
+
+        return modified_files
 
     def _check_for_new_files(self, modified_files):
         filelist = os.listdir(self.path)
@@ -1148,7 +1156,8 @@ class UrtextProject:
                 if not duplicate_node_ids:
                     new_files.append(os.path.basename(file))
         modified_files.extend(new_files)
-        return new_files
+
+        return modified_files
 
     def add_file(self, filename):
         """ 
@@ -1296,7 +1305,6 @@ class UrtextProject:
             return False
         export_points = self.nodes[node_id].export_points
         if export_points:
-            pprint.pprint(export_points)
             for export_range in export_points:
                 if position in range(export_range[0],export_range[1]):
                     # returns tuple (id, starting_position)

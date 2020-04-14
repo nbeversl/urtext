@@ -104,7 +104,7 @@ def _compile(self,
                 if not dynamic_definition.target_id:
                     continue
 
-            new_node_contents = exported_content
+            new_node_contents += exported_content
         
         if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
@@ -316,7 +316,7 @@ def _compile(self,
         self.nodes[target_id].points = points
         if dynamic_definition.tree:
             self.nodes[target_id].is_tree = True
-            
+       
     return modified_files
 
 
