@@ -981,7 +981,12 @@ class UrtextProject:
                 formats.extend(self.settings['timestamp_format'])
                 self.settings['timestamp_format'] = formats
                 continue
-                
+
+            if key == 'filenames':
+                #always a list
+                self.settings['filenames'] = values
+                continue
+
             if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
