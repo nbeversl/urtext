@@ -253,7 +253,10 @@ class UrtextProject:
         new_file = UrtextFile(
             os.path.join(self.path, filename), 
             previous_hash=old_hash,
-            search_index=search_index
+
+            # temporarily disable search index.
+            # too many freaking problems.
+            #search_index=search_index
             )
         
         if not new_file.changed:
@@ -956,7 +959,8 @@ class UrtextProject:
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
 
         if date.tzinfo == None:
-            date = self.default_timezone.localize(date)             
+            date = self.default_timezone.localize(date)    
+
         timestamp_format = '<' + self.settings['timestamp_format'][0] + '>'
         return date.strftime(timestamp_format)
 
@@ -968,8 +972,6 @@ class UrtextProject:
             'logfile',
             'google_auth_token',
             'google_calendar_id',
-
-
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -986,6 +988,15 @@ class UrtextProject:
                 self.title = values[0]
                 continue
 
+            if key == 'timestamp_format':
+                formats = []
+                for value in values:
+                    if value:
+                        formats.append(value)
+                formats.extend(self.settings['timestamp_format'])
+                self.settings['timestamp_format'] = formats
+                continue
+                
             if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
@@ -1284,7 +1295,6 @@ class UrtextProject:
         if not node_id:
             return False
         export_points = self.nodes[node_id].export_points
-        print(export_points)
         if export_points:
             pprint.pprint(export_points)
             for export_range in export_points:
