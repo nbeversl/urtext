@@ -129,19 +129,6 @@ class UrtextProject:
         }
         self.default_timezone = None
         self.title = self.path # default
-
-        # if os.path.exists(os.path.join(self.path, "save.p")):
-        #     self._log_item('Loading project from pickle')
-        #     saved_state = pickle.load(open( os.path.join(self.path, "save.p"), "rb" ) )
-           
-        #     self.nodes = saved_state.nodes
-        #     self.files = saved_state.files
-        #     self.keynames = saved_state.keynames
-        #     self.settings = saved_state.settings
-        #     self.dynamic_nodes = saved_state.dynamic_nodes
-        #     self.alias_nodes = saved_state.alias_nodes
-                
-        #     self.executor.submit(self._initialize_project, import_project=import_project, init_project=init_project) 
         
         self._initialize_project(import_project=import_project, init_project=init_project)
 
@@ -1146,7 +1133,8 @@ class UrtextProject:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
 
-        #pickle = PickledUrtextProject(self)
+        if self.ix:
+            self.ix.refresh()
 
         return modified_files
 
@@ -1341,17 +1329,6 @@ class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
 
-class PickledUrtextProject:
-
-    def __init__(self, project):
-        
-        self.nodes = project.nodes
-        self.files = project.files
-        self.keynames = project.keynames
-        self.settings = project.settings
-        self.dynamic_nodes = project.dynamic_nodes
-        self.alias_nodes = project.alias_nodes
-        pickle.dump( self, open( os.path.join(project.path, "save.p"), "wb" ) )
 
 """ 
 Helpers 

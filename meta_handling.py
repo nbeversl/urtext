@@ -37,7 +37,7 @@ def tag_other_node(self, node_id, tag_contents):
     new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
 
     self._set_file_contents(self.nodes[node_id].filename, new_contents)
-    return self.on_modified(os.path.join(self.path, self.nodes[node_id].filename))
+    return self.on_modified(self.nodes[node_id].filename)
 
 def consolidate_metadata(self, node_id, one_line=False):
     if node_id not in self.nodes:

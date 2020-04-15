@@ -41,7 +41,8 @@ def rebuild_search_index(self):
     writer.commit()
     
 def search_term(self, string, exclude=[]):
-    
+
+    self.ix.refresh()
     with self.ix.searcher() as searcher:
         if not searcher.up_to_date():
             seacher = searcher.refresh()
@@ -51,10 +52,16 @@ def search_term(self, string, exclude=[]):
         results.formatter = UppercaseFormatter()
         final_results = ''
         for result in results:
+         
             node_id = result['path']
             if node_id in exclude:
-                continue
-            final_results += self.nodes[node_id].title + ' >'+node_id +'\n - - - - - - - - - - - - - - - -\n\n' + result.highlights("content").strip('\t').strip() +'\r\r'
-        return final_results
+                 continue
+            final_results += '| ' + self.nodes[node_id].title + ' >'+node_id +'\n\n' + result.highlights("content").strip() + '\n'
+    final_results = final_results.replace('\x0d', '\n')
+    final_results = final_results.replace('\t', '')
+    real_final_results = ''
+    for line in final_results.split('\n'):
+        real_final_results += line.strip()  + '\n'
+    return real_final_results
 
 search_functions = [ rebuild_search_index, search_term ]

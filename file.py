@@ -71,7 +71,8 @@ class UrtextFile:
             pass
         else:
             if self.search_index:
-               self.writer = AsyncWriter(self.search_index)
+                self.search_index.refresh()
+                self.writer = AsyncWriter(self.search_index)
             self.lex_and_parse(contents, search_index=self.search_index)
         
     def lex_and_parse(self, contents, search_index=None):
@@ -308,7 +309,7 @@ class UrtextFile:
             timeout=None, 
             return_when=ALL_COMPLETED) 
          self.writer.commit()
-         print('Search index updated.' + self.filename)
+         print('Search index updated. ' + self.filename+'\n')
 
     def add_node(self, new_node, ranges):
 
