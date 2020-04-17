@@ -52,7 +52,6 @@ def search_term(self, string, exclude=[]):
         results.formatter = UppercaseFormatter()
         final_results = ''
         for result in results:
-         
             node_id = result['path']
             if node_id in exclude:
                  continue

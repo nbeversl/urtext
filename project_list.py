@@ -162,52 +162,69 @@ class ProjectList():
 
     def move_file(self, 
         filename, 
-        to_project,
+        destination_project,
         replace_links=True):
+
         """
         Move a file from one project to another, checking for
         node ID duplication in the new project location, and 
         optionally replacing links to every affected node.
         """
 
-        to_project = self.get_project(to_project)
-        if not to_project:
-            print('Destination project `'+ to_project +'` was not found.')
+        destination_project = self.get_project(destination_project)
+        if not destination_project:
+            print('Destination project `'+ destination_project +'` was not found.')
             return None
+
         filename = os.path.basename(filename)
+        if filename not in self.current_project.files:
+            print('File '+ filename +' not included in the current project.')
+            return None
+
+        # all all nodes in this file in the current (source) project
         affected_nodes = self.current_project.files[filename].nodes.keys()
         
+        # remove the file from the current (source) project
         self.current_project.remove_file(filename) # also updates the source project
-        
+
+        # move it to the new project)        
         os.rename(
             os.path.join( self.current_project.path, filename),
-            os.path.join( to_project.path, filename)
+            os.path.join( destination_project.path, filename)
             )
-        try:
-            to_project.add_file(filename)
-        except Exception as exception:
-            return exception
 
+        """
+        add_file() will raise an exception if the file makes
+        duplicate nodes in the destination project
+        """
+        try:
+            destination_project.add_file(filename)    
+        except:
+            return None
+ 
         if replace_links:
             for node_id in affected_nodes:
                 self.replace_links(
                     self.current_project.title,
-                    to_project.title,                   
+                    destination_project.title,                   
                     node_id)
 
         # also move the history file
         history_file = filename.replace('.txt','.pkl')
         if os.path.exists(os.path.join(self.current_project.path, 'history', history_file)):
             os.rename(os.path.join(self.current_project.path, 'history', history_file),
-                  os.path.join(to_project.path, 'history', history_file))
+                  os.path.join(destination_project.path, 'history', history_file))
 
         return True
 
-    def get_all_keynames(self):
-        keynames = []
+    def get_all_meta_pairs(self):
+        meta_values = []
         for project in self.projects:
-            keynames.extend(project.keynames['tags'].keys())
-        return keynames
+            meta_pairs = project.get_all_meta_pairs()
+            for pair in meta_pairs:
+                if pair not in meta_values:
+                    meta_values.append(pair)
+        return meta_values
 
     # future
     # def move_all_linked_nodes(self, filename, to_project):

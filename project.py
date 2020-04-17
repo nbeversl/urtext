@@ -86,7 +86,6 @@ class UrtextProject:
         self.nodes = {}
         self.files = {}
         self.keynames = {}
-        self.keynames['tags']= {} # create this by default
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
@@ -119,7 +118,7 @@ class UrtextProject:
                 '%A, %B %d, %Y, %I:%M%p'
                 ],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
-            'console_log': False,
+            'console_log': True,
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
@@ -1053,13 +1052,27 @@ class UrtextProject:
             title_list[self.nodes[node_id].title] = (self.title, node_id)
         return title_list
 
-    def complete_tag(self, fragment):
+    def complete_meta_value(self, fragment):
         fragment = fragment.lower().strip()
         length = len(fragment)
-        for keyname in self.keynames['tags'].keys():
-            if fragment == keyname[:length].lower():
-                return keyname
-        return u''
+
+        for keyname in self.keynames:
+            for value in keyname:
+                if fragment == value[:length].lower():
+                    return (keyname, value)
+        return u''        
+
+    def get_all_meta_pairs(self):
+        pairs = []
+        ignore = [ 'id', 'timestamp' ]
+        for keyname in self.keynames: 
+            if keyname.lower() in ignore:
+                continue
+            for value in self.keynames[keyname]:
+                meta_string = ''.join([keyname, ': ', value ])
+                if meta_string not in pairs:
+                    pairs.append(meta_string)
+        return pairs
 
     def random_node(self):
         node_id = random.choice(list(self.nodes))
@@ -1158,9 +1171,11 @@ class UrtextProject:
         if moving files between projects.
         """
         any_duplicate_ids = self._parse_file(filename)
+        
         if any_duplicate_ids:
-            raise Exception('File moved but not added to destination project. Duplicate Nodes IDs printed to console.', any_duplicate_ids)
-            # Don't need to update destination project.
+            print('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
+            self.log('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
+            raise DuplicateIDs()
         else:
             return self.executor.submit(self._update)
 
@@ -1208,9 +1223,9 @@ class UrtextProject:
             file_history[now] = contents
             with open( os.path.join(self.path, 'history', history_file), "wb") as f:
                 pickle.dump(file_history, f )
-                
             return
         else:
+
             latest_history = self.apply_patches(file_history)
             if contents != latest_history:
                 file_history[now] = dmp.patch_make(latest_history, contents)
@@ -1219,16 +1234,18 @@ class UrtextProject:
 
     def apply_patches(self, history, distance_back=0):
         dmp = dmp_module.diff_match_patch()
-        times = sorted(history.keys())
-        original = history[times[0]]
-        for index in range(1,len(times)-distance_back):
-            next_patch = history[times[index]]
+        timestamps = sorted(history.keys())
+        original = history[timestamps[0]]
+        for index in range(1,len(timestamps)-distance_back):
+            next_patch = history[timestamps[index]]
             original = dmp.patch_apply(next_patch, original)[0]
+
         return original
 
     def get_version(self, filename, distance_back=0):
         history = self.get_history(filename)
         version = self.apply_patches(history, distance_back)
+       
         return version
 
     def get_history(self, filename):
@@ -1237,7 +1254,6 @@ class UrtextProject:
         if os.path.exists(history_file):
             with open(history_file, "rb") as f:
                 file_history = pickle.load(f)
-                f.close()
             return file_history
         return None
 
@@ -1329,6 +1345,10 @@ class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
 
+class DuplicateIDs(Exception):
+    """ duplicate IDS """
+    def __init__(self):
+        pass
 
 """ 
 Helpers 
