@@ -55,6 +55,9 @@ def search_term(self, string, exclude=[]):
             node_id = result['path']
             if node_id in exclude:
                  continue
+            if node_id not in self.nodes:
+                # Future: possibly indicate missing nodes
+                continue
             final_results += '| ' + self.nodes[node_id].title + ' >'+node_id +'\n\n' + result.highlights("content").strip() + '\n'
     final_results = final_results.replace('\x0d', '\n')
     final_results = final_results.replace('\t', '')
