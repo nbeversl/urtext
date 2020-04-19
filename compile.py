@@ -27,8 +27,13 @@ compile method for the UrtextProject class
 """
 def _compile(self, 
     skip_tags=False, 
-    modified_files=[]):
+    modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
+
+    if modified_files is None:
+        modified_files = []
+        
+    print('compiling')
     for dynamic_definition in self.dynamic_nodes:
 
         source_id = dynamic_definition.source_id

@@ -838,20 +838,13 @@ class UrtextProject:
         private
         Given a position, and node_id, returns whether the position is in the node 
         """
-        if node_id not in self.nodes:
-            print(node_id)
-            print('NOT IN PROJECT (DEBUGGING')
-            return False
         for this_range in self.nodes[node_id].ranges:
             if position >= this_range[0] and position <= this_range[1]:
                 return True
         return False
 
     def get_node_id_from_position(self, filename, position):
-        """ 
-        public
-        Given a position, returns the Node ID it's in 
-        """
+
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
@@ -860,6 +853,7 @@ class UrtextProject:
         else:
             print('FILE NOT FOUND')
             return None
+        print('NO NODE FOUND HERE')
         print('POSITION')
         print(position)
         return None
@@ -1128,8 +1122,10 @@ class UrtextProject:
             return (True, '')
         
         self._log_item('MODIFIED ' + filename +' - Updating the project object')
+
+        # returns a future
         return self.executor.submit(self._file_update, filename)
-         
+    
     def _file_update(self, filename):
         modified_files = []
         rewritten_contents = self._rewrite_titles(filename)
@@ -1145,14 +1141,17 @@ class UrtextProject:
 
     def _update(self, 
         compile_project=True,
-        modified_files=[]):
+        modified_files=None
+        ):
         
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
-        
-        modified_files = self._check_for_new_files(modified_files)
+        if modified_files is None:
+            modified_files = []
+
+        modified_files.extend(self._check_for_new_files())
         
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
@@ -1163,7 +1162,7 @@ class UrtextProject:
 
         return modified_files
 
-    def _check_for_new_files(self, modified_files):
+    def _check_for_new_files(self):
         filelist = os.listdir(self.path)
         new_files = []
         for file in filelist:
@@ -1173,9 +1172,7 @@ class UrtextProject:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
                     new_files.append(os.path.basename(file))
-        modified_files.extend(new_files)
-
-        return modified_files
+        return new_files
 
     def add_file(self, filename):
         """ 
@@ -1347,7 +1344,6 @@ class UrtextProject:
             urtext_node = self.nodes[node_id]
             e.name = urtext_node.title
             e.begin = urtext_node.date.isoformat()
-            #e.extra == [ContentLine(name="CONTENT", value=urtext.contents())]
             c.add(e)
         with open('my.ics', 'w') as f:
             f.write(c)
