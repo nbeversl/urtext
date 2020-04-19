@@ -115,10 +115,9 @@ class NodeMetadata:
         if new_entry not in self.entries:
             self.entries.append(new_entry)
 
-
-    def remove_dynamic_meta_from_node(self, node_id):
+    def remove_dynamic_meta_from_source_node(self, source_node_id):
         for entry in self.entries:
-            if entry.from_node == node_id:
+            if entry.from_node == source_node_id:
                 del self.entries[entry] 
 
     def get_date(self, keyname):
@@ -156,3 +155,4 @@ class MetadataEntry:  # container for a single metadata entry
         print('value: %s' % self.values)
         print('datetimestring: %s' % self.dtstring)
         print('datetimestamp: %s' % self.dt_stamp)
+        print('from_node: %s' % self.from_node)

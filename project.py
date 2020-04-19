@@ -91,7 +91,7 @@ class UrtextProject:
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = []  # { target : definition, etc.}
-        self.dynamic_tags = {} # source_id : [ target_id, ... ]
+        self.dynamic_meta = {} # source_id : [ target_id, ... ]
         self.compiled = False
         self.alias_nodes = []
         self.ix = None
@@ -202,7 +202,6 @@ class UrtextProject:
         if duplicate nodes were found.
         FUTURE: Should be cleaned up. Currently returns None, False or list.
         """
-    
         if self._filter_filenames(os.path.basename(filename)) == None:
             return
 
@@ -239,7 +238,6 @@ class UrtextProject:
 
         # clear all node_id's defined from this file since the file has changed
         self._remove_file(os.path.basename(filename))
-
         """
         Check the file for duplicate nodes
         """
@@ -247,7 +245,6 @@ class UrtextProject:
         if duplicate_nodes:
             """ return list of duplicate nodes if duplicate nodes """
             return duplicate_nodes
-
         """
         re-add the filename and all its nodes to the project
         """
@@ -255,7 +252,6 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
-        
         """
         If this is not the initial load of the project, parse the timestamps in the file
         """
@@ -267,7 +263,6 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._rebuild_node_meta(node_id)
-
         """ returns None if successful """
         return None
 
@@ -519,30 +514,43 @@ class UrtextProject:
     def _remove_file(self, filename):
        
         if filename in self.files:
+            
             for node_id in self.files[filename].nodes:
+
+                # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
-                    
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
 
-                for keyname in list(self.keynames):
-                    for value in list(self.keynames[keyname]):
-                        if value in self.keynames[keyname]:  
-                            # in case it's been removed
-                            if node_id in self.keynames[keyname][value]:
-                                self.keynames[keyname][value].remove(node_id)
-                            if len(self.keynames[keyname][value]) == 0:
-                                del self.keynames[keyname][value]
-                if node_id in self.nodes:
-                    del self.nodes[node_id]
-                if node_id in self.dynamic_tags:
-                    for target_id in self.dynamic_tags[node_id]:
-                        if target_id in self.nodes:
-                            self.nodes[target_id].metadata.remove_dynamic_meta_from_node(node_id)
+                # remove the node's metadata from the project
+                self._unbuild_node_meta(node_id)
+
+                # remove the dynamic tags defined by TAG_ALL()
+                # (also rebuilds the meta for the target nodes)
+                self._remove_sub_tags(node_id)
+                
+                del self.nodes[node_id]
 
             del self.files[filename]
 
         return None
+
+    def _unbuild_node_meta(self, node_id):
+        
+        for keyname in list(self.keynames):
+
+            for value in list(self.keynames[keyname]):
+
+                #  ( in case it's been removed during the iteration ): 
+                if value not in self.keynames[keyname]:  
+                    continue
+
+                if node_id in self.keynames[keyname][value]:
+                    self.keynames[keyname][value].remove(node_id)
+                
+                # delete the key if it's empty
+                if not len(self.keynames[keyname][value]):
+                    del self.keynames[keyname][value] 
 
     def delete_file(self, filename):
         filename = os.path.basename(filename)
@@ -798,8 +806,6 @@ class UrtextProject:
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
-                print(filename)
-                print((self.files[filename].root_nodes))
                 root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
 
@@ -833,6 +839,7 @@ class UrtextProject:
         Given a position, and node_id, returns whether the position is in the node 
         """
         if node_id not in self.nodes:
+            print(node_id)
             print('NOT IN PROJECT (DEBUGGING')
             return False
         for this_range in self.nodes[node_id].ranges:
@@ -847,9 +854,14 @@ class UrtextProject:
         """
         filename = os.path.basename(filename)
         if filename in self.files:
-            for node_id in self.files[os.path.basename(filename)].nodes:
+            for node_id in self.files[filename].nodes:
                 if self._is_in_node(position, node_id):
                     return node_id
+        else:
+            print('FILE NOT FOUND')
+            return None
+        print('POSITION')
+        print(position)
         return None
 
     def get_link(self, string, position=0):

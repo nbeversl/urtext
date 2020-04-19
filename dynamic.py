@@ -76,7 +76,7 @@ class UrtextDynamicDefinition:
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
             
             params.extend([param.strip() for param in inside_parentheses.split(' ')])
-           
+
             if func == 'ACCESS_HISTORY':
                 
                 if params:
@@ -241,17 +241,17 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'TAG_ALL':
-
                 for param in params:
 
                     if param == 'recursive':
                         self.recursive = True
                         continue
+
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
                         self.tag_all_key = key
                         self.tag_all_value = value
-                
+
                 continue
 
             if func == 'METADATA':

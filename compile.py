@@ -29,11 +29,10 @@ def _compile(self,
     skip_tags=False, 
     modified_files=[]):
     """ Main method to compile dynamic nodes from their definitions """
-
     for dynamic_definition in self.dynamic_nodes:
-        
+
         source_id = dynamic_definition.source_id
-        
+
         # exporting is the only the thing using target files at this moment
         if not dynamic_definition.target_id and not dynamic_definition.export:
             continue
@@ -108,10 +107,17 @@ def _compile(self,
         
         if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
-            
+        
+        was_tags = False
         if dynamic_definition.tag_all_key:
+            
+            # TODO: How do these then get removed if the containing node changes?
+            
             if skip_tags:
                 continue
+
+            print(' DEBUGGIN : tagging all children for')
+            print(target_id)
             self._add_sub_tags(
                 source_id,
                 target_id, 
@@ -119,6 +125,7 @@ def _compile(self,
                 dynamic_definition.tag_all_value, 
                 recursive=dynamic_definition.recursive)                    
             self._compile(skip_tags=True, modified_files=modified_files)
+            was_tags = True
             continue
             
         else:
@@ -296,7 +303,7 @@ def _compile(self,
         if dynamic_definition.spaces:
             updated_node_contents = indent(updated_node_contents,
                                            dynamic_definition.spaces)
-
+        
         changed_file = self._set_node_contents(target_id, updated_node_contents)
         
         if changed_file:    

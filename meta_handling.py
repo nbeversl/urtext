@@ -70,17 +70,23 @@ def consolidate_metadata(self, node_id, one_line=False):
     self._set_file_contents(filename, new_file_contents)
     self._parse_file(filename)
 
-def _rebuild_node_meta(self, node):
+def _rebuild_node_meta(self, node_id):
     """ Rebuilds metadata info for a single node """
 
-    for entry in self.nodes[node].metadata.entries:
+    for entry in self.nodes[node_id].metadata.entries:
+
+        # title becomes a node property elsewhere
         if entry.keyname != 'title':
+            
+            # add the key to the project if necessary
             if entry.keyname not in self.keynames:
                 self.keynames[entry.keyname] = {}
+
+            # add the values to the keyname
             for value in entry.values:
                 if value not in self.keynames[entry.keyname]:
                     self.keynames[entry.keyname][value] = []
-                self.keynames[entry.keyname][value].append(node)
+                self.keynames[entry.keyname][value].append(node_id)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction
@@ -88,23 +94,51 @@ def _add_sub_tags(self,
     tag, 
     value, 
     recursive=False):
-    if source_id not in self.dynamic_tags:
-        self.dynamic_tags[source_id] = []
     
+    self._remove_sub_tags(source_id)
+
+    if source_id not in self.dynamic_meta:
+        self.dynamic_meta[source_id] = []
+
+    nodes_to_rebuild = []
     children = self.nodes[target_id].tree_node.children
     for child in children:
         self.nodes[child.name].metadata.add_meta_entry(
             tag, 
             value,
             from_node=source_id)
-        self.dynamic_tags[source_id].append(target_id)
-        self._rebuild_node_meta(child.name)
+        self.dynamic_meta[source_id].append(child.name)
+        if child.name not in nodes_to_rebuild:
+            nodes_to_rebuild.append(child.name)
         if recursive:
-            self.add_sub_tags(
+            self._add_sub_tags(
                 source_id,
                 child.name,
                 tag,
                 value,
                 recursive=recursive)
 
-metadata_functions = [ _add_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]
+    for node_id in nodes_to_rebuild:
+        self._rebuild_node_meta(node_id)
+
+def _remove_sub_tags(self, source_id):
+
+    if source_id not in self.dynamic_meta:
+        return
+
+    nodes_to_rebuild = []
+
+    for target_id in self.dynamic_meta[source_id]:
+        if target_id not in self.nodes:
+            continue
+        self.nodes[target_id].metadata.remove_dynamic_meta_from_source_node(source_id)                           
+        if target_id not in nodes_to_rebuild:
+            nodes_to_rebuild.append(target_id)
+
+        # ALSO need to remove it from the project metadata dict.
+
+    # rebuild meta for all the target nodes
+    for node_id in nodes_to_rebuild:
+        self._rebuild_node_meta(node_id)
+
+metadata_functions = [ _add_sub_tags, _remove_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]
