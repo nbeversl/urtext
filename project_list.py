@@ -293,9 +293,8 @@ class ProjectList():
         if not project:
             project = self.current_project
         file_name = os.path.basename(file_name)
-        node_ids = project.delete_file(file_name)
-        
-
+        future = project.delete_file(file_name)
+        node_ids = future.result()
         for node_id in node_ids:
             navigation_entry = (project.title, node_id)
             while navigation_entry in self.navigation:

@@ -29,7 +29,7 @@ class Interlinks():
         self.visited_nodes = []
         self.backward_visited_nodes = []
         self.project = project
-        self.exclude = [ 'zzz','zzy']
+        self.exclude = []
         self.exclude.extend(omit)
 
         root_node = project.nodes[root_node_id]

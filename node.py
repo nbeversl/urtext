@@ -23,6 +23,7 @@ import re
 import datetime
 import logging
 import pytz
+import urtext
 
 from anytree import Node
 from anytree import PreOrderIter
@@ -229,11 +230,6 @@ class UrtextNode:
 
     def consolidate_metadata(self, one_line=False):
         
-        if one_line:
-            line_separator = '; '
-        else:
-            line_separator = '\n'
-
         keynames = {}
         for entry in self.metadata.entries:
             if entry.keyname not in keynames:
@@ -241,24 +237,37 @@ class UrtextNode:
             timestamp = ''
             if entry.dtstring:
                 timestamp = ' '+entry.dtstring
+            if not entry.values:
+                keynames[entry.keyname].append(timestamp)
             for value in entry.values:
                 keynames[entry.keyname].append(value+timestamp)
-        new_metadata = '\n/-- '
+
+        return self.build_metadata(keynames)
+
+    @classmethod
+    def build_metadata(self, keynames, one_line=False):
+
+        if one_line:
+            line_separator = '; '
+        else:
+            line_separator = '\n'
+  
+        new_metadata = '/-- '
         
         if not one_line: 
-            new_metadata += '\n'
             new_metadata += line_separator
-
         for keyname in keynames:
             new_metadata += keyname + ': '
-            new_metadata += ' | '.join(keynames[keyname])
+            if isinstance(keynames[keyname], list):
+                new_metadata += ' | '.join(keynames[keyname])
+            else:
+                new_metadata += keynames[keyname]
             new_metadata += line_separator
         if one_line:
             new_metadata = new_metadata[:-2] + ' '
 
         new_metadata += '--/'
-        return new_metadata
-    
+        return new_metadata 
 
     def get_all_meta_keynames(self):
         keynames = []

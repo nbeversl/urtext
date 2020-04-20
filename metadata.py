@@ -118,7 +118,7 @@ class NodeMetadata:
     def remove_dynamic_meta_from_source_node(self, source_node_id):
         for entry in self.entries:
             if entry.from_node == source_node_id:
-                del self.entries[entry] 
+                self.entries.remove(entry)
 
     def get_date(self, keyname):
         """

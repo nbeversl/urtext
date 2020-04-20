@@ -40,6 +40,7 @@ def tag_other_node(self, node_id, tag_contents):
     return self.on_modified(self.nodes[node_id].filename)
 
 def consolidate_metadata(self, node_id, one_line=False):
+
     if node_id not in self.nodes:
         self._log_item('Node ID '+node_id+' not in project.')
         return None

@@ -553,6 +553,10 @@ class UrtextProject:
                     del self.keynames[keyname][value] 
 
     def delete_file(self, filename):
+        """
+        Deletes a file, removes it from the project,
+        and returns a future of modified files.
+        """
         filename = os.path.basename(filename)
         node_ids = list(self.files[filename].nodes)
         self._remove_file(filename)
@@ -620,7 +624,7 @@ class UrtextProject:
         metadata['id'] = node_id
         metadata['timestamp'] = self.timestamp(date)
         metadata['from'] = platform.node()
-        metadata_block = build_metadata(metadata, one_line=one_line)
+        metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         contents = '\n\n\n' +metadata_block
         filename = node_id + '.txt'
 
@@ -651,7 +655,7 @@ class UrtextProject:
                 date = datetime.datetime.now()
             metadata['timestamp'] = self.timestamp(date)
         new_node_contents = "{{ " + contents 
-        metadata_block = build_metadata(metadata, one_line=one_line)
+        metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + " }}"
         metadata={}
         return (new_node_contents, node_id)
@@ -675,7 +679,7 @@ class UrtextProject:
             date = datetime.datetime.now()
         metadata['id']=self.next_index()
         metadata['timestamp'] = self.timestamp(date)
-        metadata_block = build_metadata(metadata, one_line=True)
+        metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         return '^ '+contents + metadata_block
 
 
@@ -1363,28 +1367,6 @@ Helpers
 """
 
 
-def build_metadata(keynames, one_line=False):
-    """ Note this is a method from node.py. Could be refactored """
-
-    if one_line:
-        line_separator = '; '
-    else:
-        line_separator = '\n'
-    new_metadata = '/-- '
-    if not one_line: 
-        new_metadata += line_separator
-    for keyname in keynames:
-        new_metadata += keyname + ': '
-        if isinstance(keynames[keyname], list):
-            new_metadata += ' | '.join(keynames[keyname])
-        else:
-            new_metadata += keynames[keyname]
-        new_metadata += line_separator
-    if one_line:
-        new_metadata = new_metadata[:-2] + ' '
-
-    new_metadata += '--/'
-    return new_metadata 
 
 def creation_date(path_to_file):
     """

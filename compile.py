@@ -18,6 +18,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from .export import UrtextExport
+from .node import UrtextNode
 from .timeline import timeline
 import os
 import re
@@ -294,7 +295,7 @@ def _compile(self,
 
         for value in dynamic_definition.metadata:
             metadata_values[value] = dynamic_definition.metadata[value]
-        built_metadata = build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
+        built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
         title = ''
         if 'title' in dynamic_definition.metadata:
@@ -366,28 +367,6 @@ def _build_group_or(self, group):
         
     return final_group
 
-def build_metadata(keynames, one_line=False):
-    """ Note this is a method from node.py. Could be refactored """
-
-    if one_line:
-        line_separator = '; '
-    else:
-        line_separator = '\n'
-    new_metadata = '/-- '
-    if not one_line: 
-        new_metadata += line_separator
-    for keyname in keynames:
-        new_metadata += keyname + ': '
-        if isinstance(keynames[keyname], list):
-            new_metadata += ' | '.join(keynames[keyname])
-        else:
-            new_metadata += keynames[keyname]
-        new_metadata += line_separator
-    if one_line:
-        new_metadata = new_metadata[:-2] + ' '
-
-    new_metadata += '--/'
-    return new_metadata 
 
 
 def indent(contents, spaces=4):
