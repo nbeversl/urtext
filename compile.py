@@ -248,15 +248,16 @@ def _compile(self,
                                 contents = contents[0:length] + ' (...)'
                         item_format = item_format.replace(shah + '$contents' + suffix, contents)
 
-
                     remaining_format_keys = re.findall( shah+'\$[^\$\s]+', item_format, re.DOTALL)                   
                     
                     # all other meta keys
                     for match in remaining_format_keys:
                         meta_key = match.strip(shah+'$')                       
                         values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
-                        for value in values:
-                            item_format = item_format.replace(match, ' '.join(values))
+                        replacement = ''
+                        if values:
+                            replacement = ' '.join(values)
+                        item_format = item_format.replace(match, replacement);    
                                                 
                     new_node_contents += item_format
                         
