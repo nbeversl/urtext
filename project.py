@@ -855,11 +855,7 @@ class UrtextProject:
                 if self._is_in_node(position, node_id):
                     return node_id
         else:
-            print('FILE NOT FOUND')
             return None
-        print('NO NODE FOUND HERE')
-        print('POSITION')
-        print(position)
         return None
 
     def get_link(self, string, position=0):

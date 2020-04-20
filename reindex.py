@@ -7,7 +7,7 @@ Reindexing (renaming) Files
 def reindex_files(self):
     """ 
     sorts all file-level nodes by their index, then passes
-    the result to _rename_file_nodes() to rename them.
+    the result to rename_file_nodes() to rename them.
     """
 
     # Calculate the required zero-padded digit length for the file prefix:
@@ -32,10 +32,13 @@ def reindex_files(self):
         node.prefix = prefix
         prefix += 1
     
-    return self._rename_file_nodes(list(self.files), reindex=True)
+    return self.rename_file_nodes(list(self.files), reindex=True)
 
-def _rename_file_nodes(self, filenames, reindex=False):
-
+def rename_file_nodes(self, filenames, reindex=False):
+    """
+    public
+    Renames a file or list of files by metadata
+    """
     if isinstance(filenames, str):
         filenames = [filenames]
     used_names = []
@@ -86,6 +89,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         if new_filename not in used_names:
 
+            # renamed_files retains full file paths
             renamed_files[os.path.join(self.path, old_filename)] = os.path.join(self.path, new_filename)
             used_names.append(new_filename)
 
@@ -110,7 +114,9 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         if old_filename[-4:].lower() == '.txt': # skip history files
             self._handle_renamed(old_filename, new_filename)
-
+    """
+    Returns a list of renamed files with full paths
+    """
     return renamed_files
 
-reindex_functions = [ _rename_file_nodes, reindex_files ]
+reindex_functions = [ rename_file_nodes, reindex_files ]
