@@ -212,28 +212,28 @@ def _compile(self,
  
                 for targeted_node in included_nodes:
 
-                    shah = '%&&&&888' #FUTURE = possibly randomize
+                    shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
                     item_format = dynamic_definition.show
                     item_format = bytes(item_format, "utf-8").decode("unicode_escape")
-                    tokens = [
-                        '$title',
-                        '$link',
-                        '$date',
-                        '$contents',
-                        '$meta',
-                    ]
-
+                    
+                    # tokenize all $ format keys
+                    format_key_regex = re.compile('\$[^\$\s]+', re.DOTALL)
+                    format_keys = re.findall(format_key_regex, item_format)
+                        
                     # tokenize everything to make sure we only
                     # replace it when intended
-                    for token in tokens:
-                        item_format = item_format.replace(token, shah+token)
+                    for token in format_keys:
+                        item_format = item_format.replace(token, shah + token)
+
                     if shah + '$title' in item_format:
                         item_format = item_format.replace(shah + '$title', targeted_node.title)
                     if shah + '$link' in item_format:
                         item_format = item_format.replace(shah + '$link', '>>'+ str(targeted_node.id))
                     if shah + '$date' in item_format:
                         item_format = item_format.replace(shah + '$date', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
-                   
+
+
+                    # contents
                     contents_syntax = re.compile(shah+'$contents'+'(\(\d*\))?', re.DOTALL)      
                     contents_match = re.search(contents_syntax, item_format)
 
@@ -248,38 +248,16 @@ def _compile(self,
                                 contents = contents[0:length] + ' (...)'
                         item_format = item_format.replace(shah + '$contents' + suffix, contents)
 
-                    meta_syntax = re.compile(shah+'$meta(_nokey)?(\(.*\))?', re.DOTALL)                   
-                    meta_match = re.search(meta_syntax, item_format)
+
+                    remaining_format_keys = re.findall( shah+'\$[^\$\s]+', item_format, re.DOTALL)                   
                     
-                    # if META format key is present
-                    #TODO refactor. This should be a method of Metadata
-                    if meta_match:
-                       
-                        meta = ''
-                        suffix = ''
-                        include_key = True
-                        if '_nokey' in meta_match.group(0):
-                            include_key = False
-
-                        # if tags have been specified
-                        if meta_match.group(1):
-                            suffix = meta_match.group(1)                           
-                            keynames = meta_match.group(1)[1:-1].split(',')
-                            for index in range(len(keynames)):
-                                keynames[index] = keynames[index].strip().lower()
-                        else: 
-                            # default is to use all keynames
-                            keynames = targeted_node.get_all_meta_keynames()
-
-                        for keyname in keynames:
-                            values = targeted_node.metadata.get_meta_value(keyname, substitute_timestamp=True)
-                            if include_key:
-                                meta += keyname + ': '
-                            meta += ' '.join(values)
-                            meta += '; '
-                        
-                        item_format = item_format.replace(shah + '$meta' + suffix, meta)
-                        
+                    # all other meta keys
+                    for match in remaining_format_keys:
+                        meta_key = match.strip(shah+'$')                       
+                        values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
+                        for value in values:
+                            item_format = item_format.replace(match, ' '.join(values))
+                                                
                     new_node_contents += item_format
                         
         # """
