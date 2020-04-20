@@ -228,7 +228,7 @@ class UrtextNode:
         logging.info(self.filename)
         logging.info(self.metadata.log())
 
-    def consolidate_metadata(self, one_line=True):
+    def consolidate_metadata(self, one_line=True, wrapped=True):
         
         keynames = {}
         for entry in self.metadata.entries:
@@ -242,17 +242,24 @@ class UrtextNode:
             for value in entry.values:
                 keynames[entry.keyname].append(value+timestamp)
 
-        return self.build_metadata(keynames, one_line=one_line)
+        return self.build_metadata(keynames, one_line=one_line, wrapped=wrapped)
 
     @classmethod
-    def build_metadata(self, keynames, one_line=False):
+    def build_metadata(self, 
+        keynames, 
+        one_line=False, 
+        wrapped=True
+        ):
 
         if one_line:
             line_separator = '; '
         else:
             line_separator = '\n'
   
-        new_metadata = '/-- '
+        new_metadata = ''
+
+        if wrapped:
+            new_metadata += '/-- '
         
         if not one_line: 
             new_metadata += line_separator
@@ -266,7 +273,9 @@ class UrtextNode:
         if one_line:
             new_metadata = new_metadata[:-2] + ' '
 
-        new_metadata += '--/'
+        if wrapped:
+            new_metadata += '--/'
+
         return new_metadata 
 
     def get_all_meta_keynames(self):

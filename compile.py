@@ -122,7 +122,7 @@ def _compile(self,
             if skip_tags:
                 continue
 
-            print(' DEBUGGIN : tagging all children for')
+            print(' DEBUGGING : tagging all children for')
             print(target_id)
             self._add_sub_tags(
                 source_id,
@@ -231,18 +231,19 @@ def _compile(self,
                         item_format = item_format.replace(shah + '$link', '>>'+ str(targeted_node.id))
                     if shah + '$date' in item_format:
                         item_format = item_format.replace(shah + '$date', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
-
+                    if shah + '$meta' in item_format:
+                        item_format = item_format.replace(shah + '$meta', targeted_node.consolidate_metadata(wrapped=False))
 
                     # contents
-                    contents_syntax = re.compile(shah+'$contents'+'(\(\d*\))?', re.DOTALL)      
+                    contents_syntax = re.compile(shah+'\$contents'+'(:\d*)?', re.DOTALL)      
                     contents_match = re.search(contents_syntax, item_format)
 
                     if contents_match:
-                        suffix = ''
                         contents = targeted_node.content_only().strip('\n').strip()
+                        suffix = ''
                         if contents_match.group(1):
-                            suffix = contents_match.group(1)
-                            length_str = contents_match.group(1)[1:-1]
+                            suffix = contents_match.group(1)                          
+                            length_str = contents_match.group(1)[1:] # strip :
                             length = int(length_str)
                             if len(contents) > length:
                                 contents = contents[0:length] + ' (...)'
