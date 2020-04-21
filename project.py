@@ -232,7 +232,7 @@ class UrtextProject:
 
             # temporarily disable search index.
             # too many freaking problems.
-            #search_index=search_index
+            search_index=search_index
             )
         
         if not new_file.changed:
@@ -357,7 +357,6 @@ class UrtextProject:
         if len(new_node.metadata.get_meta_value('ID')) > 1:
             self._log_item('Multiple ID tags in >' + new_node.id +
                           ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
-        
         
         new_node.parent_project = self.title
 
