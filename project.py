@@ -1302,7 +1302,7 @@ class UrtextProject:
     def _save_access_history(self):
 
         accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
-        if os.path.exists(accessed_file)
+        if os.path.exists(accessed_file):
             os.remove(accessed_file) # avoid creating duplicates in cloud storage
         with open(accessed_file,"wb") as f:
             pickle.dump(self.access_history, f)
