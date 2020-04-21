@@ -114,11 +114,8 @@ def _compile(self,
         if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
         
-        was_tags = False
         if dynamic_definition.tag_all_key:
-            
-            # TODO: How do these then get removed if the containing node changes?
-            
+                        
             if skip_tags:
                 continue
 
@@ -131,38 +128,45 @@ def _compile(self,
                 dynamic_definition.tag_all_value, 
                 recursive=dynamic_definition.recursive)                    
             self._compile(skip_tags=True, modified_files=modified_files)
-            was_tags = True
             continue
             
-        else:
- 
+        else:  
+            
+            # allow for including other projects in the list context
+            included_projects = [self]
+            if dynamic_definition.include_other_projects:
+                included_projects.extend(self.other_projects)
+
             if dynamic_definition.include_or == 'all':
-                included_nodes = set(self.all_nodes())
+                included_nodes = [self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id]
 
             elif dynamic_definition.include_or == 'indexed':
-                included_nodes = set(self.indexed_nodes())
+                included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes()) if node_id != dynamic_definition.target_id]
             
             else:
-                # AND key/value pairs
-                included_nodes = self._build_group_and(dynamic_definition.include_and)
-                excluded_nodes = self._build_group_and(dynamic_definition.exclude_and)
+
+                included_nodes = set([])
+                excluded_nodes = set([])
                 
-                # OR key/value pairs
-                included_nodes = included_nodes.union(self._build_group_or(dynamic_definition.include_or))
-                excluded_nodes = excluded_nodes.union(self._build_group_or(dynamic_definition.exclude_or))
+                for project in included_projects:
 
+                    # AND key/value pairs
+                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and)) 
+                    excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
+                    
+                    # OR key/value pairs
+                    included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
+                    excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
+
+    
                 # remove the excluded nodes
-                for node_id in excluded_nodes:
-                    included_nodes.discard(node_id)
+                for node in excluded_nodes:
+                    included_nodes.discard(node)
 
-            # Never include a dynamic node in itself.
-            included_nodes.discard(dynamic_definition.target_id)
-
-            """
-            Assemble the final node collection into a list
-            """
-            included_nodes = [self.nodes[node_id] for node_id in included_nodes]
-            
+                # Never include a dynamic node in itself.
+                included_nodes.discard(self.nodes[dynamic_definition.target_id])
+                included_nodes = list(included_nodes)
+           
             """
             build timeline if specified
             """ 
@@ -228,7 +232,13 @@ def _compile(self,
                     if shah + '$title' in item_format:
                         item_format = item_format.replace(shah + '$title', targeted_node.title)
                     if shah + '$link' in item_format:
-                        item_format = item_format.replace(shah + '$link', '>>'+ str(targeted_node.id))
+                        link = ''
+                        if targeted_node.parent_project != self.title:
+                            link += '{"'+targeted_node.parent_project+'"}'
+                        else:
+                            link += '>'
+                        link += '>'+ str(targeted_node.id)
+                        item_format = item_format.replace(shah + '$link', link)
                     if shah + '$date' in item_format:
                         item_format = item_format.replace(shah + '$date', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
                     if shah + '$meta' in item_format:
@@ -313,7 +323,7 @@ def _compile(self,
     return modified_files
 
 
-def _build_group_and(self, groups):
+def _build_group_and(project, groups):
 
     final_group = set([])
 
@@ -325,26 +335,31 @@ def _build_group_and(self, groups):
             
             key, value = pair[0], pair[1]
 
-            if key in self.keynames:
+            if key in project.keynames:
                 
                 if value.lower() == 'all':
-                    for value in self.keynames[key]:
-                        new_group = new_group.union(set(self.keynames[key][value])) 
-                elif value in self.keynames[key]:
-                    new_group = new_group.union(set(self.keynames[key][value]))
+                    for value in project.keynames[key]:
+                        new_group = new_group.union(set(project.keynames[key][value])) 
 
+                elif value in project.keynames[key]:
+                    new_group = new_group.union(set(project.keynames[key][value]))
+                    
         final_group = final_group.union(new_group)
+
+    final_group = set([project.nodes[node_id] for node_id in final_group])
 
     return final_group
 
-def _build_group_or(self, group):
+def _build_group_or(project, group):
     final_group = set([])
 
     for pair in group:
         key, value = pair[0], pair[1]
-        if key in self.keynames and value in self.keynames[key]:
-            final_group = final_group.union(set(self.keynames[key][value]))
-        
+        if key in project.keynames and value in project.keynames[key]:
+            final_group = final_group.union(set(project.keynames[key][value]))
+
+    final_group = [ project.nodes[node_id] for node_id in final_group ]
+
     return final_group
 
 
@@ -356,4 +371,4 @@ def indent(contents, spaces=4):
             content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
-compile_functions = [_compile, _build_group_and, _build_group_or]
+compile_functions = [_compile, ]

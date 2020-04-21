@@ -96,6 +96,7 @@ class UrtextProject:
         self.alias_nodes = []
         self.ix = None
         self.loaded = False
+        self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.settings = {  # defaults
@@ -349,6 +350,7 @@ class UrtextProject:
             self._log_item('Multiple ID tags in >' + new_node.id +
                           ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
         
+        new_node.parent_project = self.title
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
             self._get_settings_from(new_node)
@@ -681,8 +683,6 @@ class UrtextProject:
         metadata['timestamp'] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         return '^ '+contents + metadata_block
-
-
 
     def _prefix_length(self):
         """ Determines the prefix length for indexing files (requires an already-compiled project) """

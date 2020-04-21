@@ -18,6 +18,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from .project import UrtextProject, node_id_regex, NoProject
+import concurrent.futures
 import re
 import os
 
@@ -30,9 +31,10 @@ class ProjectList():
         self.current_project = None
         self.navigation = []
         self.nav_index = -1
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         if self.projects:
             self.current_project = self.projects[0]
-
+        self._propagate_projects(None)
 
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
@@ -86,9 +88,18 @@ class ProjectList():
 
     def on_modified(self, filename):
         if self.set_current_project(os.path.dirname(filename)):
-            return self.current_project.on_modified(filename)            
+            modified_files = self.current_project.on_modified(filename)            
+            self.executor.submit(self._propagate_projects, modified_files)
+            return modified_files
         return None
         
+    def _propagate_projects(self, future):
+        # wait on future to complete
+        if future: # future can be None
+            s = future.result()
+        for project in self.projects:
+            project.other_projects = self.projects
+
     def _get_project_from_path(self, path):
         for project in self.projects:
             if path == project.path:

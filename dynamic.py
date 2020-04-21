@@ -59,10 +59,10 @@ class UrtextDynamicDefinition:
         self.access_history = 0
         self.export_source = None
         self.source_id = 'EMPTY'
-        
-        self.init_new_way(contents)
+        self.include_other_projects = False
+        self.init_self(contents)
     
-    def init_new_way(self, contents):
+    def init_self(self, contents):
 
         for match in re.findall(function_regex,contents):
            
@@ -131,6 +131,10 @@ class UrtextDynamicDefinition:
                         add_to_group = 'and'
                         continue
 
+                    if param == 'all_projects':
+                        print('INCLUDING ALL')
+                        self.include_other_projects = True
+                        
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
                         group.append((key,value))
