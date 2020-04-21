@@ -233,7 +233,7 @@ def _compile(self,
                         item_format = item_format.replace(shah + '$title', targeted_node.title)
                     if shah + '$link' in item_format:
                         link = ''
-                        if targeted_node.parent_project != self.title:
+                        if targeted_node.parent_project not in [self.title, self.path]:
                             link += '{"'+targeted_node.parent_project+'"}'
                         else:
                             link += '>'

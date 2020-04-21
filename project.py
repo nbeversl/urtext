@@ -195,6 +195,13 @@ class UrtextProject:
         return itertools.product(chars, repeat=3)
 
 
+    def _assign_node_parent_title(self):
+        """
+        Only has to be called once on project init
+        """
+
+        for node_id in self.nodes:
+            self.nodes[node_id].parent_project = self.title
 
     def _parse_file(self, filename):
         """
@@ -264,6 +271,7 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._rebuild_node_meta(node_id)
+
         """ returns None if successful """
         return None
 
@@ -350,7 +358,9 @@ class UrtextProject:
             self._log_item('Multiple ID tags in >' + new_node.id +
                           ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
         
+        
         new_node.parent_project = self.title
+
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
             self._get_settings_from(new_node)
