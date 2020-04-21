@@ -1181,6 +1181,10 @@ class UrtextProject:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
                     new_files.append(os.path.basename(file))
+        for filename in self.files:
+            if filename not in filelist:
+                self.log(filename+' no longer seen in project path. Dropping it from the project.')
+                self.remove_file(filename)
         return new_files
 
     def add_file(self, filename):
@@ -1298,10 +1302,10 @@ class UrtextProject:
     def _save_access_history(self):
 
         accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
+        if os.path.exists(accessed_file)
+            os.remove(accessed_file) # avoid creating duplicates in cloud storage
         with open(accessed_file,"wb") as f:
             pickle.dump(self.access_history, f)
-            f.close()
-
 
     def _show_access_history(self, number=20):
 
