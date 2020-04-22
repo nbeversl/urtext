@@ -933,6 +933,7 @@ class UrtextProject:
         return False
 
     def _log_item(self, item):
+        print('YRYING TO LOG')
         if self.log:
             self.log.info(item + '\n')
             if self.settings['console_log']:          
@@ -1288,11 +1289,12 @@ class UrtextProject:
 
     def _get_access_history(self):
 
-        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.json")
+        accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
         if os.path.exists(accessed_file):
             with open(accessed_file,"r") as f:
                 try:
                     contents = f.read()
+                    f.close()
                     if contents:
                         access_history = json.loads(contents)
                         return access_history
@@ -1301,26 +1303,32 @@ class UrtextProject:
         return {}
 
     def _save_access_history(self):
-
-        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.json")
+        print('SAVING ACCESS HISTORY')
+        accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
         print(self.access_history)
         with open(accessed_file,"w") as f:
             f.write(json.dumps(self.access_history))
+            f.close()
 
-    def _show_access_history(self, number=20):
-
-        dates = sorted(self.access_history.keys(), reverse=True)
+    def _show_access_history(self, number):
+        keys = self.access_history.keys()
+        #print(keys)
+        dates = sorted(keys, reverse=True)
+        #print(dates)
         display = ''
+        #print(number)
         if number == -1 or number >= len(self.access_history):
             number = len(self.access_history) - 1
+        #print(number)
         for index in range(0, number):
             node = self.access_history[dates[index]]
             if node in self.nodes:
                 date = datetime.datetime.utcfromtimestamp(int(dates[index]))
                 display += date.strftime(self.settings['timestamp_format'][0])
                 display += ' ' + self.nodes[node].title + ' >'+node + '\n'
-        return display
 
+        return display
+        
     def _push_access_history(self, node_id, duplicate=False):
 
         if not duplicate:

@@ -34,7 +34,6 @@ def _compile(self,
     if modified_files is None:
         modified_files = []
         
-    print('compiling')
     for dynamic_definition in self.dynamic_nodes:
 
         source_id = dynamic_definition.source_id
@@ -65,12 +64,12 @@ def _compile(self,
                 continue
             new_node_contents += self.show_tree_from(dynamic_definition.tree)
 
-        if dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+        elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
             new_node_contents += self.get_node_relationships(
                 dynamic_definition.interlinks,
                 omit=dynamic_definition.omit)
 
-        if dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
+        elif dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
             
             if dynamic_definition.mirror_include_all:
                 # TODO prevent nodes being repeatedly mirrored inside themselves.
@@ -85,7 +84,7 @@ def _compile(self,
                 new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
         
-        if dynamic_definition.export: #
+        elif dynamic_definition.export: #
 
             exclude=[]
             if dynamic_definition.target_id:
@@ -111,10 +110,10 @@ def _compile(self,
 
             new_node_contents += exported_content
         
-        if dynamic_definition.access_history:
+        elif dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
-        
-        if dynamic_definition.tag_all_key:
+
+        elif dynamic_definition.tag_all_key:
                         
             if skip_tags:
                 continue
