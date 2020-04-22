@@ -232,7 +232,7 @@ class UrtextProject:
 
             # temporarily disable search index.
             # too many freaking problems.
-            search_index=search_index
+            #search_index=search_index
             )
         
         if not new_file.changed:
@@ -733,7 +733,6 @@ class UrtextProject:
         self.navigation.append(node_id)
         self._push_access_history(node_id)
          
-
     def nav_reverse(self):
         if not self.navigation:
             return None
@@ -1289,23 +1288,24 @@ class UrtextProject:
 
     def _get_access_history(self):
 
-        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
+        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.json")
         if os.path.exists(accessed_file):
-            with open(accessed_file,"rb") as f:
+            with open(accessed_file,"r") as f:
                 try:
-                    access_history = pickle.load(f)
-                    return access_history
+                    contents = f.read()
+                    if contents:
+                        access_history = json.loads(contents)
+                        return access_history
                 except EOFError as error:
                     print(error)
         return {}
 
     def _save_access_history(self):
 
-        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.pkl")
-        if os.path.exists(accessed_file):
-            os.remove(accessed_file) # avoid creating duplicates in cloud storage
-        with open(accessed_file,"wb") as f:
-            pickle.dump(self.access_history, f)
+        accessed_file = os.path.join(self.path, "history/URTEXT_accessed.json")
+        print(self.access_history)
+        with open(accessed_file,"w") as f:
+            f.write(json.dumps(self.access_history))
 
     def _show_access_history(self, number=20):
 
@@ -1316,7 +1316,8 @@ class UrtextProject:
         for index in range(0, number):
             node = self.access_history[dates[index]]
             if node in self.nodes:
-                display += dates[index].strftime(self.settings['timestamp_format'][0])
+                date = datetime.datetime.utcfromtimestamp(int(dates[index]))
+                display += date.strftime(self.settings['timestamp_format'][0])
                 display += ' ' + self.nodes[node].title + ' >'+node + '\n'
         return display
 
@@ -1326,7 +1327,7 @@ class UrtextProject:
             for access_time in list(self.access_history):
                 if node_id == self.access_history[access_time]:
                     del self.access_history[access_time]
-        self.access_history[datetime.datetime.now()] = node_id
+        self.access_history[int(time.time())] = node_id
         self._save_access_history()
 
     def is_in_export(self, filename, position):

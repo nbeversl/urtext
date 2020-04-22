@@ -219,12 +219,11 @@ def _compile(self,
                     shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
                     item_format = dynamic_definition.show
                     item_format = bytes(item_format, "utf-8").decode("unicode_escape")
+                    
                     # tokenize all $ format keys
                     format_key_regex = re.compile('\$[A-Za-z0-9_-]+', re.DOTALL)
                     format_keys = re.findall(format_key_regex, item_format)
                         
-                    # tokenize everything to make sure we only
-                    # replace it when intended
                     for token in format_keys:
                         item_format = item_format.replace(token, shah + token)
 
@@ -262,8 +261,7 @@ def _compile(self,
                     
                     # all other meta keys
                     for match in remaining_format_keys:
-                        meta_key = match.strip(shah+'$')   
-                        print(meta_key)                   
+                        meta_key = match.strip(shah+'$')                   
                         values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
                         replacement = ''
                         if values:
