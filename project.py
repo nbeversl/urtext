@@ -1299,7 +1299,6 @@ class UrtextProject:
                     f.close()
                     if contents:
                         access_history = json.loads(contents)
-                        print(access_history)
                         self.access_history = convert_dict_values_to_int(access_history)
                 except EOFError as error:
                     print(error)
