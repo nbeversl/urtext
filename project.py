@@ -1251,7 +1251,6 @@ class UrtextProject:
 
             latest_history = self.apply_patches(file_history)
             if contents != latest_history:
-                #print(latest_history)
                 file_history[now] = dmp.patch_make(latest_history, contents)
                 with open( os.path.join(self.path, 'history', history_file), "wb") as f:
                     pickle.dump(file_history, f )
@@ -1311,21 +1310,22 @@ class UrtextProject:
             f.close()
 
     def _show_access_history(self, number):
-        access_times = [int(i) for i in self.access_history.keys()]
+        access_times = self.access_history.keys()
         dates = sorted(access_times, reverse=True)
         display = ''
         if number == -1 or number >= len(self.access_history):
              number = len(self.access_history) - 1
-        index = 0
-        while index < number:
-            if str(dates[index]) in self.access_history: 
-                node = self.access_history[str(dates[index])]
-                if node in list(self.nodes):
+        for index in range(0, number):
+            if dates[index] in self.access_history: 
+                node = self.access_history[dates[index]]
+                if node in self.nodes:
                     date = datetime.datetime.fromtimestamp(int(dates[index]))
                     date = self.default_timezone.localize(date) 
                     display += date.strftime(self.settings['timestamp_format'][0])
                     display += ' ' + self.nodes[node].title + ' >'+node + '\n'
-            index += 1
+            else:
+                self._log_item('access missing:')
+                self._log_item(dates[index])
         return display
         
     def _push_access_history(self, node_id, duplicate=False):
