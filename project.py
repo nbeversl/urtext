@@ -16,8 +16,6 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import pprint
-
 import re
 import datetime
 import itertools
@@ -81,7 +79,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
 
-        self.async = True # development
+        self.async = False # development
         self.path = path
         self.log = None
         self.nodes = {}
@@ -100,6 +98,7 @@ class UrtextProject:
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.access_history = {}
         self.settings = {  # defaults
             'logfile':'urtext_log.txt',
             'home': None,
@@ -183,7 +182,7 @@ class UrtextProject:
         for node_id in self.nodes:  
             self._parse_meta_dates(node_id, initial=True)
         
-        self.access_history = self._get_access_history()
+        self._get_access_history()
 
         self._update()
             
@@ -360,6 +359,8 @@ class UrtextProject:
                           ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
         
         new_node.parent_project = self.title
+        if new_node.id in self.access_history:
+            new_node.last_accessed = self.access_history[new_node.id]
 
         self.nodes[new_node.id] = new_node
         if new_node.project_settings:
@@ -935,7 +936,7 @@ class UrtextProject:
 
     def _log_item(self, item):
         if self.log:
-            self.log.info(item + '\n')
+            self.log.info(item)
             if self.settings['console_log']:          
                 print(item)
         else:
@@ -1298,35 +1299,23 @@ class UrtextProject:
                     f.close()
                     if contents:
                         access_history = json.loads(contents)
-                        return access_history
+                        print(access_history)
+                        self.access_history = convert_dict_values_to_int(access_history)
                 except EOFError as error:
                     print(error)
-        return {}
+        
+        self._propagate_access_history()    
+
+    def _propagate_access_history(self):
+
+        for node_id, access_time in self.access_history.items():
+            self.nodes[node_id].last_accessed = access_time
 
     def _save_access_history(self):
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
         with open(accessed_file,"w") as f:
             f.write(json.dumps(self.access_history))
             f.close()
-
-    def _show_access_history(self, number):
-        access_times = self.access_history.keys()
-        dates = sorted(access_times, reverse=True)
-        display = ''
-        if number == -1 or number >= len(self.access_history):
-             number = len(self.access_history) - 1
-        for index in range(0, number):
-            if dates[index] in self.access_history: 
-                node = self.access_history[dates[index]]
-                if node in self.nodes:
-                    date = datetime.datetime.fromtimestamp(int(dates[index]))
-                    date = self.default_timezone.localize(date) 
-                    display += date.strftime(self.settings['timestamp_format'][0])
-                    display += ' ' + self.nodes[node].title + ' >'+node + '\n'
-            else:
-                self._log_item('access missing:')
-                self._log_item(dates[index])
-        return display
         
     def _push_access_history(self, node_id, duplicate=False):
 
@@ -1334,9 +1323,14 @@ class UrtextProject:
             for access_time in list(self.access_history):
                 if node_id == self.access_history[access_time]:
                     del self.access_history[access_time]
-        self.access_history[int(time.time())] = node_id
+        access_time = int(time.time()) # UNIX timestamp
+        self.nodes[node_id].last_accessed = access_time 
+        self.access_history[node_id] = access_time
         self._save_access_history()
 
+    """
+    Export
+    """
     def is_in_export(self, filename, position):
 
         node_id = self.get_node_id_from_position(filename, position)
@@ -1356,7 +1350,7 @@ class UrtextProject:
         return filename, position
 
     """
-    Calendar
+    FUTURE : Calendar
     """
     def export_to_ics(self):
         c = Calendar()
@@ -1383,7 +1377,11 @@ class DuplicateIDs(Exception):
 Helpers 
 """
 
-
+def convert_dict_values_to_int(old_dict):
+    new_dict = {}
+    for key, value in old_dict.items():
+        new_dict[key] = int(value)
+    return new_dict
 
 def creation_date(path_to_file):
     """

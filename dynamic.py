@@ -76,14 +76,6 @@ class UrtextDynamicDefinition:
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
             
             params.extend([param.strip() for param in inside_parentheses.split(' ')])
-
-            if func == 'ACCESS_HISTORY':
-                
-                if params:
-                    self.access_history = self.assign_as_int(params[0], self.access_history)
-                else:
-                    self.access_history = -1 # all
-                continue
                 
             if not params:
                 continue
@@ -212,7 +204,12 @@ class UrtextDynamicDefinition:
                         continue
 
                     if param == 'timestamp':
-                        self.sort_type = True
+                        self.sort_type = 'timestamp'
+                        continue
+
+                    if param == 'last_accessed':
+                        self.sort_type = 'last_accessed'
+                        self.reverse = True
                         continue
                     
                     key, value, timestamp = key_value_timestamp(param)

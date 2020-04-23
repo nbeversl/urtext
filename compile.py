@@ -108,26 +108,17 @@ def _compile(self,
                     continue
 
             new_node_contents += exported_content
-
-
         
-        if dynamic_definition.access_history:
-            new_node_contents += self._show_access_history(dynamic_definition.access_history)
-
         if dynamic_definition.tag_all_key:
                         
-            if skip_tags:
-                continue
-
-            print(' DEBUGGING : tagging all children for')
-            print(target_id)
-            self._add_sub_tags(
-                source_id,
-                target_id, 
-                dynamic_definition.tag_all_key, 
-                dynamic_definition.tag_all_value, 
-                recursive=dynamic_definition.recursive)                    
-            self._compile(skip_tags=True, modified_files=modified_files)
+            if not skip_tags:
+                self._add_sub_tags(
+                    source_id,
+                    target_id, 
+                    dynamic_definition.tag_all_key, 
+                    dynamic_definition.tag_all_value, 
+                    recursive=dynamic_definition.recursive)                    
+                self._compile(skip_tags=True, modified_files=modified_files)
             continue
             
         else:  
@@ -179,17 +170,22 @@ def _compile(self,
             #     new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
  
             else:
-                
+
                 """ otherwise this is a list. """
                 """ custom sort the nodes if a sort key is provided """
-                if dynamic_definition.sort_keyname:
+
+                if dynamic_definition.sort_type == 'last_accessed':
+                    sort_func = lambda node: node.last_accessed
+                    for node in included_nodes:
+                        print(node.last_accessed)
+                        
+                elif dynamic_definition.sort_keyname:
 
                     # If specified, sort by timestamp of the selected key
                     if dynamic_definition.sort_type == 'timestamp':
                         sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
-
+ 
                     # ( Otherwise the sort type is alpha by string )
-
                     # Title is not always given by metadata so we do this manually 
                     elif dynamic_definition.sort_keyname == 'title':
                         sort_func = lambda node: node.title.lower()
@@ -357,8 +353,6 @@ def _build_group_or(project, group):
     final_group = [ project.nodes[node_id] for node_id in final_group ]
 
     return final_group
-
-
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')

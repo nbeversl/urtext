@@ -89,7 +89,8 @@ class UrtextNode:
         self.metadata = metadata
         self.points = {}
         self.index = None
-        self.parent_project = None 
+        self.parent_project = None
+        self.last_accessed = 0
 
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
