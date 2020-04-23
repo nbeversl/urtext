@@ -192,7 +192,7 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'LIMIT':
-                self.max = assign_as_int(params[0], self.max)
+                self.limit = self.assign_as_int(params[0], self.limit)
                 continue
 
             if func == 'SORT':
