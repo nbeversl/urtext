@@ -81,6 +81,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
 
+        self.async = True # development
         self.path = path
         self.log = None
         self.nodes = {}
@@ -731,7 +732,7 @@ class UrtextProject:
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
-        self._push_access_history(node_id)
+        self.executor.submit(self._push_access_history, node_id)
          
     def nav_reverse(self):
         if not self.navigation:
@@ -933,7 +934,6 @@ class UrtextProject:
         return False
 
     def _log_item(self, item):
-        print('YRYING TO LOG')
         if self.log:
             self.log.info(item + '\n')
             if self.settings['console_log']:          
@@ -1132,8 +1132,9 @@ class UrtextProject:
         
         self._log_item('MODIFIED ' + filename +' - Updating the project object')
 
-        # returns a future
-        return self.executor.submit(self._file_update, filename)
+        if self.async:
+            return self.executor.submit(self._file_update, filename)
+        return self._file_update(filename)
     
     def _file_update(self, filename):
         modified_files = []
@@ -1161,7 +1162,7 @@ class UrtextProject:
             modified_files = []
 
         modified_files.extend(self._check_for_new_files())
-        
+
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
@@ -1250,6 +1251,7 @@ class UrtextProject:
 
             latest_history = self.apply_patches(file_history)
             if contents != latest_history:
+                #print(latest_history)
                 file_history[now] = dmp.patch_make(latest_history, contents)
                 with open( os.path.join(self.path, 'history', history_file), "wb") as f:
                     pickle.dump(file_history, f )
@@ -1303,30 +1305,27 @@ class UrtextProject:
         return {}
 
     def _save_access_history(self):
-        print('SAVING ACCESS HISTORY')
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
-        print(self.access_history)
         with open(accessed_file,"w") as f:
             f.write(json.dumps(self.access_history))
             f.close()
 
     def _show_access_history(self, number):
-        keys = self.access_history.keys()
-        #print(keys)
-        dates = sorted(keys, reverse=True)
-        #print(dates)
+        access_times = [int(i) for i in self.access_history.keys()]
+        dates = sorted(access_times, reverse=True)
         display = ''
-        #print(number)
         if number == -1 or number >= len(self.access_history):
-            number = len(self.access_history) - 1
-        #print(number)
-        for index in range(0, number):
-            node = self.access_history[dates[index]]
-            if node in self.nodes:
-                date = datetime.datetime.utcfromtimestamp(int(dates[index]))
-                display += date.strftime(self.settings['timestamp_format'][0])
-                display += ' ' + self.nodes[node].title + ' >'+node + '\n'
-
+             number = len(self.access_history) - 1
+        index = 0
+        while index < number:
+            if str(dates[index]) in self.access_history: 
+                node = self.access_history[str(dates[index])]
+                if node in list(self.nodes):
+                    date = datetime.datetime.fromtimestamp(int(dates[index]))
+                    date = self.default_timezone.localize(date) 
+                    display += date.strftime(self.settings['timestamp_format'][0])
+                    display += ' ' + self.nodes[node].title + ' >'+node + '\n'
+            index += 1
         return display
         
     def _push_access_history(self, node_id, duplicate=False):

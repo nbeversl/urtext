@@ -64,12 +64,12 @@ def _compile(self,
                 continue
             new_node_contents += self.show_tree_from(dynamic_definition.tree)
 
-        elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+        if dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
             new_node_contents += self.get_node_relationships(
                 dynamic_definition.interlinks,
                 omit=dynamic_definition.omit)
 
-        elif dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
+        if dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
             
             if dynamic_definition.mirror_include_all:
                 # TODO prevent nodes being repeatedly mirrored inside themselves.
@@ -83,8 +83,7 @@ def _compile(self,
             else:
                 new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
 
-        
-        elif dynamic_definition.export: #
+        if dynamic_definition.export: #
 
             exclude=[]
             if dynamic_definition.target_id:
@@ -109,11 +108,13 @@ def _compile(self,
                     continue
 
             new_node_contents += exported_content
+
+
         
-        elif dynamic_definition.access_history:
+        if dynamic_definition.access_history:
             new_node_contents += self._show_access_history(dynamic_definition.access_history)
 
-        elif dynamic_definition.tag_all_key:
+        if dynamic_definition.tag_all_key:
                         
             if skip_tags:
                 continue
@@ -130,7 +131,7 @@ def _compile(self,
             continue
             
         else:  
-            
+           
             # allow for including other projects in the list context
             included_projects = [self]
             if dynamic_definition.include_other_projects:
@@ -272,7 +273,6 @@ def _compile(self,
         # """
         # add metadata to dynamic node
         # """
-
         metadata_values = { 
             'ID': [ target_id ],
             'defined in' : [ '>'+dynamic_definition.source_id ] }
@@ -298,7 +298,6 @@ def _compile(self,
                                            dynamic_definition.spaces)
         
         changed_file = self._set_node_contents(target_id, updated_node_contents)
-        
         if changed_file:    
             
             if changed_file not in modified_files:
