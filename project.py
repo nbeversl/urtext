@@ -1170,7 +1170,7 @@ class UrtextProject:
 
         if self.ix:
             self.ix.refresh()
-
+        print('done udpating')
         return modified_files
 
     def _check_for_new_files(self):

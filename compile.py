@@ -176,8 +176,6 @@ def _compile(self,
 
                 if dynamic_definition.sort_type == 'last_accessed':
                     sort_func = lambda node: node.last_accessed
-                    for node in included_nodes:
-                        print(node.last_accessed)
                         
                 elif dynamic_definition.sort_keyname:
 
