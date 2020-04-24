@@ -1308,7 +1308,8 @@ class UrtextProject:
     def _propagate_access_history(self):
 
         for node_id, access_time in self.access_history.items():
-            self.nodes[node_id].last_accessed = access_time
+            if node_id in self.nodes:
+                self.nodes[node_id].last_accessed = access_time
 
     def _save_access_history(self):
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
