@@ -179,85 +179,71 @@ class UrtextFile:
                 continue    
 
             """
-            newline (closes a compact node)
+            Node close
             """
+            if self.symbols[position] in ['}}', '^\%(?!%)', '[\n$]']:  # pop
                 
-            if compact_node_open and self.symbols[position] == '[\n$]':
-                # TODO: this could be refactored with what is below
-            
-                if [last_position, position] not in nested_levels[nested]: 
-                    nested_levels[nested].append([last_position, position])
+                compact, split, root = False, False, False
 
-                compact_node = node.create_urtext_node(
-                    self.filename, 
-                    contents=''.join([  
-                        contents[file_range[0]:file_range[1]] 
-                            for file_range in nested_levels[nested] 
-                        ]).lstrip().replace('^','',1), # omit the leading/training whitespace and the '^' character itself:
-                    compact = True)
-
-                compact_node_open = False
-                looking_for_parent = compact_node.id
-
-                if not self.add_node(
-                    compact_node, # node
-                    nested_levels[nested] # ranges
-                    ):
-                    print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))
-                
-                else:
-                    self.parsed_items[nested_levels[nested][0][0]] = compact_node.id
-                
-                del nested_levels[nested]
-                nested -= 1
-                
-                last_position = position
-                if nested < 0:
-                    return self.log_error('Stray closing wrapper', position)  
-                continue
-
-            # If this closes a node:
-            if self.symbols[position] in ['}}', '^\%(?!%)']:  # pop
-                
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
-                # file level nodes are root nodes, with multiples permitted
-                root = True if nested == 0 else False
+                if compact_node_open and self.symbols[position] == '[\n$]':
+                    compact = True
+               
+                else: 
+                    # determine whether this is a node made by a split marker (%)
+                    start_position = nested_levels[nested][0][0]
+                    end_position = nested_levels[nested][-1][1]         
+                    if start_position >= 0 and contents[start_position] == '%':
+                        split = True
+                    if end_position < len(contents) and contents[end_position] == '%':
+                        split = True                                                 
 
-                split = False
-                
-                # determine whether this is a node made by a split marker (%)
-                start_position = nested_levels[nested][0][0]
-                end_position = nested_levels[nested][-1][1]         
-                if start_position >= 0 and contents[start_position] == '%':
-                    split = True
-                if end_position < len(contents) and contents[end_position] == '%':
-                    split = True                                                 
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ])
+       
+                # file level nodes are root nodes, with multiples permitted
+                
+                if nested == 0:
+                    root = True
+
+                if '0000 -  Home' in self.filename:
+                    print(contents)
+                    print(nested_levels[nested])
 
                 # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 
                     contents=node_contents,
                     root=root,
-                    split=split
+                    split=split,
+                    compact=compact,
                     )
                 
                 if not self.add_node(new_node, nested_levels[nested]):
-                    return self.log_error('Node missing ID', position)
+                    if compact:
+                        print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
+                    else:
+                        return self.log_error('Node missing ID', position)
+                else:
 
-                self.update_search_index(new_node, node_contents)
-
-                self.parsed_items[nested_levels[nested][0][0]] = new_node.id
+                    self.update_search_index(new_node, node_contents)
+                    self.parsed_items[nested_levels[nested][0][0]] = new_node.id
 
                 del nested_levels[nested]
 
-                if self.symbols[position] == '^\%(?!%)':
+                if compact:
+                    compact_node_open = False
+                    looking_for_parent = new_node.id
                     last_position = position
+                    continue
+
+                if self.symbols[position] == '^\%(?!%)': # split nodes
+                    last_position = position
+                    nested -= 1
                     continue
 
                 last_position = position + 2 
@@ -315,7 +301,6 @@ class UrtextFile:
          print('Search index updated. ' + self.filename+'\n')
 
     def add_node(self, new_node, ranges):
-
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
