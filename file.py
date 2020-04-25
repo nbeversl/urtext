@@ -69,12 +69,12 @@ class UrtextFile:
         self.search_index = search_index
         self.changed = True
         self.is_parseable = True
+        self.strict = False
         
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)
         if self.hash == previous_hash:
             self.changed = False
-            pass
         else:
             if self.search_index:
                 self.search_index.refresh()
@@ -194,6 +194,7 @@ class UrtextFile:
                         compact = True
                         compact_node_open = False   
                     else:
+                        # newlines are irrelevant if compact node is not open
                         continue
 
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
@@ -210,12 +211,12 @@ class UrtextFile:
                 # file level nodes are root nodes, with multiples permitted  
                 if nested == 0 or self.symbols[position] == 'EOF':
                     # use most recent value; if previous closed node is split, this is split.
-                    split = last_node_was_split 
-                    root = True
-                    if nested != 0:
+                    if self.strict and nested != 0:
                         #TODO -- if a compact node closes the file, this error will be thrown.
                         self.log_error('Missing closing wrapper', position)
                         return None
+                    split = last_node_was_split 
+                    root = True
 
                 # Build the node contents and construct the node
                 node_contents = ''.join([  
@@ -231,12 +232,19 @@ class UrtextFile:
                     compact=compact,
                     )
                 
-                if not self.add_node(new_node, nested_levels[nested], node_contents):
+                success = self.add_node(new_node, nested_levels[nested], node_contents)
+                
+                if not success:
                     if root:
-                        return self.log_error('Root node without ID', 0)
+                        if not self.strict: 
+                            print('Warning : root Node is anonymous in '+self.filename)
+                        else:
+                            return self.log_error('Root node without ID', 0)
                     if compact:
                         print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
                     else:
+                        if not self.strict:
+                            print('Warning: Node missing ID in '+self.filename+' at position ',position)
                         return self.log_error('Node missing ID', position)
  
                 del nested_levels[nested]
@@ -247,14 +255,16 @@ class UrtextFile:
                     continue
 
                 last_node_was_split = False
+
                 # reduce the nesting level only for compact, inline nodes
                 if not root:
                     nested -= 1                       
-                if nested < 0:
+                if self.strict and nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 
-        if len(self.root_nodes) == 0:
+        if self.strict and len(self.root_nodes) == 0:
             return self.log_error('No root nodes found', 0)
+
             
         if self.search_index:
             self.executor.submit(self.commit_writer)
@@ -276,11 +286,12 @@ class UrtextFile:
             self.update_search_index(new_node, contents)
             self.parsed_items[ranges[0][0]] = new_node.id
             return True
-        return False
+        else:
+            self.anonymous_nodes.append(new_node)
+            return False
 
     def get_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
-
         try:
             with open(
                     self.filename,
@@ -307,7 +318,6 @@ class UrtextFile:
                     path=new_node.id,
                     content=stripped_contents)
                 )
-
 
     def log_error(self, message, position):
 

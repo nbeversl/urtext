@@ -72,6 +72,10 @@ def _set_tree_elements(self, filename):
         """
         if not self.nodes[node].root_node:
             parent = self.get_parent(node)
+            
+            # will be none if parent or root node is anonymous.
+            if parent == None:
+                continue
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
 def _build_alias_tree(self, alias_node_id):
