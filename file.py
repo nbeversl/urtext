@@ -25,29 +25,32 @@ import concurrent.futures
 from concurrent.futures import ALL_COMPLETED
 import hashlib
 
-node_id_regex = r'\b[0-9,a-z]{3}\b'
-node_link_regex = r'>[0-9,a-z]{3}\b'
-node_pointer_regex = r'>>[0-9,a-z]{3}\b'
-compact_node_regex = '\^[^\n]*'
+node_id_regex =         r'\b[0-9,a-z]{3}\b'
+node_link_regex =       r'>[0-9,a-z]{3}\b'
+node_pointer_regex =    r'>>[0-9,a-z]{3}\b'
+compact_node_regex =    '\^[^\n]*'
 
 compiled_symbols = [re.compile(symbol) for symbol in  [
     '{{', # inline node opening wrapper
     '}}', # inline node closing wrapper
     '>>', # node pointer
-    '[\n$]',
-    ] ]
+    '[\n$]',    # line ending (closes compact node)
+    ]]
+
+# additional symbols using MULTILINE flag
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
-    '^[^\S\n]*\^',           # compact node opening wrapper
-    '^\%[^%]'          # split node marker
+    '^[^\S\n]*\^',  # compact node opening wrapper
+    '^\%[^%]'       # split node marker
     ] ])
 
-symbol_length = {
-    '^[^\S\n]*\^':0,
-    '{{' : 2,
-    '}}' : 2,
-    '>>' : 2,
-    '[\n$]' : 0,
-    '^\%[^%]' : 0
+# number of positions to advance parsing for of each possible symbol
+symbol_length = {   
+    '^[^\S\n]*\^':  0, # compact node opening wrapper
+    '{{' :          2, # inline opening wrapper
+    '}}' :          2, # inline closing wrapper
+    '>>' :          2, # node pointer
+    '[\n$]' :       0, # compact node closing
+    '^\%[^%]' :     0  # split node opening
 }
 
 class UrtextFile:
@@ -57,6 +60,7 @@ class UrtextFile:
         self.nodes = {}
         self.root_nodes = []
         self.filename = filename
+        self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
         self.search_index_updates = []
@@ -64,6 +68,7 @@ class UrtextFile:
         self.search_index = search_index
         self.changed = True
         self.is_parseable = True
+        
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)
         if self.hash == previous_hash:
@@ -78,7 +83,6 @@ class UrtextFile:
     def lex_and_parse(self, contents, search_index=None):
         if not contents:
             return
-
         self.file_length = len(contents)        
         self.lex(contents)
         self.parse(contents, search_index=search_index)
@@ -90,7 +94,7 @@ class UrtextFile:
         return md5.digest()
 
     def lex(self, contents):
-        """ locate syntax symbols """
+        """ populate a dict syntax symbols """
         self.symbols = {}
 
         for compiled_symbol in compiled_symbols:
@@ -107,35 +111,24 @@ class UrtextFile:
         Counters and trackers
         """
         nested = 0  # tracks depth of node nesting
-        nested_levels = {}
+        nested_levels = {} # store node nesting into layers
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
         split = False
 
         """
-        If there are node syntax symbols in the file,
-        find the first non-newline symbol. Newlines are significant
-        only if a compact node is open.
+        Trim leading symbols that are newlines or node pointers
         """
-        non_newline_symbol = 0
 
         if self.positions:
-            
-            # find the first non-newline position
-            while self.symbols[self.positions[non_newline_symbol]] == '[\n$]':
-                non_newline_symbol += 1
-                if non_newline_symbol == len(self.positions):
-                    break
-            """
-            BUG FIX HERE
-            """
-            
-            if non_newline_symbol < len(self.positions) and self.symbols[self.positions[non_newline_symbol]] not in [ '>>' ] :
-                nested_levels[0] = [
-                    [0, self.positions[non_newline_symbol] + symbol_length[self.symbols[self.positions[non_newline_symbol]]] ]
-                    ]
+
+            while self.positions and self.symbols[self.positions[0]] in [ '[\n$]', '>>' ]:
+                self.positions.pop(0)
+
+        if self.positions:
+            nested_levels[0] = [ [0, self.positions[0] + symbol_length[self.symbols[self.positions[0]]] ] ]
         
-        for index in range(non_newline_symbol, len(self.positions)):
+        for index in range(0, len(self.positions)):
 
             position = self.positions[index]
 
