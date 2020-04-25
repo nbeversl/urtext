@@ -50,7 +50,8 @@ symbol_length = {
     '}}' :          2, # inline closing wrapper
     '>>' :          2, # node pointer
     '[\n$]' :       0, # compact node closing
-    '^\%[^%]' :     0  # split node opening
+    '^\%[^%]' :     0,  # split node opening
+    'EOF':          0,
 }
 
 class UrtextFile:
@@ -115,6 +116,7 @@ class UrtextFile:
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
         split = False
+        last_node_was_split = False
 
         """
         Trim leading symbols that are newlines or node pointers
@@ -126,6 +128,9 @@ class UrtextFile:
 
         if self.positions:
             nested_levels[0] = [ [0, self.positions[0] + symbol_length[self.symbols[self.positions[0]]] ] ]
+
+        self.positions.append(len(contents))
+        self.symbols[len(contents)] = 'EOF'
 
         for index in range(0, len(self.positions)):
 
@@ -178,41 +183,46 @@ class UrtextFile:
                 continue    
 
             """
-            Node close
+            Node closing symbols :  }}, %, newline, EOF
             """
-            if self.symbols[position] in ['}}', '^\%(?!%)', '[\n$]']:  # pop
+            if self.symbols[position] in ['}}', '^\%(?!%)', '[\n$]', 'EOF']:  # pop
                 
+                compact, root = False, False
+
                 if self.symbols[position] == '[\n$]':
                     if compact_node_open:
                         compact = True
+                        compact_node_open = False   
                     else:
                         continue
 
-                compact, split, root = False, False, False
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
+                # determine whether this is a node made by a split marker (%)
+                start_position = nested_levels[nested][0][0]
+                end_position = nested_levels[nested][-1][1]         
+                if start_position >= 0 and contents[start_position] == '%':
+                    split = True
+                if end_position < len(contents) and contents[end_position] == '%':
+                    split = True
                 
-                else: 
-                    # determine whether this is a node made by a split marker (%)
-                    start_position = nested_levels[nested][0][0]
-                    end_position = nested_levels[nested][-1][1]         
-                    if start_position >= 0 and contents[start_position] == '%':
-                        split = True
-                    if end_position < len(contents) and contents[end_position] == '%':
-                        split = True  
-                    # file level nodes are root nodes, with multiples permitted  
-                    if nested == 0:
-                        root = True
+                # file level nodes are root nodes, with multiples permitted  
+                if nested == 0 or self.symbols[position] == 'EOF':
+                    # use most recent value; if previous closed node is split, this is split.
+                    split = last_node_was_split 
+                    root = True
+                    if nested != 0:
+                        #TODO -- if a compact node closes the file, this error will be thrown.
+                        self.log_error('Missing closing wrapper', position)
+                        return None
 
-                                               
-
+                # Build the node contents and construct the node
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ])
        
-                # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 
                     contents=node_contents,
@@ -221,72 +231,32 @@ class UrtextFile:
                     compact=compact,
                     )
                 
-                if not self.add_node(new_node, nested_levels[nested]):
+                if not self.add_node(new_node, nested_levels[nested], node_contents):
+                    if root:
+                        return self.log_error('Root node without ID', 0)
                     if compact:
                         print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
                     else:
                         return self.log_error('Node missing ID', position)
-                else:
-
-                    self.update_search_index(new_node, node_contents)
-                    self.parsed_items[nested_levels[nested][0][0]] = new_node.id
-
+ 
                 del nested_levels[nested]
+                last_position = position + symbol_length[self.symbols[position]]
 
-                if compact:
-                    compact_node_open = False
-                    last_position = position
-                    nested -= 1
+                if split: # split nodes
+                    last_node_was_split = True
                     continue
 
-                if self.symbols[position] == '^\%(?!%)': # split nodes
-                    last_position = position
-                    continue
-
-                last_position = position + 2 
-                nested -= 1
+                last_node_was_split = False
+                # reduce the nesting level only for compact, inline nodes
+                if not root:
+                    nested -= 1                       
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 
-        if nested != 0:
-            #TODO -- if a compact node closes the file, this error will be thrown.
-            self.log_error('Missing closing wrapper', position)
-            return None
-
-        ### handle last (lowest) remaining node at the file level
-        
-        if nested_levels == {} or nested_levels[0] == [] and last_position > 0:
-        
-            # everything else in the file is part of another node.
-            nested_levels[0] = [[last_position, self.file_length]]
-               
-        elif nested_levels == {} or nested_levels[0] == []:
-
-            # everything else in the file is other nodes.
-            nested_levels[0] = [[0, self.file_length]]  
-        
-
-        elif [last_position + 1, self.file_length] not in nested_levels[0]:
-
-            nested_levels[0].append([last_position, self.file_length])
-
-        node_contents = ''.join([contents[file_range[0]: file_range[1]] for file_range in nested_levels[0]])
-        root_node = node.create_urtext_node(
-            self.filename,
-            contents=node_contents,
-            root=True,
-            split=split # use most recent value; if previous closed node is split, this is split.
-            )
-        
-        if not self.add_node(root_node, nested_levels[0]):                
-            return self.log_error('Root node without ID', 0)
-        
-        self.update_search_index(root_node, node_contents)
-
         if len(self.root_nodes) == 0:
             return self.log_error('No root nodes found', 0)
             
-        elif self.search_index:
+        if self.search_index:
             self.executor.submit(self.commit_writer)
     
     def commit_writer(self):
@@ -297,12 +267,14 @@ class UrtextFile:
          self.writer.commit()
          print('Search index updated. ' + self.filename+'\n')
 
-    def add_node(self, new_node, ranges):
+    def add_node(self, new_node, ranges, contents):
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
             if new_node.root_node:
                 self.root_nodes.append(new_node.id) 
+            self.update_search_index(new_node, contents)
+            self.parsed_items[ranges[0][0]] = new_node.id
             return True
         return False
 
