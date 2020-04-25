@@ -135,7 +135,9 @@ class UrtextFile:
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
             
-            # If this opens a new node
+            """
+            If this opens a new node
+            """
             if self.symbols[position] == '{{':
 
                 # begin tracking the ranges of the next outer one
@@ -145,11 +147,13 @@ class UrtextFile:
                 # add another level of depth
                 nested += 1 
 
-                # move the parsing pointer forward
+                # move the parsing pointer forward 2
                 last_position = position + 2
                 continue
 
-            # If this points to an outside node, find which node
+            """
+            If this points to an outside node, find which node
+            """
             if self.symbols[position] == '>>':
                 
                 # Find the contents of the pointer 
@@ -161,15 +165,22 @@ class UrtextFile:
 
                 continue
 
-            if self.symbols[position] == '^[^\S\n]*\^':
+            """
+            If the symbol opens a compact node
+            """
+            if self.symbols[position] == '^[^\S\n]*\^': 
                 # TODO - FIGURE OUT WHY ADDING + 1 to these positions to correct the 
                 # parsing causes exporting to skip entire regions
                 if [last_position, position  ] not in nested_levels[nested] and position  > last_position:
                     nested_levels[nested].append([last_position, position ])
                 nested += 1 
-                last_position = position + 1 # + 1 remove for debugging
+                last_position = position + 1
                 compact_node_open = True
-                continue
+                continue    
+
+            """
+            newline (closes a compact node)
+            """
                 
             if compact_node_open and self.symbols[position] == '[\n$]':
                 # TODO: this could be refactored with what is below
@@ -199,6 +210,7 @@ class UrtextFile:
                 
                 del nested_levels[nested]
                 nested -= 1
+                
                 last_position = position
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
@@ -249,9 +261,7 @@ class UrtextFile:
                     continue
 
                 last_position = position + 2 
-
                 nested -= 1
-
                 if nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 
