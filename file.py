@@ -127,11 +127,13 @@ class UrtextFile:
 
         if self.positions:
             nested_levels[0] = [ [0, self.positions[0] + symbol_length[self.symbols[self.positions[0]]] ] ]
-        
+
+        print(self.positions)
+
         for index in range(0, len(self.positions)):
 
             position = self.positions[index]
-
+            
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
             
@@ -183,14 +185,20 @@ class UrtextFile:
             """
             if self.symbols[position] in ['}}', '^\%(?!%)', '[\n$]']:  # pop
                 
-                compact, split, root = False, False, False
+                if self.symbols[position] == '[\n$]':
+                    if compact_node_open:
+                        compact = True
+                    else:
+                        continue
 
+                compact, split, root = False, False, False
+                if position == last_position:
+                    print(self.filename)
+                    print(nested_levels)
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
-                if compact_node_open and self.symbols[position] == '[\n$]':
-                    compact = True
-               
+                
                 else: 
                     # determine whether this is a node made by a split marker (%)
                     start_position = nested_levels[nested][0][0]
@@ -198,22 +206,18 @@ class UrtextFile:
                     if start_position >= 0 and contents[start_position] == '%':
                         split = True
                     if end_position < len(contents) and contents[end_position] == '%':
-                        split = True                                                 
+                        split = True  
+                    # file level nodes are root nodes, with multiples permitted  
+                    if nested == 0:
+                        root = True
+
+                                               
 
                 node_contents = ''.join([  
                         contents[file_range[0]:file_range[1]] 
                             for file_range in nested_levels[nested] 
                         ])
        
-                # file level nodes are root nodes, with multiples permitted
-                
-                if nested == 0:
-                    root = True
-
-                if '0000 -  Home' in self.filename:
-                    print(contents)
-                    print(nested_levels[nested])
-
                 # Get the node contents and construct the node
                 new_node = node.create_urtext_node(
                     self.filename, 
@@ -237,13 +241,12 @@ class UrtextFile:
 
                 if compact:
                     compact_node_open = False
-                    looking_for_parent = new_node.id
                     last_position = position
+                    nested -= 1
                     continue
 
                 if self.symbols[position] == '^\%(?!%)': # split nodes
                     last_position = position
-                    nested -= 1
                     continue
 
                 last_position = position + 2 

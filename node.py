@@ -36,10 +36,17 @@ default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 def create_urtext_node(
     filename, 
     contents='', 
-    root=False, 
-    compact=False,
-    split=False):
+    root=None, 
+    compact=None,
+    split=None):
     
+    if not root:
+        root = False
+    if not compact:
+        compact = False
+    if not split:
+        split = False
+
     if compact:
         # omit the leading/training whitespace and the '^' character itself:
         contents = contents.lstrip().replace('^','',1)
