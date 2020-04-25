@@ -121,14 +121,11 @@ class UrtextFile:
         """
 
         if self.positions:
-
             while self.positions and self.symbols[self.positions[0]] in [ '[\n$]', '>>' ]:
                 self.positions.pop(0)
 
         if self.positions:
             nested_levels[0] = [ [0, self.positions[0] + symbol_length[self.symbols[self.positions[0]]] ] ]
-
-        print(self.positions)
 
         for index in range(0, len(self.positions)):
 
@@ -192,9 +189,6 @@ class UrtextFile:
                         continue
 
                 compact, split, root = False, False, False
-                if position == last_position:
-                    print(self.filename)
-                    print(nested_levels)
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
