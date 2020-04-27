@@ -52,9 +52,7 @@ def _compile(self,
                           ' points to nonexistent node >' + target_id)
             continue
 
-        filename = self.nodes[target_id].filename
-
-        
+        filename = self.nodes[target_id].filename    
 
         #if not target_id and not dynamic_definition.export:
         if dynamic_definition.export:
