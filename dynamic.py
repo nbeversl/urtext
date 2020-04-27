@@ -187,7 +187,6 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'SEARCH':
-                print('FOUND SEARCH')
                 self.search = ' '.join(params)
                 continue
 

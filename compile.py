@@ -279,17 +279,15 @@ def _compile(self,
         
         target_id = dynamic_definition.target_id
         search_term = dynamic_definition.search
+        
         self.nodes[target_id].dynamic = True
         search = UrtextSearch(self, 
             search_term, 
             format_string=dynamic_definition.show)
-        search.initiate_search()
+        
+        search_result = search.initiate_search()
 
-        while not search.complete:
-            # already running async
-            time.sleep(0.1)
-
-        final_output = build_final_output(dynamic_definition, '\n'.join(search.result))
+        final_output = build_final_output(dynamic_definition, '\n'.join(search_result))
         changed_file = self._set_node_contents(target_id, final_output)    
 
         if changed_file and changed_file not in modified_files:

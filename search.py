@@ -41,7 +41,7 @@ class UrtextSearch:
 			self.format_string = format_string
 	
 	def initiate_search(self):
-		self._search_for(self.term)
+		return self._search_for(self.term)
 		
 	def _search_for(self, term):
 		term = term.lower()
