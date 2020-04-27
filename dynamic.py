@@ -19,6 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import os
 
+ 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 function_regex = re.compile('([A-Z_]+)(\(.*?\))')
@@ -42,8 +43,6 @@ class UrtextDynamicDefinition:
         self.oneline_meta = True
         self.interlinks = None
         self.omit=[]
-        self.mirror = None
-        self.mirror_include_all = None
         self.export = None
         self.tag_all_key = None
         self.tag_all_value = None
@@ -188,6 +187,7 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'SEARCH':
+                print('FOUND SEARCH')
                 self.search = ' '.join(params)
                 continue
 

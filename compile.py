@@ -20,6 +20,8 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from .export import UrtextExport
 from .node import UrtextNode
 from .timeline import timeline
+from. search import UrtextSearch
+from .dynamic_output import DynamicOutput
 import os
 import re
 
@@ -33,83 +35,98 @@ def _compile(self,
 
     if modified_files is None:
         modified_files = []
-        
-    for dynamic_definition in self.dynamic_nodes:
+    
+    search_result_nodes = []
 
+    for dynamic_definition in self.dynamic_nodes:
+       
         source_id = dynamic_definition.source_id
 
-        # exporting is the only the thing using target files at this moment
-        if not dynamic_definition.target_id and not dynamic_definition.export:
+        # make sure the target ID is in the project        
+        target_id = dynamic_definition.target_id
+        if not target_id:
             continue
         
-        if dynamic_definition.target_id:
-            target_id = dynamic_definition.target_id
+        if target_id not in self.nodes:
+            self._log_item('Dynamic node definition in >' + source_id +
+                          ' points to nonexistent node >' + target_id)
+            continue
 
-            if target_id not in list(self.nodes):
-                self._log_item('Dynamic node definition in >' + source_id +
-                              ' points to nonexistent node >' + target_id)
-                continue
+        filename = self.nodes[target_id].filename
 
-            filename = self.nodes[target_id].filename
+        
 
-        if self.compiled and self._parse_file(filename):
-            self._update(compile_project=False, modified_files=modified_files)
+        #if not target_id and not dynamic_definition.export:
+        if dynamic_definition.export:
+             # exporting is the only the thing using target files at this moment
+            continue
 
+        if dynamic_definition.search:
+            search_result_nodes.append(dynamic_definition)            
+            continue
+            
+        self._parse_file(filename)
+            
         points = {}
-
-        new_node_contents = ''
+        new_node_contents = []
 
         if dynamic_definition.tree:
+
+            """
+            Tree
+            """
+
             if dynamic_definition.tree not in self.nodes:
                 continue
-            new_node_contents += self.show_tree_from(dynamic_definition.tree)
+            new_node_contents.append(self.show_tree_from(dynamic_definition.tree))
 
-        if dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
-            new_node_contents += self.get_node_relationships(
+        elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+
+            """
+            Interlinks
+            """
+
+            new_node_contents.append(self.get_node_relationships(
                 dynamic_definition.interlinks,
-                omit=dynamic_definition.omit)
+                omit=dynamic_definition.omit))
 
-        if dynamic_definition.mirror and dynamic_definition.mirror in self.nodes:
+        elif dynamic_definition.export:
+
+            """
+            Export
+            """
+
+            # exclude=[]
+            # if dynamic_definition.target_id:
+            # 	exclude.append(target_id)
+            # exported = UrtextExport(self) 
+            # if not dynamic_definition.export_source:
+            #     continue 
+            # exported_content, points = exported.export_from(
+            #      dynamic_definition.export_source,
+            #      kind=dynamic_definition.export,
+            #      exclude =exclude, # prevents recurssion
+            #      as_single_file=True, # TOdO should be option 
+            #      clean_whitespace=True,
+            #      preformat = dynamic_definition.preformat
+            #     )
             
-            if dynamic_definition.mirror_include_all:
-                # TODO prevent nodes being repeatedly mirrored inside themselves.
-                start = self.nodes[dynamic_definition.mirror].ranges[0][0]
-                end = self.nodes[dynamic_definition.mirror].ranges[-1][1]
-                new_node_contents += self._full_file_contents(node_id=dynamic_definition.mirror)[start:end]
-                new_node_contents = UrtextNode.strip_metadata(contents=new_node_contents)
-                new_node_contents = UrtextNode.strip_dynamic_definitions(contents=new_node_contents)
-                new_node_contents = new_node_contents.replace('{{','')
-                new_node_contents = new_node_contents.replace('}}','')
-            else:
-                new_node_contents += self.nodes[dynamic_definition.mirror].content_only()
+            # if dynamic_definition.target_file:
+            #     with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+            #         f.write(exported_content)
+            #         f.close()
+            #     if not dynamic_definition.target_id:
+            #         continue
 
-        if dynamic_definition.export: #
+            # new_node_contents.append(exported_content)
 
-            exclude=[]
-            if dynamic_definition.target_id:
-            	exclude.append(target_id)
-            exported = UrtextExport(self) 
-            if not dynamic_definition.export_source:
-                continue 
-            exported_content, points = exported.export_from(
-                 dynamic_definition.export_source,
-                 kind=dynamic_definition.export,
-                 exclude =exclude, # prevents recurssion
-                 as_single_file=True, # TOdO should be option 
-                 clean_whitespace=True,
-                 preformat = dynamic_definition.preformat
-                )
+            pass
             
-            if dynamic_definition.target_file:
-                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-                    f.write(exported_content)
-                    f.close()
-                if not dynamic_definition.target_id:
-                    continue
-
-            new_node_contents += exported_content
-        
-        if dynamic_definition.tag_all_key:
+        elif dynamic_definition.tag_all_key:
+            
+            """
+            Tag All
+            """
                         
             if not skip_tags:
                 self._add_sub_tags(
@@ -122,11 +139,20 @@ def _compile(self,
             continue
             
         else:  
-           
-            # allow for including other projects in the list context
+            
+            """
+            Otherwise this is going to pull from contents of individual nodes,
+            either as a timeline or as node list
+            """
+
+            # Allow for including other projects in the list context.
+
             included_projects = [self]
             if dynamic_definition.include_other_projects:
                 included_projects.extend(self.other_projects)
+
+
+            # Assemble requested nodes
 
             if dynamic_definition.include_or == 'all':
                 included_nodes = [self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id]
@@ -135,7 +161,6 @@ def _compile(self,
                 included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes()) if node_id != dynamic_definition.target_id]
             
             else:
-
                 included_nodes = set([])
                 excluded_nodes = set([])
                 
@@ -163,12 +188,13 @@ def _compile(self,
             """ 
 
             if dynamic_definition.show == 'timeline':
-                new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
+                new_node_contents.append(timeline(self, included_nodes, kind=dynamic_definition.timeline_type))
  
             else:
 
                 """ otherwise this is a list. """
-                """ custom sort the nodes if a sort key is provided """
+                
+                """ custom sort the nodes if a sort type is provided """
 
                 if dynamic_definition.sort_type == 'last_accessed':
                     sort_func = lambda node: node.last_accessed
@@ -206,107 +232,99 @@ def _compile(self,
  
                 for targeted_node in included_nodes:
 
-                    shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
-                    item_format = dynamic_definition.show
-                    item_format = bytes(item_format, "utf-8").decode("unicode_escape")
-                    
-                    # tokenize all $ format keys
-                    format_key_regex = re.compile('\$[A-Za-z0-9_-]+', re.DOTALL)
-                    format_keys = re.findall(format_key_regex, item_format)
-                        
-                    for token in format_keys:
-                        item_format = item_format.replace(token, shah + token)
-
-                    if shah + '$title' in item_format:
-                        item_format = item_format.replace(shah + '$title', targeted_node.title)
-                    if shah + '$link' in item_format:
+                    next_content = DynamicOutput(dynamic_definition.show)
+                   
+                    if next_content.needs_title:
+                        next_content.title = targeted_node.title
+                   
+                    if next_content.needs_link:
                         link = ''
                         if targeted_node.parent_project not in [self.title, self.path]:
                             link += '{"'+targeted_node.parent_project+'"}'
                         else:
                             link += '>'
                         link += '>'+ str(targeted_node.id)
-                        item_format = item_format.replace(shah + '$link', link)
-                    if shah + '$date' in item_format:
-                        item_format = item_format.replace(shah + '$date', targeted_node.get_date(format_string = self.settings['timestamp_format'][0]))
-                    if shah + '$meta' in item_format:
-                        item_format = item_format.replace(shah + '$meta', targeted_node.consolidate_metadata(wrapped=False))
+                        next_content.link = link
 
-                    # contents
-                    contents_syntax = re.compile(shah+'\$contents'+'(:\d*)?', re.DOTALL)      
-                    contents_match = re.search(contents_syntax, item_format)
-
-                    if contents_match:
-                        contents = targeted_node.content_only().strip('\n').strip()
-                        suffix = ''
-                        if contents_match.group(1):
-                            suffix = contents_match.group(1)                          
-                            length_str = contents_match.group(1)[1:] # strip :
-                            length = int(length_str)
-                            if len(contents) > length:
-                                contents = contents[0:length] + ' (...)'
-                        item_format = item_format.replace(shah + '$contents' + suffix, contents)
-
-                    remaining_format_keys = re.findall( shah+'\$[A-Za-z0-9_-]+', item_format, re.DOTALL)                   
-                    
-                    # all other meta keys
-                    for match in remaining_format_keys:
-                        meta_key = match.strip(shah+'$')                   
+                    if next_content.needs_date:
+                        next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
+                    if next_content.needs_meta:
+                        next_content.meta = targeted_node.consolidate_metadata(wrapped=False)
+                    if next_content.needs_contents: 
+                        next_content.content = targeted_node.content_only().strip('\n').strip()
+ 
+                    for meta_key in next_content.needs_other_format_keys:
                         values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
                         replacement = ''
                         if values:
                             replacement = ' '.join(values)
-                        item_format = item_format.replace(match, replacement);    
-                                                
-                    new_node_contents += item_format
+                        next_content.other_format_keys[meta_key] = values
+
+                    new_node_contents.append(next_content.output())
                         
-        # """
-        # add metadata to dynamic node
-        # """
-        metadata_values = { 
-            'ID': [ target_id ],
-            'defined in' : [ '>'+dynamic_definition.source_id ] }
+        final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
+        changed_file = self._set_node_contents(target_id, final_output)            
 
-        if dynamic_definition.mirror:
-            metadata_values['mirrors'] = '>'+dynamic_definition.mirror
+        if changed_file:
 
-        for value in dynamic_definition.metadata:
-            metadata_values[value] = dynamic_definition.metadata[value]
-        built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
-
-        title = ''
-        if 'title' in dynamic_definition.metadata:
-            title = dynamic_definition.metadata['title'] + '\n'
-
-        updated_node_contents = '\n' + title + new_node_contents + built_metadata
-        """
-        add indentation if specified
-        """
-
-        if dynamic_definition.spaces:
-            updated_node_contents = indent(updated_node_contents,
-                                           dynamic_definition.spaces)
-        
-        changed_file = self._set_node_contents(target_id, updated_node_contents)
-        if changed_file:    
-            
             if changed_file not in modified_files:
-                modified_files.append(changed_file)
+                modified_files.append(changed_file)       
+        
+        if dynamic_definition.export:
+            # has to be reset since the file will have been re-parsed
+            self.nodes[target_id].export_points = points           
 
-            self._parse_file(changed_file)
-
-            modified_files = self._update(
-                compile_project=False, 
-                modified_files=modified_files)
-            
-            if dynamic_definition.export:
-                self.nodes[target_id].export_points = points
-
-        self.nodes[target_id].points = points
         if dynamic_definition.tree:
             self.nodes[target_id].is_tree = True
-       
+
+        self.nodes[target_id].dynamic = True
+
+    for dynamic_definition in search_result_nodes:
+        
+        target_id = dynamic_definition.target_id
+        search_term = dynamic_definition.search
+        self.nodes[target_id].dynamic = True
+        search = UrtextSearch(self, 
+            search_term, 
+            format_string=dynamic_definition.show)
+        search.initiate_search()
+
+        while not search.complete:
+            # already running async
+            time.sleep(0.1)
+
+        final_output = build_final_output(dynamic_definition, '\n'.join(search.result))
+        changed_file = self._set_node_contents(target_id, final_output)    
+
+        if changed_file and changed_file not in modified_files:
+            modified_files.append(changed_file)       
+            
+        self.nodes[target_id].dynamic = True
+
     return modified_files
+
+def build_final_output(dynamic_definition, contents):
+
+    metadata_values = { 
+        'ID': [ dynamic_definition.target_id ],
+        'defined in' : [ '>'+dynamic_definition.source_id ] }
+
+    built_metadata = ''
+    for value in dynamic_definition.metadata:
+        metadata_values[value] = dynamic_definition.metadata[value]
+    
+    built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
+
+    title = ''
+    if 'title' in dynamic_definition.metadata:
+        title = dynamic_definition.metadata['title'] + '\n'
+
+    final_contents = '\n' + title + contents + built_metadata
+
+    if dynamic_definition.spaces:
+        final_contents = indent(final_contents, dynamic_definition.spaces)
+
+    return final_contents
 
 
 def _build_group_and(project, groups):

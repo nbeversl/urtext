@@ -97,7 +97,6 @@ class UrtextNode:
         self.compact = compact
         self.split = split
         self.metadata = metadata
-        self.points = {}
         self.index = None
         self.parent_project = None
         self.last_accessed = 0
@@ -182,8 +181,10 @@ class UrtextNode:
                     dynamic_definition, '')
         return stripped_contents
 
-    def content_only(self, contents=''):
-        contents = self.strip_metadata(contents=self.contents())
+    def content_only(self, contents=None):
+        if contents == None:
+            contents = self.contents()
+        contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
         return contents
 
@@ -321,6 +322,7 @@ class UrtextNode:
                   encoding='utf-8') as theFile:
             theFile.write(new_file_contents)
             theFile.close()
+        print(self.filename)
 
         return True
         """ MUST re-parse now """

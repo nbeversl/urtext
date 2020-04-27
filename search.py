@@ -16,29 +16,73 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import concurrent.futures
+import re
+from .dynamic_output import DynamicOutput
 
 def search_term(self, term):
-	return UrtextSearchResult(self, term)
+	return UrtextSearch(self, term)
 
-class UrtextSearchResult:
+class UrtextSearch:
 
-	def __init__(self, project, term):
+	def __init__(self, 
+		project, 
+		term, 
+		amount=None,
+		format_string=None):
+		
 		self.project = project
 		self.term = term
-		self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 		self.complete = False
 		self.result = []
+		self.amount = 20
+		if not format_string:
+			self.format_string = '$contents $link';
+		else:
+			self.format_string = format_string
 	
 	def initiate_search(self):
-		#self.executor.submit(self._search_for, self.term)
 		self._search_for(self.term)
 		
 	def _search_for(self, term):
-		for filename in self.project.files:
-			contents = self.project._full_file_contents(filename)
-			if term.lower() in contents.lower():
-				self.result.append(filename)
+		term = term.lower()
+		term_length = len(term)
+		for node_id in self.project.nodes:
+			if self.project.nodes[node_id].dynamic:
+				continue
+			matches = []
+			contents = self.project.nodes[node_id].content_only()
+			lower_contents = contents.lower()			
+
+			if term in lower_contents:
+
+				this_result = DynamicOutput(self.format_string)
+
+				if this_result.needs_title:
+					this_result.title = self.project.nodes[node_id].title
+
+				if this_result.needs_link:
+					this_result.link = '>'+node_id
+
+				if this_result.needs_contents:
+					for match in re.finditer(term, lower_contents):
+						start = match.start() - self.amount
+						if start < 0 :
+							start = 0
+						end = match.end() + self.amount
+						if end > len(contents):
+							end = len(contents)
+						excerpt = contents[start:end].replace('\n',' ')
+					this_result.contents = excerpt
+
+				if this_result.needs_meta:
+					this_result.meta = self.project.nodes[node_id].consolidate_metadata(wrapped=False)
+
+				if this_result.needs_date:
+					this_result.date = self.project.nodes[node_id].date
+
+				self.result.append(this_result.output())				
+
 		self.complete = True
+		return self.result
 
 search_functions  = [ search_term ]

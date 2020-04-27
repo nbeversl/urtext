@@ -75,7 +75,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
 
-        self.async = True # development
+        self.async = False # development
         self.path = path
         self.log = None
         self.nodes = {}
@@ -384,7 +384,7 @@ class UrtextProject:
         if filename not in self.files:
             return None, None
         exported_node_id = self.get_node_id_from_position(filename, position)
-        points = self.nodes[exported_node_id].points
+        points = self.nodes[exported_node_id].export_points
         if not points:
             return None, None
         node_start_point = self.nodes[exported_node_id].ranges[0][0]
@@ -392,7 +392,7 @@ class UrtextProject:
         indexes = sorted(points)
         for index in range(0, len(indexes)):
             if position >= indexes[index] and position < indexes[index+1]:
-                node, target_position = self.nodes[exported_node_id].points[indexes[index]]
+                node, target_position = self.nodes[exported_node_id].export_points[indexes[index]]
                 offset = position - indexes[index]
                 return node, target_position+offset
 
@@ -768,7 +768,6 @@ class UrtextProject:
     def indexed_nodes(self):
         """ returns an array of node IDs of indexed nodes, in indexed order """
 
-        #self.update_lock.acquire()
         indexed_nodes_list = []
         for node_id in list(self.nodes):
             if self.nodes[node_id].index:
