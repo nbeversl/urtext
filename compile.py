@@ -96,31 +96,29 @@ def _compile(self,
             Export
             """
 
-            # exclude=[]
-            # if dynamic_definition.target_id:
-            # 	exclude.append(target_id)
-            # exported = UrtextExport(self) 
-            # if not dynamic_definition.export_source:
-            #     continue 
-            # exported_content, points = exported.export_from(
-            #      dynamic_definition.export_source,
-            #      kind=dynamic_definition.export,
-            #      exclude =exclude, # prevents recurssion
-            #      as_single_file=True, # TOdO should be option 
-            #      clean_whitespace=True,
-            #      preformat = dynamic_definition.preformat
-            #     )
+            exclude=[]
+            if dynamic_definition.target_id:
+            	exclude.append(target_id)
+            exported = UrtextExport(self) 
+            if not dynamic_definition.export_source:
+                continue 
+            exported_content, points = exported.export_from(
+                 dynamic_definition.export_source,
+                 kind=dynamic_definition.export,
+                 exclude =exclude, # prevents recurssion
+                 as_single_file=True, # TOdO should be option 
+                 clean_whitespace=True,
+                 preformat = dynamic_definition.preformat
+                )
             
-            # if dynamic_definition.target_file:
-            #     with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-            #         f.write(exported_content)
-            #         f.close()
-            #     if not dynamic_definition.target_id:
-            #         continue
+            if dynamic_definition.target_file:
+                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+                    f.write(exported_content)
+                    f.close()
+                if not dynamic_definition.target_id:
+                    continue
 
-            # new_node_contents.append(exported_content)
-
-            pass
+            new_node_contents.append(exported_content)
             
         elif dynamic_definition.tag_all_key:
             
