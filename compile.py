@@ -164,10 +164,6 @@ def _compile(self,
 
             if dynamic_definition.show == 'timeline':
                 new_node_contents += timeline(self, included_nodes, kind=dynamic_definition.timeline_type)
-
-            # POSSIBLE BUG HERE
-            # elif dynamic_definition.search and self.ix:
-            #     new_node_contents += self.search_term(dynamic_definition.search, exclude=[dynamic_definition.target_id])
  
             else:
 

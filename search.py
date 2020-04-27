@@ -16,54 +16,29 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-from whoosh.writing import AsyncWriter
-from whoosh.qparser import QueryParser
-from whoosh.highlight import UppercaseFormatter
 import concurrent.futures
-from concurrent.futures import ALL_COMPLETED
 
-def rebuild_search_index(self):
-    
-    writer = AsyncWriter(self.ix)
+def search_term(self, term):
+	return UrtextSearchResult(self, term)
 
-    for node_id in self.nodes:
-        node = self.nodes[node_id]
-        fs = []
-        try:
-            fs.append(self.aux_executor.submit(writer.update_document, 
-                            title=node.title,
-                            path=node.id,
-                            content=node.content_only()))
-        except:
-            print('ERROR in '+node_id)
+class UrtextSearchResult:
 
-    concurrent.futures.wait(fs, timeout=None, return_when=ALL_COMPLETED)
-    writer.commit()
-    
-def search_term(self, string, exclude=[]):
+	def __init__(self, project, term):
+		self.project = project
+		self.term = term
+		self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+		self.complete = False
+		self.result = []
+	
+	def initiate_search(self):
+		#self.executor.submit(self._search_for, self.term)
+		self._search_for(self.term)
+		
+	def _search_for(self, term):
+		for filename in self.project.files:
+			contents = self.project._full_file_contents(filename)
+			if term.lower() in contents.lower():
+				self.result.append(filename)
+		self.complete = True
 
-    self.ix.refresh()
-    with self.ix.searcher() as searcher:
-        if not searcher.up_to_date():
-            seacher = searcher.refresh()
-        qp = QueryParser("content", self.ix.schema)
-        query = qp.parse(string)
-        results = searcher.search(query, limit=1000)
-        results.formatter = UppercaseFormatter()
-        final_results = ''
-        for result in results:
-            node_id = result['path']
-            if node_id in exclude:
-                 continue
-            if node_id not in self.nodes:
-                # Future: possibly indicate missing nodes
-                continue
-            final_results += '| ' + self.nodes[node_id].title + ' >'+node_id +'\n\n' + result.highlights("content").strip() + '\n'
-    final_results = final_results.replace('\x0d', '\n')
-    final_results = final_results.replace('\t', '')
-    real_final_results = ''
-    for line in final_results.split('\n'):
-        real_final_results += line.strip()  + '\n'
-    return real_final_results
-
-search_functions = [ rebuild_search_index, search_term ]
+search_functions  = [ search_term ]

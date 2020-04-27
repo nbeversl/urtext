@@ -56,7 +56,7 @@ symbol_length = {
 
 class UrtextFile:
 
-    def __init__(self, filename, previous_hash=None, search_index=None):
+    def __init__(self, filename, previous_hash=None):
         
         self.nodes = {}
         self.root_nodes = []
@@ -64,9 +64,7 @@ class UrtextFile:
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
-        self.search_index_updates = []
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-        self.search_index = search_index
         self.changed = True
         self.is_parseable = True
         self.strict = False
@@ -76,17 +74,14 @@ class UrtextFile:
         if self.hash == previous_hash:
             self.changed = False
         else:
-            if self.search_index:
-                self.search_index.refresh()
-                self.writer = AsyncWriter(self.search_index)
-            self.lex_and_parse(contents, search_index=self.search_index)
+            self.lex_and_parse(contents)
         
-    def lex_and_parse(self, contents, search_index=None):
+    def lex_and_parse(self, contents):
         if not contents:
             return
         self.file_length = len(contents)        
         self.lex(contents)
-        self.parse(contents, search_index=search_index)
+        self.parse(contents)
 
     def hash_contents(self, contents):
         r = bytearray(contents,'utf-8')
@@ -106,7 +101,7 @@ class UrtextFile:
 
         self.positions = sorted([key for key in self.symbols if key != -1])
 
-    def parse(self, contents, search_index=None):
+    def parse(self, contents):
 
         """
         Counters and trackers
@@ -264,26 +259,13 @@ class UrtextFile:
                 
         if self.strict and len(self.root_nodes) == 0:
             return self.log_error('No root nodes found', 0)
-
-            
-        if self.search_index:
-            self.executor.submit(self.commit_writer)
     
-    def commit_writer(self):
-         concurrent.futures.wait(
-            self.search_index_updates, 
-            timeout=None, 
-            return_when=ALL_COMPLETED) 
-         self.writer.commit()
-         print('Search index updated. ' + self.filename+'\n')
-
     def add_node(self, new_node, ranges, contents):
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
             if new_node.root_node:
                 self.root_nodes.append(new_node.id) 
-            self.update_search_index(new_node, contents)
             self.parsed_items[ranges[0][0]] = new_node.id
             return True
         else:
@@ -306,18 +288,6 @@ class UrtextFile:
         except UnicodeDecodeError:
             self.log_item('UnicodeDecode Error: ' + filename)
             return None
-
-    def update_search_index(self, new_node, node_contents):
-        if self.search_index:
-            stripped_contents = UrtextNode.strip_metadata(contents=node_contents)
-            stripped_contents = UrtextNode.strip_dynamic_definitions(contents=stripped_contents)
-            self.search_index_updates.append(
-                self.executor.submit( 
-                    self.writer.update_document, 
-                    title=new_node.title,
-                    path=new_node.id,
-                    content=stripped_contents)
-                )
 
     def log_error(self, message, position):
 

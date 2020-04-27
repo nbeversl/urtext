@@ -32,10 +32,6 @@ import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
-from whoosh.fields import Schema, TEXT, KEYWORD, ID, STORED
-from whoosh.index import create_in, exists_in, open_dir
-from whoosh.analysis import StandardAnalyzer
-from whoosh.writing import AsyncWriter
 
 from .timeline import timeline
 from .file import UrtextFile
@@ -44,9 +40,9 @@ from .node import UrtextNode
 from .compile import compile_functions
 from .trees import trees_functions
 from .meta_handling import metadata_functions
-from .search import search_functions
 from .reindex import reindex_functions
 from .watchdog import watchdog_functions
+from .search import search_functions
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -56,9 +52,9 @@ node_id_regex = r'\b[0-9,a-z]{3}\b'
 functions = trees_functions
 functions.extend(compile_functions)
 functions.extend(metadata_functions)
-functions.extend(search_functions)
 functions.extend(reindex_functions)
 functions.extend(watchdog_functions)
+functions.extend(search_functions)
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -93,7 +89,6 @@ class UrtextProject:
         self.dynamic_meta = {} # source_id : [ target_id, ... ]
         self.compiled = False
         self.alias_nodes = []
-        self.ix = None
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -123,7 +118,6 @@ class UrtextProject:
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
-            'search_index' : ['yes'],
             'always_oneline_meta' : True,
             'format_string': '$title\n-\n',
         }
@@ -133,20 +127,10 @@ class UrtextProject:
         self._initialize_project(import_project=import_project, init_project=init_project)
 
         self.log = self.setup_logger('urtext_log', 'urtext_log.txt')
-
-        if not exists_in(os.path.join(self.path, "index"), indexname="urtext"):
-            if not os.path.exists(os.path.join(self.path, "index")):
-                os.mkdir(os.path.join(self.path, "index"))
-            schema = Schema(
-                title=TEXT(stored=True),
-                path=ID(unique=True, stored=True),
-                content=TEXT(stored=True, analyzer=StandardAnalyzer()))
-            create_in(os.path.join(self.path, "index"), schema, indexname="urtext")
         
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
 
-        self.ix = open_dir(os.path.join(self.path, "index"), indexname="urtext")
 
         self.loaded = True
 
@@ -212,10 +196,6 @@ class UrtextProject:
         """
         if self._filter_filenames(os.path.basename(filename)) == None:
             return
-
-        search_index = None
-        if self.settings['search_index'][0] == 'yes':
-            search_index=self.ix
         
         already_in_project = False
         old_hash = None
@@ -229,10 +209,6 @@ class UrtextProject:
         new_file = UrtextFile(
             os.path.join(self.path, filename), 
             previous_hash=old_hash,
-
-            # temporarily disable search index.
-            # too many freaking problems.
-            #search_index=search_index
             )
         
         if not new_file.changed:
@@ -820,7 +796,10 @@ class UrtextProject:
             if not primary:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
-                root_nodes.append(self.files[filename].root_nodes[0])
+                if not self.files[filename].root_nodes:
+                    self._log_item('DEBUGGING (project.py): No root nodes in '+filename)
+                else:
+                    root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
 
 
@@ -1121,8 +1100,7 @@ class UrtextProject:
     def on_modified(self, filename):
     
         do_not_update = [
-            'index', 
-            'history',
+             'history',
             os.path.basename(self.path),
             self.settings['logfile'],
             ]
@@ -1168,8 +1146,6 @@ class UrtextProject:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
 
-        if self.ix:
-            self.ix.refresh()
         print('done udpating')
         return modified_files
 
