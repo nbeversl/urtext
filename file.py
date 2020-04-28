@@ -20,7 +20,6 @@ import os
 import re
 from .node import UrtextNode
 from . import node
-from whoosh.writing import AsyncWriter
 import concurrent.futures
 from concurrent.futures import ALL_COMPLETED
 import hashlib

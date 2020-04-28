@@ -87,7 +87,7 @@ class DynamicOutput():
         for match in all_format_keys:
             meta_key = match.strip(self.shah+'$') 
             if meta_key not in defined_list:
-                self.needs_other_format_keys(meta_key)
+                self.needs_other_format_keys.append(meta_key)
 
     def output(self):
         
@@ -111,8 +111,8 @@ class DynamicOutput():
                     
         # all other meta keys
         for meta_key in self.other_format_keys:
-            token = self.shah+'$'+match
-            value = self.other_format_keys(meta_key)
+            token = self.shah+'$'+meta_key
+            value = ' '.join(self.other_format_keys[meta_key])
             self.item_format = self.item_format.replace(token, value );    
 
         return self.item_format
