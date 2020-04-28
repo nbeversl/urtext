@@ -39,7 +39,7 @@ class ProjectList():
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
         try:
-            if os.path.basename(folder) not in ['index','img','files']:
+            if os.path.basename(folder) not in ['history','img','files' ]:
                 project = UrtextProject(folder)
                 self.projects.append(UrtextProject(folder))
                 print('Added Urtext project '+project.title+'from '+folder)
@@ -132,10 +132,8 @@ class ProjectList():
     def nav_current(self):
         node_id = self.current_project.nav_current()     
         if not node_id:
-            print('GETTING HOME')
             node_id = self.current_project.get_home()
         if not node_id:
-            print('GETTING RANDOM NODE')
             node_id = self.current_project.random_node()
         if not node_id:
             return None

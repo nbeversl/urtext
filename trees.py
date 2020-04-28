@@ -53,7 +53,8 @@ def _set_tree_elements(self, filename):
             
         if self.nodes[node].compact or self.nodes[node].split:               
             parent = self.get_parent(node)
-            self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
+            if parent:
+                self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
             continue
 
         """

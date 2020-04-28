@@ -123,7 +123,7 @@ class UrtextDynamicDefinition:
                         continue
 
                     if param == 'all_projects':
-                        print('INCLUDING ALL')
+
                         self.include_other_projects = True
                         
                     key, value, timestamp = key_value_timestamp(param)

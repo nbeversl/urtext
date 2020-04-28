@@ -331,7 +331,7 @@ class UrtextProject:
                     self.dynamic_nodes.append(definition)
 
         if len(new_node.metadata.get_meta_value('ID')) > 1:
-            self._log_item('Multiple ID tags in >' + new_node.id +
+            self._log_item('Multiple ID tags in >' + new_node.id + ' ('+new_node.filename+') '
                           ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
         
         new_node.parent_project = self.title
@@ -818,10 +818,11 @@ class UrtextProject:
 
         # if this is a split node, keep getting the parent until we're out of a split.
         if self.nodes[child_node_id].split:
-            while self.nodes[parent_node].split:
+            while parent_node and self.nodes[parent_node].split:                
                 if self.nodes[parent_node].root_node:
                     break
                 parent_node = self.get_parent(parent_node)
+                
 
         return parent_node
 
@@ -1145,7 +1146,6 @@ class UrtextProject:
             modified_files = self._compile(modified_files=modified_files)
             self.compiled = True
 
-        print('done udpating')
         return modified_files
 
     def _check_for_new_files(self):

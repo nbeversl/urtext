@@ -179,7 +179,7 @@ class UrtextFile:
             """
             Node closing symbols :  }}, %, newline, EOF
             """
-            if self.symbols[position] in ['}}', '^\%(?!%)', '[\n$]', 'EOF']:  # pop
+            if self.symbols[position] in ['}}', '^\%[^%]', '[\n$]', 'EOF']:  # pop
                 
                 compact, root = False, False
 
@@ -234,12 +234,13 @@ class UrtextFile:
                             print('Warning : root Node is anonymous in '+self.filename)
                         else:
                             return self.log_error('Root node without ID', 0)
-                    if compact:
-                        print ('Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
+                    elif compact:
+                        print ('Warning: Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
                     else:
                         if not self.strict:
                             print('Warning: Node missing ID in '+self.filename+' at position ',position)
-                        return self.log_error('Node missing ID', position)
+                        else:
+                            return self.log_error('Node missing ID', position)
  
                 del nested_levels[nested]
                 last_position = position + symbol_length[self.symbols[position]]

@@ -322,7 +322,7 @@ class UrtextNode:
                   encoding='utf-8') as theFile:
             theFile.write(new_file_contents)
             theFile.close()
-        print(self.filename)
+
 
         return True
         """ MUST re-parse now """
