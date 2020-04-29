@@ -42,7 +42,7 @@ class UrtextExport:
         contents = UrtextNode.strip_contents(contents)
         contents = contents.replace('{{','')
         contents = contents.replace('}}','')
-        contents = re.sub(r'^\%[^%]', '', contents, flags=re.MULTILINE)
+        contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
         contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents        
 
@@ -80,11 +80,15 @@ class UrtextExport:
         as_single_file=False,
         strip_urtext_syntax=True,
         style_titles=True,
-        exclude=[], 
+        exclude=None, 
         clean_whitespace=False,
         kind='plaintext',
         preformat=False,
         ):
+
+        if exclude == None:
+            exclude = []
+        print(exclude)
         """
         Public method to export a tree of nodes from a given root node
         """
@@ -114,17 +118,17 @@ class UrtextExport:
 
     def _add_node_content(self, 
             root_node_id,                               # node to start from
-            added_contents ='',
+            added_contents = None,
             as_single_file=False,                       # Recursively add contents from node pointers?
             strip_urtext_syntax=True,                   # for HTML, strip Urtext syntax?
             style_titles=True,                          # style titles ????
-            exclude=[],                                 # specify any nodes to exclude
+            exclude=None,                                 # specify any nodes to exclude
             kind='plaintext',                           # format
             nested=0,
-            points = {},                                   # nested level (private)
+            points = None,                               # nested level (private)
             single_node_only=False,                      # stop at this node, no inline nodes
             clean_whitespace=False,
-            visited_nodes=[],
+            visited_nodes=None,
             preformat=False,
             ):         
         """
@@ -135,6 +139,15 @@ class UrtextExport:
         """
         Get and set up initial values
         """
+        if points == None:
+            points = {}
+        if added_contents == None:
+            added_contents = ''
+        if visited_nodes == None:
+            visited_nodes = []
+        if exclude == None:
+            exclude = []
+
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project._full_file_contents(filename)        
@@ -142,10 +155,7 @@ class UrtextExport:
         split = self.project.nodes[root_node_id].split
         title_found = True if self.project.nodes[root_node_id].metadata.get_first_meta_value('title') else False
 
-        if root_node_id in exclude:
-            return added_contents, points, visited_nodes
-
-        if root_node_id in visited_nodes:
+        if root_node_id in exclude or root_node_id in visited_nodes:
             return added_contents, points, visited_nodes
         
         visited_nodes.append(root_node_id)
@@ -176,6 +186,7 @@ class UrtextExport:
                 range_contents += self._wrap_title(kind, root_node_id, nested)
 
                 if kind == 'html' and not strip_urtext_syntax:
+
                     # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
@@ -185,11 +196,6 @@ class UrtextExport:
             range_contents += file_contents[single_range[0]:single_range[1]]
             range_contents = self._strip_urtext_syntax(range_contents)
             
-            # Remove the title if it's duplicated in the wrapper
-            # if not title_found and title in node_contents: 
-            #     node_contents = node_contents.replace(title,'',1)
-            #     title_found = True
-
             if kind == 'html':
                 """
                 Insert special HTML wrappers
@@ -227,17 +233,21 @@ class UrtextExport:
             if kind == 'markdown':
                 range_contents = strip_leading_space(range_contents)
                 if self.project.nodes[root_node_id].is_tree and preformat:
-                    range_contents = insert_leading_tab(range_contents)
+                    range_contents = insert_leading_tab(range_contents )
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
                 ## Only replace node links if this is not a tree
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
 
+            ## NOT WORKING
+            # if not title_found and title in range_contents: 
+            #     range_contents = range_contents.replace(title,'',1)
+            #     title_found = True
+            
             if clean_whitespace:
-                range_contents = range_contents.strip('\n ')
+                range_contents = range_contents.strip('\n')
                 range_contents = '\n' + range_contents + '\n\n'
-
 
             if single_range != ranges[0] and kind == 'html':    
  
@@ -258,15 +268,13 @@ class UrtextExport:
                 range_contents += self._closing_wrapper(kind)
 
             """
-            points should be : given a point in an export, return which range of which node that is.
-            so: given the point, you have to know which range you're in
+            map the exported content to the source content.
+            (returns node ID and exact FILE location)
+            Note each point will be relative to the beginning of the 
+            containing node, not the beginning of the file containing the export.
             """
-            # map the exported content to the source content.
-            # (returns node ID and exact FILE location)
-            # Note that each point will be relative to the beginning of the 
-            # containing node, not the beginning of the file containing the export.
             
-            points[ (len(added_contents), len(added_contents)+ len(range_contents) ) ] = ( root_node_id, single_range[0] )
+            points[ (len(added_contents), len(added_contents) + len(range_contents) ) ] = ( root_node_id, single_range[0] )
 
             added_contents += range_contents
 
@@ -311,30 +319,28 @@ class UrtextExport:
                             visited_nodes=visited_nodes,
                             preformat=preformat,
                             )
-            
-       
-                              
+                   
         """
         For this single range of text, replace node pointers with their contents,
         which cals this function recursively.
         """
-            
-        if as_single_file:
+        if not self.project.nodes[root_node_id].dynamic :  
+            if as_single_file:
 
-            added_contents, points, visited_nodes = self.replace_node_pointers(
-                nested,
-                kind,
-                node_pointer_locations,
-                added_contents=added_contents,
-                points=points,
-                as_single_file=True,
-                strip_urtext_syntax=strip_urtext_syntax,
-                style_titles=style_titles,
-                exclude=exclude,
-                clean_whitespace=clean_whitespace,
-                visited_nodes=visited_nodes,
-                preformat=preformat
-               )
+                added_contents, points, visited_nodes = self.replace_node_pointers(
+                    nested,
+                    kind,
+                    node_pointer_locations,
+                    added_contents=added_contents,
+                    points=points,
+                    as_single_file=True,
+                    strip_urtext_syntax=strip_urtext_syntax,
+                    style_titles=style_titles,
+                    exclude=exclude,
+                    clean_whitespace=clean_whitespace,
+                    visited_nodes=visited_nodes,
+                    preformat=preformat
+                   )
 
         
         return added_contents, points, visited_nodes
@@ -355,16 +361,23 @@ class UrtextExport:
         nested, 
         kind,
         node_pointer_locations, # dict
-        added_contents='',
-        points={},
+        added_contents=None,
+        points=None,
         as_single_file=False,                       
         strip_urtext_syntax=True,                   
         style_titles=True,                          
         exclude=[],
         clean_whitespace=False,
-        visited_nodes=[],
+        visited_nodes=None,
         preformat=False
         ):
+    
+        if visited_nodes == None:
+            visited_nodes = []
+        if points == None:
+            points = {}
+        if added_contents == None:
+            added_contents = ''
 
         locations = sorted(node_pointer_locations)
 
@@ -386,8 +399,9 @@ class UrtextExport:
                 inserted_contents = '\n' + '#' * nested + ' ! RECURSION : '+ node_id
                 continue       
             
-            if node_id not in self.project.nodes:
-                print('NODE MARKER >>'+node_id+' not in project, skipping')
+            if node_id not in self.project.nodes:                    
+                visited_nodes.append(node_id)
+                print('SKIPPING '+node_id)
                 continue                            
 
 
@@ -410,7 +424,7 @@ class UrtextExport:
                     continue
 
                 if length_up_to_pointer < export_range[0]:
-                    points_after_that[(export_range[0]- pointer_length, export_range[1] - pointer_length)] = points[export_range]
+                    points_after_that[(export_range[0]- pointer_length, export_range[1]-pointer_length)] = points[export_range]
                     continue
                     
             added_contents, points_so_far, visited_nodes = self._add_node_content(

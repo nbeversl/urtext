@@ -33,6 +33,7 @@ class UrtextDynamicDefinition:
         self.spaces = 0
         self.target_id = None
         self.target_file = None
+        self.include_all = False
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
@@ -104,33 +105,33 @@ class UrtextDynamicDefinition:
 
             if func == 'INCLUDE':
                 group = []
-                add_to_group = 'or'
+                operator = 'or' # default
 
                 for param in params:
                     
                     if param == 'all': 
-                        self.include_or = 'all'
+                        self.include_all = True
+                        # no need to continue
                         break
 
                     if param == 'indexed':
-                        #TODO this shouldn't actually break.
-                        # should be combinable.
-                        self.include_or = 'indexed'
-                        break
+                        self.include_or.append('indexed')
+                        continue
 
                     if param == 'and':
-                        add_to_group = 'and'
+                        # and overrides or if it appears at all
+                        operator = 'and'
                         continue
 
                     if param == 'all_projects':
-
                         self.include_other_projects = True
-                        
+                        continue
+
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
                         group.append((key,value))
                 
-                if group and add_to_group == 'and':
+                if group and operator == 'and':
                     self.include_and.extend(group)
                 elif group:
                     self.include_or.extend(group)
@@ -138,7 +139,7 @@ class UrtextDynamicDefinition:
 
             if func == 'EXCLUDE':
                 group = []
-                add_to_group = 'or'  
+                operator = 'or'  
 
                 for param in params:
 
@@ -147,10 +148,8 @@ class UrtextDynamicDefinition:
                         break
 
                     if param == 'indexed':
-                        self.exclude_or = 'indexed'
-                        #TODO this shouldn't actually break.
-                        # should be combinable.
-                        break
+                        self.exclude_or.append('indexed')
+                        continue
 
                     if param == 'and':
                         add_to_group = 'and'
@@ -160,7 +159,7 @@ class UrtextDynamicDefinition:
                     if key:
                         group.append((key,value))
 
-                if group and add_to_group == 'and':
+                if group and operator == 'and':
                     self.exclude_and.extend(group)
                 elif group:
                     self.exclude_or.extend(group)
@@ -179,7 +178,7 @@ class UrtextDynamicDefinition:
                         continue
                     
                     key, value, timestamp = key_value_timestamp(param)
-                    if key_value:
+                    if key:
                         if key == 'indent':
                             self.spaces = self.assign_as_int(value, self.spaces)
                     continue

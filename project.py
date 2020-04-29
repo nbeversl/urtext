@@ -1311,12 +1311,10 @@ class UrtextProject:
         node_id = self.get_node_id_from_position(filename, position)
         if not node_id:
             return False
-        export_points = self.nodes[node_id].export_points
-        if export_points:
-            for export_range in export_points:
-                if position in range(export_range[0],export_range[1]):
-                    # returns tuple (id, starting_position)
-                    return export_points[export_range]
+        for export_range in self.nodes[node_id].export_points:
+            if position in range(export_range[0],export_range[1]):
+                # returns tuple (id, starting_position)
+                return self.nodes[node_id].export_points[export_range]
         return False
 
     def get_file_and_position(self, node_id):

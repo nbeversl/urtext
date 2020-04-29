@@ -42,7 +42,7 @@ class ProjectList():
             if os.path.basename(folder) not in ['history','img','files' ]:
                 project = UrtextProject(folder)
                 self.projects.append(UrtextProject(folder))
-                print('Added Urtext project '+project.title+'from '+folder)
+                print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
             if import_project:
                 self.import_project(folder)

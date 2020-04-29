@@ -54,8 +54,7 @@ def _compile(self,
 
         filename = self.nodes[target_id].filename    
 
-        #if not target_id and not dynamic_definition.export:
-        if dynamic_definition.export:
+        if not target_id and not dynamic_definition.export:
              # exporting is the only the thing using target files at this moment
             continue
 
@@ -150,14 +149,16 @@ def _compile(self,
 
             # Assemble requested nodes
 
-            if dynamic_definition.include_or == 'all':
+            if dynamic_definition.include_all:
                 included_nodes = [self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id]
 
-            elif dynamic_definition.include_or == 'indexed':
-                included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes()) if node_id != dynamic_definition.target_id]
-            
             else:
-                included_nodes = set([])
+                included_nodes = []
+                if 'indexed' in dynamic_definition.include_or:
+                    included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes()) if node_id != dynamic_definition.target_id]
+                    dynamic_definition.include_or.remove('indexed')
+
+                included_nodes = set(included_nodes)
                 excluded_nodes = set([])
                 
                 for project in included_projects:
@@ -267,7 +268,7 @@ def _compile(self,
                 modified_files.append(changed_file)       
         
         if dynamic_definition.export:
-            # has to be reset since the file will have been re-parsed
+            # must be reset since the file will have been re-parsed
             self.nodes[target_id].export_points = points           
 
         if dynamic_definition.tree:
