@@ -39,7 +39,6 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
 # additional symbols using MULTILINE flag
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
     '^[^\S\n]*\^',  # compact node opening wrapper
-    '^\%[^%]'       # split node marker
     ] ])
 
 # number of positions to advance parsing for of each possible symbol
@@ -49,7 +48,6 @@ symbol_length = {
     '}}' :          2, # inline closing wrapper
     '>>' :          2, # node pointer
     '[\n$]' :       0, # compact node closing
-    '^\%[^%]' :     0,  # split node opening
     'EOF':          0,
 }
 
@@ -109,8 +107,6 @@ class UrtextFile:
         nested_levels = {} # store node nesting into layers
         last_position = 0  # tracks the most recently parsed position in the file
         compact_node_open = False
-        split = False
-        last_node_was_split = False
 
         """
         Trim leading symbols that are newlines or node pointers
@@ -179,7 +175,7 @@ class UrtextFile:
             """
             Node closing symbols :  }}, %, newline, EOF
             """
-            if self.symbols[position] in ['}}', '^\%[^%]', '[\n$]', 'EOF']:  # pop
+            if self.symbols[position] in ['}}', '[\n$]', 'EOF']:  # pop
                 
                 compact, root = False, False
 
@@ -194,22 +190,14 @@ class UrtextFile:
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
-                # determine whether this is a node made by a split marker (%)
-                start_position = nested_levels[nested][0][0]
-                end_position = nested_levels[nested][-1][1]         
-                if start_position >= 0 and contents[start_position] == '%':
-                    split = True
-                if end_position < len(contents) and contents[end_position] == '%':
-                    split = True
-                
-                # file level nodes are root nodes, with multiples permitted  
+                 # file level nodes are root nodes, with multiples permitted  
                 if nested == 0 or self.symbols[position] == 'EOF':
-                    # use most recent value; if previous closed node is split, this is split.
+
                     if self.strict and nested != 0:
                         #TODO -- if a compact node closes the file, this error will be thrown.
                         self.log_error('Missing closing wrapper', position)
                         return None
-                    split = last_node_was_split 
+
                     root = True
 
                 # Build the node contents and construct the node
@@ -222,7 +210,6 @@ class UrtextFile:
                     self.filename, 
                     contents=node_contents,
                     root=root,
-                    split=split,
                     compact=compact,
                     )
                 
@@ -244,12 +231,6 @@ class UrtextFile:
  
                 del nested_levels[nested]
                 last_position = position + symbol_length[self.symbols[position]]
-
-                if split: # split nodes
-                    last_node_was_split = True
-                    continue
-
-                last_node_was_split = False
 
                 # reduce the nesting level only for compact, inline nodes
                 if not root:

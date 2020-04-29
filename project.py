@@ -837,10 +837,11 @@ class UrtextProject:
         return False
 
     def get_node_id_from_position(self, filename, position):
-
+        # print(self.files[filename].nodes)
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
+                #print(node_id)
                 if self._is_in_node(position, node_id):
                     return node_id
         else:

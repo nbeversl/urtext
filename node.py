@@ -38,7 +38,8 @@ def create_urtext_node(
     contents='', 
     root=None, 
     compact=None,
-    split=None):
+    split=None,
+    inline=None):
     
     if not root:
         root = False
@@ -211,7 +212,6 @@ class UrtextNode:
         # otherwise, title is the first non white-space line
         #
         stripped_contents_lines = self.strip_metadata(contents=contents).strip().split('\n')
-
         index = 0
         last_line = len(stripped_contents_lines) - 1
         while stripped_contents_lines[index].strip() in ['','%']:
