@@ -146,11 +146,10 @@ def _compile(self,
             if dynamic_definition.include_other_projects:
                 included_projects.extend(self.other_projects)
 
-
             # Assemble requested nodes
 
             if dynamic_definition.include_all:
-                included_nodes = [self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id]
+                included_nodes = set([self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id])
 
             else:
                 included_nodes = []
@@ -159,26 +158,24 @@ def _compile(self,
                     dynamic_definition.include_or.remove('indexed')
 
                 included_nodes = set(included_nodes)
-                excluded_nodes = set([])
-                
+
                 for project in included_projects:
-
-                    # AND key/value pairs
-                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and)) 
-                    excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
-                    
-                    # OR key/value pairs
+                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))                     
                     included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
-                    excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-    
-                # remove the excluded nodes
-                for node in excluded_nodes:
-                    included_nodes.discard(node)
+            excluded_nodes = set([])
+            for project in included_projects:
 
-                # Never include a dynamic node in itself.
-                included_nodes.discard(self.nodes[dynamic_definition.target_id])
-                included_nodes = list(included_nodes)
+                excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
+                excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
+
+            # remove the excluded nodes
+            for node in excluded_nodes:
+                included_nodes.discard(node)
+
+            # Never include a dynamic node in itself.
+            included_nodes.discard(self.nodes[dynamic_definition.target_id])
+            included_nodes = list(included_nodes)
            
             """
             build timeline if specified
@@ -323,34 +320,36 @@ def build_final_output(dynamic_definition, contents):
 
 
 def _build_group_and(project, groups):
-
+    
     final_group = set([])
-
-    for group in groups:
+    new_group = set([])
+    found_sets = []
+    for pair in groups:
 
         new_group = set([])
+        key, value = pair[0], pair[1]
 
-        for pair in group:
-            
-            key, value = pair[0], pair[1]
+        if key in project.keynames:
 
-            if key in project.keynames:
-                
-                if value.lower() == 'all':
-                    for value in project.keynames[key]:
-                        new_group = new_group.union(set(project.keynames[key][value])) 
+            if value.lower() == 'all':
+                for value in project.keynames[key]:
+                    new_group = new_group.union(set(project.keynames[key][value])) 
 
-                elif value in project.keynames[key]:
-                    new_group = new_group.union(set(project.keynames[key][value]))
-                    
-        final_group = final_group.union(new_group)
+            elif value in project.keynames[key]:
+                new_group = set(project.keynames[key][value])
+        
+        found_sets.append(new_group)
 
-    final_group = set([project.nodes[node_id] for node_id in final_group])
+    for this_set in found_sets:
+        new_group = new_group.intersection(this_set)
 
+    final_group = set([project.nodes[node_id] for node_id in new_group])
     return final_group
 
 def _build_group_or(project, group):
     final_group = set([])
+
+    #key, value = pair[0], pair[1]
 
     for pair in group:
         key, value = pair[0], pair[1]

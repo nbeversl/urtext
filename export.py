@@ -152,7 +152,6 @@ class UrtextExport:
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
-        split = self.project.nodes[root_node_id].split
         title_found = True if self.project.nodes[root_node_id].metadata.get_first_meta_value('title') else False
 
         if root_node_id in exclude or root_node_id in visited_nodes:
@@ -298,9 +297,6 @@ class UrtextExport:
                     else:
 
                         next_nested = nested
-
-                        if not split:
-                            next_nested+=1
 
                         """
                         recursively add the node in the next range and its subnodes

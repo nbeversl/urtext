@@ -51,21 +51,11 @@ def _set_tree_elements(self, filename):
         This is actually not true.The node right before it could be another compact node.
         """
             
-        if self.nodes[node].compact or self.nodes[node].split:               
+        if self.nodes[node].compact:               
             parent = self.get_parent(node)
             if parent:
                 self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
             continue
-
-        """
-        if this is a split node and its predecessor is already parsed,
-        get the parent from the predecessor
-        """
-        # TODO this needs to be refactored and done more elegantly.
-        if index > 0 and parsed_items[positions[index-1]][:2] not in ['>>']:
-            if self.nodes[parsed_items[position]].split:
-                self.nodes[parsed_items[position]].tree_node.parent = self.nodes[parsed_items[positions[index-1]]].tree_node.parent
-                continue
             
         """
         Otherwise, this is either an inline node not at the beginning of the file,

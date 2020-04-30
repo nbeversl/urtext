@@ -38,15 +38,12 @@ def create_urtext_node(
     contents='', 
     root=None, 
     compact=None,
-    split=None,
     inline=None):
     
     if not root:
         root = False
     if not compact:
         compact = False
-    if not split:
-        split = False
 
     if compact:
         # omit the leading/training whitespace and the '^' character itself:
@@ -54,7 +51,7 @@ def create_urtext_node(
     
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
     metadata = NodeMetadata(stripped_contents)
-    new_node = UrtextNode(filename, metadata, root=root, compact=compact, split=split)
+    new_node = UrtextNode(filename, metadata, root=root, compact=compact)
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
     possible_defs = ['[['+section for section in contents.split('[[') ]
     dynamic_definitions = []
@@ -77,8 +74,7 @@ class UrtextNode:
         filename, 
         metadata, 
         root=False, 
-        compact=False, 
-        split=False):
+        compact=False):
 
         self.filename = os.path.basename(filename)
         self.project_path = os.path.dirname(filename)
@@ -96,7 +92,6 @@ class UrtextNode:
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
-        self.split = split
         self.metadata = metadata
         self.index = None
         self.parent_project = None
@@ -142,9 +137,7 @@ class UrtextNode:
         # FUTURE: There may be a cleaner way to accomplish this at parse-time.
         node_contents = node_contents.replace('{{','')
         node_contents = node_contents.replace('}}','')
-        if self.split: # don't include the split marker
-            node_contents = node_contents.replace('%','',1)
-        if self.compact: # don't include the split marker
+        if self.compact: # don't include the compact marker
              node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
 

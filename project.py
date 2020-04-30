@@ -816,19 +816,10 @@ class UrtextProject:
             distance_back += 1
             parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
 
-        # if this is a split node, keep getting the parent until we're out of a split.
-        if self.nodes[child_node_id].split:
-            while parent_node and self.nodes[parent_node].split:                
-                if self.nodes[parent_node].root_node:
-                    break
-                parent_node = self.get_parent(parent_node)
-                
-
         return parent_node
 
     def _is_in_node(self, position, node_id):
         """ 
-        private
         Given a position, and node_id, returns whether the position is in the node 
         """
         for this_range in self.nodes[node_id].ranges:
@@ -837,15 +828,12 @@ class UrtextProject:
         return False
 
     def get_node_id_from_position(self, filename, position):
-        # print(self.files[filename].nodes)
+
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
-                #print(node_id)
                 if self._is_in_node(position, node_id):
                     return node_id
-        else:
-            return None
         return None
 
     def get_link(self, string, position=0):
@@ -1012,9 +1000,6 @@ class UrtextProject:
         filename = self.nodes[node_id].filename
         popped_node_contents = file_contents[start:end].strip()
         
-        if self.nodes[node_id].split:
-            popped_node_contents = popped_node_contents[1:] # strip the '%'
-
         if self.nodes[node_id].compact:
             # Strip whitspace + '^'
             popped_node_contents = popped_node_contents.lstrip()

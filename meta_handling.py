@@ -31,8 +31,6 @@ def tag_other_node(self, node_id, tag_contents):
     
     full_file_contents = self._full_file_contents(node_id=node_id)
     tag_position = territory[-1][1]
-    if tag_position < len(full_file_contents) and full_file_contents[tag_position] == '%':
-         tag_contents += '\n' # keep split markers as the first character on new lines
 
     new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
 
