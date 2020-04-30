@@ -304,7 +304,7 @@ def build_final_output(dynamic_definition, contents):
     built_metadata = ''
     for value in dynamic_definition.metadata:
         metadata_values[value] = dynamic_definition.metadata[value]
-    
+    print(metadata_values)
     built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
     title = ''

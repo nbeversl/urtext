@@ -23,8 +23,8 @@ import os
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 function_regex = re.compile('([A-Z_]+)(\(.*?\))')
-key_value_regex = re.compile('(.+):(.+)')
-string_meta_regex = re.compile('(.+:)("[^"]+")')
+key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
+string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
@@ -71,12 +71,13 @@ class UrtextDynamicDefinition:
             params = []
 
             for string_meta in re.findall(string_meta_regex, inside_parentheses):
-                string_meta_match = ''.join(string_meta)
+                print(string_meta)
+                string_meta_match = ':'.join(string_meta)
                 params.append(string_meta_match)
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
             
             params.extend([param.strip() for param in inside_parentheses.split(' ')])
-                
+
             if not params:
                 continue
 
@@ -154,9 +155,10 @@ class UrtextDynamicDefinition:
                     if param == 'and':
                         add_to_group = 'and'
                         continue
-
+                   
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
+
                         group.append((key,value))
 
                 if group and operator == 'and':
@@ -258,10 +260,9 @@ class UrtextDynamicDefinition:
                 for param in params:
 
                     key, value, timestamp = key_value_timestamp(param)
+
                     if key:
                         self.metadata[key] = value + ' '
-
-                    #TODO add timestamp
 
                 continue
 
@@ -277,7 +278,10 @@ def key_value_timestamp(param):
     key = None
     value = None
     timestamp = None
+    
     key_value = re.match(key_value_regex, param)
+    if not key_value:
+        key_value = re.match(string_meta_regex, param)
     if key_value:
         key = key_value.group(1)
         value = key_value.group(2)
@@ -285,5 +289,6 @@ def key_value_timestamp(param):
             timestamp = key_value.group(3)
     if value:
         value = value.strip('"') # strip quotation marks off string meta fields
+)
     return key, value, timestamp
 
