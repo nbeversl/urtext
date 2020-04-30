@@ -289,6 +289,6 @@ def key_value_timestamp(param):
             timestamp = key_value.group(3)
     if value:
         value = value.strip('"') # strip quotation marks off string meta fields
-)
+
     return key, value, timestamp
 
