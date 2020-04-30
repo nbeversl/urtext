@@ -71,7 +71,7 @@ class UrtextDynamicDefinition:
             params = []
 
             for string_meta in re.findall(string_meta_regex, inside_parentheses):
-                print(string_meta)
+
                 string_meta_match = ':'.join(string_meta)
                 params.append(string_meta_match)
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
