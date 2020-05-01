@@ -88,7 +88,7 @@ class UrtextExport:
 
         if exclude == None:
             exclude = []
-        print(exclude)
+
         """
         Public method to export a tree of nodes from a given root node
         """
@@ -239,10 +239,10 @@ class UrtextExport:
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
 
-            ## NOT WORKING
-            # if not title_found and title in range_contents: 
-            #     range_contents = range_contents.replace(title,'',1)
-            #     title_found = True
+            ## Replace Title
+            if not title_found and title in range_contents: 
+                range_contents = range_contents.replace(title,'',1)
+                title_found = True
             
             if clean_whitespace:
                 range_contents = range_contents.strip('\n')

@@ -35,8 +35,11 @@ def _compile(self,
 
     if modified_files is None:
         modified_files = []
-    
-    search_result_nodes = []
+
+    for dynamic_definition in self.dynamic_nodes:
+        target_id = dynamic_definition.target_id
+        if target_id in self.nodes:
+            self.nodes[target_id].dynamic = True
 
     for dynamic_definition in self.dynamic_nodes:
        
@@ -57,15 +60,20 @@ def _compile(self,
         if not target_id and not dynamic_definition.export:
              # exporting is the only the thing using target files at this moment
             continue
-
-        if dynamic_definition.search:
-            search_result_nodes.append(dynamic_definition)            
-            continue
             
         self._parse_file(filename)
-            
+                
         points = {}
         new_node_contents = []
+
+        if dynamic_definition.search:
+
+            search_term = dynamic_definition.search
+            search = UrtextSearch(self, 
+                search_term, 
+                format_string=dynamic_definition.show)
+            
+            new_node_contents = search.initiate_search()
 
         if dynamic_definition.tree:
 
@@ -149,14 +157,13 @@ def _compile(self,
             # Assemble requested nodes
 
             if dynamic_definition.include_all:
-                included_nodes = set([self.nodes[node_id] for node_id in set(self.all_nodes()) if node_id != dynamic_definition.target_id])
+                included_nodes = set([self.nodes[node_id] for node_id in set(self.all_nodes())])
 
             else:
                 included_nodes = []
                 if 'indexed' in dynamic_definition.include_or:
-                    included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes()) if node_id != dynamic_definition.target_id]
-                    dynamic_definition.include_or.remove('indexed')
-
+                    included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes())]
+  
                 included_nodes = set(included_nodes)
 
                 for project in included_projects:
@@ -259,9 +266,7 @@ def _compile(self,
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
         changed_file = self._set_node_contents(target_id, final_output)            
 
-        if changed_file:
-
-            if changed_file not in modified_files:
+        if changed_file and changed_file not in modified_files:
                 modified_files.append(changed_file)       
         
         if dynamic_definition.export:
@@ -272,27 +277,7 @@ def _compile(self,
             self.nodes[target_id].is_tree = True
 
         self.nodes[target_id].dynamic = True
-
-    for dynamic_definition in search_result_nodes:
-        
-        target_id = dynamic_definition.target_id
-        search_term = dynamic_definition.search
-        
-        self.nodes[target_id].dynamic = True
-        search = UrtextSearch(self, 
-            search_term, 
-            format_string=dynamic_definition.show)
-        
-        search_result = search.initiate_search()
-
-        final_output = build_final_output(dynamic_definition, '\n'.join(search_result))
-        changed_file = self._set_node_contents(target_id, final_output)    
-
-        if changed_file and changed_file not in modified_files:
-            modified_files.append(changed_file)       
-            
-        self.nodes[target_id].dynamic = True
-
+       
     return modified_files
 
 def build_final_output(dynamic_definition, contents):
@@ -304,7 +289,7 @@ def build_final_output(dynamic_definition, contents):
     built_metadata = ''
     for value in dynamic_definition.metadata:
         metadata_values[value] = dynamic_definition.metadata[value]
-    print(metadata_values)
+
     built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
     title = ''
