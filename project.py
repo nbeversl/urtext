@@ -1051,7 +1051,7 @@ class UrtextProject:
             if keyname.lower() in ignore:
                 continue
             for value in self.keynames[keyname]:
-                meta_string = ''.join([keyname, ': ', value ])
+                meta_string = ''.join([keyname, ': ', str(value) ])
                 if meta_string not in pairs:
                     pairs.append(meta_string)
         return pairs
