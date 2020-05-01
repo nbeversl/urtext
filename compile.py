@@ -157,18 +157,20 @@ def _compile(self,
             # Assemble requested nodes
 
             if dynamic_definition.include_all:
-                included_nodes = set([self.nodes[node_id] for node_id in set(self.all_nodes())])
+                included_nodes = set([self.nodes[node_id] for node_id in self.all_nodes()])
 
             else:
                 included_nodes = []
+              
                 if 'indexed' in dynamic_definition.include_or:
-                    included_nodes = [self.nodes[node_id] for node_id in set(self.indexed_nodes())]
-  
+                    included_nodes = [self.nodes[node_id] for node_id in self.indexed_nodes()]
+    
                 included_nodes = set(included_nodes)
 
                 for project in included_projects:
                     included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))                     
                     included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
+                
 
             excluded_nodes = set([])
             for project in included_projects:
@@ -212,13 +214,16 @@ def _compile(self,
                         sort_func = lambda node: node.title.lower()
 
                     # For all other keys, sort by key
+                    elif dynamic_definition.sort_keyname == 'index':
+                        sort_func = lambda node: node.index
+
                     else:
                         sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
 
                 else:
                     """ otherwise sort them by node date by default """
                     sort_func = lambda node: node.date
-
+                
                 # sort them using the determined sort function
                 included_nodes = sorted(
                     included_nodes,

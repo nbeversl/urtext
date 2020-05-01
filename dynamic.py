@@ -212,14 +212,9 @@ class UrtextDynamicDefinition:
                         self.reverse = True
                         continue
                     
-                    key, value, timestamp = key_value_timestamp(param)
-                    if key:
-                        self.sort_keyname = key
-                        if value == 'timestamp':
-                            self.sort_type = 'timestamp'
-                        continue
-
-                    self.sort_keyname = params[0]
+                    # TODO: Add multiple sort fallbacks
+                    if param and param[0] == '$': 
+                        self.sort_keyname = param[1:]
 
                 continue
 

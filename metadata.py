@@ -37,7 +37,9 @@ class NodeMetadata:
                 'timestamp_format',
                 'filenames',
                 ]
-
+        self.numeric_values = [
+                'index'
+                ]
         self.raw_meta_data = ''
         for section in re.findall(meta, full_contents):
             meta_block = section.replace('--/', '')
@@ -74,7 +76,12 @@ class NodeMetadata:
                     if key not in self.case_sensitive_values:
                         value = value.lower()
                     value = value.strip()
-                    if value:
+                    if key in self.numeric_values:
+                        try:
+                            value = int(value)
+                        except ValueError:
+                            value = 0
+                    if value != None:
                         values.append(value)
             else:
                 key = '(no_key)'

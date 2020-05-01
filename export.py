@@ -83,7 +83,7 @@ class UrtextExport:
         strip_urtext_syntax=True,
         style_titles=True,
         exclude=None, 
-        clean_whitespace=False,
+        clean_whitespace=None,
         kind='plaintext',
         preformat=False,
         ):
@@ -249,8 +249,9 @@ class UrtextExport:
                 range_contents = self.replace_node_links(range_contents, kind)
             
             if clean_whitespace:
-                range_contents = range_contents.strip('\n')
-                range_contents = '\n' + range_contents + '\n\n'
+                range_contents = range_contents.strip()
+                if range_contents:
+                    range_contents = '\n' + range_contents + '\n'
 
             if single_range != ranges[0] and kind == 'html':    
  

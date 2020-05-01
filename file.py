@@ -53,7 +53,10 @@ symbol_length = {
 
 class UrtextFile:
 
-    def __init__(self, filename, previous_hash=None):
+    def __init__(self, 
+        filename, 
+        previous_hash=None,
+        strict=False):
         
         self.nodes = {}
         self.root_nodes = []
@@ -64,7 +67,7 @@ class UrtextFile:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.changed = True
         self.is_parseable = True
-        self.strict = False
+        self.strict = strict
         
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)

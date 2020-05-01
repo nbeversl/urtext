@@ -120,6 +120,7 @@ class UrtextProject:
             'timezone' : ['UTC'],
             'always_oneline_meta' : True,
             'format_string': '$title\n-\n',
+            'strict':False,
         }
         self.default_timezone = None
         self.title = self.path # default
@@ -756,7 +757,7 @@ class UrtextProject:
 
         unindexed_nodes = []
         for node_id in list(self.nodes):   
-            if not self.nodes[node_id].index:
+            if self.nodes[node_id].index == 99999:
                 unindexed_nodes.append(node_id)
                 
         sorted_unindexed_nodes = sorted(
@@ -770,7 +771,7 @@ class UrtextProject:
 
         indexed_nodes_list = []
         for node_id in list(self.nodes):
-            if self.nodes[node_id].index:
+            if self.nodes[node_id].index != 99999:
                 indexed_nodes_list.append([
                     node_id,
                     self.nodes[node_id].index

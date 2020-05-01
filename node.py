@@ -93,7 +93,7 @@ class UrtextNode:
         self.dynamic_definitions = {}
         self.compact = compact
         self.metadata = metadata
-        self.index = None
+        self.index = 99999
         self.parent_project = None
         self.last_accessed = 0
 
