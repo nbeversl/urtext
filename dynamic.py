@@ -65,7 +65,7 @@ class UrtextDynamicDefinition:
     def init_self(self, contents):
 
         for match in re.findall(function_regex,contents):
-           
+
             func = match[0]
             inside_parentheses = match[1][1:-1]
             params = []
@@ -75,9 +75,8 @@ class UrtextDynamicDefinition:
                 string_meta_match = ':'.join(string_meta)
                 params.append(string_meta_match)
                 inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
-            
             params.extend([param.strip() for param in inside_parentheses.split(' ')])
-
+            
             if not params:
                 continue
 
@@ -226,13 +225,13 @@ class UrtextDynamicDefinition:
                         self.export = param
 
                     key, value, timestamp = key_value_timestamp(param)
-
                     if key:
                         if key == 'source':
                             self.export_source = value
                 continue
 
             if func == 'FILE':
+               
                 self.target_file = params[0]
                 continue
 

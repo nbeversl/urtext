@@ -42,10 +42,43 @@ def _compile(self,
             self.nodes[target_id].dynamic = True
 
     for dynamic_definition in self.dynamic_nodes:
-       
+
         source_id = dynamic_definition.source_id
 
-        # make sure the target ID is in the project        
+
+        if dynamic_definition.target_file:
+            """
+            Export
+            """
+            exclude=[]
+            if dynamic_definition.target_id:
+                exclude.append(target_id)
+
+            if not dynamic_definition.export_source:
+                continue 
+
+            exported = UrtextExport(self) 
+            exported_content, points = exported.export_from(
+                 dynamic_definition.export_source,
+                 kind=dynamic_definition.export,
+                 exclude =exclude, # prevents recurssion
+                 as_single_file=True, # TOdO should be option 
+                 clean_whitespace=True,
+                 preformat = dynamic_definition.preformat
+                )
+
+            if dynamic_definition.target_file:
+                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+                    f.write(exported_content)
+                    f.close()
+                if not dynamic_definition.target_id:
+                    continue
+                
+            new_node_contents.append(exported_content)
+
+        if not dynamic_definition.target_id:
+            continue
+
         target_id = dynamic_definition.target_id
         if not target_id:
             continue
@@ -57,10 +90,6 @@ def _compile(self,
 
         filename = self.nodes[target_id].filename    
 
-        if not target_id and not dynamic_definition.export:
-             # exporting is the only the thing using target files at this moment
-            continue
-            
         self._parse_file(filename)
                 
         points = {}
@@ -75,7 +104,7 @@ def _compile(self,
             
             new_node_contents = search.initiate_search()
 
-        if dynamic_definition.tree:
+        elif dynamic_definition.tree:
 
             """
             Tree
@@ -95,35 +124,7 @@ def _compile(self,
                 dynamic_definition.interlinks,
                 omit=dynamic_definition.omit))
 
-        elif dynamic_definition.export:
-
-            """
-            Export
-            """
-
-            exclude=[]
-            if dynamic_definition.target_id:
-            	exclude.append(target_id)
-            exported = UrtextExport(self) 
-            if not dynamic_definition.export_source:
-                continue 
-            exported_content, points = exported.export_from(
-                 dynamic_definition.export_source,
-                 kind=dynamic_definition.export,
-                 exclude =exclude, # prevents recurssion
-                 as_single_file=True, # TOdO should be option 
-                 clean_whitespace=True,
-                 preformat = dynamic_definition.preformat
-                )
-            
-            if dynamic_definition.target_file:
-                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-                    f.write(exported_content)
-                    f.close()
-                if not dynamic_definition.target_id:
-                    continue
-
-            new_node_contents.append(exported_content)
+        
             
         elif dynamic_definition.tag_all_key:
             

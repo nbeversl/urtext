@@ -75,7 +75,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
 
-        self.async = True # development
+        self.async = False # development
         self.path = path
         self.log = None
         self.nodes = {}

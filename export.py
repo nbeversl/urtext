@@ -44,7 +44,7 @@ class UrtextExport:
         contents = contents.replace('}}','')
         contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
         contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
-        return contents        
+        return contents
 
     def _opening_wrapper(self, kind, node_id, nested):
         wrappers = { 
@@ -70,7 +70,7 @@ class UrtextExport:
 
 
         wrappers = {
-            'markdown': '#' * nested + ' ' + title +'\n',
+            'markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
             'html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
             'plaintext' : title,
         }
@@ -251,7 +251,7 @@ class UrtextExport:
             if clean_whitespace:
                 range_contents = range_contents.strip()
                 if range_contents:
-                    range_contents = '\n' + range_contents + '\n'
+                    range_contents = range_contents + '\n'
 
             if single_range != ranges[0] and kind == 'html':    
  
