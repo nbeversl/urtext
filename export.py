@@ -67,6 +67,8 @@ class UrtextExport:
         if title.strip() == '':
             print('NO TITLE HERE')
             print(node_id)
+
+
         wrappers = {
             'markdown': '#' * nested + ' ' + title +'\n',
             'html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
@@ -124,7 +126,7 @@ class UrtextExport:
             style_titles=True,                          # style titles ????
             exclude=None,                                 # specify any nodes to exclude
             kind='plaintext',                           # format
-            nested=0,
+            nested=None,
             points = None,                               # nested level (private)
             single_node_only=False,                      # stop at this node, no inline nodes
             clean_whitespace=False,
@@ -147,6 +149,8 @@ class UrtextExport:
             visited_nodes = []
         if exclude == None:
             exclude = []
+        if nested == None:
+            nested = 0
 
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
@@ -175,26 +179,31 @@ class UrtextExport:
 
         for single_range in ranges:
 
-            range_contents = ''
+            """
+            Get and add the range's contents
+            """
+            range_contents = file_contents[single_range[0]:single_range[1]]
+            range_contents = self._strip_urtext_syntax(range_contents)
+            
+            ## Replace Title
+            if not title_found and title in range_contents: 
+                range_contents = range_contents.replace(title,'',1)
+                title_found = True
 
             """
             If this is the node's first range:
             """
             if single_range == ranges[0]:
 
-                range_contents += self._wrap_title(kind, root_node_id, nested)
+                # prepend
+                range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
 
                 if kind == 'html' and not strip_urtext_syntax:
 
                     # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
-            """
-            Get and add the range's contents
-            """
-            range_contents += file_contents[single_range[0]:single_range[1]]
-            range_contents = self._strip_urtext_syntax(range_contents)
-            
+
             if kind == 'html':
                 """
                 Insert special HTML wrappers
@@ -238,11 +247,6 @@ class UrtextExport:
                 ## Only replace node links if this is not a tree
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
-
-            ## Replace Title
-            if not title_found and title in range_contents: 
-                range_contents = range_contents.replace(title,'',1)
-                title_found = True
             
             if clean_whitespace:
                 range_contents = range_contents.strip('\n')
@@ -296,7 +300,7 @@ class UrtextExport:
 
                     else:
 
-                        next_nested = nested
+                        next_nested = nested + 1
 
                         """
                         recursively add the node in the next range and its subnodes
