@@ -100,14 +100,15 @@ class DynamicOutput():
         contents_match = re.search(contents_syntax, self.item_format)
 
         if contents_match:
+            contents = self.contents
             suffix = ''
             if contents_match.group(1):
-                suffix = contents_match.group(1)                          
+                suffix = contents_match.group(1)                        
                 length_str = contents_match.group(1)[1:] # strip :
                 length = int(length_str)
                 if len(contents) > length:
                     contents = contents[0:length] + ' (...)'
-            self.item_format = self.item_format.replace(self.shah + '$contents' + suffix, self.contents)
+            self.item_format = self.item_format.replace(self.shah + '$contents' + suffix, contents)
                     
         # all other meta keys
         for meta_key in self.other_format_keys:

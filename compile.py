@@ -258,7 +258,7 @@ def _compile(self,
                     if next_content.needs_meta:
                         next_content.meta = targeted_node.consolidate_metadata(wrapped=False)
                     if next_content.needs_contents: 
-                        next_content.content = targeted_node.content_only().strip('\n').strip()
+                        next_content.contents = targeted_node.content_only().strip('\n').strip()
  
                     for meta_key in next_content.needs_other_format_keys:
                         values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
