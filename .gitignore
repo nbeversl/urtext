@@ -1,6 +1,3 @@
-.lock
 urtext_log.txt
 .DS_Store
-docs/urtext_log.txt
-docs/.lock
 __pycache__/

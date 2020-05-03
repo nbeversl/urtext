@@ -246,7 +246,7 @@ class UrtextNode:
             if not entry.values:
                 keynames[entry.keyname].append(timestamp)
             for value in entry.values:
-                keynames[entry.keyname].append(value+timestamp)
+                keynames[entry.keyname].append(str(value)+timestamp)
 
         return self.build_metadata(keynames, one_line=one_line, wrapped=wrapped)
 
