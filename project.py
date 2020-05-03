@@ -362,7 +362,7 @@ class UrtextProject:
         dt_stamp = None
         for this_format in self.settings['timestamp_format']:
             try:
-                dt_stamp = datetime.datetime.strptime(datestamp_string, '<' + this_format + '>')
+                dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
                 if not dt_stamp:
                     continue
                 if dt_stamp.tzinfo == None:

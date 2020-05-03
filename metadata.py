@@ -20,10 +20,11 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 import pytz
+from .dynamic import key_value_timestamp
 
-meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',
-                          re.DOTALL)  # \/--((?!\/--).)*--\/
+meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
+timestamp_match = re.compile('(?:<)(.*?)(?:>)')
 
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):
@@ -40,54 +41,50 @@ class NodeMetadata:
         self.numeric_values = [
                 'index'
                 ]
-        self.raw_meta_data = ''
-        for section in re.findall(meta, full_contents):
-            meta_block = section.replace('--/', '')
-            meta_block = meta_block.replace('/--', '')
-            self.raw_meta_data += meta_block + '\n'
 
-        title_set = False
-        meta_lines = re.split(';|\n', self.raw_meta_data)
+        # Parse out all the metadata blocks  
+        metadata_blocks = []
+        for meta_block in re.findall(meta, full_contents):
+            metadata_blocks.append(meta_block[1])
 
-        for line in meta_lines:
+        for block in metadata_blocks:
 
-            if line.strip() == '':
-                continue
-            
-            """
-            For lines containing a datestamp
-            """
-            
-            date_match = re.search('(?:<)(.*?)(?:>)', line)
-            if date_match:
-                dt_string = date_match.group(0)
-                line = line.replace(dt_string, '').strip()
-            else:
+            meta_lines = re.split(';|\n', block)
+
+            for line in meta_lines:
+                
+                if line.strip() == '':
+                    continue
+                
+                """
+                For lines containing a timestamp
+                """
+                timestamp = timestamp_match.search(line)
                 dt_string = ''
+                if timestamp:
+                    dt_string = timestamp.group(1).strip()
+                    line = line.replace(timestamp.group(0), '').strip()
 
-            # strip the datestamp for parsing
-            line_without_datestamp = line.replace('<' + dt_string + '>', '')
+                values = []
+                if ':' in line:
+                    key = line.split(":", 1)[0].strip().lower()
+                    value_list = ''.join(line.split(":", 1)[1:]).split('|')
+                    for value in value_list:
+                        if key not in self.case_sensitive_values:
+                            value = value.lower()
+                        value = value.strip()
+                        if key in self.numeric_values:
+                            try:
+                                value = int(value)
+                            except ValueError:
+                                value = 0
+                        if value != None:
+                            values.append(value)
+                else:
+                    key = 'comment'
+                    values = [ line ]
 
-            values = []
-            if ':' in line_without_datestamp:
-                key = line_without_datestamp.split(":", 1)[0].strip().lower()
-                value_list = ''.join(line.split(":", 1)[1:]).split('|')
-                for value in value_list:
-                    if key not in self.case_sensitive_values:
-                        value = value.lower()
-                    value = value.strip()
-                    if key in self.numeric_values:
-                        try:
-                            value = int(value)
-                        except ValueError:
-                            value = 0
-                    if value != None:
-                        values.append(value)
-            else:
-                key = '(no_key)'
-                values = [ line.strip('--/') ]
-
-            self.entries.append(MetadataEntry(key, values, dt_string))
+                self.entries.append(MetadataEntry(key, values, dt_string))
 
     def get_meta_value(self, 
         keyname,
@@ -136,7 +133,7 @@ class NodeMetadata:
         for entry in self.entries:
             if entry.keyname == keyname:
                 return entry.dt_stamp
-        return pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
+        return default_date
 
     def log(self):
         for entry in self.entries:
@@ -154,7 +151,7 @@ class MetadataEntry:  # container for a single metadata entry
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
-        self.dt_stamp = pytz.timezone('UTC').localize(datetime.datetime(1970,3,1)) # default or set by project
+        self.dt_stamp = default_date # default or set by project
         self.from_node = from_node
 
     def log(self):
