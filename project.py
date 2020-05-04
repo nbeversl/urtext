@@ -121,6 +121,7 @@ class UrtextProject:
             'always_oneline_meta' : True,
             'format_string': '$title\n-\n',
             'strict':False,
+            'node_date_field' : 'created',
         }
         self.default_timezone = None
         self.title = self.path # default
@@ -351,7 +352,7 @@ class UrtextProject:
                 dt_stamp = self._date_from_timestamp(entry.dtstring)
                 if dt_stamp:
                     entry.dt_stamp = dt_stamp
-                    if entry.keyname == 'timestamp':
+                    if entry.keyname == self.settings['node_date_field']:
                         self.nodes[node_id].date = dt_stamp
                 else:
                     self._log_item('Timestamp ' + entry.dtstring +
@@ -412,7 +413,7 @@ class UrtextProject:
         if not keys:
             keys = sorted([
                 k for k in self.keynames
-                if k.lower() not in ['defined in', 'id', 'timestamp', 'index']
+                if k.lower() not in ['defined in', 'id', self.settings['node_date_field'], 'index']
             ])
 
         root = Node('Metadata Keys')
@@ -480,7 +481,7 @@ class UrtextProject:
         now = datetime.datetime.now()
         contents = '\n\n'
         contents += "/-- id:" + self.next_index() + '\n'
-        contents += 'timestamp:' + self.timestamp(date) + '\n'
+        contents += self.settings['node_date_field']+': ' + self.timestamp(date) + '\n'
         contents += 'imported:' + self.timestamp(now) + '\n'
         contents += " --/"
 
@@ -612,7 +613,7 @@ class UrtextProject:
         if not node_id:
             node_id = self.next_index()   
         metadata['id'] = node_id
-        metadata['timestamp'] = self.timestamp(date)
+        metadata[self.settings['node_date_field']] = self.timestamp(date)
         metadata['from'] = platform.node()
         metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         contents = '\n\n\n' +metadata_block
@@ -643,7 +644,7 @@ class UrtextProject:
         if include_timestamp:
             if date == None:
                 date = datetime.datetime.now()
-            metadata['timestamp'] = self.timestamp(date)
+            metadata[self.settings['node_date_field']] = self.timestamp(date)
         new_node_contents = "{{ " + contents 
         metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + " }}"
@@ -668,7 +669,7 @@ class UrtextProject:
         if date == None:
             date = datetime.datetime.now()
         metadata['id']=self.next_index()
-        metadata['timestamp'] = self.timestamp(date)
+        metadata[self.settings['node_date_field']] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         return '^ '+contents + metadata_block
 
@@ -928,6 +929,7 @@ class UrtextProject:
             'logfile',
             'google_auth_token',
             'google_calendar_id',
+            'node_date_field',
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -1046,7 +1048,7 @@ class UrtextProject:
 
     def get_all_meta_pairs(self):
         pairs = []
-        ignore = [ 'id', 'timestamp' ]
+        ignore = [ 'id' ]
         for keyname in self.keynames: 
             if keyname.lower() in ignore:
                 continue
