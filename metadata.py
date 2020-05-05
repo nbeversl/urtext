@@ -89,12 +89,7 @@ class NodeMetadata:
         for entry in self.entries:
             if entry.keyname == 'id':
                 ids.append(entry.values)
-        if len(ids) > 1:
-            print('THERE IS MORE THAN ONE ID')
-            print(ids)
-            print(full_contents)
-            for block in metadata_blocks:
-                print(block)
+    
     def get_meta_value(self, 
         keyname,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value

@@ -116,10 +116,14 @@ class UrtextFile:
         """
 
         if self.positions:
-            first_wrapper = 0
-            while first_wrapper < len(self.positions) - 1 and self.symbols[self.positions[first_wrapper]] in [ '[\n$]', '>>' ]:
-                first_wrapper += 1
+            while self.positions and self.symbols[self.positions[0]] in [ '[\n$]', '>>' ]:
+                self.positions.pop(0)
+        
+        first_wrapper = 0
+        while first_wrapper < len(self.positions) - 1 and self.symbols[self.positions[first_wrapper]] ==  '>>' :
+             first_wrapper += 1
 
+        if self.positions:
             nested_levels[0] = [ [0, self.positions[first_wrapper] + symbol_length[self.symbols[self.positions[first_wrapper]]] ] ]
 
         self.positions.append(len(contents))
