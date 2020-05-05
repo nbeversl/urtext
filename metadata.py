@@ -28,7 +28,7 @@ timestamp_match = re.compile('(?:<)(.*?)(?:>)')
 
 class NodeMetadata:
     def __init__(self, full_contents, settings=None):
-        
+            
         self.entries = []
         self.case_sensitive_values = [ 
                 'title',
@@ -52,7 +52,6 @@ class NodeMetadata:
             meta_lines = re.split(';|\n', block)
 
             for line in meta_lines:
-                
                 if line.strip() == '':
                     continue
                 
@@ -77,15 +76,25 @@ class NodeMetadata:
                             try:
                                 value = int(value)
                             except ValueError:
-                                value = 0
-                        if value != None:
+                                value = -1
+                        if value:
                             values.append(value)
                 else:
                     key = 'comment'
                     values = [ line ]
-
+ 
                 self.entries.append(MetadataEntry(key, values, dt_string))
 
+        ids = []
+        for entry in self.entries:
+            if entry.keyname == 'id':
+                ids.append(entry.values)
+        if len(ids) > 1:
+            print('THERE IS MORE THAN ONE ID')
+            print(ids)
+            print(full_contents)
+            for block in metadata_blocks:
+                print(block)
     def get_meta_value(self, 
         keyname,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
@@ -102,7 +111,7 @@ class NodeMetadata:
                 if entry.keyname == keyname:
                     if entry.dt_stamp != default_date:
                         return [entry.dtstring]
-                        
+
         return values
 
     def get_first_meta_value(self, keyname):
