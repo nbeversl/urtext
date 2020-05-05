@@ -85,7 +85,8 @@ def _rebuild_node_meta(self, node_id):
             for value in entry.values:
                 if value not in self.keynames[entry.keyname]:
                     self.keynames[entry.keyname][value] = []
-                self.keynames[entry.keyname][value].append(node_id)
+                if node_id not in self.keynames[entry.keyname][value]:
+                    self.keynames[entry.keyname][value].append(node_id)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction

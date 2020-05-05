@@ -137,7 +137,7 @@ def _compile(self,
                     dynamic_definition.tag_all_key, 
                     dynamic_definition.tag_all_value, 
                     recursive=dynamic_definition.recursive)                    
-                self._compile(skip_tags=True, modified_files=modified_files)
+                #self._compile(skip_tags=True, modified_files=modified_files)
             continue
             
         else:  
