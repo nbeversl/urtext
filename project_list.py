@@ -129,6 +129,25 @@ class ProjectList():
            print('Urtext project switched to ' + self.current_project.title)
         return project
 
+    def build_contextual_link(self, 
+        node_id,
+        project_title=None, 
+        pointer=False, 
+        include_project=False):
+        
+        if project_title == None:
+            project = self.current_project
+        else:
+            project = self.get_project(project_title)
+        node_title = project.nodes[node_id].title
+        link = '| '+ node_title +' >'
+        if pointer:
+            link += '>'
+        link += node_id
+        if include_project or project != self.current_project:
+            link = '{"' + project.title +'"}'+link
+        return link
+
     def nav_current(self):
         node_id = self.current_project.nav_current()     
         if not node_id:
@@ -310,7 +329,9 @@ class ProjectList():
                 index = self.navigation.index(navigation_entry)
                 del self.navigation[index]
                 if self.nav_index > index: # >= ?
-                    self.nav_index -= 1
+                    self.na
+
+                    dex -= 1
 
     def nav_new(self, node_id, project=None):
         if not project:
