@@ -37,6 +37,7 @@ class NodeMetadata:
                 'timezone',
                 'timestamp_format',
                 'filenames',
+                'weblink',
                 ]
         self.numeric_values = [
                 'index'

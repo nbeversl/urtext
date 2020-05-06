@@ -879,14 +879,13 @@ class UrtextProject:
                 return None
 
 
-        url_scheme = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        url_scheme = re.compile('http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
 
-        if re.search(url_scheme, string[position:]):
+        if re.search(url_scheme, string):
             url = re.search(url_scheme, string).group(0)
             return ('HTTP', url)
 
-        
         if re.search(file_path, string):
             file_link = re.search(file_path, string).group(0)
             return ('FILE', os.path.join(self.path, file_link))
