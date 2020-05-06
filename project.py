@@ -32,6 +32,7 @@ import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
+import profile
 
 from .timeline import timeline
 from .file import UrtextFile
@@ -62,6 +63,17 @@ def add_functions_as_methods(functions):
             setattr(Class, function.__name__, function)
         return Class
     return decorator
+
+    
+
+def init_project(path):
+    prof = profile.Profile()
+    project = prof.runcall(build_project, path)
+    prof.print_stats(sort='cumtime')
+    return project
+
+def build_project(path):
+    return UrtextProject(path)
 
 @add_functions_as_methods(functions)
 class UrtextProject:
