@@ -1262,8 +1262,12 @@ class UrtextProject:
                     contents = f.read()
                     f.close()
                     if contents:
-                        access_history = json.loads(contents)
-                        self.access_history = convert_dict_values_to_int(access_history)
+                        try:
+                            access_history = json.loads(contents)
+                            self.access_history = convert_dict_values_to_int(access_history)
+                        except:
+                            print('Could not parse access history for '+accessed_file)
+                            print(contents)
                 except EOFError as error:
                     print(error)
         

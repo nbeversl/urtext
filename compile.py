@@ -338,12 +338,17 @@ def _build_group_and(project, groups):
 def _build_group_or(project, group):
     final_group = set([])
 
-    #key, value = pair[0], pair[1]
-
     for pair in group:
         key, value = pair[0], pair[1]
-        if key in project.keynames and value in project.keynames[key]:
-            final_group = final_group.union(set(project.keynames[key][value]))
+
+        if key in project.keynames:
+
+            if value.lower() == 'all':
+                for value in project.keynames[key]:
+                    final_group = final_group.union(set(project.keynames[key][value])) 
+
+            elif value in project.keynames[key]:
+                final_group = final_group.union(set(project.keynames[key][value]))
 
     final_group = [ project.nodes[node_id] for node_id in final_group ]
 
