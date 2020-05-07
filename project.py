@@ -86,6 +86,7 @@ class UrtextProject:
                  import_project=False,
                  init_project=False,
                  watchdog=False):
+
         self.async = True # use False for development only
         self.path = path
         self.log = None
@@ -144,8 +145,8 @@ class UrtextProject:
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
 
+
         self.loaded = True
-        
 
     def _initialize_project(self, 
         import_project=False, 
@@ -180,7 +181,8 @@ class UrtextProject:
             self._parse_meta_dates(node_id, initial=True)
         
         self._get_access_history()
-        self._compile(initial=True)
+
+        self._update()
             
     def _node_id_generator(self):
         chars = [
@@ -206,10 +208,9 @@ class UrtextProject:
         if duplicate nodes were found.
         FUTURE: Should be cleaned up. Currently returns None, False or list.
         """
-        basename = os.path.basename(filename)
-        if self._filter_filenames(basename) == None:
+        if self._filter_filenames(os.path.basename(filename)) == None:
             return
-
+        
         already_in_project = False
         old_hash = None
         if os.path.basename(filename) in self.files:
@@ -233,9 +234,8 @@ class UrtextProject:
                 return False
             self.to_import.append(filename)
 
-        if basename in self.files:
-            self._remove_file(basename)
-
+        # clear all node_id's defined from this file since the file has changed
+        self._remove_file(os.path.basename(filename))
         """
         Check the file for duplicate nodes
         """
@@ -372,13 +372,15 @@ class UrtextProject:
                                   node_id)
 
     def _date_from_timestamp(self, datestamp_string):
+        dt_stamp = None
         for this_format in self.settings['timestamp_format']:
             try:
                 dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
-                if dt_stamp:
-                    if dt_stamp.tzinfo == None:
-                        dt_stamp = self.default_timezone.localize(dt_stamp) 
-                    return dt_stamp                
+                if not dt_stamp:
+                    continue
+                if dt_stamp.tzinfo == None:
+                    dt_stamp = self.default_timezone.localize(dt_stamp) 
+                return dt_stamp                
             except ValueError:
                  continue
         return None
@@ -396,12 +398,13 @@ class UrtextProject:
         if filename not in self.files:
             return None, None
         exported_node_id = self.get_node_id_from_position(filename, position)
-        points = self.nodes[exported_node_id].export_points.sort()
+        points = self.nodes[exported_node_id].export_points
         if not points:
             return None, None
         node_start_point = self.nodes[exported_node_id].ranges[0][0]
 
-        for index in range(0, len(points)):
+        indexes = sorted(points)
+        for index in range(0, len(indexes)):
             if position >= indexes[index] and position < indexes[index+1]:
                 node, target_position = self.nodes[exported_node_id].export_points[indexes[index]]
                 offset = position - indexes[index]
@@ -420,10 +423,10 @@ class UrtextProject:
         """ Refreshes the Metadata List file """
 
         if not keys:
-            keys = [
+            keys = sorted([
                 k for k in self.keynames
                 if k.lower() not in ['defined in', 'id', self.settings['node_date_keyname'], 'index']
-            ].sort()
+            ])
 
         root = Node('Metadata Keys')
         for key in keys:
@@ -433,7 +436,7 @@ class UrtextProject:
                 t = Node(value)
                 t.parent = s
                 if value in self.keynames[key]:
-                    for node_id in self.keynames[key][value].sort():
+                    for node_id in sorted(self.keynames[key][value]):
                         if node_id in self.nodes:
                             n = Node(self.nodes[node_id].title + ' >' +
                                      node_id)
@@ -542,17 +545,15 @@ class UrtextProject:
             for value in list(self.keynames[keyname]):
 
                 #  ( in case it's been removed during the iteration ): 
-                if value in self.keynames[keyname] and node_id in self.keynames[keyname][value]:
+                if value not in self.keynames[keyname]:  
+                    continue
+
+                if node_id in self.keynames[keyname][value]:
                     self.keynames[keyname][value].remove(node_id)
-                    
-        self._clear_empty_meta()
-
-    def _clear_empty_meta(self):
-
-        for keyname in list(self.keynames):
-            self.keynames[keyname] = {k: v for k, v in self.keynames[keyname].items() if v}
-            if not self.keynames[keyname]:
-                del self.keynames[keyname]
+                
+                # delete the key if it's empty
+                if not len(self.keynames[keyname][value]):
+                    del self.keynames[keyname][value] 
 
     def delete_file(self, filename):
         """
@@ -750,6 +751,17 @@ class UrtextProject:
     Cataloguing Nodes
     """
 
+    def list_nodes(self):
+            
+        output = ''
+        for node_id in list(self.indexed_nodes()):
+            title = self.nodes[node_id].title
+            output += title + ' >' + node_id + '\n-\n'
+        for node_id in list(self.unindexed_nodes()):
+            title = self.nodes[node_id].title
+            output += title + ' >' + node_id + '\n-\n'
+        return output
+
     def unindexed_nodes(self):
         """ 
         returns an array of node IDs of unindexed nodes, 
@@ -761,9 +773,11 @@ class UrtextProject:
             if self.nodes[node_id].index == 99999:
                 unindexed_nodes.append(node_id)
                 
-        return sorted(unindexed_nodes,
+        sorted_unindexed_nodes = sorted(
+            unindexed_nodes,
             key=lambda node_id: self.nodes[node_id].date,
             reverse=True)
+        return sorted_unindexed_nodes
 
     def indexed_nodes(self):
         """ returns an array of node IDs of indexed nodes, in indexed order """
@@ -775,10 +789,11 @@ class UrtextProject:
                     node_id,
                     self.nodes[node_id].index
                 ])
-        indexed_nodes_list.sort(key=lambda item: item[1])
-        for index, node in enumerate(indexed_nodes_list):
-            indexed_nodes_list[index] = node[0] 
-        return indexed_nodes_list
+        sorted_indexed_nodes = sorted(indexed_nodes_list,
+                                      key=lambda item: item[1])
+        for index, node in enumerate(sorted_indexed_nodes):
+            sorted_indexed_nodes[index] = node[0] 
+        return sorted_indexed_nodes
 
     def all_nodes(self):
         all_nodes = self.indexed_nodes()
@@ -1049,9 +1064,10 @@ class UrtextProject:
             if keyname.lower() in ignore:
                 continue
             for value in self.keynames[keyname]:
-                meta_string = ''.join([keyname, ': ', str(value) ])            
-                pairs.append(meta_string)
-        return list(set(pairs))
+                meta_string = ''.join([keyname, ': ', str(value) ])
+                if meta_string not in pairs:
+                    pairs.append(meta_string)
+        return pairs
 
     def random_node(self):
         node_id = random.choice(list(self.nodes))
@@ -1241,7 +1257,7 @@ class UrtextProject:
         return None
 
     def most_recent_history(self, history):
-        times = history.keys().sort()
+        times = sorted(history.keys())
         return times[-1]
 
     """

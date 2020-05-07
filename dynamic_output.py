@@ -19,7 +19,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
-format_key_regex = re.compile('\$[A-Za-z0-9_-]+', re.DOTALL)
 
 class DynamicOutput():
 
@@ -52,6 +51,7 @@ class DynamicOutput():
         item_format = bytes(item_format, "utf-8").decode("unicode_escape")
                     
         # tokenize all $ format keys
+        format_key_regex = re.compile('\$[A-Za-z0-9_-]+', re.DOTALL)
         format_keys = re.findall(format_key_regex, item_format)
         for token in format_keys:
             item_format = item_format.replace(token, self.shah + token)
