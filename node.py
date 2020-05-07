@@ -129,16 +129,11 @@ class UrtextNode:
                   'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
-            theFile.close()
         node_contents = []
         for segment in self.ranges:
             node_contents.append(file_contents[segment[0]:segment[1]])
         node_contents = ''.join(node_contents)
 
-        # Strip out all Urtext node marker  Syntax.
-        # FUTURE: There may be a cleaner way to accomplish this at parse-time.
-        node_contents = node_contents.replace('{{','')
-        node_contents = node_contents.replace('}}','')
         if self.compact: # don't include the compact marker
              node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
@@ -147,11 +142,17 @@ class UrtextNode:
     def strip_metadata(self, contents=''):
         if contents == '':
             return contents
-        stripped_contents = re.sub(r'(\/--(?:(?!\/--).)*?--\/)',
-                                   '',
-                                   contents,
-                                   flags=re.DOTALL)
-        return stripped_contents
+        stripped_contents = []
+        before_wrappers = contents.split('--/')
+        for section in before_wrappers:
+            stripped_contents.append(section.split('/--')[0])
+        return ''.join(stripped_contents)
+
+        # Slower:        
+        # return re.sub(r'(\/--(?:(?!\/--).)*?--\/)',
+        #                            '',
+        #                            contents,
+        #                            flags=re.DOTALL)
 
     @classmethod
     def strip_inline_nodes(self, contents=''):

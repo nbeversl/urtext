@@ -28,8 +28,36 @@ import re
 """
 compile method for the UrtextProject class
 """
+
+def _export(self, dynamic_definition):
+    """
+    Export
+    """
+
+    exclude=[]
+    if dynamic_definition.target_id:
+        exclude.append(dynamic_definition.target_id)
+
+    exported = UrtextExport(self) 
+    exported_content, points = exported.export_from(
+         dynamic_definition.export_source,
+         kind=dynamic_definition.export,
+         exclude =exclude, # prevents recurssion
+         as_single_file=True, # TOdO should be option 
+         clean_whitespace=True,
+         preformat = dynamic_definition.preformat
+        )
+
+    if dynamic_definition.target_file:
+        with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+            f.write(exported_content)
+            f.close()
+        
+    return exported_content
+
 def _compile(self, 
     skip_tags=False, 
+    initial=False,
     modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
 
@@ -37,69 +65,35 @@ def _compile(self,
         modified_files = []
 
     for dynamic_definition in self.dynamic_nodes:
-        target_id = dynamic_definition.target_id
-        if target_id in self.nodes:
-            self.nodes[target_id].dynamic = True
+        if dynamic_definition.target_id in self.nodes:
+            self.nodes[dynamic_definition.target_id].dynamic = True
 
     for dynamic_definition in self.dynamic_nodes:
 
-        source_id = dynamic_definition.source_id
         points = {}
         new_node_contents = []
         
         if dynamic_definition.export:
-            """
-            Export
-            """
             if not dynamic_definition.export_source:
                 continue 
-
-            exclude=[]
-            if dynamic_definition.target_id:
-                exclude.append(target_id)
-
-            exported = UrtextExport(self) 
-            exported_content, points = exported.export_from(
-                 dynamic_definition.export_source,
-                 kind=dynamic_definition.export,
-                 exclude =exclude, # prevents recurssion
-                 as_single_file=True, # TOdO should be option 
-                 clean_whitespace=True,
-                 preformat = dynamic_definition.preformat
-                )
-
-            if dynamic_definition.target_file:
-                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-                    f.write(exported_content)
-                    f.close()
-                
-            new_node_contents.append(exported_content)
+            new_node_contents.append(self._export(dynamic_definition))
 
         if not dynamic_definition.target_id:
             continue
-
-        target_id = dynamic_definition.target_id
-        if not target_id:
-            continue
-        
-        if target_id not in self.nodes:
-            self._log_item('Dynamic node definition in >' + source_id +
-                          ' points to nonexistent node >' + target_id)
+      
+        if dynamic_definition.target_id not in self.nodes:
+            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
+                          ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
 
-        filename = self.nodes[target_id].filename    
-
-        self._parse_file(filename)
+        if not initial:
+            self._parse_file(self.nodes[dynamic_definition.target_id].filename)
                 
-        
-
         if dynamic_definition.search:
 
-            search_term = dynamic_definition.search
             search = UrtextSearch(self, 
-                search_term, 
+                dynamic_definition.search, 
                 format_string=dynamic_definition.show)
-            
             new_node_contents = search.initiate_search()
 
         elif dynamic_definition.tree:
@@ -122,8 +116,6 @@ def _compile(self,
                 dynamic_definition.interlinks,
                 omit=dynamic_definition.omit))
 
-        
-            
         elif dynamic_definition.tag_all_key:
             
             """
@@ -132,19 +124,18 @@ def _compile(self,
                         
             if not skip_tags:
                 self._add_sub_tags(
-                    source_id,
-                    target_id, 
+                    dynamic_definition.source_id,
+                    dynamic_definition.target_id, 
                     dynamic_definition.tag_all_key, 
                     dynamic_definition.tag_all_value, 
                     recursive=dynamic_definition.recursive)                    
-                #self._compile(skip_tags=True, modified_files=modified_files)
+                self._compile(skip_tags=True, modified_files=modified_files)
             continue
             
         else:  
             
             """
-            Otherwise this is going to pull from contents of individual nodes,
-            either as a timeline or as node list
+            Otherwise this is going to pull a list of nodes
             """
 
             # Allow for including other projects in the list context.
@@ -156,7 +147,7 @@ def _compile(self,
             # Assemble requested nodes
 
             if dynamic_definition.include_all:
-                included_nodes = set([self.nodes[node_id] for node_id in self.all_nodes()])
+                included_nodes = set([self.nodes[node_id] for node_id in self.nodes])
 
             else:
                 included_nodes = []
@@ -170,16 +161,12 @@ def _compile(self,
                     included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))                     
                     included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
                 
-
             excluded_nodes = set([])
             for project in included_projects:
-
                 excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
                 excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-            # remove the excluded nodes
-            for node in excluded_nodes:
-                included_nodes.discard(node)
+            included_nodes = included_nodes - excluded_nodes
 
             # Never include a dynamic node in itself.
             included_nodes.discard(self.nodes[dynamic_definition.target_id])
@@ -194,8 +181,7 @@ def _compile(self,
  
             else:
 
-                """ otherwise this is a list. """
-                
+                """ otherwise this is a list. """                
                 """ custom sort the nodes if a sort type is provided """
 
                 if dynamic_definition.sort_type == 'last_accessed':
@@ -224,9 +210,8 @@ def _compile(self,
                     sort_func = lambda node: node.date
                 
                 # sort them using the determined sort function
-                included_nodes = sorted(
-                    included_nodes,
-                    key = sort_func,#
+                included_nodes.sort(
+                    key = sort_func,
                     reverse=dynamic_definition.reverse)
 
                 """
@@ -243,13 +228,13 @@ def _compile(self,
                         next_content.title = targeted_node.title
                    
                     if next_content.needs_link:
-                        link = ''
+                        link = []
                         if targeted_node.parent_project not in [self.title, self.path]:
-                            link += '{"'+targeted_node.parent_project+'"}'
+                            link.extend(['{"',targeted_node.parent_project,'"}'])
                         else:
-                            link += '>'
-                        link += '>'+ str(targeted_node.id)
-                        next_content.link = link
+                            link.append('>')
+                        link.extend(['>', str(targeted_node.id)])
+                        next_content.link = ''.join(link)
 
                     if next_content.needs_date:
                         next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
@@ -268,21 +253,21 @@ def _compile(self,
                     new_node_contents.append(next_content.output())
                         
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
-        changed_file = self._set_node_contents(target_id, final_output)            
+        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
-        if changed_file and changed_file not in modified_files:
-                modified_files.append(changed_file)       
+        if changed_file:
+            modified_files.append(changed_file)       
         
         if dynamic_definition.export:
-            # must be reset since the file will have been re-parsed
-            self.nodes[target_id].export_points = points           
+            # must be reset since the file was re-parsed
+            self.nodes[dynamic_definition.target_id].export_points = points           
 
         if dynamic_definition.tree:
-            self.nodes[target_id].is_tree = True
+            self.nodes[dynamic_definition.target_id].is_tree = True
 
-        self.nodes[target_id].dynamic = True
+        self.nodes[dynamic_definition.target_id].dynamic = True
        
-    return modified_files
+    return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):
 
@@ -361,4 +346,4 @@ def indent(contents, spaces=4):
             content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
-compile_functions = [_compile, ]
+compile_functions = [_compile, _export]
