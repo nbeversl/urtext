@@ -236,13 +236,13 @@ def _compile(self,
                         next_content.title = targeted_node.title
                    
                     if next_content.needs_link:
-                        link = ''
+                        link = []
                         if targeted_node.parent_project not in [self.title, self.path]:
-                            link += '{"'+targeted_node.parent_project+'"}'
+                            link.extend(['{"',targeted_node.parent_project,'"}'])
                         else:
-                            link += '>'
-                        link += '>'+ str(targeted_node.id)
-                        next_content.link = link
+                            link.append('>')
+                        link.extend(['>', str(targeted_node.id)])
+                        next_content.link = ''.join(link)
 
                     if next_content.needs_date:
                         next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
@@ -263,8 +263,8 @@ def _compile(self,
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
-        if changed_file and changed_file not in modified_files:
-                modified_files.append(changed_file)       
+        if changed_file:
+            modified_files.append(changed_file)       
         
         if dynamic_definition.export:
             # must be reset since the file will have been re-parsed
@@ -275,7 +275,7 @@ def _compile(self,
 
         self.nodes[dynamic_definition.target_id].dynamic = True
        
-    return modified_files
+    return list(set(modified_files))
 
 def _export(self, dynamic_definition):
     """

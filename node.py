@@ -129,7 +129,6 @@ class UrtextNode:
                   'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
-            theFile.close()
         node_contents = []
         for segment in self.ranges:
             node_contents.append(file_contents[segment[0]:segment[1]])
