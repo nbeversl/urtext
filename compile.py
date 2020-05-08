@@ -37,13 +37,11 @@ def _compile(self,
         modified_files = []
 
     for dynamic_definition in self.dynamic_nodes:
-        target_id = dynamic_definition.target_id
-        if target_id in self.nodes:
-            self.nodes[target_id].dynamic = True
+        if dynamic_definition.target_id in self.nodes:
+            self.nodes[dynamic_definition.target_id].dynamic = True
 
     for dynamic_definition in self.dynamic_nodes:
-
-        source_id = dynamic_definition.source_id
+        
         points = {}
         new_node_contents = []
         
@@ -56,7 +54,7 @@ def _compile(self,
 
             exclude=[]
             if dynamic_definition.target_id:
-                exclude.append(target_id)
+                exclude.append(dynamic_definition.target_id)
 
             exported = UrtextExport(self) 
             exported_content, points = exported.export_from(
@@ -77,17 +75,13 @@ def _compile(self,
 
         if not dynamic_definition.target_id:
             continue
-
-        target_id = dynamic_definition.target_id
-        if not target_id:
-            continue
         
-        if target_id not in self.nodes:
-            self._log_item('Dynamic node definition in >' + source_id +
-                          ' points to nonexistent node >' + target_id)
+        if dynamic_definition.target_id not in self.nodes:
+            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
+                          ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
 
-        filename = self.nodes[target_id].filename    
+        filename = self.nodes[dynamic_definition.target_id].filename    
 
         self._parse_file(filename)
                 
@@ -132,8 +126,8 @@ def _compile(self,
                         
             if not skip_tags:
                 self._add_sub_tags(
-                    source_id,
-                    target_id, 
+                    dynamic_definition.source_id,
+                    dynamic_definition.target_id, 
                     dynamic_definition.tag_all_key, 
                     dynamic_definition.tag_all_value, 
                     recursive=dynamic_definition.recursive)                    
@@ -268,21 +262,47 @@ def _compile(self,
                     new_node_contents.append(next_content.output())
                         
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
-        changed_file = self._set_node_contents(target_id, final_output)            
+        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file and changed_file not in modified_files:
                 modified_files.append(changed_file)       
         
         if dynamic_definition.export:
             # must be reset since the file will have been re-parsed
-            self.nodes[target_id].export_points = points           
+            self.nodes[dynamic_definition.target_id].export_points = points           
 
         if dynamic_definition.tree:
-            self.nodes[target_id].is_tree = True
+            self.nodes[dynamic_definition.target_id].is_tree = True
 
-        self.nodes[target_id].dynamic = True
+        self.nodes[dynamic_definition.target_id].dynamic = True
        
     return modified_files
+
+def _export(self, dynamic_definition):
+    """
+    Export
+    """
+
+    exclude=[]
+    if dynamic_definition.target_id:
+        exclude.append(dynamic_definition.target_id)
+
+    exported = UrtextExport(self) 
+    exported_content, points = exported.export_from(
+         dynamic_definition.export_source,
+         kind=dynamic_definition.export,
+         exclude =exclude, # prevents recurssion
+         as_single_file=True, # TOdO should be option 
+         clean_whitespace=True,
+         preformat = dynamic_definition.preformat
+        )
+
+    if dynamic_definition.target_file:
+        with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+            f.write(exported_content)
+            f.close()
+        
+    return exported_content
 
 def build_final_output(dynamic_definition, contents):
 
@@ -361,4 +381,4 @@ def indent(contents, spaces=4):
             content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
-compile_functions = [_compile, ]
+compile_functions = [_compile, _export ]
