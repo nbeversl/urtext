@@ -756,17 +756,6 @@ class UrtextProject:
     Cataloguing Nodes
     """
 
-    def list_nodes(self):
-            
-        output = ''
-        for node_id in list(self.indexed_nodes()):
-            title = self.nodes[node_id].title
-            output += title + ' >' + node_id + '\n-\n'
-        for node_id in list(self.unindexed_nodes()):
-            title = self.nodes[node_id].title
-            output += title + ' >' + node_id + '\n-\n'
-        return output
-
     def unindexed_nodes(self):
         """ 
         returns an array of node IDs of unindexed nodes, 
@@ -1069,10 +1058,9 @@ class UrtextProject:
             if keyname.lower() in ignore:
                 continue
             for value in self.keynames[keyname]:
-                meta_string = ''.join([keyname, ': ', str(value) ])
-                if meta_string not in pairs:
-                    pairs.append(meta_string)
-        return pairs
+                meta_string = ''.join([keyname, ': ', str(value) ])            
+                pairs.append(meta_string)
+        return list(set(pairs))
 
     def random_node(self):
         node_id = random.choice(list(self.nodes))
