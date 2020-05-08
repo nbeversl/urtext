@@ -138,13 +138,14 @@ class UrtextProject:
         self.default_timezone = None
         self.title = self.path # default
         
-        self._initialize_project(import_project=import_project, init_project=init_project)
+        self._initialize_project(
+            import_project=import_project, 
+            init_project=init_project)
 
         self.log = self.setup_logger('urtext_log', 'urtext_log.txt')
         
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
-
 
         self.loaded = True
 
@@ -181,8 +182,7 @@ class UrtextProject:
             self._parse_meta_dates(node_id, initial=True)
         
         self._get_access_history()
-
-        self._update()
+        self._compile(initial=True)
             
     def _node_id_generator(self):
         chars = [
@@ -208,12 +208,13 @@ class UrtextProject:
         if duplicate nodes were found.
         FUTURE: Should be cleaned up. Currently returns None, False or list.
         """
-        if self._filter_filenames(os.path.basename(filename)) == None:
+        filename = os.path.basename(filename)
+        if self._filter_filenames(filename) == None:
             return
         
         already_in_project = False
         old_hash = None
-        if os.path.basename(filename) in self.files:
+        if filename in self.files:
             already_in_project = True
             old_hash = self.files[filename].hash
 
@@ -235,7 +236,7 @@ class UrtextProject:
             self.to_import.append(filename)
 
         # clear all node_id's defined from this file since the file has changed
-        self._remove_file(os.path.basename(filename))
+        self._remove_file(filename)
         """
         Check the file for duplicate nodes
         """
@@ -376,11 +377,10 @@ class UrtextProject:
         for this_format in self.settings['timestamp_format']:
             try:
                 dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
-                if not dt_stamp:
-                    continue
-                if dt_stamp.tzinfo == None:
-                    dt_stamp = self.default_timezone.localize(dt_stamp) 
-                return dt_stamp                
+                if dt_stamp:
+                    if dt_stamp.tzinfo == None:
+                        dt_stamp = self.default_timezone.localize(dt_stamp) 
+                    return dt_stamp        
             except ValueError:
                  continue
         return None
@@ -551,9 +551,14 @@ class UrtextProject:
                 if node_id in self.keynames[keyname][value]:
                     self.keynames[keyname][value].remove(node_id)
                 
-                # delete the key if it's empty
-                if not len(self.keynames[keyname][value]):
-                    del self.keynames[keyname][value] 
+        self._clear_empty_meta()
+
+    def _clear_empty_meta(self):
+
+        for keyname in list(self.keynames):
+            self.keynames[keyname] = {k: v for k, v in self.keynames[keyname].items() if v}
+            if not self.keynames[keyname]:
+                del self.keynames[keyname]
 
     def delete_file(self, filename):
         """
