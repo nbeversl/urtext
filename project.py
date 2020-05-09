@@ -67,10 +67,12 @@ def add_functions_as_methods(functions):
     
 
 def init_project(path):
-    prof = profile.Profile()
-    project = prof.runcall(build_project, path)
-    prof.print_stats(sort='cumtime')
-    return project
+    # development only: 
+    # prof = profile.Profile()
+    # project = prof.runcall(build_project, path)
+    # prof.print_stats(sort='cumtime')
+    # return project
+    return build_project(path)
 
 def build_project(path):
     return UrtextProject(path)

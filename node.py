@@ -24,7 +24,6 @@ import datetime
 import logging
 import pytz
 import urtext
-
 from anytree import Node
 from anytree import PreOrderIter
 from anytree import RenderTree
@@ -243,7 +242,7 @@ class UrtextNode:
                 keynames[entry.keyname] = []
             timestamp = ''
             if entry.dtstring:
-                timestamp = ' '+entry.dtstring
+                timestamp = ' <'+entry.dtstring+'>'
             if not entry.values:
                 keynames[entry.keyname].append(timestamp)
             for value in entry.values:
