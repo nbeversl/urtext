@@ -274,7 +274,11 @@ def _compile(self,
             self.nodes[dynamic_definition.target_id].is_tree = True
 
         self.nodes[dynamic_definition.target_id].dynamic = True
-       
+        
+        messages_file = self._populate_messages()
+        if messages_file:
+             modified_files.append(messages_file)
+
     return list(set(modified_files))
 
 def _export(self, dynamic_definition):

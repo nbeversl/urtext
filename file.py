@@ -68,6 +68,7 @@ class UrtextFile:
         self.changed = True
         self.is_parseable = True
         self.strict = strict
+        self.messages = []
         
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)
@@ -224,17 +225,11 @@ class UrtextFile:
                 
                 if not success:
                     if root:
-                        if not self.strict: 
-                            print('Warning : root Node is anonymous in '+self.filename)
-                        else:
-                            return self.log_error('Root node without ID', 0)
+                        self.messages.append('Warning : root Node has no ID.')
                     elif compact:
-                        print ('Warning: Compact Node symbol without ID at %s in %s. Continuing to add the file.' % (position,self.filename))     
+                        self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
                     else:
-                        if not self.strict:
-                            print('Warning: Node missing ID in '+self.filename+' at position ',position)
-                        else:
-                            return self.log_error('Node missing ID', position)
+                        self.messages.append('Warning: Node missing ID at position '+str(position))
  
                 del nested_levels[nested]
                 last_position = position + symbol_length[self.symbols[position]]
@@ -284,7 +279,8 @@ class UrtextFile:
         self.parsed_items = {}
         self.root_nodes = []
         self.file_length = 0
-        
+        self.messages.append(message +' at position '+ str(position))
+
         print(''.join([ 
                 message, ' in ', self.filename, ' at position ',
             str(position)]))

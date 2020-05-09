@@ -106,6 +106,7 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.access_history = {}
+        self.messages = {}
         self.settings = {  # defaults
             'logfile':'urtext_log.txt',
             'home': None,
@@ -134,6 +135,7 @@ class UrtextProject:
             'format_string': '$title\n-\n',
             'strict':False,
             'node_date_keyname' : 'created',
+            'log_id': '',
         }
         self.default_timezone = None
         self.title = self.path # default
@@ -229,7 +231,11 @@ class UrtextProject:
         if not new_file.changed:
             return False
 
-        if not new_file.is_parseable: 
+        self.messages[filename] = []
+        if new_file.messages:
+            self.messages[filename] = new_file.messages 
+
+        if not new_file.is_parseable:
             if already_in_project:
                 self._log_item('Unable to re-parse '+filename+ ', dropping it from the project.')
                 return False
@@ -274,8 +280,11 @@ class UrtextProject:
                 duplicate_nodes[node_id] = duplicate_filename
 
         if duplicate_nodes:
-            self._log_item('Duplicate node ID(s) found in '+file_obj.filename)
+            basename = os.path.basename(file_obj.filename)
+            self.messages[basename].append('Duplicate node ID(s) found')
+
             for node_id in duplicate_nodes:
+                self.messages[basename].append(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
                 self._log_item(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
             return duplicate_nodes
 
@@ -327,10 +336,15 @@ class UrtextProject:
                 defined = self._target_id_defined(definition.target_id)
                 
                 if defined and defined != new_node.id:
-                    self._log_item('Node >' + definition.target_id +
-                                  ' has duplicate definition in >' + new_node.id +
-                                  '. Keeping the definition in >' +
-                                  defined + '.')
+
+                    message = ''.join([ 'Node >', definition.target_id,
+                                ' has duplicate definition in >' , new_node.id ,
+                                  '. Keeping the definition in >',
+                                  defined, '.'
+                                  ])
+
+                    self.messages[new_file.basename].append(message)
+                    self._log_item(message)
                 else:
                     self.dynamic_nodes.append(definition)
                 
@@ -338,16 +352,24 @@ class UrtextProject:
 
                 defined = self._target_file_defined(definition.target_file)
                 if defined and defined != new_node.id:
-                    self._log_item('File ' + definition.target_file +
-                                  ' has duplicate definition in >' + new_node.id +
-                                  '. Keeping the definition in >' +
-                                  defined + '.')
+                    message = ''.join([ 
+                                  'File ' , definition.target_file ,
+                                  ' has duplicate definition in >' , new_node.id ,
+                                  '. Keeping the definition in >' , defined , '.'
+                                  ])
+                    self.message[new_file.basename].append(message)
+                    self._log_item(message)
                 else:
                     self.dynamic_nodes.append(definition)
 
         if len(new_node.metadata.get_meta_value('ID')) > 1:
-            self._log_item('Multiple ID tags in >' + new_node.id + ' ('+new_node.filename+') '
-                          ', '+', '.join(new_node.metadata.get_meta_value('ID'))+' ( using the first one found.')
+            message = ''.join([ 
+                    'Multiple ID tags in >' , new_node.id ,': ',
+                    ', '.join(new_node.metadata.get_meta_value('ID')),' - using the first one found.'])
+            if new_node.filename not in self.messages: #why?
+                self.messages[new_node.filename] = []
+            self.messages[new_node.filename].append(message)
+            self._log_item(message)
         
         new_node.parent_project = self.title
         if new_node.id in self.access_history:
@@ -368,9 +390,11 @@ class UrtextProject:
                     if entry.keyname == self.settings['node_date_keyname']:
                         self.nodes[node_id].date = dt_stamp
                 else:
-                    self._log_item('Timestamp ' + entry.dtstring +
-                                  ' not in any specified date format in >' +
-                                  node_id)
+                    message =''.join([ 'Timestamp ' , entry.dtstring ,
+                                  ' not in any specified date format in >',
+                                  node_id ])
+                    self.messages[self.nodes[node_id].filename].append(message)
+                    self._log_item(message)
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None
@@ -511,6 +535,24 @@ class UrtextProject:
             node_id, 
             omit=omit).render_tree()
 
+    def _list_messages(self):
+        output = []
+        for filename in self.messages:
+            if self.messages[filename]:
+                output.append('./'+filename)
+                output.extend(self.messages[filename])
+        return '\n'.join(output)
+
+    def _populate_messages(self):
+        if self.settings['log_id'] and self.settings['log_id'] in self.nodes:
+            output = self._list_messages()
+            output += '\n'+UrtextNode.build_metadata(
+                {   'id':self.settings['log_id'],
+                    'title':'Log',
+                })
+            changed = self._set_node_contents(self.settings['log_id'], output)     
+            if changed:
+                return self.nodes[self.settings['log_id']].filename
     """
     Removing and renaming files
     """
@@ -854,7 +896,7 @@ class UrtextProject:
         
         link = None
         
-        # first try looking around where the cursor is positioned
+        # look for node links where the cursor is positioned (within 4 characters)
         for index in range(0, 4):
             if re.search(node_link_regex, string[position - index:position - index + 5]):
                 link = re.search(
@@ -875,7 +917,6 @@ class UrtextProject:
                 link = re.search(node_link_regex, before_cursor).group(0)
 
         if link:
-
             node_id = link.split(':')[0].strip('>')
             if node_id.strip() in self.nodes:
                 file_position = self.nodes[node_id].ranges[0][0]
@@ -884,17 +925,20 @@ class UrtextProject:
                 self._log_item('Node ' + node_id + ' is not in the project')
                 return None
 
+        editor_file_link_regex = re.compile('f>(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
+        filename = re.search(editor_file_link_regex, string)
+        if filename:
+            return('EDITOR_LINK',filename.group(0)[2:]) 
 
         url_scheme = re.compile('http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        url = re.search(url_scheme, string)
+        if url:
+            return ('HTTP', url.group(0))
+
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
-
-        if re.search(url_scheme, string):
-            url = re.search(url_scheme, string).group(0)
-            return ('HTTP', url)
-
-        if re.search(file_path, string):
-            file_link = re.search(file_path, string).group(0)
-            return ('FILE', os.path.join(self.path, file_link))
+        file_link = re.search(file_path, string)
+        if file_link:
+            return ('FILE', os.path.join(self.path, file_link.group(0)))
 
         self._log_item('No node ID, web link, or file found on this line.')
         return None
@@ -935,6 +979,7 @@ class UrtextProject:
             'google_auth_token',
             'google_calendar_id',
             'node_date_keyname',
+            'log_id',
         ]
         single_boolean_values = [
             'always_oneline_meta',
