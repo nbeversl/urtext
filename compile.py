@@ -30,7 +30,6 @@ compile method for the UrtextProject class
 """
 def _compile(self, 
     skip_tags=False, 
-    initial=False,
     modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
 
@@ -83,10 +82,11 @@ def _compile(self,
             continue
 
         filename = self.nodes[dynamic_definition.target_id].filename    
-   
-        if not initial:
-            self._parse_file(filename)
+
+        self._parse_file(filename)
                 
+        
+
         if dynamic_definition.search:
 
             search_term = dynamic_definition.search
@@ -150,7 +150,7 @@ def _compile(self,
             # Assemble requested nodes
 
             if dynamic_definition.include_all:
-                included_nodes = set([self.nodes[node_id] for node_id in self.nodes])
+                included_nodes = set([self.nodes[node_id] for node_id in self.all_nodes()])
 
             else:
                 included_nodes = []
@@ -171,8 +171,9 @@ def _compile(self,
                 excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
                 excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-            
-            included_nodes -= excluded_nodes
+            # remove the excluded nodes
+            for node in excluded_nodes:
+                included_nodes.discard(node)
 
             # Never include a dynamic node in itself.
             included_nodes.discard(self.nodes[dynamic_definition.target_id])
