@@ -33,6 +33,7 @@ import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
 import profile
+from logging.handlers import RotatingFileHandler
 
 from .timeline import timeline
 from .file import UrtextFile
@@ -91,7 +92,6 @@ class UrtextProject:
 
         self.async = True # use False for development only
         self.path = path
-        self.log = None
         self.nodes = {}
         self.files = {}
         self.keynames = {}
@@ -110,8 +110,7 @@ class UrtextProject:
         self.access_history = {}
         self.messages = {}
         self.settings = {  # defaults
-            'logfile':'urtext_log.txt',
-            'home': None,
+           'home': None,
             'timestamp_format':
                 [   
                 '%a., %b. %d, %Y, %I:%M %p', 
@@ -145,8 +144,6 @@ class UrtextProject:
         self._initialize_project(
             import_project=import_project, 
             init_project=init_project)
-
-        self.log = self.setup_logger('urtext_log', 'urtext_log.txt')
         
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
@@ -642,18 +639,12 @@ class UrtextProject:
         """ Omit system files """
         if filename[0] == '.':
             return None
-        if 'urtext_log' in filename:
-            return None
         if not filename.endswith('.txt'):
             # FUTURE:
             # save and check these in an optional list of other extensions 
             # set from project_settings 
             return None
-        """ Omit the log file """
-        skip_files = [self.settings['logfile'][0]]
-        if filename in skip_files:
-            return None
-
+            
         return filename
     
     def new_file_node(self, 
@@ -956,12 +947,7 @@ class UrtextProject:
         return False
 
     def _log_item(self, item):
-        if self.log:
-            self.log.info(item)
-            if self.settings['console_log']:          
-                print(item)
-        else:
-            print(item)
+        print(item)
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
@@ -1231,20 +1217,6 @@ class UrtextProject:
         if absolute:
             filename = os.path.join(self.path, filename)
         return filename
-
-    def setup_logger(self, name, log_file, level=logging.INFO):
-        log_file = os.path.join(self.path, log_file)
-        if not os.path.exists(log_file):
-            with open(log_file, "w") as f:
-                f.write('URTEXT LOG')
-                f.close()
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        logger = logging.getLogger(name)
-        handler = logging.FileHandler(log_file, mode='a')
-        handler.setFormatter(formatter)
-        logger.setLevel(level)
-        logger.addHandler(handler)
-        return logger
 
     """
     File History
