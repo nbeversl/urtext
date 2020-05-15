@@ -1030,13 +1030,16 @@ class UrtextProject:
         Returns a future containing a list of modified files as the result.
         """
         return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
- 
+        # syncronous:
+        #self._pop_node(position=position, filename=filename, node_id=node_id)
+
     def _pop_node(self, position=None, filename=None, node_id=None):
  
         if not node_id:
             node_id = self.get_node_id_from_position(filename, position)
  
         if not node_id:
+            print('NO NODE ID')
             return None
 
         if self.nodes[node_id].root_node:
@@ -1052,11 +1055,6 @@ class UrtextProject:
         filename = self.nodes[node_id].filename
         popped_node_contents = file_contents[start:end].strip()
         
-        if self.nodes[node_id].compact:
-            # Strip whitspace + '^'
-            popped_node_contents = popped_node_contents.lstrip()
-            popped_node_contents = popped_node_contents[1:]
-
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n| ',
@@ -1064,8 +1062,8 @@ class UrtextProject:
              ' >>',
             popped_node_id,
             '\n',
-            file_contents[end + 2:]])
-
+            file_contents[end + 1:]])
+       
         #  existing file
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
