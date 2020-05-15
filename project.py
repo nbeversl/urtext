@@ -963,7 +963,6 @@ class UrtextProject:
             'format_string',
             'home',
             'project_title',
-            'logfile',
             'google_auth_token',
             'google_calendar_id',
             'node_date_keyname',
@@ -1023,17 +1022,29 @@ class UrtextProject:
         return ''.join(index)
 
     def pop_node(self, position=None, filename=None, node_id=None):
+        """
+        Pops a node asyncronously, making sure that if the file was saved and on_modified
+        was called in the same calling function, this completes before evaluating
+        the node_id from the position.
+
+        Returns a future containing a list of modified files as the result.
+        """
+        return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
+ 
+    def _pop_node(self, position=None, filename=None, node_id=None):
+ 
         if not node_id:
             node_id = self.get_node_id_from_position(filename, position)
+ 
         if not node_id:
-            return
+            return None
+
         if self.nodes[node_id].root_node:
-            print(node_id + ' is already a root node.')
+            print(node_id+ ' is already a root node.')
             return None
 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
-
         file_contents = self._full_file_contents(node_id=node_id)
         
         popped_node_id = node_id
@@ -1055,18 +1066,21 @@ class UrtextProject:
             '\n',
             file_contents[end + 2:]])
 
+        #  existing file
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
-            f.close()
-        self.executor.submit(self._parse_file, filename) 
+            f.close()        
+        self._parse_file(filename) 
 
+        # new file
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
             f.close()
+        self._parse_file(popped_node_id+'.txt') 
 
-        self.executor.submit(self._parse_file, popped_node_id+'.txt') 
+        modified_files = [filename, popped_node_id+'.txt']
 
-        return start - 2 # returns where to put the cursor at the new marker
+        return self._update(modified_files=modified_files)  
 
     def titles(self):
         title_list = {}
@@ -1125,11 +1139,7 @@ class UrtextProject:
 
     def on_modified(self, filename):
     
-        do_not_update = [
-             'history',
-            os.path.basename(self.path),
-            self.settings['logfile'],
-            ]
+        do_not_update = ['history']
         
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
