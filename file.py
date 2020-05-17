@@ -117,7 +117,7 @@ class UrtextFile:
         """
 
         if self.positions:
-            while self.positions and self.symbols[self.positions[0]] in [ '[\n$]', '>>' ]:
+            while self.positions and self.symbols[self.positions[0]] == '[\n$]' :
                 self.positions.pop(0)
         
         first_wrapper = 0

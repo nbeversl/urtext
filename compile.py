@@ -19,7 +19,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 from .export import UrtextExport
 from .node import UrtextNode
-from .timeline import timeline
 from. search import UrtextSearch
 from .dynamic_output import DynamicOutput
 import os
@@ -183,14 +182,15 @@ def _compile(self,
             """ 
 
             if dynamic_definition.show == 'timeline':
-                new_node_contents.append(timeline(self, included_nodes, kind=dynamic_definition.timeline_type))
- 
+                if dynamic_definition.limit:
+                    included_nodes = included_nodes[0:dynamic_definition.limit]
+                new_node_contents.append(self._timeline(included_nodes, kind=dynamic_definition.timeline_type))
+                
             else:
 
                 """ otherwise this is a list. """
-                
-                """ custom sort the nodes if a sort type is provided """
 
+                """ custom sort the nodes if a sort type is provided """
                 if dynamic_definition.sort_type == 'last_accessed':
                     sort_func = lambda node: node.last_accessed
                         

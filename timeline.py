@@ -22,18 +22,16 @@ import datetime
 from pytz import timezone
 from .node import UrtextNode 
 
-def timeline(project, nodes, kind=None):
+def _timeline(self, nodes, kind=None):
     """ given an Urtext Project and nodes, generates a timeline """
 
     found_stuff = []
-    timestamp_formats = project.settings['timestamp_format']
-
     for node in nodes:
         
         # metadata datestamps
         if kind in [None, 'meta']:
             id_date = node.date
-            contents = project.nodes[node.id].content_only()
+            contents = self.nodes[node.id].content_only()
             found_thing = {}
             found_thing['filename'] = node.id
             found_thing['kind'] = 'from Node ID'
@@ -43,8 +41,7 @@ def timeline(project, nodes, kind=None):
 
         # inline timestamps
         if kind in [None, 'inline']:
-
-            full_contents = project.nodes[node.id].content_only()
+            full_contents = self.nodes[node.id].content_only()
             full_contents = UrtextNode.strip_metadata(contents=full_contents).split('\n')
 
             for num, line in enumerate(full_contents, 1):
@@ -55,16 +52,11 @@ def timeline(project, nodes, kind=None):
                 for timestamp in timestamps:
                     
                     found_thing = {}
-                    for ts_format in timestamp_formats: 
-                        try:
-                            datetime_obj = datetime.datetime.strptime(timestamp, '<'+ts_format+'>')
-                            if not datetime_obj:
-                                continue
-                        except ValueError as err:
-                            continue
-                        if datetime_obj.tzinfo == None:
-                            datetime_obj = project.default_timezone.localize(datetime_obj)
-                        
+                    datetime_obj = self._date_from_timestamp( timestamp)
+                    if datetime_obj:
+
+                        # FUTURE: The below should be turned into an option of
+                        # how much surrounding text to include.
                         # position = contents.find(timestamp)
                         # lines = contents.split('\n')
                         # for num, line in enumerate(lines, 1):
@@ -93,7 +85,7 @@ def timeline(project, nodes, kind=None):
     if not sorted_stuff:
         return 'POSSIBLE ERROR. NO NODES FOUND FOR TIMELINE. timeline.py, line 94'
     start_date = sorted_stuff[0]['contents']
-    timeline = ''
+    timeline = []
     for index in range(0, len(sorted_stuff) - 1):
         entry_date = found_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p')
         contents = found_stuff[index]['contents'].strip()
@@ -112,4 +104,6 @@ def timeline(project, nodes, kind=None):
             '\n|\n'])
 
 
-    return timeline
+    return ''.join(timeline)
+
+timeline_functions = [ _timeline]

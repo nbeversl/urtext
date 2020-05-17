@@ -102,18 +102,29 @@ def _add_sub_tags(self,
 
     nodes_to_rebuild = []
     children = self.nodes[target_id].tree_node.children
+    
     for child in children:
-        self.nodes[child.name].metadata.add_meta_entry(
+        
+        """
+        This is currently necessary because of how node pointers
+        are handled in tree-building.
+        FUTURE: there may be a better way to handle this.
+        """
+        node_to_tag = child.name.strip('ALIAS') 
+        """ """
+
+
+        self.nodes[node_to_tag].metadata.add_meta_entry(
             tag, 
             value,
             from_node=source_id)
-        self.dynamic_meta[source_id].append(child.name)
-        if child.name not in nodes_to_rebuild:
-            nodes_to_rebuild.append(child.name)
+        self.dynamic_meta[source_id].append(node_to_tag)
+        if node_to_tag not in nodes_to_rebuild:
+            nodes_to_rebuild.append(node_to_tag)
         if recursive:
             self._add_sub_tags(
                 source_id,
-                child.name,
+                node_to_tag,
                 tag,
                 value,
                 recursive=recursive)

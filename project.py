@@ -35,7 +35,6 @@ import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
 
-from .timeline import timeline
 from .file import UrtextFile
 from .interlinks import Interlinks
 from .node import UrtextNode 
@@ -45,6 +44,7 @@ from .meta_handling import metadata_functions
 from .reindex import reindex_functions
 from .watchdog import watchdog_functions
 from .search import search_functions
+from .timeline import timeline_functions
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -57,6 +57,7 @@ functions.extend(metadata_functions)
 functions.extend(reindex_functions)
 functions.extend(watchdog_functions)
 functions.extend(search_functions)
+functions.extend(timeline_functions)
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -1039,7 +1040,7 @@ class UrtextProject:
             node_id = self.get_node_id_from_position(filename, position)
  
         if not node_id:
-            print('NO NODE ID')
+            print('NO NODE ID found here')
             return None
 
         if self.nodes[node_id].root_node:
