@@ -290,25 +290,28 @@ class UrtextProject:
 
         return False
 
-    def _rewrite_titles(self,filename):
+    def _rewrite_titles(self, filename):
         
         original_contents = self._full_file_contents(filename=filename)
         new_contents = original_contents
-        matches = re.findall(title_marker_regex, new_contents)
-        if matches:
-            for match in matches:
-                node_id = match[-3:]
+        
+        for match in re.finditer(title_marker_regex, new_contents):
+            start = match.start()
+            end = match.end()
+            location_node_id = self.get_node_id_from_position(filename, start)
+            if not self.nodes[location_node_id].dynamic:
+                match_contents = new_contents[start:end]
+                node_id = match_contents[-3:]
                 if node_id in self.nodes:
                     title = self.nodes[node_id].title
                 else:
                     title = ' ? '
                 bracket = '>'
-                if re.search(node_pointer_regex, match):
+                if re.search(node_pointer_regex, match_contents):
                     bracket += '>'
-                new_contents = new_contents.replace(match, '| '+title+' '+bracket+node_id)
+                new_contents = new_contents.replace(match_contents, '| '+title+' '+bracket+node_id)
         if new_contents != original_contents:
             return new_contents 
-
         return False
 
     def _target_id_defined(self, check_id):
