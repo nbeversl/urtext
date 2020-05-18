@@ -181,10 +181,9 @@ def _compile(self,
             build timeline if specified
             """ 
 
-            if dynamic_definition.show == 'timeline':
-                if dynamic_definition.limit:
-                    included_nodes = included_nodes[0:dynamic_definition.limit]
-                new_node_contents.append(self._timeline(included_nodes, kind=dynamic_definition.timeline_type))
+            if dynamic_definition.timeline_type:
+                
+                new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
                 
             else:
 

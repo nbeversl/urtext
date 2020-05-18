@@ -21,40 +21,39 @@ import re
 import datetime
 from pytz import timezone
 from .node import UrtextNode 
+import pprint
 
-def _timeline(self, nodes, kind=None):
+def _timeline(self, nodes, dynamic_definition):
     """ given an Urtext Project and nodes, generates a timeline """
 
     found_stuff = []
     for node in nodes:
         
         # metadata datestamps
-        if kind in [None, 'meta']:
-            id_date = node.date
+        if dynamic_definition.timeline_type in [ None, 'meta']:
             contents = self.nodes[node.id].content_only()
             found_thing = {}
             found_thing['filename'] = node.id
             found_thing['kind'] = 'from Node ID'
-            found_thing['date'] = id_date
+            found_thing['date'] = node.date
             found_thing['contents'] = contents[:150]
             found_stuff.append(found_thing)
 
         # inline timestamps
-        if kind in [None, 'inline']:
+        if dynamic_definition.timeline_type in [ 'inline']:
             full_contents = self.nodes[node.id].content_only()
             full_contents = UrtextNode.strip_metadata(contents=full_contents).split('\n')
 
             for num, line in enumerate(full_contents, 1):
 
-                timestamp_regex = '<.*?>'
+                timestamp_regex = '(?:<).*?(?:>)'
                 timestamps = re.findall(timestamp_regex, line)
 
                 for timestamp in timestamps:
-                    
                     found_thing = {}
-                    datetime_obj = self._date_from_timestamp( timestamp)
+                    datetime_obj = self._date_from_timestamp(timestamp[1:-1])
                     if datetime_obj:
-
+   
                         # FUTURE: The below should be turned into an option of
                         # how much surrounding text to include.
                         # position = contents.find(timestamp)
@@ -81,24 +80,25 @@ def _timeline(self, nodes, kind=None):
                         found_thing['contents'] = relevant_text
                         found_stuff.append(found_thing)
 
-    sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)
+    sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
     if not sorted_stuff:
-        return 'POSSIBLE ERROR. NO NODES FOUND FOR TIMELINE. timeline.py, line 94'
+        return ''
+    if dynamic_definition.limit:
+        sorted_stuff = sorted_stuff[0:dynamic_definition.limit]
     start_date = sorted_stuff[0]['contents']
     timeline = []
     for index in range(0, len(sorted_stuff) - 1):
-        entry_date = found_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p')
-        contents = found_stuff[index]['contents'].strip()
+        contents = sorted_stuff[index]['contents'].strip()
         while '\n\n' in contents:
             contents = contents.replace('\n\n', '\n')
         contents = '      ...' + contents.replace('\n', '\n|      ') + '...   '
         timeline.extend([
             '|<----', 
-            entry_date, 
+            sorted_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p'), 
             ' ', 
-            found_stuff[index]['kind'],
+            sorted_stuff[index]['kind'],
             ' >',
-            found_stuff[index]['filename'],
+            sorted_stuff[index]['filename'],
             '\n|\n|',
             contents,
             '\n|\n'])

@@ -30,7 +30,7 @@ from anytree import RenderTree
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
-default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 
 def create_urtext_node(
     filename, 
