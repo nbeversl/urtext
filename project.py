@@ -143,7 +143,7 @@ class UrtextProject:
         self.title = self.path # default
         
         self._initialize_project(
-            import_project=import_project, 
+            import_project=imdelf.port_project, 
             init_project=init_project)
         
         if not os.path.exists(os.path.join(self.path, "history")):
@@ -1198,7 +1198,7 @@ class UrtextProject:
                     new_files.append(os.path.basename(file))
         for filename in self.files:
             if filename not in filelist:
-                self.log(filename+' no longer seen in project path. Dropping it from the project.')
+                self._log_item(filename+' no longer seen in project path. Dropping it from the project.')
                 self.remove_file(filename)
         return new_files
 
@@ -1210,8 +1210,7 @@ class UrtextProject:
         any_duplicate_ids = self._parse_file(filename)
         
         if any_duplicate_ids:
-            print('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
-            self.log('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
+            self._log_item('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
             raise DuplicateIDs()
         else:
             return self.executor.submit(self._update)

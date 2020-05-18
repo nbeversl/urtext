@@ -23,7 +23,7 @@ def on_moved(self, filename):
     old_filename = os.path.basename(filename)
     new_filename = os.path.basename(filename)
     if old_filename in self.files:
-        self.log.info('RENAMED ' + old_filename + ' to ' +
+        self._log_item('RENAMED ' + old_filename + ' to ' +
                                 new_filename)
         self._handle_renamed(old_filename, new_filename)
     return (True,'')
