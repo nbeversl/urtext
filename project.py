@@ -143,7 +143,7 @@ class UrtextProject:
         self.title = self.path # default
         
         self._initialize_project(
-            import_project=imdelf.port_project, 
+            import_project=import_project, 
             init_project=init_project)
         
         if not os.path.exists(os.path.join(self.path, "history")):
@@ -1155,10 +1155,10 @@ class UrtextProject:
     
     def _file_update(self, filename):
         modified_files = []
-        rewritten_contents = self._rewrite_titles(filename)
-        if rewritten_contents:
-            self._set_file_contents(filename, rewritten_contents)
-            modified_files.append(filename)
+        # rewritten_contents = self._rewrite_titles(filename)
+        # if rewritten_contents:
+        #     self._set_file_contents(filename, rewritten_contents)
+        #     modified_files.append(filename)
 
         # re-parse the file
         any_duplicate_ids = self._parse_file(filename)

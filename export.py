@@ -241,7 +241,7 @@ class UrtextExport:
             if kind == 'markdown':
                 range_contents = strip_leading_space(range_contents)
                 if self.project.nodes[root_node_id].is_tree and preformat:
-                    range_contents = insert_leading_tab(range_contents )
+                    range_contents = insert_format_character(range_contents)
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
                 ## Only replace node links if this is not a tree
@@ -506,12 +506,8 @@ class UrtextExport:
 
         return contents
 
-def insert_leading_tab(text):
-    result = ['\n\t']
-    for line in text.split('\n'):
-        result.append(line)
-        result.append('\n\t')
-    return ''.join(result)
+def insert_format_character(text):
+    return ''.join(['`',result,'`'])
 
 
 def strip_leading_space(text):
