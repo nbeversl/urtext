@@ -111,7 +111,7 @@ class UrtextProject:
         self.access_history = {}
         self.messages = {}
         self.settings = {  # defaults
-           'home': None,
+            'home': None,
             'timestamp_format':
                 [   
                 '%a., %b. %d, %Y, %I:%M %p', 
@@ -181,7 +181,7 @@ class UrtextProject:
         
         # must be done once manually on project init
         for node_id in self.nodes:  
-            self._parse_meta_dates(node_id, initial=True)
+             self._parse_meta_dates(node_id, initial=True)
         
         self._get_access_history()
         self._compile(initial=True)
@@ -393,6 +393,7 @@ class UrtextProject:
                     if entry.keyname == self.settings['node_date_keyname']:
                         self.nodes[node_id].date = dt_stamp
                 else:
+
                     message =''.join([ 'Timestamp ' , entry.dtstring ,
                                   ' not in any specified date format in >',
                                   node_id ])

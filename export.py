@@ -507,7 +507,7 @@ class UrtextExport:
         return contents
 
 def insert_format_character(text):
-    return ''.join(['`',result,'`'])
+    return '\n'.join(['    '+n for n in text.split('\n')])
 
 
 def strip_leading_space(text):

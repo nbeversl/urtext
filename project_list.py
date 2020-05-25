@@ -113,20 +113,17 @@ class ProjectList():
         return None
 
     def get_project(self, title_or_path):
-        project = None
         project = self._get_project_from_title(title_or_path) 
         if not project:
-            project = self._get_project_from_title(title_or_path) 
+            project = self._get_project_from_path(title_or_path) 
         return project
 
     def set_current_project(self, title_or_path):
-        project = None
-        project = self._get_project_from_title(title_or_path) 
-        if not project:
-            project = self._get_project_from_path(title_or_path)
-        if project and project != self.current_project:
+        project = self.get_project(title_or_path) 
+        if project and project.title != self.current_project.title:
            self.current_project = project
            print('Urtext project switched to ' + self.current_project.title)
+
         return project
 
     def build_contextual_link(self, 
@@ -329,9 +326,7 @@ class ProjectList():
                 index = self.navigation.index(navigation_entry)
                 del self.navigation[index]
                 if self.nav_index > index: # >= ?
-                    self.na
-
-                    dex -= 1
+                    self.nav_index -= 1
 
     def nav_new(self, node_id, project=None):
         if not project:

@@ -56,8 +56,8 @@ def rename_file_nodes(self, filenames, reindex=False):
     for filename in filenames:
         old_filename = os.path.basename(filename)
 
-        if not self.files[filename].root_nodes:
-            self._log_item('DEBUGGING (reindex.py): No root nodes in '+filename)
+        if not self.files[old_filename].root_nodes:
+            self._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
             continue
         ## Name each file from the first root_node
         root_node_id = self.files[old_filename].root_nodes[0]

@@ -112,22 +112,22 @@ def _add_sub_tags(self,
         """
         node_to_tag = child.name.strip('ALIAS') 
         """ """
+        if node_to_tag in self.nodes:
 
-
-        self.nodes[node_to_tag].metadata.add_meta_entry(
-            tag, 
-            value,
-            from_node=source_id)
-        self.dynamic_meta[source_id].append(node_to_tag)
-        if node_to_tag not in nodes_to_rebuild:
-            nodes_to_rebuild.append(node_to_tag)
-        if recursive:
-            self._add_sub_tags(
-                source_id,
-                node_to_tag,
-                tag,
+            self.nodes[node_to_tag].metadata.add_meta_entry(
+                tag, 
                 value,
-                recursive=recursive)
+                from_node=source_id)
+            self.dynamic_meta[source_id].append(node_to_tag)
+            if node_to_tag not in nodes_to_rebuild:
+                nodes_to_rebuild.append(node_to_tag)
+            if recursive:
+                self._add_sub_tags(
+                    source_id,
+                    node_to_tag,
+                    tag,
+                    value,
+                    recursive=recursive)
 
     for node_id in nodes_to_rebuild:
         self._rebuild_node_meta(node_id)
