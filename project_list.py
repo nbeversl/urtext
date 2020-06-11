@@ -17,7 +17,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
-from .project import init_project, node_id_regex, NoProject
+from .project import UrtextProject, node_id_regex, NoProject
 import concurrent.futures
 import re
 import os
@@ -40,7 +40,7 @@ class ProjectList():
         """ recursively add folders """
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
-                project = init_project(folder)
+                project = UrtextProject(folder)
                 self.projects.append(project)
                 print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
@@ -120,7 +120,7 @@ class ProjectList():
 
     def set_current_project(self, title_or_path):
         project = self.get_project(title_or_path) 
-        if project and project.title != self.current_project.title:
+        if  ( not self.current_project ) or ( project and project.title != self.current_project.title ) :
            self.current_project = project
            print('Urtext project switched to ' + self.current_project.title)
 

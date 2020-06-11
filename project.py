@@ -66,19 +66,6 @@ def add_functions_as_methods(functions):
         return Class
     return decorator
 
-    
-
-def init_project(path):
-    # development only: 
-    # prof = profile.Profile()
-    # project = prof.runcall(build_project, path)
-    # prof.print_stats(sort='cumtime')
-    # return project
-    return build_project(path)
-
-def build_project(path):
-    return UrtextProject(path)
-
 @add_functions_as_methods(functions)
 class UrtextProject:
     """ Urtext project object """
@@ -91,7 +78,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
 
-        self.async = True # use False for development only
+        self.is_async = True # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -167,7 +154,7 @@ class UrtextProject:
                 self.import_file(file)
 
         self.default_timezone = timezone(self.settings['timezone'][0])
-
+        
         if self.nodes == {}:
             if init_project == True:
                 self._log_item('Initalizing a new Urtext project in ' + self.path)
@@ -291,6 +278,7 @@ class UrtextProject:
         return False
 
     def _rewrite_titles(self, filename):
+        ## Bug here
         
         original_contents = self._full_file_contents(filename=filename)
         new_contents = original_contents
@@ -785,7 +773,7 @@ class UrtextProject:
 
     def nav_current(self):
 
-        if self.navigation:
+        if self.navigation and self.nav_index > -1:
             return self.navigation[self.nav_index]
         alternative = self.get_home()
         if not alternative:
@@ -1035,6 +1023,7 @@ class UrtextProject:
         Returns a future containing a list of modified files as the result.
         """
         return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
+        
         # syncronous:
         #self._pop_node(position=position, filename=filename, node_id=node_id)
 
@@ -1044,7 +1033,7 @@ class UrtextProject:
             node_id = self.get_node_id_from_position(filename, position)
  
         if not node_id:
-            print('NO NODE ID found here')
+            print('No node ID or duplicate Node ID')
             return None
 
         if self.nodes[node_id].root_node:
@@ -1052,7 +1041,7 @@ class UrtextProject:
             return None
 
         start = self.nodes[node_id].ranges[0][0]
-        end = self.nodes[node_id].ranges[-1][1]
+        end = self.nodes[node_id].ranges[-1][1]+1
         file_contents = self._full_file_contents(node_id=node_id)
         
         popped_node_id = node_id
@@ -1150,16 +1139,16 @@ class UrtextProject:
         
         self._log_item('MODIFIED ' + filename +' - Updating the project object')
 
-        if self.async:
+        if self.is_async:
             return self.executor.submit(self._file_update, filename)
         return self._file_update(filename)
     
     def _file_update(self, filename):
         modified_files = []
-        # rewritten_contents = self._rewrite_titles(filename)
-        # if rewritten_contents:
-        #     self._set_file_contents(filename, rewritten_contents)
-        #     modified_files.append(filename)
+        rewritten_contents = self._rewrite_titles(filename)
+        if rewritten_contents:
+            self._set_file_contents(filename, rewritten_contents)
+            modified_files.append(filename)
 
         # re-parse the file
         any_duplicate_ids = self._parse_file(filename)

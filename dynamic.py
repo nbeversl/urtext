@@ -49,6 +49,7 @@ class UrtextDynamicDefinition:
         self.tag_all_value = None
         self.recursive = False
         self.reverse = False
+        self.timeline = False
         self.timeline_type = None
         self.search = None
         self.show = '$title $link\n' # default

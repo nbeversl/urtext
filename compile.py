@@ -24,6 +24,7 @@ from .dynamic_output import DynamicOutput
 import os
 import re
 
+
 """
 compile method for the UrtextProject class
 """
@@ -32,7 +33,7 @@ def _compile(self,
     initial=False,
     modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
-
+    
     if modified_files is None:
         modified_files = []
 
@@ -49,6 +50,7 @@ def _compile(self,
             """
             Export
             """
+            
             if not dynamic_definition.export_source:
                 continue 
 
@@ -72,7 +74,7 @@ def _compile(self,
                     f.close()
                 
             new_node_contents.append(exported_content)
-
+         
         if not dynamic_definition.target_id:
             continue
         
@@ -88,13 +90,14 @@ def _compile(self,
                 
         if dynamic_definition.search:
 
+
             search_term = dynamic_definition.search
             search = UrtextSearch(self, 
                 search_term, 
                 format_string=dynamic_definition.show)
-            
-            new_node_contents = search.initiate_search()
 
+            new_node_contents = search.initiate_search()
+           
         elif dynamic_definition.tree:
 
             """
@@ -110,12 +113,13 @@ def _compile(self,
             """
             Interlinks
             """
-
+      
+           
             new_node_contents.append(self.get_node_relationships(
-                dynamic_definition.interlinks,
-                omit=dynamic_definition.omit))
+            dynamic_definition.interlinks,
+            omit=dynamic_definition.omit))
+                
 
-        
             
         elif dynamic_definition.tag_all_key:
             
@@ -181,9 +185,10 @@ def _compile(self,
             build timeline if specified
             """ 
 
-            if dynamic_definition.timeline_type:
-                
+            if dynamic_definition.timeline:
+                    
                 new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
+                
                 
             else:
 
@@ -258,7 +263,8 @@ def _compile(self,
                         next_content.other_format_keys[meta_key] = values
 
                     new_node_contents.append(next_content.output())
-                        
+            
+           
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
@@ -279,6 +285,7 @@ def _compile(self,
              modified_files.append(messages_file)
 
     return list(set(modified_files))
+
 
 def _export(self, dynamic_definition):
     """
