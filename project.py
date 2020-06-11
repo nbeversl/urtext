@@ -278,16 +278,15 @@ class UrtextProject:
         return False
 
     def _rewrite_titles(self, filename):
-        ## Bug here
         
         original_contents = self._full_file_contents(filename=filename)
         new_contents = original_contents
-        
+        offset = 0        
         for match in re.finditer(title_marker_regex, new_contents):
-            start = match.start()
-            end = match.end()
+            start = match.start() + offset
+            end = match.end() + offset
             location_node_id = self.get_node_id_from_position(filename, start)
-            if not self.nodes[location_node_id].dynamic:
+            if not self.nodes[location_node_id].dynamic:          
                 match_contents = new_contents[start:end]
                 node_id = match_contents[-3:]
                 if node_id in self.nodes:
@@ -297,7 +296,12 @@ class UrtextProject:
                 bracket = '>'
                 if re.search(node_pointer_regex, match_contents):
                     bracket += '>'
-                new_contents = new_contents.replace(match_contents, '| '+title+' '+bracket+node_id)
+                replaced_contents = ''.join([new_contents[:start],
+                    '| ', title, ' ', bracket, node_id,
+                    new_contents[end:]
+                    ])
+                offset += len(replaced_contents) - len(new_contents)
+                new_contents = replaced_contents
         if new_contents != original_contents:
             return new_contents 
         return False
