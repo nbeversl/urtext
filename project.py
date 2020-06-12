@@ -605,9 +605,8 @@ class UrtextProject:
         """
         filename = os.path.basename(filename)
         node_ids = list(self.files[filename].nodes)
-        self._remove_file(filename)
+        future = self.remove_file(filename)
         os.remove(os.path.join(self.path, filename))
-        future = self.executor.submit(self._update)
         for node_id in node_ids:
             while node_id in self.navigation:
                 index = self.navigation.index(node_id)
@@ -615,7 +614,7 @@ class UrtextProject:
                 if self.nav_index > index: # >= ?
                     self.nav_index -= 1
         
-        return future
+        return node_ids # to project_list
 
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
