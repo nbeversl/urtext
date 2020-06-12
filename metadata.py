@@ -33,6 +33,7 @@ class NodeMetadata:
         self.case_sensitive_values = [ 
                 'title',
                 'notes',
+                'comments',
                 'project_title',
                 'timezone',
                 'timestamp_format',

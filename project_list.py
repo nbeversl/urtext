@@ -102,6 +102,7 @@ class ProjectList():
 
     def _get_project_from_path(self, path):
         for project in self.projects:
+            print(project.path)
             if path == project.path:
                 return project
         return None
