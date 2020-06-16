@@ -90,6 +90,8 @@ class UrtextProject:
         self.dynamic_nodes = []  # { target : definition, etc.}
         self.dynamic_meta = {} # source_id : [ target_id, ... ]
         self.compiled = False
+        self.links_to = {}
+        self.links_from = {}
         self.alias_nodes = []
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
@@ -171,8 +173,13 @@ class UrtextProject:
              self._parse_meta_dates(node_id, initial=True)
         
         self._get_access_history()
+        self.formulate_links_to()
         self._compile(initial=True)
-            
+        
+        
+        # for node_id in self.links_to:
+        #     self.build_ro_block(node_id)
+
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -181,6 +188,27 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
+    def build_ro_block(self, node_id):
+        if node_id not in self.nodes:
+            return
+        ro_block = ['Links Into this Node:']
+        for link_to in self.links_to[node_id]:
+            ro_block.append('| >'+link_to)
+        ro_block = '\n'.join(ro_block)
+        self.nodes[node_id].set_ro_block(ro_block)
+        self._parse_file(self.nodes[node_id].filename)
+
+    def formulate_links_to(self):       
+        for node_id in self.links_from:
+            self.update_links_in(node_id)
+
+    def update_links_in(self, node_id):
+
+        for link_from in self.links_from[node_id]:
+            if link_from not in self.links_to:
+                self.links_to[link_from] = []
+            if node_id not in self.links_to[link_from]:
+                self.links_to[link_from].append(node_id) 
 
     def _assign_node_parent_title(self):
         """
@@ -338,7 +366,7 @@ class UrtextProject:
                                   defined, '.'
                                   ])
 
-                    self.messages[new_file.basename].append(message)
+                    self.messages[new_node.filename].append(message)
                     self._log_item(message)
                 else:
                     self.dynamic_nodes.append(definition)
@@ -352,7 +380,7 @@ class UrtextProject:
                                   ' has duplicate definition in >' , new_node.id ,
                                   '. Keeping the definition in >' , defined , '.'
                                   ])
-                    self.message[new_file.basename].append(message)
+                    self.message[new_node.filename].append(message)
                     self._log_item(message)
                 else:
                     self.dynamic_nodes.append(definition)
@@ -370,7 +398,12 @@ class UrtextProject:
         if new_node.id in self.access_history:
             new_node.last_accessed = self.access_history[new_node.id]
 
+        # TODO : it's not necessary to keep a copy of this
+        # inside the node. do it at the project level only. 
+        self.links_from[new_node.id] = new_node.links_from
         self.nodes[new_node.id] = new_node
+        self.update_links_in(new_node.id)
+
         if new_node.project_settings:
             self._get_settings_from(new_node)
 
@@ -570,6 +603,7 @@ class UrtextProject:
                 # (also rebuilds the meta for the target nodes)
                 self._remove_sub_tags(node_id)
                 
+                del self.links_from[node_id]
                 del self.nodes[node_id]
 
             del self.files[filename]

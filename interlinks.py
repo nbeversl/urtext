@@ -20,6 +20,7 @@ import re
 from .metadata import NodeMetadata
 from anytree import Node
 from anytree import RenderTree
+node_link_regex =       r'>[0-9,a-z]{3}\b'
 
 node_id_regex = '[0-9,a-z]{3}'
 

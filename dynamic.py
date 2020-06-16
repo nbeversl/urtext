@@ -38,6 +38,8 @@ class UrtextDynamicDefinition:
         self.include_and = []
         self.exclude_or = []
         self.exclude_and = []
+        self.links_to = []
+        self.links_from = []
         self.tree = None
         self.sort_keyname = None
         self.metadata = {}
@@ -166,6 +168,12 @@ class UrtextDynamicDefinition:
                 elif group:
                     self.exclude_or.extend(group)
                 continue
+
+            if func == "LINKS_TO":
+                self.links_to = params
+                print(params)
+            if func == "LINKS_FROM":
+                self.links_from = params
 
             if func == "FORMAT":
 

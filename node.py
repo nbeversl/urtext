@@ -32,6 +32,7 @@ dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
+node_link_regex = r'>[0-9,a-z]{3}\b'
 
 def create_urtext_node(
     filename, 
@@ -67,8 +68,11 @@ def create_urtext_node(
             dynamic_definitions.append(dynamic_definition)
 
     new_node.dynamic_definitions = dynamic_definitions
-
+    no_metadata = UrtextNode.strip_metadata(contents=stripped_contents)
+    new_node.get_links(contents=no_metadata)
     return new_node
+
+ro_separator = '@@@@@'
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -87,6 +91,7 @@ class UrtextNode:
         self.export_points = {}
         self.dynamic = False
         self.id = None
+        self.links_from = []
         self.root_node = root
         self.tz = pytz.timezone('UTC')
         self.date = default_date # default, modified by the project
@@ -115,6 +120,7 @@ class UrtextNode:
 
         self.reset_node()
 
+
     def start_position(self):
         return self.ranges[0][0]
 
@@ -138,6 +144,8 @@ class UrtextNode:
         # FUTURE: There may be a cleaner way to accomplish this at parse-time.
         node_contents = node_contents.replace('{{','')
         node_contents = node_contents.replace('}}','')
+        if ro_separator in node_contents:
+            node_contents = node_contents.split(ro_separator,1)[1]
         if self.compact: # don't include the compact marker
              node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
@@ -182,6 +190,13 @@ class UrtextNode:
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
         return contents
+    
+    def get_links(self, contents=None):
+        if contents == None:
+            contents = self.contents_only()
+        nodes = re.findall(node_link_regex, contents)  # link RegEx
+        for node in nodes:
+            self.links_from.append(node[1:])
 
     @classmethod
     def strip_contents(self, contents):
@@ -194,7 +209,8 @@ class UrtextNode:
 
     @classmethod
     def set_title(self, contents, metadata=None):
-
+        if ro_separator in contents:
+            contents = contents.split(ro_separator,1)[1]
         #
         # check for title metadata
         #
@@ -292,9 +308,45 @@ class UrtextNode:
                 keynames.append(entry.keyname)
         return keynames
 
-    def set_content(self, contents):
+    def get_region(self, region):
+        region = self.ranges[region]
+        with open(os.path.join(self.project_path, self.filename),
+                  'r',
+                  encoding='utf-8') as theFile:
+            file_contents = theFile.read()
+        region_contents = file_contents[region[0]: region[1]]
+        return region_contents
 
-        if contents == self.contents():
+    def set_region(self, region, contents):
+        with open(os.path.join(self.project_path, self.filename),
+                  'r',
+                  encoding='utf-8') as theFile:
+            file_contents = theFile.read()
+
+        region = self.ranges[region]
+        new_contents = file_contents[:region[0]] + contents +  file_contents[region[1]:]
+        if new_contents == file_contents:
+            return None
+        with open(os.path.join(self.project_path, self.filename),
+                  'w',
+                  encoding='utf-8') as theFile:
+            theFile.write(new_contents)
+
+    def set_ro_block(self, ro_block, region=0):
+
+        current_region = self.get_region(region)
+
+        if ro_separator in current_region:
+            user_content = current_region.split(ro_separator,1)[1]
+        else:
+            user_content = current_region
+        new_contents = ro_block + ro_separator + '\n'+ user_content
+        if new_contents != current_region:
+            self.set_region(region, new_contents)
+
+    def set_content(self, contents, bypass_check=False):
+
+        if not bypass_check and contents == self.contents():
             return False
 
         with open(os.path.join(self.project_path, self.filename),

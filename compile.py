@@ -114,13 +114,11 @@ def _compile(self,
             Interlinks
             """
       
-           
             new_node_contents.append(self.get_node_relationships(
             dynamic_definition.interlinks,
             omit=dynamic_definition.omit))
-                
+        
 
-            
         elif dynamic_definition.tag_all_key:
             
             """
@@ -152,8 +150,19 @@ def _compile(self,
 
             # Assemble requested nodes
 
-            if dynamic_definition.include_all:
-                included_nodes = set([self.nodes[node_id] for node_id in self.nodes])
+            if dynamic_definition.links_to or dynamic_definition.links_from:
+                included_nodes = []
+                for node_id in dynamic_definition.links_to:
+                    if node_id in self.links_to:
+                        included_nodes.extend([r for r in self.links_to[node_id] if not self.nodes[r].dynamic])
+                for node_id in dynamic_definition.links_from:
+                    if node_id in self.links_from:
+                       included_nodes.extend([r for r in self.links_from[node_id] if not self.nodes[r].dynamic])
+            
+                included_nodes = [self.nodes[node_id] for node_id in included_nodes]
+
+            elif dynamic_definition.include_all:
+                included_nodes = [self.nodes[node_id] for node_id in self.nodes]
 
             else:
                 included_nodes = []
@@ -167,14 +176,13 @@ def _compile(self,
                     included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))                     
                     included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
                 
-
             excluded_nodes = set([])
             for project in included_projects:
 
                 excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
                 excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-            
+            included_nodes = set(included_nodes)
             included_nodes -= excluded_nodes
 
             # Never include a dynamic node in itself.
