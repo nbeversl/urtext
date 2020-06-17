@@ -909,6 +909,13 @@ class UrtextProject:
                     return node_id
         return None
 
+    def get_links_to(self, to_id):
+        """
+        Returns the list of all nodes linking to the passed id
+        """
+        if to_id in self.links_to:
+            return  self.links_to[to_id]
+        return []
     def get_link(self, string, position=0):
         """ 
         Given a line of text passed from an editor, 
@@ -1243,7 +1250,7 @@ class UrtextProject:
             return self.executor.submit(self._update)
 
     def remove_file(self, filename):
-        self._remove_file(filename) 
+        self._remove_file(os.path.basename(filename)) 
         return self.executor.submit(self._update)
     
     def get_file_name(self, node_id, absolute=False):

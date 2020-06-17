@@ -72,8 +72,6 @@ def create_urtext_node(
     new_node.get_links(contents=no_metadata)
     return new_node
 
-ro_separator = '@@@@@'
-
 class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, 
@@ -144,8 +142,6 @@ class UrtextNode:
         # FUTURE: There may be a cleaner way to accomplish this at parse-time.
         node_contents = node_contents.replace('{{','')
         node_contents = node_contents.replace('}}','')
-        if ro_separator in node_contents:
-            node_contents = node_contents.split(ro_separator,1)[1]
         if self.compact: # don't include the compact marker
              node_contents = node_contents.lstrip().replace('^','',1)
         return node_contents
@@ -209,8 +205,6 @@ class UrtextNode:
 
     @classmethod
     def set_title(self, contents, metadata=None):
-        if ro_separator in contents:
-            contents = contents.split(ro_separator,1)[1]
         #
         # check for title metadata
         #
@@ -331,18 +325,6 @@ class UrtextNode:
                   'w',
                   encoding='utf-8') as theFile:
             theFile.write(new_contents)
-
-    def set_ro_block(self, ro_block, region=0):
-
-        current_region = self.get_region(region)
-
-        if ro_separator in current_region:
-            user_content = current_region.split(ro_separator,1)[1]
-        else:
-            user_content = current_region
-        new_contents = ro_block + ro_separator + '\n'+ user_content
-        if new_contents != current_region:
-            self.set_region(region, new_contents)
 
     def set_content(self, contents, bypass_check=False):
 
