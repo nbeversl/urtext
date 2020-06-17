@@ -54,7 +54,7 @@ def create_urtext_node(
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
     metadata = NodeMetadata(stripped_contents)
 
-    new_node = UrtextNode(filename, metadata, root=root, compact=compact)
+    new_node = UrtextNode(filename, metadata, contents, root=root, compact=compact)
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
     possible_defs = ['[['+section for section in contents.split('[[') ]
     dynamic_definitions = []
@@ -76,7 +76,8 @@ class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, 
         filename, 
-        metadata, 
+        metadata,
+        contents,
         root=False, 
         compact=False):
 
@@ -106,6 +107,10 @@ class UrtextNode:
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
+        else:
+            r = re.match('\s[a-z0-9]{3}', contents[-4:])
+            if r:
+                self.id = contents[-3:]
 
         title_value = self.metadata.get_first_meta_value('title')
         if title_value and title_value == 'project_settings':
