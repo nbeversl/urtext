@@ -268,13 +268,17 @@ class UrtextNode:
 
     @classmethod
     def build_metadata(self, 
-        keynames, 
+        metadata, 
         one_line=False, 
         wrapped=True
         ):
 
+        if not metadata:
+            return ''
+
         if one_line:
             line_separator = '; '
+
         else:
             line_separator = '\n'
   
@@ -285,12 +289,12 @@ class UrtextNode:
         
         if not one_line: 
             new_metadata += line_separator
-        for keyname in keynames:
+        for keyname in metadata:
             new_metadata += keyname + ': '
-            if isinstance(keynames[keyname], list):
-                new_metadata += ' | '.join(keynames[keyname])
+            if isinstance(metadata[keyname], list):
+                new_metadata += ' | '.join(metadata[keyname])
             else:
-                new_metadata += keynames[keyname]
+                new_metadata += metadata[keyname]
             new_metadata += line_separator
         if one_line:
             new_metadata = new_metadata[:-2] + ' '
