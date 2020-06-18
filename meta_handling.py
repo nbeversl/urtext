@@ -72,6 +72,9 @@ def consolidate_metadata(self, node_id, one_line=False):
 def _rebuild_node_meta(self, node_id):
     """ Rebuilds metadata info for a single node """
 
+    # first remove it from the project keywords dict.
+    self._unbuild_node_meta(node_id)
+
     for entry in self.nodes[node_id].metadata.entries:
 
         # title becomes a node property elsewhere
@@ -95,8 +98,6 @@ def _add_sub_tags(self,
     value, 
     recursive=False):
     
-    self._remove_sub_tags(source_id)
-
     if source_id not in self.dynamic_meta:
         self.dynamic_meta[source_id] = []
 
@@ -133,7 +134,6 @@ def _add_sub_tags(self,
         self._rebuild_node_meta(node_id)
 
 def _remove_sub_tags(self, source_id):
-
     if source_id not in self.dynamic_meta:
         return
 
@@ -146,7 +146,7 @@ def _remove_sub_tags(self, source_id):
         if target_id not in nodes_to_rebuild:
             nodes_to_rebuild.append(target_id)
 
-        # ALSO need to remove it from the project metadata dict.
+    del self.dynamic_meta[source_id]
 
     # rebuild meta for all the target nodes
     for node_id in nodes_to_rebuild:

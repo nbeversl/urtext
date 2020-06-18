@@ -29,19 +29,33 @@ import re
 compile method for the UrtextProject class
 """
 def _compile(self, 
-    skip_tags=False, 
     initial=False,
     modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
     
+
     if modified_files is None:
         modified_files = []
 
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
+   
+    """ This has to be done before anything else """
+    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key ] :
+        print('writing tags for ')
 
-    for dynamic_definition in self.dynamic_nodes:
+        """
+        Tag All
+        """            
+        self._add_sub_tags(
+            dynamic_definition.source_id,
+            dynamic_definition.target_id, 
+            dynamic_definition.tag_all_key, 
+            dynamic_definition.tag_all_value, 
+            recursive=dynamic_definition.recursive)                    
+
+    for dynamic_definition in [ r for r in self.dynamic_nodes if not r.tag_all_key ]:
         
         points = {}
         new_node_contents = []
@@ -118,24 +132,8 @@ def _compile(self,
             dynamic_definition.interlinks,
             omit=dynamic_definition.omit))
         
-
-        elif dynamic_definition.tag_all_key:
             
-            """
-            Tag All
-            """
-                        
-            if not skip_tags:
-                self._add_sub_tags(
-                    dynamic_definition.source_id,
-                    dynamic_definition.target_id, 
-                    dynamic_definition.tag_all_key, 
-                    dynamic_definition.tag_all_value, 
-                    recursive=dynamic_definition.recursive)                    
-                #self._compile(skip_tags=True, modified_files=modified_files)
-            continue
-            
-        else:  
+        elif dynamic_definition.include_all or dynamic_definition.include_or or dynamic_definition.include_and:  
             
             """
             Otherwise this is going to pull from contents of individual nodes,
@@ -272,7 +270,10 @@ def _compile(self,
 
                     new_node_contents.append(next_content.output())
             
-           
+        
+        else:
+            return   
+  
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 

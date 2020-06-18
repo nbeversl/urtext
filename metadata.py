@@ -126,7 +126,7 @@ class NodeMetadata:
             self.entries.append(new_entry)
 
     def remove_dynamic_meta_from_source_node(self, source_node_id):
-        for entry in self.entries:
+        for entry in list(self.entries):
             if entry.from_node == source_node_id:
                 self.entries.remove(entry)
 

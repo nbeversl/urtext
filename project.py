@@ -1090,7 +1090,7 @@ class UrtextProject:
             return None
 
         start = self.nodes[node_id].ranges[0][0]
-        end = self.nodes[node_id].ranges[-1][1]+1
+        end = self.nodes[node_id].ranges[-1][1]
         file_contents = self._full_file_contents(node_id=node_id)
         
         popped_node_id = node_id
@@ -1105,7 +1105,7 @@ class UrtextProject:
              ' >>',
             popped_node_id,
             '\n',
-            file_contents[end + 1:]])
+            file_contents[end + 2:]])
        
         #  existing file
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
