@@ -176,10 +176,6 @@ class UrtextProject:
         self.formulate_links_to()
         self._compile(initial=True)
         
-        
-        # for node_id in self.links_to:
-        #     self.build_ro_block(node_id)
-
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -187,16 +183,6 @@ class UrtextProject:
             'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
         ]
         return itertools.product(chars, repeat=3)
-
-    def build_ro_block(self, node_id):
-        if node_id not in self.nodes:
-            return
-        ro_block = ['Links Into this Node:']
-        for link_to in self.links_to[node_id]:
-            ro_block.append('| >'+link_to)
-        ro_block = '\n'.join(ro_block)
-        self.nodes[node_id].set_ro_block(ro_block)
-        self._parse_file(self.nodes[node_id].filename)
 
     def formulate_links_to(self):       
         for node_id in self.links_from:
@@ -578,6 +564,7 @@ class UrtextProject:
             output += '\n'+UrtextNode.build_metadata(
                 {   'id':self.settings['log_id'],
                     'title':'Log',
+                    'timestamp' : self.timestamp(datetime.datetime.now())
                 })
             changed = self._set_node_contents(self.settings['log_id'], output)     
             if changed:

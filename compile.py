@@ -43,7 +43,6 @@ def _compile(self,
    
     """ This has to be done before anything else """
     for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key ] :
-        print('writing tags for ')
 
         """
         Tag All
@@ -55,8 +54,8 @@ def _compile(self,
             dynamic_definition.tag_all_value, 
             recursive=dynamic_definition.recursive)                    
 
-    for dynamic_definition in [ r for r in self.dynamic_nodes if not r.tag_all_key ]:
-        
+    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key == None ]:
+ 
         points = {}
         new_node_contents = []
         
@@ -195,7 +194,6 @@ def _compile(self,
                     
                 new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
                 
-                
             else:
 
                 """ otherwise this is a list. """
@@ -269,10 +267,7 @@ def _compile(self,
                         next_content.other_format_keys[meta_key] = values
 
                     new_node_contents.append(next_content.output())
-            
-        
-        else:
-            return   
+             
   
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
