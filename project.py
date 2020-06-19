@@ -238,7 +238,7 @@ class UrtextProject:
 
         if not new_file.is_parseable:
             if already_in_project:
-                self._log_item('Unable to re-parse '+filename+ ', dropping it from the project.')
+                self._log_item('Unable to re-parse >f'+filename+ ', dropping it from the project.')
                 return False
             self.to_import.append(filename)
 
@@ -286,7 +286,7 @@ class UrtextProject:
 
             for node_id in duplicate_nodes:
                 self.messages[basename].append(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
-                self._log_item(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
+                self._log_item(''.join(['ID >',node_id,' exists in >f',duplicate_nodes[node_id]]))
             return duplicate_nodes
 
         return False
@@ -362,7 +362,7 @@ class UrtextProject:
                 defined = self._target_file_defined(definition.target_file)
                 if defined and defined != new_node.id:
                     message = ''.join([ 
-                                  'File ' , definition.target_file ,
+                                  'File >f' , definition.target_file ,
                                   ' has duplicate definition in >' , new_node.id ,
                                   '. Keeping the definition in >' , defined , '.'
                                   ])
@@ -554,7 +554,7 @@ class UrtextProject:
         output = []
         for filename in self.messages:
             if self.messages[filename]:
-                output.append('./'+filename)
+                output.append('f>./'+filename)
                 output.extend(self.messages[filename])
         return '\n'.join(output)
 
@@ -861,7 +861,7 @@ class UrtextProject:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
                 if not self.files[filename].root_nodes:
-                    self._log_item('DEBUGGING (project.py): No root nodes in '+filename)
+                    self._log_item('DEBUGGING (project.py): No root nodes in f>'+filename)
                 else:
                     root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
@@ -908,6 +908,7 @@ class UrtextProject:
         if to_id in self.links_to:
             return  self.links_to[to_id]
         return []
+
     def get_link(self, string, position=0):
         """ 
         Given a line of text passed from an editor, 
@@ -1173,7 +1174,7 @@ class UrtextProject:
         if filename in do_not_update or '.git' in filename:
             return (True, '')
         
-        self._log_item('MODIFIED ' + filename +' - Updating the project object')
+        self._log_item('MODIFIED >f' + filename +' - Updating the project object')
 
         if self.is_async:
             return self.executor.submit(self._file_update, filename)

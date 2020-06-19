@@ -269,7 +269,7 @@ class UrtextFile:
         except IsADirectoryError:
             return None
         except UnicodeDecodeError:
-            self.log_error('UnicodeDecode Error: ' + filename)
+            self.log_error('UnicodeDecode Error: f>' + filename)
             return None
 
     def log_error(self, message, position):
@@ -282,7 +282,7 @@ class UrtextFile:
         self.messages.append(message +' at position '+ str(position))
 
         print(''.join([ 
-                message, ' in ', self.filename, ' at position ',
+                message, ' in >f', self.filename, ' at position ',
             str(position)]))
 
         return None
