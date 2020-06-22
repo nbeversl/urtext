@@ -23,12 +23,16 @@ from pytz import timezone
 from .node import UrtextNode 
 import pprint
 
-def _timeline(self, nodes, dynamic_definition):
+def _timeline(self, nodes, dynamic_definition, amount=150):
     """ given an Urtext Project and nodes, generates a timeline """
 
     found_stuff = []
     for node in nodes:
         
+        if node.id == self.settings['log_id']:
+            # exclude log from timeline
+            continue
+
         # metadata datestamps
         if dynamic_definition.timeline_type in [ None, 'meta']:
             contents = self.nodes[node.id].content_only()
@@ -36,7 +40,11 @@ def _timeline(self, nodes, dynamic_definition):
             found_thing['filename'] = node.id
             found_thing['kind'] = 'from Node ID'
             found_thing['date'] = node.date
-            found_thing['contents'] = contents[:150]
+            found_thing['contents'] = contents[:amount]
+            if len(contents) > amount:
+                found_thing['contents'] = '...   ' + found_thing['contents'] +  '      ...'
+            else:
+                found_thing['contents'] = '      ' + found_thing['contents']
             found_stuff.append(found_thing)
 
         # inline timestamps
@@ -77,6 +85,10 @@ def _timeline(self, nodes, dynamic_definition):
                         found_thing['filename'] = node.id + ':' + str(num)
                         found_thing['kind'] = 'as inline timestamp '
                         found_thing['date'] = datetime_obj
+                        if len(relevant_text) > amount:
+                            relevant_text = '...   ' + relevant_text +  '      ...'
+                        else:
+                            relevant_text = '      ' + relevant_text
                         found_thing['contents'] = relevant_text
                         found_stuff.append(found_thing)
 
@@ -91,7 +103,7 @@ def _timeline(self, nodes, dynamic_definition):
         contents = sorted_stuff[index]['contents'].strip()
         while '\n\n' in contents:
             contents = contents.replace('\n\n', '\n')
-        contents = '      ...' + contents.replace('\n', '\n|      ') + '...   '
+        contents = '      ' + contents.replace('\n', '\n|      ')
         timeline.extend([
             '|<----', 
             sorted_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p'), 

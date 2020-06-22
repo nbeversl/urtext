@@ -45,6 +45,7 @@ from .reindex import reindex_functions
 from .watchdog import watchdog_functions
 from .search import search_functions
 from .timeline import timeline_functions
+from .dynamic import UrtextDynamicDefinition
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -169,11 +170,10 @@ class UrtextProject:
             return None            
         
         # must be done once manually on project init
-        for node_id in self.nodes:  
-             self._parse_meta_dates(node_id, initial=True)
-        
+        for node_id in self.nodes:
+            self._parse_meta_dates(node_id)
+            
         self._get_access_history()
-        self.formulate_links_to()
         self._compile(initial=True)
         
     def _node_id_generator(self):
@@ -195,6 +195,11 @@ class UrtextProject:
                 self.links_to[link_from] = []
             if node_id not in self.links_to[link_from]:
                 self.links_to[link_from].append(node_id) 
+
+    def remove_links_in(self, node_id):
+
+        for destination in self.links_to:
+            self.links_to[destination] = [ r for r in self.links_to[destination] if r != node_id ]
 
     def _assign_node_parent_title(self):
         """
@@ -242,15 +247,14 @@ class UrtextProject:
                 return False
             self.to_import.append(filename)
 
-        # clear all node_id's defined from this file since the file has changed
         self._remove_file(filename)
         """
         Check the file for duplicate nodes
         """
         duplicate_nodes = self._check_file_for_duplicates(new_file)
         if duplicate_nodes:
-            """ return list of duplicate nodes if duplicate nodes """
             return duplicate_nodes
+ 
         """
         re-add the filename and all its nodes to the project
         """
@@ -258,17 +262,18 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
+        
+        self._set_tree_elements(new_file.basename)
+
+        for node_id in new_file.nodes:
+            self._rebuild_node_meta(node_id)
+
         """
         If this is not the initial load of the project, parse the timestamps in the file
         """
         if self.compiled:
             for node_id in new_file.nodes:
                 self._parse_meta_dates(node_id)
-        
-        self._set_tree_elements(new_file.basename)
-
-        for node_id in new_file.nodes:
-            self._rebuild_node_meta(node_id)
 
         """ returns None if successful """
         return None
@@ -393,18 +398,21 @@ class UrtextProject:
         if new_node.project_settings:
             self._get_settings_from(new_node)
 
-    def _parse_meta_dates(self, node_id, initial=False):
+    def _parse_meta_dates(self, node_id):
         """ Parses dates (requires that timestamp_format already be set) """
-
+        
         for entry in self.nodes[node_id].metadata.entries:
+
             if entry.dtstring:
                 dt_stamp = self._date_from_timestamp(entry.dtstring)
+
                 if dt_stamp:
-                    entry.dt_stamp = dt_stamp
+                    entry.dt_stamp = dt_stamp 
                     if entry.keyname == self.settings['node_date_keyname']:
                         self.nodes[node_id].date = dt_stamp
+                    if node_id == '8kw':
+                        print(self.nodes[node_id].date)
                 else:
-
                     message =''.join([ 'Timestamp ' , entry.dtstring ,
                                   ' not in any specified date format in >',
                                   node_id ])
@@ -591,6 +599,7 @@ class UrtextProject:
                 self._remove_sub_tags(node_id)
                 
                 del self.links_from[node_id]
+                self.remove_links_in(node_id)
                 del self.nodes[node_id]
 
             del self.files[filename]
@@ -966,9 +975,10 @@ class UrtextProject:
         self._log_item('No node ID, web link, or file found on this line.')
         return None
 
-    def build_timeline(self, nodes):
-        """ Given a list of nodes, returns a timeline """
-        return timeline(self, nodes)
+    def build_timeline(self):
+        """ Returns a timeline of the whole project """ 
+        s = UrtextDynamicDefinition('')
+        return self._timeline([self.nodes[j] for j in self.nodes], s)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1174,21 +1184,22 @@ class UrtextProject:
         if filename in do_not_update or '.git' in filename:
             return (True, '')
         
-        self._log_item('MODIFIED >f' + filename +' - Updating the project object')
+        self._log_item('MODIFIED f>' + filename +' - Updating the project object')
 
         if self.is_async:
             return self.executor.submit(self._file_update, filename)
-        return self._file_update(filename)
+        #return self._file_update(filename)
     
     def _file_update(self, filename):
         modified_files = []
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-            modified_files.append(filename)
+        
+        modified_files.append(filename)
 
         # re-parse the file
-        any_duplicate_ids = self._parse_file(filename)
+        self._parse_file(filename)
 
         #update the project
         return self._update(modified_files=modified_files)

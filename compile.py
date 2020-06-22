@@ -32,8 +32,9 @@ def _compile(self,
     initial=False,
     modified_files=None):
     """ Main method to compile dynamic nodes from their definitions """
+   
+    self.formulate_links_to()
     
-
     if modified_files is None:
         modified_files = []
 
@@ -96,13 +97,9 @@ def _compile(self,
                           ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
 
-        filename = self.nodes[dynamic_definition.target_id].filename    
-   
-        if not initial:
-            self._parse_file(filename)
+        
                 
         if dynamic_definition.search:
-
 
             search_term = dynamic_definition.search
             search = UrtextSearch(self, 
@@ -128,11 +125,12 @@ def _compile(self,
             """
       
             new_node_contents.append(self.get_node_relationships(
-            dynamic_definition.interlinks,
-            omit=dynamic_definition.omit))
+                dynamic_definition.interlinks,
+                omit=dynamic_definition.omit))
+        
         
             
-        elif dynamic_definition.include_all or dynamic_definition.include_or or dynamic_definition.include_and:  
+        elif dynamic_definition.include_all or dynamic_definition.include_or or dynamic_definition.include_and or dynamic_definition.links_to or dynamic_definition.links_from:  
             
             """
             Otherwise this is going to pull from contents of individual nodes,
@@ -144,19 +142,6 @@ def _compile(self,
             included_projects = [self]
             if dynamic_definition.include_other_projects:
                 included_projects.extend(self.other_projects)
-
-            # Assemble requested nodes
-
-            if dynamic_definition.links_to or dynamic_definition.links_from:
-                included_nodes = []
-                for node_id in dynamic_definition.links_to:
-                    if node_id in self.links_to:
-                        included_nodes.extend([r for r in self.links_to[node_id] if not self.nodes[r].dynamic])
-                for node_id in dynamic_definition.links_from:
-                    if node_id in self.links_from:
-                       included_nodes.extend([r for r in self.links_from[node_id] if not self.nodes[r].dynamic])
-            
-                included_nodes = [self.nodes[node_id] for node_id in included_nodes]
 
             elif dynamic_definition.include_all:
                 included_nodes = [self.nodes[node_id] for node_id in self.nodes]
@@ -189,6 +174,17 @@ def _compile(self,
             """
             build timeline if specified
             """ 
+            if dynamic_definition.links_to or dynamic_definition.links_from:
+
+                included_nodes = []
+                for node_id in dynamic_definition.links_to:
+                    if node_id in self.links_to:
+                        included_nodes.extend([r for r in self.links_to[node_id] if not self.nodes[r].dynamic])
+                for node_id in dynamic_definition.links_from:
+                    if node_id in self.links_from:
+                       included_nodes.extend([r for r in self.links_from[node_id] if not self.nodes[r].dynamic])
+            
+                included_nodes = [self.nodes[node_id] for node_id in included_nodes]
 
             if dynamic_definition.timeline:
                     
@@ -268,17 +264,19 @@ def _compile(self,
 
                     new_node_contents.append(next_content.output())
              
-  
+
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
+
+        if not initial:
+            filename = self.nodes[dynamic_definition.target_id].filename    
+            self._parse_file(filename)
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file:
             modified_files.append(changed_file)       
         
-        if dynamic_definition.export:
-            # must be reset since the file will have been re-parsed
+        if dynamic_definition.export: # must be reset since the file will have been re-parsed
             self.nodes[dynamic_definition.target_id].export_points = points           
-
         if dynamic_definition.tree:
             self.nodes[dynamic_definition.target_id].is_tree = True
 

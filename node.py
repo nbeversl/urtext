@@ -360,7 +360,6 @@ class UrtextNode:
             theFile.write(new_file_contents)
             theFile.close()
 
-
         return True
         """ MUST re-parse now """
 

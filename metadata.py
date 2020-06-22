@@ -23,7 +23,7 @@ import pytz
 from .dynamic import key_value_timestamp
 
 meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
-default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
 timestamp_match = re.compile('(?:<)(.*?)(?:>)')
 
 class NodeMetadata:
@@ -157,7 +157,8 @@ class MetadataEntry:  # container for a single metadata entry
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
-        self.dt_stamp = default_date # default or set by project
+        self.dt_stamp = default_date # default or set by project        
+        #self.dt_stamp = None # default or set by project
         self.from_node = from_node
 
     def log(self):
