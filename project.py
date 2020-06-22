@@ -175,6 +175,7 @@ class UrtextProject:
             
         self._get_access_history()
         self._compile(initial=True)
+        self.compiled = True # critical to set this here
         
     def _node_id_generator(self):
         chars = [
@@ -270,7 +271,7 @@ class UrtextProject:
 
         """
         If this is not the initial load of the project, parse the timestamps in the file
-        """
+        """        
         if self.compiled:
             for node_id in new_file.nodes:
                 self._parse_meta_dates(node_id)
@@ -1220,7 +1221,6 @@ class UrtextProject:
 
         if compile_project:
             modified_files = self._compile(modified_files=modified_files)
-            self.compiled = True
 
         return modified_files
 
