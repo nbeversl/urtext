@@ -969,7 +969,7 @@ class UrtextProject:
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
         file_link = re.search(file_path, string)
         if file_link:
-            return ('FILE', file_link.group(0).strip())
+            return ('FILE', os.path.join(self.path,file_link.group(0).strip()))
 
         self._log_item('No node ID, web link, or file found on this line.')
         return None
