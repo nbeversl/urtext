@@ -923,8 +923,7 @@ class UrtextProject:
         """ 
         Given a line of text passed from an editor, 
         opens a web link, file, or returns a node,
-        in that order.
-        Returns a tuple of type and success/failure or node ID
+        in that order. Returns a tuple of type and success/failure or node ID
         """
         
         link = None
@@ -957,7 +956,6 @@ class UrtextProject:
             else:
                 self._log_item('Node ' + node_id + ' is not in the project')
                 return None
-
         editor_file_link_regex = re.compile('f>(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
         filename = re.search(editor_file_link_regex, string)
         if filename:
@@ -971,7 +969,7 @@ class UrtextProject:
         file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
         file_link = re.search(file_path, string)
         if file_link:
-            return ('FILE', os.path.join(self.path, file_link.group(0)))
+            return ('FILE', file_link.group(0).strip())
 
         self._log_item('No node ID, web link, or file found on this line.')
         return None

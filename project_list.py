@@ -24,10 +24,10 @@ import os
 
 class ProjectList():
 
-    def __init__(self, base_path):
+    def __init__(self, base_path, import_project=False):
         self.projects = []
         self.base_path = base_path
-        self._add_folder(base_path)
+        self._add_folder(base_path, import_project=import_project)
         self.current_project = None
         self.navigation = []
         self.nav_index = -1
@@ -40,7 +40,7 @@ class ProjectList():
         """ recursively add folders """
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
-                project = UrtextProject(folder)
+                project = UrtextProject(folder, import_project=import_project)
                 self.projects.append(project)
                 print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
