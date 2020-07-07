@@ -104,6 +104,14 @@ class UrtextDynamicDefinition:
                     if param == 'inline':
                         self.timeline_type = 'inline'
                         break
+                    if param == 'inline_other_meta':
+                        self.timeline_type = 'inline_other_meta'
+                        break
+                    
+                    key, value, timestamp = key_value_timestamp(param)
+                    if key == 'key':
+                        self.timeline_meta_key = value
+
                 continue
 
             if func == 'INCLUDE':
@@ -160,7 +168,6 @@ class UrtextDynamicDefinition:
                    
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
-
                         group.append((key,value))
 
                 if group and operator == 'and':

@@ -106,7 +106,7 @@ class NodeMetadata:
                     value = int(value)
                 except ValueError:
                     value = -1
-            end_position = position + m.group()
+            end_position = position + len(m.group())
             self.entries.append(
                 MetadataEntry(
                     key, 
@@ -135,7 +135,7 @@ class NodeMetadata:
         
         if values == [] and substitute_timestamp == True:
             for entry in self.entries:
-                if entry.keyname == keyname:
+                 if entry.keyname == keyname:
                     if entry.dt_stamp != default_date:
                         return [entry.dtstring]
 

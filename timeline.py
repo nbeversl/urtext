@@ -28,7 +28,11 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
 
     found_stuff = []
     for node in nodes:
-        
+
+        if node.dynamic:
+            # don't put contents of dynamic nodes into collection contents
+            continue
+
         if node.id == self.settings['log_id']:
             # exclude log from timeline
             continue
@@ -92,21 +96,47 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
                         found_thing['contents'] = relevant_text
                         found_stuff.append(found_thing)
 
-    sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
+        if dynamic_definition.timeline_type in [ 'inline_other_meta']:
+
+            full_contents = node.content_only()
+            full_contents = UrtextNode.strip_metadata(contents=full_contents)
+
+            for entry in node.metadata.entries:
+                if entry.inline:
+                    found_thing = {}
+                    entry.log()
+                    value = entry.values[0]
+                    relevant_text = full_contents[entry.position-10:entry.position]
+                    found_thing['filename'] = node.id + ':' + str(entry.position)
+                    found_thing['kind'] = 'as inline_key'
+                    found_thing['value'] = value
+                    found_thing['contents'] = relevant_text
+                    found_stuff.append(found_thing)
+            print(found_stuff)
+            sorted_stuff = sorted(found_stuff, key=lambda x: x['value'])
+        else:
+            sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
+    
     if not sorted_stuff:
         return ''
     if dynamic_definition.limit:
         sorted_stuff = sorted_stuff[0:dynamic_definition.limit]
     start_date = sorted_stuff[0]['contents']
     timeline = []
-    for index in range(0, len(sorted_stuff) - 1):
+    for index in range(0, len(sorted_stuff)):
         contents = sorted_stuff[index]['contents'].strip()
         while '\n\n' in contents:
             contents = contents.replace('\n\n', '\n')
         contents = '      ' + contents.replace('\n', '\n|      ')
+        
+        if 'date' in sorted_stuff[index]:
+            tag = sorted_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p')
+        if 'value' in sorted_stuff[index]:
+            tag = sorted_stuff[index]['value']
+
         timeline.extend([
             '|<----', 
-            sorted_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p'), 
+            tag, 
             ' ', 
             sorted_stuff[index]['kind'],
             ' >',
