@@ -25,8 +25,10 @@ from .dynamic import key_value_timestamp
 meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
 timestamp_match = re.compile('(?:<)(.*?)(?:>)')
+inline_meta = re.compile('\w+?\:\:\w+')
 
 class NodeMetadata:
+
     def __init__(self, full_contents, settings=None):
             
         self.entries = []
@@ -86,6 +88,34 @@ class NodeMetadata:
                     values = [ line ]
  
                 self.entries.append(MetadataEntry(key, values, dt_string))
+
+        # parse the inline metadata:
+        inline_metadata = []
+        for m in inline_meta.finditer(full_contents):
+            position = m.start()
+            entry = m.group().split('::')
+            key = entry[0].strip().lower()
+            if len(entry) == 1:
+                continue
+            value = entry[1]
+            if key not in self.case_sensitive_values:
+                value = value.lower()
+            value = value.strip()
+            if key in self.numeric_values:
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = -1
+            end_position = position + m.group()
+            self.entries.append(
+                MetadataEntry(
+                    key, 
+                    [value], 
+                    '', 
+                    position=position, 
+                    end_position=end_position,
+                    inline=True)
+                )    
 
         ids = []
         for entry in self.entries:
@@ -153,13 +183,24 @@ class NodeMetadata:
         return groups_list
 
 class MetadataEntry:  # container for a single metadata entry
-    def __init__(self, keyname, value, dtstring, from_node=None):
+    def __init__(self, 
+        keyname, 
+        value, 
+        dtstring,
+        position=None,
+        end_position=None, 
+        from_node=None,
+        inline=False):
+
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dtstring = dtstring
         self.dt_stamp = default_date # default or set by project        
-        #self.dt_stamp = None # default or set by project
         self.from_node = from_node
+        self.inline = inline
+        self.position = position
+        self.end_position = end_position
+
 
     def log(self):
         print('key: %s' % self.keyname)

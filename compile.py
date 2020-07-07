@@ -128,8 +128,6 @@ def _compile(self,
                 dynamic_definition.interlinks,
                 omit=dynamic_definition.omit))
         
-        
-            
         elif dynamic_definition.include_all or dynamic_definition.include_or or dynamic_definition.include_and or dynamic_definition.links_to or dynamic_definition.links_from:  
             
             """
@@ -171,9 +169,6 @@ def _compile(self,
             included_nodes.discard(self.nodes[dynamic_definition.target_id])
             included_nodes = list(included_nodes)
            
-            """
-            build timeline if specified
-            """ 
             if dynamic_definition.links_to or dynamic_definition.links_from:
 
                 included_nodes = []
@@ -186,8 +181,10 @@ def _compile(self,
             
                 included_nodes = [self.nodes[node_id] for node_id in included_nodes]
 
+            """
+            build timeline if specified
+            """ 
             if dynamic_definition.timeline:
-                    
                 new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
                 
             else:

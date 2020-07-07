@@ -1187,15 +1187,14 @@ class UrtextProject:
 
         if self.is_async:
             return self.executor.submit(self._file_update, filename)
-        #return self._file_update(filename)
+        return self._file_update(filename)
     
     def _file_update(self, filename):
         modified_files = []
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-        
-        modified_files.append(filename)
+            modified_files.append(filename)
 
         # re-parse the file
         self._parse_file(filename)
