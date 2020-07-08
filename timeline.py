@@ -22,6 +22,7 @@ import datetime
 from pytz import timezone
 from .node import UrtextNode 
 import pprint
+import time
 
 def _timeline(self, nodes, dynamic_definition, amount=150):
     """ given an Urtext Project and nodes, generates a timeline """
@@ -52,7 +53,7 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
             found_stuff.append(found_thing)
 
         # inline timestamps
-        if dynamic_definition.timeline_type in [ 'inline']:
+        elif dynamic_definition.timeline_type in [ 'inline']:
             full_contents = self.nodes[node.id].content_only()
             full_contents = UrtextNode.strip_metadata(contents=full_contents).split('\n')
 
@@ -95,16 +96,15 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
                             relevant_text = '      ' + relevant_text
                         found_thing['contents'] = relevant_text
                         found_stuff.append(found_thing)
-
-        if dynamic_definition.timeline_type in [ 'inline_other_meta']:
-
+        
+        elif dynamic_definition.timeline_type in [ 'inline_other_meta']:
+            
             full_contents = node.content_only()
             full_contents = UrtextNode.strip_metadata(contents=full_contents)
-
+                
             for entry in node.metadata.entries:
                 if entry.inline:
                     found_thing = {}
-                    entry.log()
                     value = entry.values[0]
                     relevant_text = full_contents[entry.position-10:entry.position]
                     found_thing['filename'] = node.id + ':' + str(entry.position)
@@ -112,11 +112,12 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
                     found_thing['value'] = value
                     found_thing['contents'] = relevant_text
                     found_stuff.append(found_thing)
-            print(found_stuff)
+
             sorted_stuff = sorted(found_stuff, key=lambda x: x['value'])
-        else:
-            sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
-    
+        
+    if dynamic_definition.timeline_type in [ None, 'inline', 'meta']:
+        sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
+        
     if not sorted_stuff:
         return ''
     if dynamic_definition.limit:

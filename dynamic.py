@@ -97,17 +97,21 @@ class UrtextDynamicDefinition:
 
             if func == 'TIMELINE':
                 self.timeline = True
+
                 for param in params:
+
                     if param == 'meta':
                         self.timeline_type = 'meta'
                         break
+
                     if param == 'inline':
                         self.timeline_type = 'inline'
                         break
+
                     if param == 'inline_other_meta':
                         self.timeline_type = 'inline_other_meta'
                         break
-                    
+
                     key, value, timestamp = key_value_timestamp(param)
                     if key == 'key':
                         self.timeline_meta_key = value
@@ -178,7 +182,7 @@ class UrtextDynamicDefinition:
 
             if func == "LINKS_TO":
                 self.links_to = params
-                print(params)
+
             if func == "LINKS_FROM":
                 self.links_from = params
 
