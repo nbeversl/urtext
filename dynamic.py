@@ -48,6 +48,7 @@ class UrtextDynamicDefinition:
         self.omit=[]
         self.export = None
         self.tag_all_key = None
+        self.timeline_meta_key = None
         self.tag_all_value = None
         self.recursive = False
         self.reverse = False
@@ -106,10 +107,6 @@ class UrtextDynamicDefinition:
 
                     if param == 'inline':
                         self.timeline_type = 'inline'
-                        break
-
-                    if param == 'inline_other_meta':
-                        self.timeline_type = 'inline_other_meta'
                         break
 
                     key, value, timestamp = key_value_timestamp(param)

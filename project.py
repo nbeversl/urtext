@@ -986,7 +986,8 @@ class UrtextProject:
         return False
 
     def _log_item(self, item):
-        print(item)
+        if self.settings['console_log']:
+            print(item)
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """

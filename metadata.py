@@ -89,7 +89,7 @@ class NodeMetadata:
  
                 self.entries.append(MetadataEntry(key, values, dt_string))
 
-        # parse the inline metadata:
+        # parse inline metadata:
         inline_metadata = []
         for m in inline_meta.finditer(full_contents):
             position = m.start()
@@ -117,6 +117,21 @@ class NodeMetadata:
                     inline=True)
                 )    
 
+        # parse inline timestamps:
+        for m in timestamp_match.finditer(full_contents):
+            stamp = m.group()
+            position = m.start()
+            end_position = position + len(m.group())
+            self.entries.append(
+            MetadataEntry(
+                'timestamp', 
+                '', 
+                stamp[1:-1], 
+                position=position, 
+                end_position=end_position,
+                inline=True)
+                )    
+
         ids = []
         for entry in self.entries:
             if entry.keyname == 'id':
@@ -124,22 +139,39 @@ class NodeMetadata:
     
     def get_meta_value(self, 
         keyname,
+        inline_only=False,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
+
         """ returns a list of values for the given key """
+        entries = self.get_meta_entries(
+            keyname, 
+            inline_only=inline_only)
+
         values = []
-        keyname = keyname.lower()
-        for entry in self.entries:
+        for entry in entries:
             if entry.keyname == keyname:
                 values.extend(entry.values)  # allows for multiple keys of the same name
         
-        if values == [] and substitute_timestamp == True:
-            for entry in self.entries:
-                 if entry.keyname == keyname:
-                    if entry.dt_stamp != default_date:
+        if values == [] and substitute_timestamp:
+            for entry in entries:
+                if entry.keyname == keyname and entry.dt_stamp != default_date:
                         return [entry.dtstring]
-
         return values
+
+    def get_meta_entries(self, 
+        keyname,
+        inline_only=False,
+        ):
+        """ returns a list of values for the given key """
+        entries = []
+        keyname = keyname.lower()
+        for entry in self.entries:
+            if inline_only and not entry.inline:
+                continue
+            if entry.keyname == keyname:
+                entries.append(entry)  # allows for multiple keys of the same name
+        return entries
 
     def get_first_meta_value(self, keyname):
         values = self.get_meta_value(keyname)

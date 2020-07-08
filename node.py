@@ -48,7 +48,7 @@ def create_urtext_node(
         compact = False
 
     if compact:
-        # omit the leading/training whitespace and the '^' character itself:
+        # omit the leading/trailing whitespace and the '^' character itself:
         contents = contents.lstrip().replace('^','',1)
     
     stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
@@ -102,6 +102,7 @@ class UrtextNode:
         self.index = 99999
         self.parent_project = None
         self.last_accessed = 0
+        self.trailing_node_id = False
 
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
@@ -111,6 +112,7 @@ class UrtextNode:
             r = re.match('\s[a-z0-9]{3}', contents[-4:])
             if r:
                 self.id = contents[-3:]
+                self.trailing_node_id = True
 
         title_value = self.metadata.get_first_meta_value('title')
         if title_value and title_value == 'project_settings':
@@ -155,10 +157,17 @@ class UrtextNode:
     def strip_metadata(self, contents=''):
         if contents == '':
             return contents
+
         stripped_contents = re.sub(r'(\/--(?:(?!\/--).)*?--\/)',
                                    '',
                                    contents,
                                    flags=re.DOTALL)
+
+        stripped_contents = re.sub(r'\w+\:\:\w+',
+                                   '',
+                                   stripped_contents,
+                                   flags=re.DOTALL)
+
         return stripped_contents
 
     @classmethod
@@ -190,6 +199,8 @@ class UrtextNode:
             contents = self.contents()
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
+        if self.trailing_node_id:
+            contents = contents[:-3]
         return contents
     
     def get_links(self, contents=None):

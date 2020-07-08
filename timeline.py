@@ -22,7 +22,6 @@ import datetime
 from pytz import timezone
 from .node import UrtextNode 
 import pprint
-import time
 
 def _timeline(self, nodes, dynamic_definition, amount=150):
     """ given an Urtext Project and nodes, generates a timeline """
@@ -44,7 +43,8 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
             found_thing = {}
             found_thing['filename'] = node.id
             found_thing['kind'] = 'from Node ID'
-            found_thing['date'] = node.date
+            found_thing['value'] = node.date.strftime('%a., %b. %d, %Y, %I:%M%p')
+            found_thing['sort_value'] = node.date
             found_thing['contents'] = contents[:amount]
             if len(contents) > amount:
                 found_thing['contents'] = '...   ' + found_thing['contents'] +  '      ...'
@@ -52,72 +52,51 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
                 found_thing['contents'] = '      ' + found_thing['contents']
             found_stuff.append(found_thing)
 
-        # inline timestamps
-        elif dynamic_definition.timeline_type in [ 'inline']:
-            full_contents = self.nodes[node.id].content_only()
-            full_contents = UrtextNode.strip_metadata(contents=full_contents).split('\n')
+            keyname = 'timestamp?? '
 
-            for num, line in enumerate(full_contents, 1):
+        # inline metavalues
+        elif dynamic_definition.timeline_type == 'inline':
 
-                timestamp_regex = '(?:<).*?(?:>)'
-                timestamps = re.findall(timestamp_regex, line)
+            amount = 100
+            if not dynamic_definition.timeline_meta_key:
+                return 'NOTHING'
 
-                for timestamp in timestamps:
-                    found_thing = {}
-                    datetime_obj = self._date_from_timestamp(timestamp[1:-1])
-                    if datetime_obj:
-   
-                        # FUTURE: The below should be turned into an option of
-                        # how much surrounding text to include.
-                        # position = contents.find(timestamp)
-                        # lines = contents.split('\n')
-                        # for num, line in enumerate(lines, 1):
-                        #     if timestamp in line:
-                        #         line_number = num
+            entries = node.metadata.get_meta_entries(
+                dynamic_definition.timeline_meta_key,
+                inline_only=True)
+            for entry in entries:
+                found_thing = {}
+                value = entry.values[0]
+                full_contents = node.content_only()
 
-                        # if len(contents) < 150:
-                        #     relevant_text = contents
-                        # elif position < 150:
-                        #     relevant_text = contents[:position + 150]
-                        # elif len(contents) < 300:
-                        #     relevant_text = contents[position - 150:]
-                        # else:
-                        #     relevant_text = contents[position - 150:position +
-                        #                              150]  # pull the nearby text
-                        relevant_text = line.replace('<' + timestamp + '>',
-                                                              '[ ...STAMP... ]')
+                start_pos = entry.position - amount
+                end_pos = entry.end_position + amount
+                if entry.position < amount: 
+                    start_pos = 0
+                if entry.end_position + amount > len(full_contents):
+                    end_pos = len(full_contents)
 
-                        found_thing['filename'] = node.id + ':' + str(num)
-                        found_thing['kind'] = 'as inline timestamp '
-                        found_thing['date'] = datetime_obj
-                        if len(relevant_text) > amount:
-                            relevant_text = '...   ' + relevant_text +  '      ...'
-                        else:
-                            relevant_text = '      ' + relevant_text
-                        found_thing['contents'] = relevant_text
-                        found_stuff.append(found_thing)
-        
-        elif dynamic_definition.timeline_type in [ 'inline_other_meta']:
+                #     relevant_text = '...   ' + relevant_text +  '      ...'
+                # else:
+                #     relevant_text = '      ' + relevant_text
+
+                relevant_text = full_contents[start_pos:end_pos]
+                found_thing['filename'] = node.id + ':' + str(entry.position)
+ 
+                # TODO : abstract this for numbers / other sortable values also:
+                if dynamic_definition.timeline_meta_key == 'timestamp':
+                    found_thing['value'] = entry.dt_string
+                    found_thing['sort_value'] = entry.dt_stamp
+                else:
+                    found_thing['sort_value'] = found_thing['value'] = value
+                found_thing['contents'] = relevant_text
+                found_stuff.append(found_thing)
+
+            keyname = dynamic_definition.timeline_meta_key
+
+    sorted_stuff = sorted(found_stuff, key=lambda x: x['sort_value']) 
+    # TODO : re-add reverse flag
             
-            full_contents = node.content_only()
-            full_contents = UrtextNode.strip_metadata(contents=full_contents)
-                
-            for entry in node.metadata.entries:
-                if entry.inline:
-                    found_thing = {}
-                    value = entry.values[0]
-                    relevant_text = full_contents[entry.position-10:entry.position]
-                    found_thing['filename'] = node.id + ':' + str(entry.position)
-                    found_thing['kind'] = 'as inline_key'
-                    found_thing['value'] = value
-                    found_thing['contents'] = relevant_text
-                    found_stuff.append(found_thing)
-
-            sorted_stuff = sorted(found_stuff, key=lambda x: x['value'])
-        
-    if dynamic_definition.timeline_type in [ None, 'inline', 'meta']:
-        sorted_stuff = sorted(found_stuff, key=lambda x: x['date'], reverse=True)    
-        
     if not sorted_stuff:
         return ''
     if dynamic_definition.limit:
@@ -130,16 +109,10 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
             contents = contents.replace('\n\n', '\n')
         contents = '      ' + contents.replace('\n', '\n|      ')
         
-        if 'date' in sorted_stuff[index]:
-            tag = sorted_stuff[index]['date'].strftime('%a., %b. %d, %Y, %I:%M%p')
-        if 'value' in sorted_stuff[index]:
-            tag = sorted_stuff[index]['value']
-
         timeline.extend([
-            '|<----', 
-            tag, 
-            ' ', 
-            sorted_stuff[index]['kind'],
+            '|<---- ', 
+            keyname, ': ',
+            sorted_stuff[index]['value'], 
             ' >',
             sorted_stuff[index]['filename'],
             '\n|\n|',
