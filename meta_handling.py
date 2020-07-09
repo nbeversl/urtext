@@ -94,8 +94,7 @@ def _rebuild_node_meta(self, node_id):
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction
     target_id, # ID to tag
-    tag, 
-    value, 
+    tag_all, 
     recursive=False):
     
     if source_id not in self.dynamic_meta:
@@ -114,21 +113,21 @@ def _add_sub_tags(self,
         node_to_tag = child.name.strip('ALIAS') 
         """ """
         if node_to_tag in self.nodes:
-
-            self.nodes[node_to_tag].metadata.add_meta_entry(
-                tag, 
-                value,
-                from_node=source_id)
-            self.dynamic_meta[source_id].append(node_to_tag)
-            if node_to_tag not in nodes_to_rebuild:
-                nodes_to_rebuild.append(node_to_tag)
-            if recursive:
-                self._add_sub_tags(
-                    source_id,
-                    node_to_tag,
-                    tag,
-                    value,
-                    recursive=recursive)
+            for k in tag_all:
+                for v in tag_all[k]:
+                    self.nodes[node_to_tag].metadata.add_meta_entry(
+                        k, 
+                        v,
+                        from_node=source_id)
+                    self.dynamic_meta[source_id].append(node_to_tag)
+                    if node_to_tag not in nodes_to_rebuild:
+                        nodes_to_rebuild.append(node_to_tag)
+                    if recursive:
+                        self._add_sub_tags(
+                            source_id,
+                            node_to_tag,
+                            tag_all,
+                            recursive=recursive)
 
     for node_id in nodes_to_rebuild:
         self._rebuild_node_meta(node_id)

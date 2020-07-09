@@ -43,21 +43,19 @@ def _compile(self,
             self.nodes[dynamic_definition.target_id].dynamic = True
    
     """ This has to be done before anything else """
-    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key ] :
+    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all ] :
         print('ADDING SUB TAG')
-        print(dynamic_definition.tag_all_key)
-        print(dynamic_definition.tag_all_value)
+        print(dynamic_definition.tag_all)
         """
         Tag All
         """            
         self._add_sub_tags(
             dynamic_definition.source_id,
             dynamic_definition.target_id, 
-            dynamic_definition.tag_all_key, 
-            dynamic_definition.tag_all_value, 
+            dynamic_definition.tag_all, 
             recursive=dynamic_definition.recursive)                    
 
-    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key == None ]:
+    for dynamic_definition in [ r for r in self.dynamic_nodes if not r.tag_all ]:
  
         points = {}
         new_node_contents = []

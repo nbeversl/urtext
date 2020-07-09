@@ -47,10 +47,9 @@ class UrtextDynamicDefinition:
         self.interlinks = None
         self.omit=[]
         self.export = None
-        self.tag_all_key = None
+        self.tag_all = {}
         self.timeline_meta_key = None
         self.timeline_sort_numeric = False
-        self.tag_all_value = None
         self.recursive = False
         self.reverse = False
         self.timeline = False
@@ -265,8 +264,9 @@ class UrtextDynamicDefinition:
 
                     key, value, timestamp = key_value_timestamp(param)
                     if key:
-                        self.tag_all_key = key
-                        self.tag_all_value = value
+                        if key not in self.tag_all:
+                            self.tag_all[key] = []
+                        self.tag_all[key].append(value)
 
                 continue
 
