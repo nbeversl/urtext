@@ -132,7 +132,11 @@ class UrtextExport:
             clean_whitespace=False,
             visited_nodes=None,
             preformat=False,
-            ):         
+            ):     
+
+        if root_node_id not in self.project.nodes:
+            self.project._log_item('EXPORT: Root node ID '+root_node_id+' not in the project.')
+            return '','',''    
         """
         Recursively add nodes, its inline nodes and node pointers, in order
         from a given starting node, keeping track of nesting level, and wrapping in markup.        
