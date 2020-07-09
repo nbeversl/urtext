@@ -44,7 +44,9 @@ def _compile(self,
    
     """ This has to be done before anything else """
     for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all_key ] :
-
+        print('ADDING SUB TAG')
+        print(dynamic_definition.tag_all_key)
+        print(dynamic_definition.tag_all_value)
         """
         Tag All
         """            

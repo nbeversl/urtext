@@ -49,6 +49,7 @@ class UrtextDynamicDefinition:
         self.export = None
         self.tag_all_key = None
         self.timeline_meta_key = None
+        self.timeline_sort_numeric = False
         self.tag_all_value = None
         self.recursive = False
         self.reverse = False
@@ -96,22 +97,25 @@ class UrtextDynamicDefinition:
                 self.tree = params[0]
                 continue
 
-            if func == 'TIMELINE':
+            if func == 'COLLECTION':
                 self.timeline = True
 
                 for param in params:
 
                     if param == 'meta':
                         self.timeline_type = 'meta'
-                        break
+                        continue
 
-                    if param == 'inline':
+                    if param == 'inline': # default
                         self.timeline_type = 'inline'
-                        break
+                        continue
 
                     key, value, timestamp = key_value_timestamp(param)
                     if key == 'key':
                         self.timeline_meta_key = value
+
+                    if key == 'sort' and value.lower() == 'num':
+                        self.timeline_sort_numeric = True
 
                 continue
 

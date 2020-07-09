@@ -24,7 +24,7 @@ from .dynamic import key_value_timestamp
 
 meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
-timestamp_match = re.compile('(?:<)(.*?)(?:>)')
+timestamp_match = re.compile('(?:<)([^-].*?)(?:>)')
 inline_meta = re.compile('\w+\:\:\w+')
 
 class NodeMetadata:
@@ -165,6 +165,7 @@ class NodeMetadata:
         ):
         """ returns a list of values for the given key """
         entries = []
+
         keyname = keyname.lower()
         for entry in self.entries:
             if inline_only and not entry.inline:

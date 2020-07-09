@@ -59,8 +59,7 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
 
             amount = 100
             if not dynamic_definition.timeline_meta_key:
-                return 'NOTHING'
-
+                return 'EMPTY'
             entries = node.metadata.get_meta_entries(
                 dynamic_definition.timeline_meta_key,
                 inline_only=True)
@@ -88,7 +87,12 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
                     found_thing['value'] = entry.dt_string
                     found_thing['sort_value'] = entry.dt_stamp
                 else:
-                    found_thing['sort_value'] = found_thing['value'] = value
+                    found_thing['value'] = value
+                    sort_value = value
+                    if dynamic_definition.timeline_sort_numeric:
+                        # TODO: error catching
+                        sort_value = float(value)
+                    found_thing['sort_value'] = sort_value
                 found_thing['contents'] = relevant_text
                 found_stuff.append(found_thing)
 
@@ -96,6 +100,7 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
 
     sorted_stuff = sorted(found_stuff, key=lambda x: x['sort_value']) 
     # TODO : re-add reverse flag
+    # TODO : add sort type (date, number, alpha)
             
     if not sorted_stuff:
         return ''
