@@ -55,6 +55,8 @@ def create_urtext_node(
     metadata = NodeMetadata(stripped_contents)
 
     new_node = UrtextNode(filename, metadata, contents, root=root, compact=compact)
+    
+
     new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
     possible_defs = ['[['+section for section in contents.split('[[') ]
     dynamic_definitions = []
@@ -104,6 +106,9 @@ class UrtextNode:
         self.last_accessed = 0
         self.trailing_node_id = False
 
+
+
+        
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
@@ -168,6 +173,10 @@ class UrtextNode:
                                    stripped_contents,
                                    flags=re.DOTALL)
 
+        # TODO: integrate this with checking for self.trailing_node_id
+        if re.match('\s[a-z0-9]{3}', stripped_contents[-4:])
+            stripped_contents = stripped_contents[:-3]
+
         return stripped_contents
 
     @classmethod
@@ -221,9 +230,7 @@ class UrtextNode:
 
     @classmethod
     def set_title(self, contents, metadata=None):
-        #
-        # check for title metadata
-        #
+
         if metadata:
             title_value = metadata.get_first_meta_value('title')
             if title_value: 

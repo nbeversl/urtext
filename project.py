@@ -897,6 +897,8 @@ class UrtextProject:
         """ 
         Given a position, and node_id, returns whether the position is in the node 
         """
+        if node_id not in self.nodes: 
+            return False 
         for this_range in self.nodes[node_id].ranges:
             if position >= this_range[0] and position <= this_range[1]:
                 return True
@@ -1069,10 +1071,10 @@ class UrtextProject:
 
         Returns a future containing a list of modified files as the result.
         """
-        return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
+        #return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
         
         # syncronous:
-        #self._pop_node(position=position, filename=filename, node_id=node_id)
+        self._pop_node(position=position, filename=filename, node_id=node_id)
 
     def _pop_node(self, position=None, filename=None, node_id=None):
  
@@ -1094,8 +1096,19 @@ class UrtextProject:
         popped_node_id = node_id
 
         filename = self.nodes[node_id].filename
+
+        # includes the chosen node and all contained nodes 
+        # (all content between start and end of node)
         popped_node_contents = file_contents[start:end].strip()
-        
+
+        # special case:
+        # for popped nodes with trailing IDs, manually repopulate
+        # the node ID at file level.
+        # TODO : There may be a better place to accomplish this. 
+        if self.nodes[node_id].trailing_node_id:
+            popped_node_contents = popped_node_contents[:-3]
+            popped_node_contents += '/-- id:'+node_id+'--/'
+
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n| ',
@@ -1108,13 +1121,11 @@ class UrtextProject:
         #  existing file
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
-            f.close()        
         self._parse_file(filename) 
 
         # new file
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
-            f.close()
         self._parse_file(popped_node_id+'.txt') 
 
         modified_files = [filename, popped_node_id+'.txt']

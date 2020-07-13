@@ -44,8 +44,7 @@ def _compile(self,
    
     """ This has to be done before anything else """
     for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all ] :
-        print('ADDING SUB TAG')
-        print(dynamic_definition.tag_all)
+
         """
         Tag All
         """            
@@ -96,8 +95,6 @@ def _compile(self,
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                           ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
-
-        
                 
         if dynamic_definition.search:
 
