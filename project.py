@@ -129,7 +129,7 @@ class UrtextProject:
             'node_date_keyname' : 'created',
             'log_id': '',
         }
-        self.default_timezone = None
+        self.default_timezone = timezone('UTC')
         self.title = self.path # default
         
         self._initialize_project(
@@ -150,14 +150,14 @@ class UrtextProject:
         for file in filelist:
             if self._filter_filenames(file) == None:
                 continue            
-            self._parse_file(file)
-        
+            self._parse_file(file, strict=import_project)
+
         if import_project:
             for file in self.to_import:
                 self.import_file(file)
 
         self.default_timezone = timezone(self.settings['timezone'][0])
-        
+
         if self.nodes == {}:
             if init_project == True:
                 self._log_item('Initalizing a new Urtext project in ' + self.path)
@@ -210,13 +210,14 @@ class UrtextProject:
         for node_id in self.nodes:
             self.nodes[node_id].parent_project = self.title
 
-    def _parse_file(self, filename):
+    def _parse_file(self, filename, strict=False):
         """
         Parses a single file into the project.
         Returns None if successful, or a list of duplicate nodes found
         if duplicate nodes were found.
-        FUTURE: Should be cleaned up. Currently returns None, False or list.
+        FUTURE: return value should be sanitized Currently returns None, False or list.
         """
+       
         filename = os.path.basename(filename)
         if self._filter_filenames(filename) == None:
             return
@@ -233,6 +234,7 @@ class UrtextProject:
         new_file = UrtextFile(
             os.path.join(self.path, filename), 
             previous_hash=old_hash,
+            strict=strict
             )
         
         if not new_file.changed:
@@ -241,12 +243,13 @@ class UrtextProject:
         self.messages[filename] = []
         if new_file.messages:
             self.messages[filename] = new_file.messages 
-
+        
         if not new_file.is_parseable:
             if already_in_project:
                 self._log_item('Unable to re-parse >f'+filename+ ', dropping it from the project.')
                 return False
             self.to_import.append(filename)
+            return
 
         self._remove_file(filename)
         """
@@ -529,6 +532,7 @@ class UrtextProject:
 
 
     def import_file(self, filename):
+
         with open(
                 os.path.join(self.path, filename),
                 'r',

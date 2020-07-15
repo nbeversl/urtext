@@ -222,10 +222,10 @@ class UrtextFile:
                     )
                 
                 success = self.add_node(new_node, nested_levels[nested], node_contents)
-                
                 if not success:
                     if root:
                         self.messages.append('Warning : root Node has no ID.')
+                        
                     elif compact:
                         self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
                     else:
@@ -237,6 +237,7 @@ class UrtextFile:
                 # reduce the nesting level only for compact, inline nodes
                 if not root:
                     nested -= 1                       
+
                 if self.strict and nested < 0:
                     return self.log_error('Stray closing wrapper', position)  
                 

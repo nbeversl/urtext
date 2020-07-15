@@ -120,6 +120,8 @@ class ProjectList():
 
     def set_current_project(self, title_or_path):
         project = self.get_project(title_or_path) 
+        if not project:
+            return None
         if  ( not self.current_project ) or ( project and project.title != self.current_project.title ) :
            self.current_project = project
            print('Urtext project switched to ' + self.current_project.title)
@@ -293,6 +295,8 @@ class ProjectList():
         return title_list
 
     def is_in_export(self, filename, position):
+        if not self.current_project:
+            return None
         return self.current_project.is_in_export(filename, position)
 
     """
