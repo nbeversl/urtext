@@ -1004,6 +1004,9 @@ class UrtextProject:
         timestamp_format = '<' + self.settings['timestamp_format'][0] + '>'
         return date.strftime(timestamp_format)
 
+    def get_log_node(self):
+        return self.settings['log_id']
+
     def _get_settings_from(self, node):
         single_values = [
             'format_string',
