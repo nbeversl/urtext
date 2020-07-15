@@ -24,7 +24,7 @@ from .dynamic import key_value_timestamp
 
 meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
-timestamp_match = re.compile('(?:<)([^-].*?)(?:>)')
+timestamp_match = re.compile('(?:<)([^-/][^=]*?)(?:>)')
 inline_meta = re.compile('\w+\:\:\w+')
 
 class NodeMetadata:

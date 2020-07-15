@@ -1071,10 +1071,10 @@ class UrtextProject:
 
         Returns a future containing a list of modified files as the result.
         """
-        #return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
+        return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
         
         # syncronous:
-        self._pop_node(position=position, filename=filename, node_id=node_id)
+        #self._pop_node(position=position, filename=filename, node_id=node_id)
 
     def _pop_node(self, position=None, filename=None, node_id=None):
  

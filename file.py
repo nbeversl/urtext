@@ -214,7 +214,7 @@ class UrtextFile:
                             for file_range in nested_levels[nested] 
                         ])
        
-                new_node = node.create_urtext_node(
+                new_node = UrtextNode(
                     self.filename, 
                     contents=node_contents,
                     root=root,

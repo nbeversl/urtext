@@ -23,10 +23,7 @@ import re
 import datetime
 import logging
 import pytz
-import urtext
 from anytree import Node
-from anytree import PreOrderIter
-from anytree import RenderTree
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
@@ -34,51 +31,10 @@ dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
 
-def create_urtext_node(
-    filename, 
-    contents='', 
-    root=None, 
-    compact=None,
-    inline=None):
-    
-    if not root:
-        root = False
-    
-    if not compact:
-        compact = False
-
-    if compact:
-        # omit the leading/trailing whitespace and the '^' character itself:
-        contents = contents.lstrip().replace('^','',1)
-    
-    stripped_contents = UrtextNode.strip_dynamic_definitions(contents)
-    metadata = NodeMetadata(stripped_contents)
-
-    new_node = UrtextNode(filename, metadata, contents, root=root, compact=compact)
-    
-
-    new_node.title = UrtextNode.set_title(stripped_contents, metadata=metadata)
-    possible_defs = ['[['+section for section in contents.split('[[') ]
-    dynamic_definitions = []
-
-    for possible_def in possible_defs:
-        match = re.match(dynamic_definition_regex, possible_def)        
-        if match:
-            match = match.group(0).strip('[[').strip(']]')
-            dynamic_definition = UrtextDynamicDefinition(match)
-            dynamic_definition.source_id = new_node.id
-            dynamic_definitions.append(dynamic_definition)
-
-    new_node.dynamic_definitions = dynamic_definitions
-    no_metadata = UrtextNode.strip_metadata(contents=stripped_contents)
-    new_node.get_links(contents=no_metadata)
-    return new_node
-
 class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, 
         filename, 
-        metadata,
         contents,
         root=False, 
         compact=False):
@@ -100,20 +56,22 @@ class UrtextNode:
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
-        self.metadata = metadata
         self.index = 99999
         self.parent_project = None
         self.last_accessed = 0
         self.trailing_node_id = False
+        self.dynamic_definitions = []
 
-
-
-        
+        stripped_contents = self.strip_dynamic_definitions(contents)
+        self.metadata = NodeMetadata(stripped_contents)
+        self.title = self.set_title(stripped_contents)
+       
         if self.metadata.get_first_meta_value('id'):
             node_id = self.metadata.get_first_meta_value('id').lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
         else:
+            contents = self.strip_wrappers(contents)
             r = re.match('\s[a-z0-9]{3}', contents[-4:])
             if r:
                 self.id = contents[-3:]
@@ -128,8 +86,20 @@ class UrtextNode:
                 self.metadata.get_first_meta_value('index'),
                 self.index)
 
+        # create tree node
         self.reset_node()
 
+        # parse dynamic definitions
+        for possible_def in ['[['+section for section in contents.split('[[') ]:
+            match = re.match(dynamic_definition_regex, possible_def)        
+            if match:
+                match = match.group(0).strip('[[').strip(']]')
+                dynamic_definition = UrtextDynamicDefinition(match)
+                dynamic_definition.source_id = self.id
+                self.dynamic_definitions.append(dynamic_definition)
+
+        # parse back and forward links
+        self.get_links(contents=self.strip_metadata(contents=stripped_contents))
 
     def start_position(self):
         return self.ranges[0][0]
@@ -149,15 +119,16 @@ class UrtextNode:
         for segment in self.ranges:
             node_contents.append(file_contents[segment[0]:segment[1]])
         node_contents = ''.join(node_contents)
-
-        # Strip out all Urtext node marker  Syntax.
-        # FUTURE: There may be a cleaner way to accomplish this at parse-time.
-        node_contents = node_contents.replace('{{','')
-        node_contents = node_contents.replace('}}','')
-        if self.compact: # don't include the compact marker
-             node_contents = node_contents.lstrip().replace('^','',1)
+        node_contents = self.strip_wrappers(node_contents)
         return node_contents
 
+    def strip_wrappers(self, contents):
+        contents = contents.replace('{{','')
+        contents = contents.replace('}}','')
+        if self.compact: # don't include the compact marker
+             contents = contents.lstrip().replace('^','',1)        
+        contents = contents.lstrip().replace('^','',1)
+        return contents
     @classmethod
     def strip_metadata(self, contents=''):
         if contents == '':
@@ -174,7 +145,7 @@ class UrtextNode:
                                    flags=re.DOTALL)
 
         # TODO: integrate this with checking for self.trailing_node_id
-        if re.match('\s[a-z0-9]{3}', stripped_contents[-4:])
+        if re.match('\s[a-z0-9]{3}', stripped_contents[-4:]):
             stripped_contents = stripped_contents[:-3]
 
         return stripped_contents
@@ -228,13 +199,11 @@ class UrtextNode:
     def set_index(self, new_index):
         self.index = new_index
 
-    @classmethod
-    def set_title(self, contents, metadata=None):
+    def set_title(self, contents):
 
-        if metadata:
-            title_value = metadata.get_first_meta_value('title')
-            if title_value: 
-                return title_value
+        title_value = self.metadata.get_first_meta_value('title')
+        if title_value: 
+            return title_value
         #
         # otherwise, title is the first non white-space line
         #
