@@ -215,19 +215,9 @@ class UrtextProject:
         for node_id in self.nodes:
             self.nodes[node_id].parent_project = self.title
 
-    def _parse_file(self, filename, strict=False):
-        """
-        Parses a single file into the project.
-        Returns None if successful, or a list of duplicate nodes found
-        if duplicate nodes were found.
-        FUTURE: return value should be sanitized Currently returns None, False or list.
-        """
-       
-        filename = os.path.basename(filename)
-        if self._filter_filenames(filename) == None:
-            return
+
+    def _file_changed(self, filename, strict=False):
         
-        already_in_project = False
         old_hash = None
         if filename in self.files:
             already_in_project = True
@@ -243,6 +233,27 @@ class UrtextProject:
             )
         
         if not new_file.changed:
+            return False
+
+        return new_file
+
+    def _parse_file(self, filename, strict=False):
+        """
+        Parses a single file into the project.
+        Returns None if successful, or a list of duplicate nodes found
+        if duplicate nodes were found.
+        FUTURE: return value should be sanitized Currently returns None, False or list.
+        """
+       
+        filename = os.path.basename(filename)
+        if self._filter_filenames(filename) == None:
+            return
+        
+        already_in_project = False
+        
+        new_file = self._file_changed(filename, strict=strict)
+
+        if not new_file:
             return False
 
         self.messages[filename] = []
@@ -1227,7 +1238,6 @@ class UrtextProject:
         return self._update(modified_files=modified_files)
 
     def _update(self, 
-        compile_project=True,
         modified_files=None
         ):
         
@@ -1239,9 +1249,7 @@ class UrtextProject:
             modified_files = []
 
         modified_files.extend(self._check_for_new_files())
-
-        if compile_project:
-            modified_files = self._compile(modified_files=modified_files)
+        modified_files = self._compile(modified_files=modified_files)
 
         return modified_files
 
@@ -1263,7 +1271,7 @@ class UrtextProject:
 
     def add_file(self, filename):
         """ 
-        parse syncronously for now, so we can raise an exception
+        parse syncronously so we can raise an exception
         if moving files between projects.
         """
         any_duplicate_ids = self._parse_file(filename)

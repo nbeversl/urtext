@@ -64,7 +64,6 @@ class UrtextFile:
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.changed = True
         self.is_parseable = True
         self.strict = strict
@@ -76,7 +75,7 @@ class UrtextFile:
             self.changed = False
         else:
             self.lex_and_parse(contents)
-        
+            
     def lex_and_parse(self, contents):
         if not contents:
             return

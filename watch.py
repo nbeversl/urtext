@@ -52,16 +52,17 @@ class UrtextWatcher (FileSystemEventHandler):
   #   # self.project.update()
       
 
-  # def on_created(self, filename):
-  #     if os.path.isdir(filename):
-  #         return True
-  #     filename = os.path.basename(filename)
-  #     if filename in self.files:
-  #       return True
-  #     self.parse_file(filename, re_index=True)
-  #     self.log_item(filename +' modified. Updating the project object')
-  #     self.update()
-  #     return True
+  def on_created(self, event):
+      filename = os.path.basename(event.src_path)
+      if os.path.isdir(filename):
+          return True
+      filename = os.path.basename(filename)
+      if filename in self.project.files:
+        return True
+      print(filename + ' found by on_created() -- DEBUGGING')
+      self.project.add_file(filename)
+
+      return True
 
 
   # def on_deleted(self, event):
@@ -96,8 +97,11 @@ class UrtextWatcher (FileSystemEventHandler):
       #     os.path.basename(self.project.path),
       #     # self.project.settings['logfile'],
       #     ]
-
-      self.project.on_modified(filename)
+      if filename not in self.project.files:
+        return False
+      file_changed = self.project._file_changed(filename)
+      if file_changed:
+        self.project.on_modified(filename)
       return True
 
  
