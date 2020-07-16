@@ -17,73 +17,96 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 from watchdog.events import FileSystemEventHandler
-from .project import UrtextProject
 from watchdog.observers import Observer
+import os
 
 class UrtextWatcher (FileSystemEventHandler):
 
   def __init__(self,
-               path,
+               project,
                make_new_files=True,
                rename=False,
                recursive=False,
                import_project=False,
                init_project=False):
 
-    self.project = _UrtextProject
-    observer = Observer()
-    eventhandler = UrtextWatcher()
-    observer.schedule(event_handler, path, recursive=True)
-    observer.start()
-
-  def on_created(self, event):
-
-    if not self.project.check_lock('THIS MACHINE'):
-      return
-
-    if event.is_directory:
-        return None
-    filename = event.src_path
-    if filter(filename) == None:
-      return
-    if filename in _UrtextProject.files:
-      # This is not really a new file.
-      return None
-    if _UrtextProject.parse_file(filename) == None:
-        _UrtextProject.log_item(filename + ' not added.')
-        return
-    _UrtextProject.log_item(filename +
-                            ' modified. Updating the project object')
-    _UrtextProject.update()
-      
-    """
-    def on_modified(self, event):
-      # this was moved to a sublime_plugin.EventListener
-       
-    """
-  def on_deleted(self, event):
-    if not self.project.check_lock(machine):
-      return
-
-    if filter(event.src_path) == None:
-        return
-    filename = os.path.basename(event.src_path)
-    _UrtextProject.log_item('Watchdog saw file deleted: '+filename)
-    _UrtextProject.remove_file(filename)
-    _UrtextProject.update()
-   
-  def on_moved(self, event):
-      if not self.project.check_lock(machine):
-        return
-
-      if filter(event.src_path) == None:
-        return
-      old_filename = os.path.basename(event.src_path)
-      new_filename = os.path.basename(event.dest_path)
-      if old_filename in _UrtextProject.files:
-          _UrtextProject.log.info('RENAMED ' + old_filename + ' to ' +
-                                  new_filename)
-          _UrtextProject.handle_renamed(old_filename, new_filename)
+    self.project = project
 
 
+  # def on_created(self, event):
+
+  #   if event.is_directory:
+  #       return None
+  #   filename = event.src_path
     
+  #   # if filter(filename) == None:
+  #   #   return
+  #   if filename in self.project.files:
+  #     # This is not really a new file.
+  #     return None
+  #   # if self.project.parse_file(filename) == None:
+  #   #     self.project.log_item(filename + ' not added.')
+  #   #     return
+  #   # self.project.log_item(filename +
+  #   #                         ' modified. Updating the project object')
+  #   # self.project.update()
+      
+
+  # def on_created(self, filename):
+  #     if os.path.isdir(filename):
+  #         return True
+  #     filename = os.path.basename(filename)
+  #     if filename in self.files:
+  #       return True
+  #     self.parse_file(filename, re_index=True)
+  #     self.log_item(filename +' modified. Updating the project object')
+  #     self.update()
+  #     return True
+
+
+  # def on_deleted(self, event):
+  #   if not self.project.check_lock(machine):
+  #     return
+
+  #   if filter(event.src_path) == None:
+  #       return
+  #   filename = os.path.basename(event.src_path)
+  #   self.project.log_item('Watchdog saw file deleted: '+filename)
+  #   self.project.remove_file(filename)
+  #   self.project.update()
+   
+  # def on_moved(self, event):
+  #     if not self.project.check_lock(machine):
+  #       return
+
+  #     if filter(event.src_path) == None:
+  #       return
+  #     old_filename = os.path.basename(event.src_path)
+  #     new_filename = os.path.basename(event.dest_path)
+  #     if old_filename in _UrtextProject.files:
+  #         self.project.log.info('RENAMED ' + old_filename + ' to ' +
+  #                                 new_filename)
+  #         self.project.handle_renamed(old_filename, new_filename)
+
+
+  def on_modified(self, event):
+      filename = os.path.basename(event.src_path)
+      # do_not_update = [
+      #     'index', 
+      #     os.path.basename(self.project.path),
+      #     # self.project.settings['logfile'],
+      #     ]
+
+      self.project.on_modified(filename)
+      return True
+
+ 
+
+  # def on_moved(self, filename):
+  #     old_filename = os.path.basename(filename)
+  #     new_filename = os.path.basename(filename)
+  #     if old_filename in self.files:
+  #         self.log.info('RENAMED ' + old_filename + ' to ' +
+  #                                 new_filename)
+  #         self.handle_renamed(old_filename, new_filename)
+  #     return True

@@ -34,6 +34,7 @@ from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
+from watchdog.observers import Observer
 
 from .file import UrtextFile
 from .interlinks import Interlinks
@@ -42,7 +43,7 @@ from .compile import compile_functions
 from .trees import trees_functions
 from .meta_handling import metadata_functions
 from .reindex import reindex_functions
-from .watchdog import watchdog_functions
+from .watch import UrtextWatcher
 from .search import search_functions
 from .timeline import timeline_functions
 from .dynamic import UrtextDynamicDefinition
@@ -56,7 +57,6 @@ functions = trees_functions
 functions.extend(compile_functions)
 functions.extend(metadata_functions)
 functions.extend(reindex_functions)
-functions.extend(watchdog_functions)
 functions.extend(search_functions)
 functions.extend(timeline_functions)
 
@@ -140,6 +140,11 @@ class UrtextProject:
             os.mkdir(os.path.join(self.path, "history"))
 
         self.loaded = True
+
+        self.observer = Observer()
+        event_handler = UrtextWatcher(self)
+        self.observer.schedule(event_handler, self.path, recursive=True)
+        self.observer.start()
 
     def _initialize_project(self, 
         import_project=False, 
@@ -1416,6 +1421,10 @@ class UrtextProject:
             c.add(e)
         with open('my.ics', 'w') as f:
             f.write(c)
+
+    
+
+
 
     
 class NoProject(Exception):
