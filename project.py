@@ -77,7 +77,7 @@ class UrtextProject:
                  recursive=False,
                  import_project=False,
                  init_project=False,
-                 watchdog=False):
+                 watchdog=True):
 
         self.is_async = True # use False for development only
         self.path = path
@@ -140,6 +140,11 @@ class UrtextProject:
             os.mkdir(os.path.join(self.path, "history"))
 
         self.loaded = True
+        
+        if watchdog:
+            self._initialize_watchdog()        
+
+    def _initialize_watchdog(self):
 
         self.observer = Observer()
         event_handler = UrtextWatcher(self)
