@@ -148,7 +148,7 @@ class UrtextProject:
 
         self.observer = Observer()
         event_handler = UrtextWatcher(self)
-        self.observer.schedule(event_handler, self.path, recursive=True)
+        self.observer.schedule(event_handler, self.path, recursive=False)
         self.observer.start()
 
     def _initialize_project(self, 
