@@ -77,7 +77,7 @@ class UrtextProject:
                  recursive=False,
                  import_project=False,
                  init_project=False,
-                 watchdog=True):
+                 watchdog=False):
 
         self.is_async = True # use False for development only
         self.path = path

@@ -24,9 +24,14 @@ import os
 
 class ProjectList():
 
-    def __init__(self, base_path, import_project=False):
+    def __init__(self, 
+        base_path, 
+        import_project=False,
+        watchdog=False):
+
         self.projects = []
         self.base_path = base_path
+        self.watchdog = watchdog
         self._add_folder(base_path, import_project=import_project)
         self.current_project = None
         self.navigation = []
@@ -36,11 +41,11 @@ class ProjectList():
             self.current_project = self.projects[0]
         self._propagate_projects(None)
 
-    def _add_folder(self, folder, import_project=False):
+    def _add_folder(self, folder, import_project=False, watchdog=False):
         """ recursively add folders """
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
-                project = UrtextProject(folder, import_project=import_project)
+                project = UrtextProject(folder, import_project=import_project, watchdog=self.watchdog)
                 self.projects.append(project)
                 print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
@@ -170,7 +175,7 @@ class ProjectList():
         if project:
             self.projects.remove(project)
             
-        project = UrtextProject(path, import_project=True)
+        project = UrtextProject(path, import_project=True, watchdog=self.watchdog)
         print('Imported project '+project.title)
         self.projects.append(project)
         self.set_current_project(path)
@@ -187,7 +192,7 @@ class ProjectList():
             return None
         if not os.path.exists(path):
             os.makedirs(path)
-        project = UrtextProject(path, init_project=True)
+        project = UrtextProject(path, init_project=True, watchdog=self.watchdog)
         if project:
             self.projects.append(project)
             self.set_current_project(path)
