@@ -156,18 +156,17 @@ class UrtextProject:
         init_project=False):
 
         filelist = os.listdir(self.path)
-        
+
         for file in filelist:
             if self._filter_filenames(file) == None:
                 continue            
-            self._parse_file(file)
+            self._parse_file(file, import_project=import_project)
 
         if import_project:
             for file in self.to_import:
                 self.import_file(file)
 
         self.default_timezone = timezone(self.settings['timezone'][0])
-
         if self.nodes == {}:
             if init_project == True:
                 self._log_item('Initalizing a new Urtext project in ' + self.path)
@@ -242,7 +241,10 @@ class UrtextProject:
 
         return new_file
 
-    def _parse_file(self, filename, strict=False):
+    def _parse_file(self, 
+            filename, 
+            strict=False, 
+            import_project=False):
         """
         Parses a single file into the project.
         Returns None if successful, or a list of duplicate nodes found
@@ -256,8 +258,10 @@ class UrtextProject:
         
         already_in_project = False
         
-        new_file = self._file_changed(filename, strict=strict)
+        strict = False if not import_project else True
 
+        new_file = self._file_changed(filename, strict=strict)
+ 
         if not new_file:
             return False
 
