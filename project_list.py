@@ -164,6 +164,12 @@ class ProjectList():
         return titles
     
     def import_project(self, path):
+
+        # See if the target project is already in the list.
+        project = self.get_project(path)
+        if project:
+            self.projects.remove(project)
+            
         project = UrtextProject(path, import_project=True)
         print('Imported project '+project.title)
         self.projects.append(project)

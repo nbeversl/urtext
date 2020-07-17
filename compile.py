@@ -23,6 +23,7 @@ from. search import UrtextSearch
 from .dynamic_output import DynamicOutput
 import os
 import re
+import operator
 
 
 """
@@ -212,12 +213,12 @@ def _compile(self,
 
                 else:
                     """ otherwise sort them by node date by default """
-                    sort_func = lambda node: node.date
-                
+                    sort_func = lambda node: node.default_sort()
+
                 # sort them using the determined sort function
                 included_nodes = sorted(
                     included_nodes,
-                    key = sort_func,#
+                    key = sort_func,
                     reverse=dynamic_definition.reverse)
 
                 """

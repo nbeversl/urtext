@@ -100,6 +100,10 @@ class UrtextNode:
 
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
+    
+    def default_sort(self):
+        r = str(self.date.timestamp()) + self.title
+        return r
 
     def start_position(self):
         return self.ranges[0][0]

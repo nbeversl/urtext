@@ -92,6 +92,8 @@ class UrtextWatcher (FileSystemEventHandler):
 
   def on_modified(self, event):
       filename = os.path.basename(event.src_path)
+      if os.path.isdir(filename):
+          return True
       # do_not_update = [
       #     'index', 
       #     os.path.basename(self.project.path),

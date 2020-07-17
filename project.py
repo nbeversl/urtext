@@ -160,7 +160,7 @@ class UrtextProject:
         for file in filelist:
             if self._filter_filenames(file) == None:
                 continue            
-            self._parse_file(file, strict=import_project)
+            self._parse_file(file)
 
         if import_project:
             for file in self.to_import:
