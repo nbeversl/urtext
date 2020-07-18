@@ -77,19 +77,28 @@ def _rebuild_node_meta(self, node_id):
 
     for entry in self.nodes[node_id].metadata.entries:
 
-        # title becomes a node property elsewhere
-        if entry.keyname != 'title':
-            
-            # add the key to the project if necessary
-            if entry.keyname not in self.keynames:
-                self.keynames[entry.keyname] = {}
+        # title becomes a node property elsewhere, skip
+        if entry.keyname == 'title':
+           continue 
 
-            # add the values to the keyname
-            for value in entry.values:
-                if value not in self.keynames[entry.keyname]:
-                    self.keynames[entry.keyname][value] = []
-                if node_id not in self.keynames[entry.keyname][value]:
-                    self.keynames[entry.keyname][value].append(node_id)
+        # add the key to the project if necessary
+        if entry.keyname not in self.keynames:
+            self.keynames[entry.keyname] = {}
+
+        # if the key has no a value, assign the use the STRING version of its timestamp
+        # [ if not entry.values and ... ? ]
+        if entry.keyname.lower() == self.settings['node_date_keyname']:
+            if entry.dtstring not in self.keynames[entry.keyname.lower()]:
+                self.keynames[entry.keyname.lower()][entry.dtstring] = [] 
+            self.keynames[entry.keyname.lower()][entry.dtstring].append(node_id)
+            continue
+
+        # add the values to the keyname
+        for value in entry.values:   
+            if value not in self.keynames[entry.keyname]:
+                self.keynames[entry.keyname][value] = [] 
+            if node_id not in self.keynames[entry.keyname][value]:
+                self.keynames[entry.keyname][value].append(node_id)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the instruction

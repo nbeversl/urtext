@@ -133,15 +133,15 @@ def _compile(self,
             either as a timeline or as node list
             """
 
-            # Allow for including other projects in the list context.
-
             included_projects = [self]
             if dynamic_definition.include_other_projects:
                 included_projects.extend(self.other_projects)
 
+            # include all nodes?
             elif dynamic_definition.include_all:
                 included_nodes = [self.nodes[node_id] for node_id in self.nodes]
 
+            # otherwise determind which nodes to include
             else:
                 included_nodes = []
               
@@ -151,9 +151,9 @@ def _compile(self,
                 included_nodes = set(included_nodes)
 
                 for project in included_projects:
-                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))                     
+                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))
                     included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
-                
+
             excluded_nodes = set([])
             for project in included_projects:
 
@@ -178,6 +178,7 @@ def _compile(self,
                        included_nodes.extend([r for r in self.links_from[node_id] if not self.nodes[r].dynamic])
             
                 included_nodes = [self.nodes[node_id] for node_id in included_nodes]
+
 
             """
             build timeline if specified
@@ -363,9 +364,11 @@ def _build_group_and(project, groups):
     return final_group
 
 def _build_group_or(project, group):
+
     final_group = set([])
 
     for pair in group:
+
         key, value = pair[0], pair[1]
 
         if key in project.keynames:
