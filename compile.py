@@ -188,20 +188,21 @@ def _compile(self,
             else:
 
                 """ otherwise this is a list. """
-
+                 
+                 
                 """ custom sort the nodes if a sort type is provided """
                 if dynamic_definition.sort_type == 'last_accessed':
                     sort_func = lambda node: node.last_accessed
-                        
+                
+                # If specified, sort by timestamp of the selected key
+                elif dynamic_definition.sort_type == 'timestamp':
+                    sort_func = lambda node: node.metadata.get_first_meta_value(self.settings['node_date_keyname'])
+
                 elif dynamic_definition.sort_keyname:
 
-                    # If specified, sort by timestamp of the selected key
-                    if dynamic_definition.sort_type == 'timestamp':
-                        sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
- 
                     # ( Otherwise the sort type is alpha by string )
                     # Title is not always given by metadata so we do this manually 
-                    elif dynamic_definition.sort_keyname == 'title':
+                    if dynamic_definition.sort_keyname == 'title':
                         sort_func = lambda node: node.title.lower()
 
                     # For all other keys, sort by key
@@ -214,7 +215,7 @@ def _compile(self,
                 else:
                     """ otherwise sort them by node date by default """
                     sort_func = lambda node: node.default_sort()
-
+                    
                 # sort them using the determined sort function
                 included_nodes = sorted(
                     included_nodes,
@@ -347,8 +348,8 @@ def _build_group_and(project, groups):
         if key in project.keynames:
 
             if value.lower() == 'all':
-                for value in project.keynames[key]:
-                    new_group = new_group.union(set(project.keynames[key][value])) 
+                for v in project.keynames[key]:
+                    new_group = new_group.union(set(project.keynames[key][v])) 
 
             elif value in project.keynames[key]:
                 new_group = set(project.keynames[key][value])
@@ -370,12 +371,12 @@ def _build_group_or(project, group):
         if key in project.keynames:
 
             if value.lower() == 'all':
-                for value in project.keynames[key]:
-                    final_group = final_group.union(set(project.keynames[key][value])) 
+                for v in project.keynames[key]:
+                    final_group = final_group.union(set(project.keynames[key][v])) 
 
             elif value in project.keynames[key]:
                 final_group = final_group.union(set(project.keynames[key][value]))
-
+    
     final_group = [ project.nodes[node_id] for node_id in final_group ]
 
     return final_group

@@ -184,9 +184,13 @@ class NodeMetadata:
         key, 
         value,
         from_node=None):
+
+        existing_entries = self.get_meta_entries(key)
+        for entry in existing_entries:
+            if value in entry.values:
+                return
         new_entry = MetadataEntry(key, [value], None, from_node=from_node)
-        if new_entry not in self.entries:
-            self.entries.append(new_entry)
+        self.entries.append(new_entry)
 
     def remove_dynamic_meta_from_source_node(self, source_node_id):
         for entry in list(self.entries):
