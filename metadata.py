@@ -139,14 +139,14 @@ class NodeMetadata:
     
     def get_meta_value(self, 
         keyname,
-        inline_only=False,
+        inline_or_wrapped=None,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
 
         """ returns a list of values for the given key """
         entries = self.get_meta_entries(
             keyname, 
-            inline_only=inline_only)
+            inline_or_wrapped=inline_or_wrapped)
 
         values = []
         for entry in entries:
@@ -159,20 +159,26 @@ class NodeMetadata:
                         return [entry.dtstring]
         return values
 
-    def get_meta_entries(self, 
-        keyname,
-        inline_only=False,
-        ):
-        """ returns a list of values for the given key """
-        entries = []
+  
 
-        keyname = keyname.lower()
-        for entry in self.entries:
-            if inline_only and not entry.inline:
-                continue
-            if entry.keyname == keyname:
-                entries.append(entry)  # allows for multiple keys of the same name
-        return entries
+    def get_first_meta_entry(self, 
+        keyname,
+        inline_or_wrapped=None
+        ):
+
+        entries = self.get_meta_entries(keyname, 
+            inline_or_wrapped=inline_or_wrapped)
+        if entries:
+            return entries[0] 
+        return None
+
+    def get_timestamp(self, keyname):
+
+        entry = self.get_first_meta_entry(keyname)
+        if not entry or not entry.dt_stamp:
+            return default_date
+        return entry.dt_stamp
+
 
     def get_first_meta_value(self, keyname):
         values = self.get_meta_value(keyname)
@@ -207,6 +213,22 @@ class NodeMetadata:
             if entry.keyname == keyname:
                 return entry.dt_stamp
         return default_date
+    
+    def get_meta_entries(self, 
+        keyname,
+        inline_or_wrapped=None
+        ):
+        """ returns a list of values for the given key """
+        entries = []
+        keyname = keyname.lower()
+        for entry in self.entries:
+            if inline_or_wrapped == 'inline' and not entry.inline:
+                continue
+            if inline_or_wrapped == 'wrapped' and entry.inline:
+                continue
+            if entry.keyname == keyname:
+                entries.append(entry)  # allows for multiple keys of the same name
+        return entries
 
     def log(self):
         for entry in self.entries:

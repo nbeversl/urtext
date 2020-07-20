@@ -189,29 +189,35 @@ def _compile(self,
             else:
 
                 """ otherwise this is a list. """
-                 
-                 
                 """ custom sort the nodes if a sort type is provided """
                 if dynamic_definition.sort_type == 'last_accessed':
                     sort_func = lambda node: node.last_accessed
-                
-                # If specified, sort by timestamp of the selected key
-                elif dynamic_definition.sort_type == 'timestamp':
-                    sort_func = lambda node: node.metadata.get_first_meta_value(self.settings['node_date_keyname'])
 
                 elif dynamic_definition.sort_keyname:
+
+
 
                     # ( Otherwise the sort type is alpha by string )
                     # Title is not always given by metadata so we do this manually 
                     if dynamic_definition.sort_keyname == 'title':
                         sort_func = lambda node: node.title.lower()
 
-                    # For all other keys, sort by key
                     elif dynamic_definition.sort_keyname == 'index':
                         sort_func = lambda node: node.index
 
                     else:
-                        sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
+                        # For all other keys, sort by key
+
+                        # If specified, sort by timestamp, not value of the selected key
+                        if dynamic_definition.sort_type == 'use_timestamp':
+
+                            sort_func = lambda node: node.metadata.get_timestamp(dynamic_definition.sort_keyname)
+
+                        else:
+                            sort_func = lambda node: node.metadata.get_first_meta_value(
+                                dynamic_definition.sort_keyname,
+                                inline_or_wrapped=dynamic_definition.include_meta_type
+                                )
 
                 else:
                     """ otherwise sort them by node date by default """
