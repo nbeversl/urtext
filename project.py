@@ -439,8 +439,6 @@ class UrtextProject:
                     entry.dt_stamp = dt_stamp 
                     if entry.keyname == self.settings['node_date_keyname']:
                         self.nodes[node_id].date = dt_stamp
-                    if node_id == '8kw':
-                        print(self.nodes[node_id].date)
                 else:
                     message =''.join([ 'Timestamp ' , entry.dtstring ,
                                   ' not in any specified date format in >',
@@ -501,7 +499,7 @@ class UrtextProject:
         if not keys:
             keys = sorted([
                 k for k in self.keynames
-                if k.lower() not in ['defined in', 'id', self.settings['node_date_keyname'], 'index']
+                if k.lower() not in ['defined_in', 'id', self.settings['node_date_keyname'], 'index']
             ])
 
         root = Node('Metadata Keys')

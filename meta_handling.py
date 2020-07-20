@@ -110,6 +110,8 @@ def _add_sub_tags(self,
         self.dynamic_meta[source_id] = []
 
     nodes_to_rebuild = []
+    if target_id not in self.nodes:
+        return
     children = self.nodes[target_id].tree_node.children
     
     for child in children:
@@ -120,7 +122,7 @@ def _add_sub_tags(self,
         FUTURE: there may be a better way to handle this.
         """
         node_to_tag = child.name.strip('ALIAS') 
-        """ """
+
         if node_to_tag in self.nodes:
             for k in tag_all:
                 for v in tag_all[k]:

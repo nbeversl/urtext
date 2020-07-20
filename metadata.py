@@ -22,10 +22,10 @@ import datetime
 import pytz
 from .dynamic import key_value_timestamp
 
-meta = re.compile(r'(\/--)((?:(?!\/--).)*?)(--\/)',re.DOTALL) 
+
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
-inline_meta = re.compile('\w+\:\:\w+')
+inline_meta = re.compile('\w+\:\:[^\n};]+;?(?=>:}})?')
 
 class NodeMetadata:
 
@@ -46,66 +46,41 @@ class NodeMetadata:
                 'index'
                 ]
 
-        # Parse out all the metadata blocks  
-        metadata_blocks = []
-        for meta_block in re.findall(meta, full_contents):
-            metadata_blocks.append(meta_block[1])
-
-        for block in metadata_blocks:
-
-            meta_lines = re.split(';|\n', block)
-
-            for line in meta_lines:
-                if line.strip() == '':
-                    continue
-                
-                """
-                For lines containing a timestamp
-                """
-                timestamp = timestamp_match.search(line)
-                dt_string = ''
-                if timestamp:
-                    dt_string = timestamp.group(1).strip()
-                    line = line.replace(timestamp.group(0), '').strip()
-
-                values = []
-                if ':' in line:
-                    key = line.split(":", 1)[0].strip().lower()
-                    value_list = ''.join(line.split(":", 1)[1:]).split('|')
-                    for value in value_list:
-                        if key not in self.case_sensitive_values:
-                            value = value.lower()
-                        value = value.strip()
-                        if key in self.numeric_values:
-                            try:
-                                value = int(value)
-                            except ValueError:
-                                value = -1
-                        if value:
-                            values.append(value)
-                else:
-                    key = 'comment'
-                    values = [ line ]
- 
-                self.entries.append(MetadataEntry(key, values, dt_string))
-
         # parse inline metadata:
         inline_metadata = []
         for m in inline_meta.finditer(full_contents):
+
             position = m.start()
-            entry = m.group().split('::')
+            entry = m.group().strip(';').split('::')
             key = entry[0].strip().lower()
-            if len(entry) == 1:
+            if len(entry) == 0:
                 continue
             value = entry[1]
-            if key not in self.case_sensitive_values:
-                value = value.lower()
-            value = value.strip()
-            if key in self.numeric_values:
-                try:
-                    value = int(value)
-                except ValueError:
-                    value = -1
+
+
+            """
+            For lines containing a timestamp
+            """
+            timestamp = timestamp_match.search(value)
+            dt_string = ''
+            if timestamp:
+                dt_string = timestamp.group(1).strip()
+                value = value.replace(timestamp.group(0), '').strip()
+
+            values = []
+            value_list = value.split('|')
+            for value in value_list:
+                if key not in self.case_sensitive_values:
+                    value = value.lower()
+                value = value.strip()
+                if key in self.numeric_values:
+                    try:
+                        value = int(value)
+                    except ValueError:
+                        value = -1
+                if value:
+                    values.append(value)
+            
             end_position = position + len(m.group())
             self.entries.append(
                 MetadataEntry(

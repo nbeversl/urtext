@@ -25,7 +25,6 @@ import os
 import re
 import operator
 
-
 """
 compile method for the UrtextProject class
 """
@@ -322,7 +321,7 @@ def build_final_output(dynamic_definition, contents):
 
     metadata_values = { 
         'ID': [ dynamic_definition.target_id ],
-        'defined in' : [ '>'+dynamic_definition.source_id ] }
+        'defined_in' : [ '>'+dynamic_definition.source_id ] }
 
     built_metadata = ''
     for value in dynamic_definition.metadata:

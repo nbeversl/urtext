@@ -137,15 +137,10 @@ class UrtextNode:
     def strip_metadata(self, contents=''):
         if contents == '':
             return contents
-
-        stripped_contents = re.sub(r'(\/--(?:(?!\/--).)*?--\/)',
+    
+        stripped_contents = re.sub(r'\w+\:\:[^\n};]+;?(?=>:}})?',
                                    '',
                                    contents,
-                                   flags=re.DOTALL)
-
-        stripped_contents = re.sub(r'\w+\:\:\w+',
-                                   '',
-                                   stripped_contents,
                                    flags=re.DOTALL)
 
         # TODO: integrate this with checking for self.trailing_node_id
@@ -261,7 +256,6 @@ class UrtextNode:
     def build_metadata(self, 
         metadata, 
         one_line=False, 
-        wrapped=True
         ):
 
         if not metadata:
@@ -275,23 +269,17 @@ class UrtextNode:
   
         new_metadata = ''
 
-        if wrapped:
-            new_metadata += '/-- '
-        
         if not one_line: 
             new_metadata += line_separator
         for keyname in metadata:
-            new_metadata += keyname + ': '
+            new_metadata += keyname + '::'
             if isinstance(metadata[keyname], list):
                 new_metadata += ' | '.join(metadata[keyname])
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
-        if one_line:
-            new_metadata = new_metadata[:-2] + ' '
-
-        if wrapped:
-            new_metadata += '--/'
+        # if one_line:
+        #     new_metadata = new_metadata[:-2] + ' '
 
         return new_metadata 
 
