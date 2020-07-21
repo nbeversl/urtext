@@ -103,6 +103,7 @@ class UrtextWatcher (FileSystemEventHandler):
         return False
       file_changed = self.project._file_changed(filename)
       if file_changed:
+        print(filename)
         self.project.on_modified(filename)
       return True
 

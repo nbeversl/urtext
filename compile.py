@@ -214,9 +214,7 @@ def _compile(self,
 
                         else:
                             sort_func = lambda node: node.metadata.get_first_meta_value(
-                                dynamic_definition.sort_keyname,
-                                inline_or_wrapped=dynamic_definition.include_meta_type
-                                )
+                                dynamic_definition.sort_keyname)
 
                 else:
                     """ otherwise sort them by node date by default """
@@ -321,7 +319,7 @@ def build_final_output(dynamic_definition, contents):
 
     metadata_values = { 
         'ID': [ dynamic_definition.target_id ],
-        'defined_in' : [ '>'+dynamic_definition.source_id ] }
+        'def' : [ '>'+dynamic_definition.source_id ] }
 
     built_metadata = ''
     for value in dynamic_definition.metadata:

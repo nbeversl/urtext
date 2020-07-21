@@ -278,8 +278,6 @@ class UrtextNode:
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
-        # if one_line:
-        #     new_metadata = new_metadata[:-2] + ' '
 
         return new_metadata 
 

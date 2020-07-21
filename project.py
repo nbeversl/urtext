@@ -499,7 +499,7 @@ class UrtextProject:
         if not keys:
             keys = sorted([
                 k for k in self.keynames
-                if k.lower() not in ['defined_in', 'id', self.settings['node_date_keyname'], 'index']
+                if k.lower() not in ['def', 'id', self.settings['node_date_keyname'], 'index']
             ])
 
         root = Node('Metadata Keys')
@@ -1185,7 +1185,7 @@ class UrtextProject:
             if keyname.lower() in ignore:
                 continue
             for value in self.keynames[keyname]:
-                meta_string = ''.join([keyname, ': ', str(value) ])            
+                meta_string = ''.join([keyname, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
 
