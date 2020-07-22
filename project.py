@@ -157,11 +157,7 @@ class UrtextProject:
         import_project=False, 
         init_project=False):
 
-        filelist = os.listdir(self.path)
-
-        for file in filelist:
-            if self._filter_filenames(file) == None:
-                continue            
+        for file in os.listdir(self.path):
             self._parse_file(file, import_project=import_project)
 
         if import_project:
@@ -434,16 +430,16 @@ class UrtextProject:
         
         for entry in self.nodes[node_id].metadata.entries:
 
-            if entry.dtstring:
-                dt_stamp = self._date_from_timestamp(entry.dtstring)
+            if entry.dt_string:
+                dt_stamp = self._date_from_timestamp(entry.dt_string)
 
                 if dt_stamp:
                     entry.dt_stamp = dt_stamp 
-                    if entry.keyname == self.settings['node_date_keyname']:
+                    if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
                         self.nodes[node_id].date = dt_stamp
                 else:
                     
-                    message =''.join([ 'Timestamp ' , entry.dtstring ,
+                    message =''.join([ 'Timestamp ' , entry.dt_string ,
                                   ' not in any specified date format in >',
                                   node_id ])
                     self.messages[self.nodes[node_id].filename].append(message)

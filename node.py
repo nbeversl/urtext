@@ -69,7 +69,8 @@ class UrtextNode:
         self.title = self.set_title(stripped_contents)
        
         if self.metadata.get_first_meta_value('id'):
-            node_id = self.metadata.get_first_meta_value('id').lower().strip()
+            node_id = self.metadata.get_first_meta_value('id')
+            node_id = node_id.lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
         else:
@@ -251,8 +252,8 @@ class UrtextNode:
             if entry.keyname not in keynames:
                 keynames[entry.keyname] = []
             timestamp = ''
-            if entry.dtstring:
-                timestamp = ' <'+entry.dtstring+'>'
+            if entry.dt_string:
+                timestamp = ' <'+entry.dt_string+'>'
             if not entry.values:
                 keynames[entry.keyname].append(timestamp)
             for value in entry.values:

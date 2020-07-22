@@ -60,9 +60,7 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
             amount = 100
             if not dynamic_definition.timeline_meta_key:
                 return 'EMPTY'
-            entries = node.metadata.get_meta_entries(
-                dynamic_definition.timeline_meta_key,
-                inline_or_wrapped='inline')
+            entries = node.metadata.get_meta_entries(dynamic_definition.timeline_meta_key)
             for entry in entries:
                 found_thing = {}
                 value = entry.values[0]

@@ -88,9 +88,9 @@ def _rebuild_node_meta(self, node_id):
         # if the key has no a value, assign the use the STRING version of its timestamp
         # [ if not entry.values and ... ? ]
         if entry.keyname.lower() == self.settings['node_date_keyname']:
-            if entry.dtstring not in self.keynames[entry.keyname.lower()]:
-                self.keynames[entry.keyname.lower()][entry.dtstring] = [] 
-            self.keynames[entry.keyname.lower()][entry.dtstring].append(node_id)
+            if entry.dt_string not in self.keynames[entry.keyname.lower()]:
+                self.keynames[entry.keyname.lower()][entry.dt_string] = [] 
+            self.keynames[entry.keyname.lower()][entry.dt_string].append(node_id)
             continue
 
         # add the values to the keyname

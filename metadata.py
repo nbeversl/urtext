@@ -87,7 +87,7 @@ class NodeMetadata:
                 MetadataEntry(
                     key, 
                     values, 
-                    '', 
+                    dt_string, 
                     position=position, 
                     end_position=end_position,
                     inline=True)
@@ -99,69 +99,67 @@ class NodeMetadata:
             position = m.start()
             end_position = position + len(m.group())
             self.entries.append(
-            MetadataEntry(
-                'timestamp', 
-                '', 
-                stamp[1:-1], 
-                position=position, 
-                end_position=end_position,
-                inline=True)
-                )    
+                MetadataEntry(
+                    'inline-timestamp', 
+                    '', 
+                    stamp[1:-1], 
+                    position=position, 
+                    end_position=end_position,
+                    inline=True)
+                    )    
 
-        ids = []
-        for entry in self.entries:
-            if entry.keyname == 'id':
-                ids.append(entry.values)
-    
+    ## Getting
+
+
+    def get_first_meta_entry(self, keyname):
+        entries = self.get_meta_entries(keyname)
+        return entries[0] if entries else None
+
+    def get_meta_entries(self, keyname):
+        """ returns a list of values for the given key """
+        keyname = keyname.lower().strip()
+        return [entry for entry in self.entries if entry.keyname == keyname]
+
+    def get_first_meta_value(self, keyname):
+        values = self.get_meta_value(keyname)
+        return values[0] if values else ''
+
     def get_meta_value(self, 
         keyname,
-        inline_or_wrapped=None,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
 
         """ returns a list of values for the given key """
-        entries = self.get_meta_entries(
-            keyname, 
-            inline_or_wrapped=inline_or_wrapped)
-
+        entries = self.get_meta_entries(keyname)
         values = []
-        for entry in entries:
+        for entry in self.entries:
             if entry.keyname == keyname:
-                values.extend(entry.values)  # allows for multiple keys of the same name
-        
+                values.extend(entry.values)        
         if values == [] and substitute_timestamp:
             for entry in entries:
                 if entry.keyname == keyname and entry.dt_stamp != default_date:
-                        return [entry.dtstring]
+                        return [entry.dt_string]
         return values
-
-  
-
-    def get_first_meta_entry(self, 
-        keyname,
-        inline_or_wrapped=None
-        ):
-
-        entries = self.get_meta_entries(keyname, 
-            inline_or_wrapped=inline_or_wrapped)
-        if entries:
-            return entries[0] 
-        return None
-
+        
     def get_timestamp(self, keyname):
-
         entry = self.get_first_meta_entry(keyname)
-        if not entry or not entry.dt_stamp:
+        if not entry:            
             return default_date
         return entry.dt_stamp
 
+    def get_date(self, keyname):
+        """
+        Returns the timestamp of the FIRST matching metadata entry with the given key.
+        Requires the project be parsed (dt_stamp set from dt_string)
+        """
+        keyname = keyname.lower()
+        for entry in self.entries:
+            if entry.keyname == keyname:
+                return entry.dt_stamp
+        return default_date
 
-    def get_first_meta_value(self, keyname):
-        values = self.get_meta_value(keyname)
-        if values:
-            return values[0]
-        return ''
-
+    # Setting
+    
     def add_meta_entry(self, 
         key, 
         value,
@@ -178,50 +176,22 @@ class NodeMetadata:
         for entry in list(self.entries):
             if entry.from_node == source_node_id:
                 self.entries.remove(entry)
-
-    def get_date(self, keyname):
-        """
-        Returns the timestamp of the FIRST matching metadata entry with the given key.
-        Requires the project be parsed (dt_stamp set from dt_string)
-        """
-        keyname = keyname.lower()
-        for entry in self.entries:
-            if entry.keyname == keyname:
-                return entry.dt_stamp
-        return default_date
     
-    def get_meta_entries(self, 
-        keyname,
-        inline_or_wrapped=None
-        ):
-        """ returns a list of values for the given key """
-        entries = []
-        keyname = keyname.lower()
-        for entry in self.entries:
-            if inline_or_wrapped == 'inline' and not entry.inline:
-                continue
-            if inline_or_wrapped == 'wrapped' and entry.inline:
-                continue
-            if entry.keyname == keyname:
-                entries.append(entry)  # allows for multiple keys of the same name
-        return entries
+    # Debug
 
     def log(self):
         for entry in self.entries:
             entry.log()
 
-    def groups(self):  # not used?
-        groups_list = []
-        for entry in self.entries:
-            if entry.keyname[0] == '_':
-                groups_list.append(entry.keyname)
-        return groups_list
+    def _is_id(self, node_id): # debug only
+        if self.get_first_meta_entry('id') == node_id:
+            return True
 
 class MetadataEntry:  # container for a single metadata entry
     def __init__(self, 
         keyname, 
         value, 
-        dtstring,
+        dt_string,
         position=None,
         end_position=None, 
         from_node=None,
@@ -229,7 +199,7 @@ class MetadataEntry:  # container for a single metadata entry
 
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
-        self.dtstring = dtstring
+        self.dt_string = dt_string
         self.dt_stamp = default_date # default or set by project        
         self.from_node = from_node
         self.inline = inline
@@ -240,6 +210,6 @@ class MetadataEntry:  # container for a single metadata entry
     def log(self):
         print('key: %s' % self.keyname)
         print('value: %s' % self.values)
-        print('datetimestring: %s' % self.dtstring)
+        print('datetimestring: %s' % self.dt_string)
         print('datetimestamp: %s' % self.dt_stamp)
         print('from_node: %s' % self.from_node)

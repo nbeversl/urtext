@@ -54,7 +54,7 @@ class UrtextDynamicDefinition:
         self.recursive = False
         self.reverse = False
         self.timeline = False
-        self.timeline_type = None
+        self.timeline_type = 'inline'
         self.search = None
         self.show = '$title $link\n' # default
         self.preformat = False
@@ -101,14 +101,6 @@ class UrtextDynamicDefinition:
                 self.timeline = True
 
                 for param in params:
-
-                    if param == 'meta':
-                        self.timeline_type = 'meta'
-                        continue
-
-                    if param == 'inline': # default
-                        self.timeline_type = 'inline'
-                        continue
 
                     key, value, timestamp = key_value_timestamp(param)
                     if key == 'key':
