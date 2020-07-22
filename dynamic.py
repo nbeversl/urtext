@@ -54,7 +54,6 @@ class UrtextDynamicDefinition:
         self.recursive = False
         self.reverse = False
         self.timeline = False
-        self.timeline_type = 'inline'
         self.search = None
         self.show = '$title $link\n' # default
         self.preformat = False

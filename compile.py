@@ -145,7 +145,7 @@ def _compile(self,
                 included_nodes = []
               
                 if 'indexed' in dynamic_definition.include_or:
-                    included_nodes = [self.nodes[node_id] for node_id in self.indexed_nodes()]
+                    included_nodes = [self.nodes[node_id] for node_id in self.indexed_nodes() if not self.nodes[node_id].dynamic]
     
                 included_nodes = set(included_nodes)
 
@@ -335,7 +335,7 @@ def build_final_output(dynamic_definition, contents):
     return final_contents
 
 
-def _build_group_and(project, groups):
+def _build_group_and(project, groups, include_dynamic=False):
     
     final_group = set([])
     new_group = set([])
@@ -349,11 +349,21 @@ def _build_group_and(project, groups):
 
             if value.lower() == 'all':
                 for v in project.keynames[key]:
-                    new_group = new_group.union(set(project.keynames[key][v])) 
+                    if include_dynamic:
+                        new_group = new_group.union(set(project.keynames[key][v])) 
+                    else:
+                        new_group = new_group.union(set([
+                            r for r in project.keynames[key][v] if not project.nodes[r].dynamic
+                            ]))
 
             elif value in project.keynames[key]:
-                new_group = set(project.keynames[key][value])
-        
+                if include_dynamic:
+                    new_group = set(project.keynames[key][value])
+                else:
+                    new_group = set([
+                        r for r in project.keynames[key][value] if not project.nodes[r].dynamic
+                        ])
+
         found_sets.append(new_group)
 
     for this_set in found_sets:
@@ -362,7 +372,7 @@ def _build_group_and(project, groups):
     final_group = set([project.nodes[node_id] for node_id in new_group])
     return final_group
 
-def _build_group_or(project, group):
+def _build_group_or(project, group, include_dynamic=False):
 
     final_group = set([])
 
@@ -374,11 +384,22 @@ def _build_group_or(project, group):
 
             if value.lower() == 'all':
                 for v in project.keynames[key]:
-                    final_group = final_group.union(set(project.keynames[key][v])) 
+                    if include_dynamic:
+                        final_group = final_group.union(set(project.keynames[key][v])) 
+                    else:
+                        final_group = final_group.union(set([
+                            r for r in project.keynames[key][v] if not project.nodes[r].dynamic
+                            ])) 
+
 
             elif value in project.keynames[key]:
-                final_group = final_group.union(set(project.keynames[key][value]))
-    
+                if include_dynamic:
+                    final_group = final_group.union(set(project.keynames[key][value]))
+                else:
+                    final_group = final_group.union(set([
+                        r for r in project.keynames[key][value] if not project.nodes[r].dynamic
+                        ]))
+
     final_group = [ project.nodes[node_id] for node_id in final_group ]
 
     return final_group

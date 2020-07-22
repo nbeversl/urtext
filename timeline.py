@@ -37,64 +37,45 @@ def _timeline(self, nodes, dynamic_definition, amount=150):
             # exclude log from timeline
             continue
 
-        # metadata datestamps
-        if dynamic_definition.timeline_type in [ None, 'meta']:
-            contents = self.nodes[node.id].content_only()
+
+        amount = 100
+        if not dynamic_definition.timeline_meta_key:
+            return 'EMPTY'
+        entries = node.metadata.get_meta_entries(dynamic_definition.timeline_meta_key)
+        for entry in entries:
             found_thing = {}
-            found_thing['filename'] = node.id
-            found_thing['kind'] = 'from Node ID'
-            found_thing['value'] = node.date.strftime('%a., %b. %d, %Y, %I:%M%p')
-            found_thing['sort_value'] = node.date
-            found_thing['contents'] = contents[:amount]
-            if len(contents) > amount:
-                found_thing['contents'] = '...   ' + found_thing['contents'] +  '      ...'
+            value = entry.values[0]
+            full_contents = node.content_only()
+
+            start_pos = entry.position - amount
+            end_pos = entry.end_position + amount
+            if entry.position < amount: 
+                start_pos = 0
+            if entry.end_position + amount > len(full_contents):
+                end_pos = len(full_contents)
+
+            #     relevant_text = '...   ' + relevant_text +  '      ...'
+            # else:
+            #     relevant_text = '      ' + relevant_text
+
+            relevant_text = full_contents[start_pos:end_pos]
+            found_thing['filename'] = node.id + ':' + str(entry.position)
+
+            # TODO : abstract this for numbers / other sortable values also:
+            if dynamic_definition.timeline_meta_key == 'timestamp':
+                found_thing['value'] = entry.dt_string
+                found_thing['sort_value'] = entry.dt_stamp
             else:
-                found_thing['contents'] = '      ' + found_thing['contents']
+                found_thing['value'] = value
+                sort_value = value
+                if dynamic_definition.timeline_sort_numeric:
+                    # TODO: error catching
+                    sort_value = float(value)
+                found_thing['sort_value'] = sort_value
+            found_thing['contents'] = relevant_text
             found_stuff.append(found_thing)
 
-            keyname = 'timestamp?? '
-
-        # inline metavalues
-        elif dynamic_definition.timeline_type == 'inline':
-
-            amount = 100
-            if not dynamic_definition.timeline_meta_key:
-                return 'EMPTY'
-            entries = node.metadata.get_meta_entries(dynamic_definition.timeline_meta_key)
-            for entry in entries:
-                found_thing = {}
-                value = entry.values[0]
-                full_contents = node.content_only()
-
-                start_pos = entry.position - amount
-                end_pos = entry.end_position + amount
-                if entry.position < amount: 
-                    start_pos = 0
-                if entry.end_position + amount > len(full_contents):
-                    end_pos = len(full_contents)
-
-                #     relevant_text = '...   ' + relevant_text +  '      ...'
-                # else:
-                #     relevant_text = '      ' + relevant_text
-
-                relevant_text = full_contents[start_pos:end_pos]
-                found_thing['filename'] = node.id + ':' + str(entry.position)
- 
-                # TODO : abstract this for numbers / other sortable values also:
-                if dynamic_definition.timeline_meta_key == 'timestamp':
-                    found_thing['value'] = entry.dt_string
-                    found_thing['sort_value'] = entry.dt_stamp
-                else:
-                    found_thing['value'] = value
-                    sort_value = value
-                    if dynamic_definition.timeline_sort_numeric:
-                        # TODO: error catching
-                        sort_value = float(value)
-                    found_thing['sort_value'] = sort_value
-                found_thing['contents'] = relevant_text
-                found_stuff.append(found_thing)
-
-            keyname = dynamic_definition.timeline_meta_key
+        keyname = dynamic_definition.timeline_meta_key
 
     sorted_stuff = sorted(found_stuff, key=lambda x: x['sort_value']) 
     # TODO : re-add reverse flag
