@@ -75,7 +75,7 @@ class UrtextSearch:
 					this_result.contents = excerpt
 
 				if this_result.needs_meta:
-					this_result.meta = self.project.nodes[node_id].consolidate_metadata(wrapped=False)
+					this_result.meta = self.project.nodes[node_id].consolidate_metadata()
 
 				if this_result.needs_date:
 					this_result.date = self.project.nodes[node_id].date

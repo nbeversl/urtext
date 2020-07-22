@@ -41,10 +41,13 @@ class NodeMetadata:
                 'timestamp_format',
                 'filenames',
                 'weblink',
+                'timestamp',
                 ]
         self.numeric_values = [
                 'index'
                 ]
+
+        parsed_contents = full_contents
 
         # parse inline metadata:
         inline_metadata = []
@@ -89,12 +92,13 @@ class NodeMetadata:
                     values, 
                     dt_string, 
                     position=position, 
-                    end_position=end_position,
-                    inline=True)
+                    end_position=end_position)
                 )    
 
+            parsed_contents = parsed_contents.replace(m.group(),'')
+
         # parse inline timestamps:
-        for m in timestamp_match.finditer(full_contents):
+        for m in timestamp_match.finditer(parsed_contents):
             stamp = m.group()
             position = m.start()
             end_position = position + len(m.group())
@@ -104,8 +108,7 @@ class NodeMetadata:
                     '', 
                     stamp[1:-1], 
                     position=position, 
-                    end_position=end_position,
-                    inline=True)
+                    end_position=end_position)
                     )    
 
     ## Getting
@@ -194,15 +197,13 @@ class MetadataEntry:  # container for a single metadata entry
         dt_string,
         position=None,
         end_position=None, 
-        from_node=None,
-        inline=False):
+        from_node=None):
 
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dt_string = dt_string
         self.dt_stamp = default_date # default or set by project        
         self.from_node = from_node
-        self.inline = inline
         self.position = position
         self.end_position = end_position
 

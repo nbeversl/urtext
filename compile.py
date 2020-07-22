@@ -219,7 +219,7 @@ def _compile(self,
                 # sort them using the determined sort function
                 included_nodes = sorted(
                     included_nodes,
-                    key = sort_func,
+                    key=sort_func,
                     reverse=dynamic_definition.reverse)
 
                 """
@@ -247,7 +247,7 @@ def _compile(self,
                     if next_content.needs_date:
                         next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
                     if next_content.needs_meta:
-                        next_content.meta = targeted_node.consolidate_metadata(wrapped=False)
+                        next_content.meta = targeted_node.consolidate_metadata()
                     if next_content.needs_contents: 
                         next_content.contents = targeted_node.content_only().strip('\n').strip()
  

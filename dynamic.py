@@ -34,7 +34,6 @@ class UrtextDynamicDefinition:
         self.target_id = None
         self.target_file = None
         self.include_all = False
-        self.include_meta_type = None
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
@@ -129,17 +128,6 @@ class UrtextDynamicDefinition:
                         # and overrides or if it appears at all
                         operator = 'and'
                         continue
-
-                    if param == 'inline':
-                        # and overrides or if it appears at all
-                        self.include_meta_type = 'inline'
-                        continue
-
-                    if param == 'wrapped':
-                        # and overrides or if it appears at all
-                        self.include_meta_type = 'wrapped'
-                        continue
-
 
                     if param == 'all_projects':
                         self.include_other_projects = True
