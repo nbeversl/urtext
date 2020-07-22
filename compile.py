@@ -138,7 +138,7 @@ def _compile(self,
 
             # include all nodes?
             elif dynamic_definition.include_all:
-                included_nodes = [self.nodes[node_id] for node_id in self.nodes]
+                included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
 
             # otherwise determind which nodes to include
             else:
