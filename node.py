@@ -64,6 +64,8 @@ class UrtextNode:
 
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(stripped_contents)
+
+        stripped_contents = self.strip_metadata(contents)
         self.title = self.set_title(stripped_contents)
        
         if self.metadata.get_first_meta_value('id'):
@@ -133,6 +135,7 @@ class UrtextNode:
              contents = contents.lstrip().replace('^','',1)        
         contents = contents.lstrip().replace('^','',1)
         return contents
+
     @classmethod
     def strip_metadata(self, contents=''):
         if contents == '':
@@ -142,6 +145,11 @@ class UrtextNode:
                                    '',
                                    contents,
                                    flags=re.DOTALL)
+
+        stripped_contents = re.sub(r'(?:<)([^-/<][^=<]*?)(?:>)' ,
+                                    '', 
+                                    stripped_contents, 
+                                    flags=re.DOTALL)
 
         # TODO: integrate this with checking for self.trailing_node_id
         if re.match('\s[a-z0-9]{3}', stripped_contents[-4:]):

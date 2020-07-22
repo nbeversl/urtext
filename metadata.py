@@ -23,7 +23,7 @@ import pytz
 from .dynamic import key_value_timestamp
 
 
-default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,5,1))
+default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
 inline_meta = re.compile('\w+\:\:[^\n};]+;?(?=>:}})?')
 
@@ -57,7 +57,6 @@ class NodeMetadata:
                 continue
             value = entry[1]
 
-
             """
             For lines containing a timestamp
             """
@@ -69,7 +68,9 @@ class NodeMetadata:
 
             values = []
             value_list = value.split('|')
+
             for value in value_list:
+
                 if key not in self.case_sensitive_values:
                     value = value.lower()
                 value = value.strip()
@@ -85,7 +86,7 @@ class NodeMetadata:
             self.entries.append(
                 MetadataEntry(
                     key, 
-                    [value], 
+                    values, 
                     '', 
                     position=position, 
                     end_position=end_position,

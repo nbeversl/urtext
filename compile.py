@@ -194,8 +194,6 @@ def _compile(self,
 
                 elif dynamic_definition.sort_keyname:
 
-
-
                     # ( Otherwise the sort type is alpha by string )
                     # Title is not always given by metadata so we do this manually 
                     if dynamic_definition.sort_keyname == 'title':
@@ -209,12 +207,10 @@ def _compile(self,
 
                         # If specified, sort by timestamp, not value of the selected key
                         if dynamic_definition.sort_type == 'use_timestamp':
-
                             sort_func = lambda node: node.metadata.get_timestamp(dynamic_definition.sort_keyname)
 
                         else:
-                            sort_func = lambda node: node.metadata.get_first_meta_value(
-                                dynamic_definition.sort_keyname)
+                            sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
 
                 else:
                     """ otherwise sort them by node date by default """

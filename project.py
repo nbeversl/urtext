@@ -78,6 +78,8 @@ class UrtextProject:
                  import_project=False,
                  init_project=False,
                  watchdog=False):
+        
+        watchdog=False # development
 
         self.is_async = True # use False for development only
         self.path = path
@@ -440,6 +442,7 @@ class UrtextProject:
                     if entry.keyname == self.settings['node_date_keyname']:
                         self.nodes[node_id].date = dt_stamp
                 else:
+                    
                     message =''.join([ 'Timestamp ' , entry.dtstring ,
                                   ' not in any specified date format in >',
                                   node_id ])
@@ -587,6 +590,7 @@ class UrtextProject:
             omit=omit).render_tree()
 
     def _list_messages(self):
+        pass
         output = []
         for filename in self.messages:
             if self.messages[filename]:
