@@ -35,6 +35,7 @@ class UrtextDynamicDefinition:
         self.target_id = None
         self.target_file = None
         self.include_all = False
+        self.comparison_type = None
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
@@ -72,40 +73,26 @@ class UrtextDynamicDefinition:
 
             func = match[0]
             inside_parentheses = match[1][1:-1]
-            params = []
-
-            # for string_meta in re.findall(string_meta_regex, inside_parentheses):
-
-            #     string_meta_match = ':'.join(string_meta)
-            #     params.append(string_meta_match)
-            #     inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
-
-
-            # params.extend([param.strip() for param in inside_parentheses.split(' ')])
-
-            params = re.split(';|\n', inside_parentheses)
-
-            if not params:
-                continue
 
             if func == 'ID':
-                self.target_id = params[0]
+                self.target_id = inside_parentheses
                 continue
 
             if func == 'SHOW':
-                self.show = ' '.join(params)
+                self.show = inside_parentheses
                 continue
 
             if func == 'TREE':
-                self.tree = params[0]
+                self.tree = inside_parentheses
                 continue
 
             if func == 'COLLECTION':
+                
                 self.timeline = True
 
-                for param in params:
+                for param in separate(inside_parentheses):
 
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param)
                     if key == 'key':
                         self.timeline_meta_key = value[0]
 
@@ -118,7 +105,7 @@ class UrtextDynamicDefinition:
                 group = []
                 operator = 'or' # default
 
-                for param in params:
+                for param in separate(inside_parentheses):
                     
                     if param == 'all': 
                         self.include_all = True
@@ -138,10 +125,11 @@ class UrtextDynamicDefinition:
                         self.include_other_projects = True
                         continue
 
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param, ['=','?','~'])
                     if value:
                         for v in value:
                             group.append((key,v))
+                        self.comparison_type = delimiter
                 
                 if group and operator == 'and':
                     self.include_and.extend(group)
@@ -153,7 +141,7 @@ class UrtextDynamicDefinition:
             if func == 'EXCLUDE':
                 group = []
                 operator = 'or'
-                for param in params:
+                for param in separate(inside_parentheses):
 
                     if param == 'all': 
                         self.exclude_or = 'all'
@@ -167,12 +155,12 @@ class UrtextDynamicDefinition:
                         operator = 'and'
                         continue
                    
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param, ['=','?','~'])
                     if value:
                         for v in value:
                             group.append((key,v))
-                            print(group)
-
+                        self.comparison_type = delimiter
+                        
                 if group and operator == 'and':
                     self.exclude_and.extend(group)
                 elif group:
@@ -180,14 +168,14 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == "LINKS_TO":
-                self.links_to = params
+                self.links_to = separate(inside_parentheses)
 
             if func == "LINKS_FROM":
-                self.links_from = params
+                self.links_from = separate(inside_parentheses)
 
             if func == "FORMAT":
 
-                for param in params:
+                for param in separate(inside_parentheses):
   
                     if param == 'preformat':
                         self.preformat = True
@@ -197,7 +185,7 @@ class UrtextDynamicDefinition:
                         self.oneline_meta = False
                         continue
                     
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param)
                     if value and key == 'indent':
                         self.spaces = self.assign_as_int(value[0], self.spaces)
                         continue
@@ -205,16 +193,16 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'SEARCH':
-                self.search = ' '.join(params)
+                self.search = inside_parentheses
                 continue
 
             if func == 'LIMIT':
-                self.limit = self.assign_as_int(params[0], self.limit)
+                self.limit = self.assign_as_int(inside_parentheses, self.limit)
                 continue
 
             if func == 'SORT':
 
-                for param in params:
+                for param in separate(inside_parentheses):
 
                     if param == 'reverse':
                         self.reverse = True
@@ -237,29 +225,30 @@ class UrtextDynamicDefinition:
 
             if func == 'EXPORT':
 
-                for param in params:
+                for param in separate(inside_parentheses):
 
                     if param in ['markdown','html','plaintext']:
                         self.export = param
 
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param)
                     if value and key == 'source':
                         self.export_source = value[0]
                 continue
 
             if func == 'FILE':
                
-                self.target_file = params[0]
+                self.target_file = inside_parentheses
                 continue
 
             if func == 'TAG_ALL':
-                for param in params:
+
+                for param in separate(inside_parentheses):
 
                     if param == 'recursive':
                         self.recursive = True
                         continue
 
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param)
                     if value:
                         if key not in self.tag_all:
                             self.tag_all[key] = []
@@ -269,9 +258,9 @@ class UrtextDynamicDefinition:
 
             if func == 'METADATA':
                 
-                for param in params:
+                for param in separate(inside_parentheses):
 
-                    key, value, timestamp = key_value_timestamp(param)
+                    key, value, delimiter = key_value(param, ['::'])
 
                     if key:
                         if key not in self.metadata:
@@ -287,16 +276,21 @@ class UrtextDynamicDefinition:
         except ValueError:
             return default
 
-def key_value_timestamp(param):
+def key_value(param, delimiters=[':']):
 
-    key = None
-    value = None
-    timestamp = None # future use only
+    if isinstance(delimiters, str):
+        delimiters = [delimiters]
     
-    if ':' in param:
-        key,value = param.split(':',1)
-        key = key.lower().strip()
-        value = [v.strip() for v in value.split('|')]
+    for delimiter in delimiters:
 
-    return key, value, timestamp
+        if delimiter in param:
+            key,value = param.split(delimiter,1)
+            key = key.lower().strip()
+            value = [v.strip() for v in value.split('|')]
+            return key, value, delimiter
 
+    return None, None, None
+
+
+def separate(param):
+    return [r.strip() for r in re.split(';|\n', param)]

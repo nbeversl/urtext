@@ -20,8 +20,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 import pytz
-from .dynamic import key_value_timestamp
-
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
@@ -151,7 +149,7 @@ class NodeMetadata:
         """
         keyname = keyname.lower()
         for entry in self.entries:
-            if entry.keyname == keyname:
+            if entry.keyname.lower() == keyname:
                 return entry.dt_stamp
         return default_date
 

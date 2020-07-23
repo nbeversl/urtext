@@ -155,7 +155,7 @@ def _compile(self,
 
             excluded_nodes = set([])
             for project in included_projects:
-                print(dynamic_definition.exclude_or)
+
                 excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
                 excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
@@ -207,7 +207,7 @@ def _compile(self,
 
                         # If specified, sort by timestamp, not value of the selected key
                         if dynamic_definition.sort_type == 'use_timestamp':
-                            sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
+                             sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
                         else:
                             sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
@@ -266,7 +266,7 @@ def _compile(self,
         if not initial:
             filename = self.nodes[dynamic_definition.target_id].filename    
             self._parse_file(filename)
-        print( self.nodes[dynamic_definition.target_id].filename )
+        #print( self.nodes[dynamic_definition.target_id].filename )
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file:

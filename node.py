@@ -253,7 +253,7 @@ class UrtextNode:
                 keynames[entry.keyname] = []
             timestamp = ''
             if entry.dt_string:
-                timestamp = ' <'+entry.dt_string+'>'
+                timestamp = '<'+entry.dt_string+'>'
             if not entry.values:
                 keynames[entry.keyname].append(timestamp)
             for value in entry.values:

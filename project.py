@@ -79,7 +79,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        #watchdog=False # development
+        watchdog=False # development
 
         self.is_async = True # use False for development only
         self.path = path
@@ -783,7 +783,7 @@ class UrtextProject:
         metadata['id']=self.next_index()
         metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
-        return '^ '+contents + metadata_block
+        return '^  '+contents + metadata_block
 
     def _prefix_length(self):
         """ Determines the prefix length for indexing files (requires an already-compiled project) """

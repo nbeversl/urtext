@@ -23,6 +23,9 @@ Metadata
 import datetime
 import re 
 
+entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?',re.DOTALL)
+
+
 def tag_other_node(self, node_id, tag_contents):
     """adds a metadata tag to a node programmatically"""
 
@@ -50,11 +53,9 @@ def consolidate_metadata(self, node_id, one_line=False):
     filename = self.nodes[node_id].filename
     length = len(file_contents)
     ranges = self.nodes[node_id].ranges
-    meta = re.compile(r'(\/--(?:(?!\/--).)*?--\/)',re.DOTALL)
-
     for single_range in ranges:
 
-        for section in meta.finditer(file_contents[single_range[0]:single_range[1]]):
+        for section in entry_regex.finditer(file_contents[single_range[0]:single_range[1]]):
             start = section.start() + single_range[0]
             end = start + len(section.group())
             first_splice = file_contents[:start]
