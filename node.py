@@ -65,7 +65,7 @@ class UrtextNode:
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(stripped_contents)
 
-        stripped_contents = self.strip_metadata(contents)
+        stripped_contents = self.strip_metadata(stripped_contents)
         self.title = self.set_title(stripped_contents)
        
         if self.metadata.get_first_meta_value('id'):
