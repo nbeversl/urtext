@@ -270,11 +270,9 @@ class UrtextNode:
         if not metadata:
             return ''
 
+        line_separator = '\n'
         if one_line:
             line_separator = '; '
-
-        else:
-            line_separator = '\n'
   
         new_metadata = ''
 

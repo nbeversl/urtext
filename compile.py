@@ -137,7 +137,7 @@ def _compile(self,
                 included_projects.extend(self.other_projects)
 
             # include all nodes?
-            if dynamic_definition.include_all:
+            elif dynamic_definition.include_all:
                 included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
 
             # otherwise determind which nodes to include
@@ -155,7 +155,7 @@ def _compile(self,
 
             excluded_nodes = set([])
             for project in included_projects:
-
+                print(dynamic_definition.exclude_or)
                 excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
                 excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
@@ -266,6 +266,7 @@ def _compile(self,
         if not initial:
             filename = self.nodes[dynamic_definition.target_id].filename    
             self._parse_file(filename)
+        print( self.nodes[dynamic_definition.target_id].filename )
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file:
@@ -275,7 +276,7 @@ def _compile(self,
             self.nodes[dynamic_definition.target_id].export_points = points           
         if dynamic_definition.tree:
             self.nodes[dynamic_definition.target_id].is_tree = True
-
+        
         self.nodes[dynamic_definition.target_id].dynamic = True
         
         messages_file = self._populate_messages()
@@ -317,15 +318,13 @@ def build_final_output(dynamic_definition, contents):
         'ID': [ dynamic_definition.target_id ],
         'def' : [ '>'+dynamic_definition.source_id ] }
 
-    built_metadata = ''
-    for value in dynamic_definition.metadata:
-        metadata_values[value] = dynamic_definition.metadata[value]
-
+    
+    metadata_values.update(dynamic_definition.metadata) 
     built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
     title = ''
     if 'title' in dynamic_definition.metadata:
-        title = dynamic_definition.metadata['title'] + '\n'
+        title = dynamic_definition.metadata['title'][0] + '\n'
 
     final_contents = '\n' + title + contents + built_metadata
 

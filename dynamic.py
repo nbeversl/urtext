@@ -25,6 +25,7 @@ node_id_regex = r'\b[0-9,a-z]{3}\b'
 function_regex = re.compile('([A-Z_]+)(\(.*?\))')
 key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
 string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
+entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
 
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
@@ -73,13 +74,17 @@ class UrtextDynamicDefinition:
             inside_parentheses = match[1][1:-1]
             params = []
 
-            for string_meta in re.findall(string_meta_regex, inside_parentheses):
+            # for string_meta in re.findall(string_meta_regex, inside_parentheses):
 
-                string_meta_match = ':'.join(string_meta)
-                params.append(string_meta_match)
-                inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
-            params.extend([param.strip() for param in inside_parentheses.split(' ')])
-            
+            #     string_meta_match = ':'.join(string_meta)
+            #     params.append(string_meta_match)
+            #     inside_parentheses = inside_parentheses.replace(string_meta_match,'',1)
+
+
+            # params.extend([param.strip() for param in inside_parentheses.split(' ')])
+
+            params = re.split(';|\n', inside_parentheses)
+
             if not params:
                 continue
 
@@ -102,7 +107,7 @@ class UrtextDynamicDefinition:
 
                     key, value, timestamp = key_value_timestamp(param)
                     if key == 'key':
-                        self.timeline_meta_key = value
+                        self.timeline_meta_key = value[0]
 
                     if key == 'sort' and value.lower() == 'num':
                         self.timeline_sort_numeric = True
@@ -134,19 +139,20 @@ class UrtextDynamicDefinition:
                         continue
 
                     key, value, timestamp = key_value_timestamp(param)
-                    if key:
-                        group.append((key,value))
+                    if value:
+                        for v in value:
+                            group.append((key,v))
                 
                 if group and operator == 'and':
                     self.include_and.extend(group)
                 elif group:
                     self.include_or.extend(group)
+
                 continue
 
             if func == 'EXCLUDE':
                 group = []
-                operator = 'or'  
-
+                operator = 'or'
                 for param in params:
 
                     if param == 'all': 
@@ -158,12 +164,14 @@ class UrtextDynamicDefinition:
                         continue
 
                     if param == 'and':
-                        add_to_group = 'and'
+                        operator = 'and'
                         continue
                    
                     key, value, timestamp = key_value_timestamp(param)
-                    if key:
-                        group.append((key,value))
+                    if value:
+                        for v in value:
+                            group.append((key,v))
+                            print(group)
 
                 if group and operator == 'and':
                     self.exclude_and.extend(group)
@@ -190,10 +198,9 @@ class UrtextDynamicDefinition:
                         continue
                     
                     key, value, timestamp = key_value_timestamp(param)
-                    if key:
-                        if key == 'indent':
-                            self.spaces = self.assign_as_int(value, self.spaces)
-                    continue
+                    if value and key == 'indent':
+                        self.spaces = self.assign_as_int(value[0], self.spaces)
+                        continue
                 
                 continue
 
@@ -236,9 +243,8 @@ class UrtextDynamicDefinition:
                         self.export = param
 
                     key, value, timestamp = key_value_timestamp(param)
-                    if key:
-                        if key == 'source':
-                            self.export_source = value
+                    if value and key == 'source':
+                        self.export_source = value[0]
                 continue
 
             if func == 'FILE':
@@ -254,10 +260,10 @@ class UrtextDynamicDefinition:
                         continue
 
                     key, value, timestamp = key_value_timestamp(param)
-                    if key:
+                    if value:
                         if key not in self.tag_all:
                             self.tag_all[key] = []
-                        self.tag_all[key].append(value)
+                        self.tag_all[key].extend(value)
 
                 continue
 
@@ -268,7 +274,9 @@ class UrtextDynamicDefinition:
                     key, value, timestamp = key_value_timestamp(param)
 
                     if key:
-                        self.metadata[key] = value + ' '
+                        if key not in self.metadata:
+                            self.metadata[key] = []
+                        self.metadata[key].extend(value)
 
                 continue
 
@@ -283,18 +291,12 @@ def key_value_timestamp(param):
 
     key = None
     value = None
-    timestamp = None
+    timestamp = None # future use only
     
-    key_value = re.match(key_value_regex, param)
-    if not key_value:
-        key_value = re.match(string_meta_regex, param)
-    if key_value:
-        key = key_value.group(1)
-        value = key_value.group(2)
-        if len(key_value.groups()) > 2:
-            timestamp = key_value.group(3)
-    if value:
-        value = value.strip('"') # strip quotation marks off string meta fields
+    if ':' in param:
+        key,value = param.split(':',1)
+        key = key.lower().strip()
+        value = [v.strip() for v in value.split('|')]
 
     return key, value, timestamp
 

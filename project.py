@@ -488,7 +488,8 @@ class UrtextProject:
         content_changed = self.nodes[node_id].set_content(contents)
         if content_changed:
             self._parse_file(self.nodes[node_id].filename)
-            return self.nodes[node_id].filename
+            if node_id in self.nodes:
+                return self.nodes[node_id].filename
         return False
 
 

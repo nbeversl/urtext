@@ -53,13 +53,8 @@ class NodeMetadata:
         inline_metadata = []
         for m in inline_meta.finditer(full_contents):
 
-            position = m.start()
-            entry = m.group().strip(';').split('::')
-            key = entry[0].strip().lower()
-            if len(entry) == 0:
-                continue
-            value = entry[1]
-
+            key, value = m.group().strip(';').split('::', 1)
+            key = key.lower()
             """
             For lines containing a timestamp
             """
@@ -85,13 +80,13 @@ class NodeMetadata:
                 if value:
                     values.append(value)
             
-            end_position = position + len(m.group())
+            end_position = m.start() + len(m.group())
             self.entries.append(
                 MetadataEntry(
                     key, 
                     values, 
                     dt_string, 
-                    position=position, 
+                    position=m.start(), 
                     end_position=end_position)
                 )    
 
@@ -112,7 +107,6 @@ class NodeMetadata:
                     )    
 
     ## Getting
-
 
     def get_first_meta_entry(self, keyname):
         entries = self.get_meta_entries(keyname)
