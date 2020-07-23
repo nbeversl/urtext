@@ -22,7 +22,7 @@ import os
  
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-function_regex = re.compile('([A-Z_]+)(\(.*?\))')
+function_regex = re.compile('([A-Z_]+)(\(.*?\))', re.DOTALL)
 key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
 string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')

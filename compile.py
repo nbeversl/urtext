@@ -318,7 +318,6 @@ def build_final_output(dynamic_definition, contents):
         'ID': [ dynamic_definition.target_id ],
         'def' : [ '>'+dynamic_definition.source_id ] }
 
-    
     metadata_values.update(dynamic_definition.metadata) 
     built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
 
