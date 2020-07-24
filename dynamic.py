@@ -27,6 +27,50 @@ key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
 string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
 
+valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
+
+        '-rr', 
+        '-recursive',
+
+        '-use-timestamp',
+        '-t',
+
+        '-last-accessed',
+        '-la',
+
+        '-r',
+        '-reverse',
+
+        '-and',
+        '-&',
+
+        '-all-projects',
+        '-*p',
+
+        '-markdown',
+        '-md',
+
+        '-html',
+
+        '-plaintext',
+        '-txt',
+
+        '-preformat',
+        '-p',
+
+        '-multiline-meta',
+        '-mm',
+
+        '-num',
+        '-n',
+
+        '-alpha',
+        '-a'
+    ]   
+]
+
+
+
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
     def __init__(self, contents):
@@ -45,34 +89,37 @@ class UrtextDynamicDefinition:
         self.tree = None
         self.sort_keyname = None
         self.metadata = {}
-        self.oneline_meta = True
         self.interlinks = None
         self.omit=[]
         self.export = None
         self.tag_all = {}
         self.timeline_meta_key = None
         self.timeline_sort_numeric = False
-        self.recursive = False
-        self.reverse = False
         self.timeline = False
         self.search = None
         self.show = '$title $link\n' # default
         self.preformat = False
         self.display = 'list'
+        self.recursive = False
         self.limit = None
         self.sort_type = 'alpha'
         self.access_history = 0
         self.export_source = None
         self.source_id = 'EMPTY'
-        self.include_other_projects = False
+        self.all_projects = False
+        self.export_kind = None
+        self.last_accessed = False
+        self.use_timestamp = False
+        self.reverse = False
+        self.multiline_meta = False
         self.init_self(contents)
-    
+
     def init_self(self, contents):
 
         for match in re.findall(function_regex,contents):
 
             func = match[0]
-            inside_parentheses = match[1][1:-1]
+            inside_parentheses, flags = get_flags(match[1][1:-1])
 
             if func == 'ID':
                 self.target_id = inside_parentheses
@@ -90,20 +137,23 @@ class UrtextDynamicDefinition:
                 
                 self.timeline = True
 
-                for param in separate(inside_parentheses):
+                if has_flags(['-n','-num'], flags):
+                        self.timeline_sort_numeric = True
+
+                for param in separate(inside_parentheses, delimiter=' '):
 
                     key, value, delimiter = key_value(param)
                     if key == 'key':
                         self.timeline_meta_key = value[0]
-
-                    if key == 'sort' and value.lower() == 'num':
-                        self.timeline_sort_numeric = True
 
                 continue
 
             if func == 'INCLUDE':
                 group = []
                 operator = 'or' # default
+
+                if has_flags(['-all-projects','-*p'], flags):
+                    self.all_projects = True
 
                 for param in separate(inside_parentheses):
                     
@@ -119,10 +169,6 @@ class UrtextDynamicDefinition:
                     if param == 'and':
                         # and overrides or if it appears at all
                         operator = 'and'
-                        continue
-
-                    if param == 'all_projects':
-                        self.include_other_projects = True
                         continue
 
                     key, value, delimiter = key_value(param, ['=','?','~'])
@@ -141,6 +187,7 @@ class UrtextDynamicDefinition:
             if func == 'EXCLUDE':
                 group = []
                 operator = 'or'
+
                 for param in separate(inside_parentheses):
 
                     if param == 'all': 
@@ -174,17 +221,10 @@ class UrtextDynamicDefinition:
                 self.links_from = separate(inside_parentheses)
 
             if func == "FORMAT":
+                if has_flags(['-multiline-meta','-mm'], flags):
+                    self.multiline_meta = True
 
-                for param in separate(inside_parentheses):
-  
-                    if param == 'preformat':
-                        self.preformat = True
-                        continue
-
-                    if param == 'multiline_meta':
-                        self.oneline_meta = False
-                        continue
-                    
+                for param in separate(inside_parentheses):                      
                     key, value, delimiter = key_value(param)
                     if value and key == 'indent':
                         self.spaces = self.assign_as_int(value[0], self.spaces)
@@ -201,21 +241,17 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'SORT':
+                
+                if has_flags(['-last_accessed','-la'], flags):
+                    self.last_accessed = True
 
-                for param in separate(inside_parentheses):
+                if has_flags(['-use-timestamp','-t'], flags):
+                    self.use_timestamp = True
 
-                    if param == 'reverse':
-                        self.reverse = True
-                        continue
+                if has_flags(['-reverse','-r'], flags):
+                    self.reverse = True
 
-                    if param == 'use_timestamp':
-                        self.sort_type = 'use_timestamp'
-                        continue
-
-                    if param == 'last_accessed':
-                        self.sort_type = 'last_accessed'
-                        self.reverse = True
-                        continue
+                for param in separate(inside_parentheses, delimiter=' '):
                     
                     # TODO: Add multiple sort fallbacks
                     if param and param[0] == '$': 
@@ -225,10 +261,14 @@ class UrtextDynamicDefinition:
 
             if func == 'EXPORT':
 
-                for param in separate(inside_parentheses):
+                if has_flags(['-preformat','-p'], flags):
+                    self.preformat = True
 
-                    if param in ['markdown','html','plaintext']:
-                        self.export = param
+                self.export_kind = get_export_kind(flags)
+
+                for param in separate(inside_parentheses, delimiter=' '):
+
+                    self.export = param
 
                     key, value, delimiter = key_value(param)
                     if value and key == 'source':
@@ -242,13 +282,12 @@ class UrtextDynamicDefinition:
 
             if func == 'TAG_ALL':
 
+                if has_flags(['-recursive','r'], flags):
+                    self.recursive = True
+
                 for param in separate(inside_parentheses):
 
-                    if param == 'recursive':
-                        self.recursive = True
-                        continue
-
-                    key, value, delimiter = key_value(param)
+                    key, value, delimiter = key_value(param, delimiters=['::'])
                     if value:
                         if key not in self.tag_all:
                             self.tag_all[key] = []
@@ -260,7 +299,7 @@ class UrtextDynamicDefinition:
                 
                 for param in separate(inside_parentheses):
 
-                    key, value, delimiter = key_value(param, ['::'])
+                    key, value, delimiter = key_value(param, delimiters=['::'])
 
                     if key:
                         if key not in self.metadata:
@@ -275,6 +314,12 @@ class UrtextDynamicDefinition:
             return number
         except ValueError:
             return default
+
+def has_flags(flags, flag_list):
+    for f in flag_list:
+        if f in flags:
+            return True
+    return False
 
 def key_value(param, delimiters=[':']):
 
@@ -291,6 +336,29 @@ def key_value(param, delimiters=[':']):
 
     return None, None, None
 
+def get_flags(contents):
+    this_flags = []
+    for f in valid_flags:
+        m = f.search(contents)
+        if m:
+            m = m.group(0).replace('(','').strip()
+            if m not in this_flags:
+                this_flags.append(m)
+            contents=re.sub(f,';',contents)
+    return contents, this_flags
 
-def separate(param):
-    return [r.strip() for r in re.split(';|\n', param)]
+def get_export_kind(flgs):
+
+    kinds = {   'markdown' :    ['-markdown','-md'],
+                'html' :        ['-html'],
+                'plaintext' :   ['-plaintext','-txt']}
+
+    for k in kinds:
+        for v in kinds[k]:
+            if v in flgs:
+                return k
+
+    return None
+
+def separate(param, delimiter=';'):
+    return [r.strip() for r in re.split(delimiter+'|\n', param)]

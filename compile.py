@@ -78,8 +78,7 @@ def _compile(self,
                  exclude =exclude, # prevents recurssion
                  as_single_file=True, # TOdO should be option 
                  clean_whitespace=True,
-                 preformat = dynamic_definition.preformat
-                )
+                 preformat = dynamic_definition.preformat)
 
             if dynamic_definition.target_file:
                 with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
@@ -133,7 +132,7 @@ def _compile(self,
             """
 
             included_projects = [self]
-            if dynamic_definition.include_other_projects:
+            if dynamic_definition.all_projects:
                 included_projects.extend(self.other_projects)
 
             # include all nodes?
@@ -184,12 +183,11 @@ def _compile(self,
             """ 
             if dynamic_definition.timeline:
                 new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
-                
             else:
 
                 """ otherwise this is a list. """
                 """ custom sort the nodes if a sort type is provided """
-                if dynamic_definition.sort_type == 'last_accessed':
+                if dynamic_definition.last_accessed:
                     sort_func = lambda node: node.last_accessed
 
                 elif dynamic_definition.sort_keyname:
@@ -206,8 +204,9 @@ def _compile(self,
                         # For all other keys, sort by key
 
                         # If specified, sort by timestamp, not value of the selected key
-                        if dynamic_definition.sort_type == 'use_timestamp':
-                             sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
+                        if dynamic_definition.use_timestamp:
+                            print('USING TIMESATMAP')
+                            sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
                         else:
                             sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
@@ -302,8 +301,8 @@ def _export(self, dynamic_definition):
          exclude =exclude, # prevents recurssion
          as_single_file=True, # TOdO should be option 
          clean_whitespace=True,
-         preformat = dynamic_definition.preformat
-        )
+         preformat = dynamic_definition.preformat)
+
 
     if dynamic_definition.target_file:
         with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
@@ -319,7 +318,9 @@ def build_final_output(dynamic_definition, contents):
         'def' : [ '>'+dynamic_definition.source_id ] }
 
     metadata_values.update(dynamic_definition.metadata) 
-    built_metadata = UrtextNode.build_metadata(metadata_values, one_line=dynamic_definition.oneline_meta)
+    built_metadata = UrtextNode.build_metadata(
+        metadata_values, 
+        one_line = not dynamic_definition.multiline_meta)
 
     title = ''
     if 'title' in dynamic_definition.metadata:
