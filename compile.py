@@ -205,7 +205,6 @@ def _compile(self,
 
                         # If specified, sort by timestamp, not value of the selected key
                         if dynamic_definition.use_timestamp:
-                            print('USING TIMESATMAP')
                             sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
                         else:
