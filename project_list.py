@@ -29,7 +29,7 @@ class ProjectList():
         import_project=False,
         watchdog=False):
 
-        self.watchdog = False # development option
+        self.watchdog = watchdog # development option
         self.projects = []
         self.base_path = base_path
         self._add_folder(base_path, import_project=import_project)
@@ -41,7 +41,7 @@ class ProjectList():
             self.current_project = self.projects[0]
         self._propagate_projects(None)
 
-    def _add_folder(self, folder, import_project=False, watchdog=False):
+    def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
