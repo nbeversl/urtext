@@ -142,7 +142,7 @@ class UrtextNode:
         if contents == '':
             return contents
     
-        stripped_contents = re.sub(r'\w+\:\:[^\n};]+;?(?=>:}})?',
+        stripped_contents = re.sub(r'(\w+)(\:\:)([^\n};]+)?;?(?=>:}})?',
                                    '',
                                    contents,
                                    flags=re.DOTALL)
