@@ -251,8 +251,7 @@ class UrtextDynamicDefinition:
                 if has_flags(['-reverse','-r'], flags):
                     self.reverse = True
 
-                for param in separate(inside_parentheses, delimiter=' '):
-                    
+                for param in separate(inside_parentheses):
                     # TODO: Add multiple sort fallbacks
                     if param and param[0] == '$': 
                         self.sort_keyname = param[1:]
