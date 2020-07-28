@@ -23,163 +23,114 @@ import pytz
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
-inline_meta = re.compile('\w+\:\:[^\n};]+;?(?=>:}})?')
+inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:}})?')
+
+case_sensitive_values = [ 
+    'title',
+    'notes',
+    'comments',
+    'project_title',
+    'timezone',
+    'timestamp_format',
+    'filenames',
+    'weblink',
+    'timestamp',
+    ]
+
+numeric_values = [
+    'index'
+    ]
 
 class NodeMetadata:
 
     def __init__(self, full_contents, settings=None):
-            
-        self.entries = []
-        self.case_sensitive_values = [ 
-                'title',
-                'notes',
-                'comments',
-                'project_title',
-                'timezone',
-                'timestamp_format',
-                'filenames',
-                'weblink',
-                'timestamp',
-                ]
-        self.numeric_values = [
-                'index'
-                ]
+        
+        """ Parse initial entries from node contents """
+        self._entries = parse_contents(
+            full_contents,
+            settings=settings)
+        self._sort()       
 
-        parsed_contents = full_contents
+    def _sort(self):
+        """ from extant entries, populate a dict by key"""
+        self.entries = {}
+        for e in self._entries:
+            self.entries.setdefault(e.keyname, [])
+            if e not in self.entries[e.keyname]:
+               self.entries[e.keyname].append(e)
 
-        # parse inline metadata:
-        inline_metadata = []
-        for m in inline_meta.finditer(full_contents):
+        self.entries['_last_accessed'] = default_date
 
-            key, value = m.group().strip(';').split('::', 1)
-            key = key.lower()
-            """
-            For lines containing a timestamp
-            """
-            timestamp = timestamp_match.search(value)
-            dt_string = ''
-            if timestamp:
-                dt_string = timestamp.group(1).strip()
-                value = value.replace(timestamp.group(0), '').strip()
+    def get_first_value(self, keyname):
+        entries = self.entries.get(keyname)
+        if not entries or not entries[0].values:
+            return ''
+        return entries[0].values[0]
 
-            values = []
-            value_list = value.split('|')
-
-            for value in value_list:
-
-                if key not in self.case_sensitive_values:
-                    value = value.lower()
-                value = value.strip()
-                if key in self.numeric_values:
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        value = -1
-                if value:
-                    values.append(value)
-            
-            end_position = m.start() + len(m.group())
-            self.entries.append(
-                MetadataEntry(
-                    key, 
-                    values, 
-                    dt_string, 
-                    position=m.start(), 
-                    end_position=end_position)
-                )    
-
-            parsed_contents = parsed_contents.replace(m.group(),'')
-
-        # parse inline timestamps:
-        for m in timestamp_match.finditer(parsed_contents):
-            stamp = m.group()
-            position = m.start()
-            end_position = position + len(m.group())
-            self.entries.append(
-                MetadataEntry(
-                    'inline-timestamp', 
-                    '', 
-                    stamp[1:-1], 
-                    position=position, 
-                    end_position=end_position)
-                    )    
-
-    ## Getting
-
-    def get_first_meta_entry(self, keyname):
-        entries = self.get_meta_entries(keyname)
-        return entries[0] if entries else None
-
-    def get_meta_entries(self, keyname):
-        """ returns a list of values for the given key """
-        keyname = keyname.lower().strip()
-        return [entry for entry in self.entries if entry.keyname == keyname]
-
-    def get_first_meta_value(self, keyname):
-        values = self.get_meta_value(keyname)
-        return values[0] if values else ''
-
-    def get_meta_value(self, 
+    def get_values(self, 
         keyname,
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
 
         """ returns a list of values for the given key """
-        entries = self.get_meta_entries(keyname)
         values = []
-        for entry in self.entries:
-            if entry.keyname == keyname:
-                values.extend(entry.values)        
-        if values == [] and substitute_timestamp:
-            for entry in entries:
-                if entry.keyname == keyname and entry.dt_stamp != default_date:
-                        return [entry.dt_string]
+        entries = self.entries.get(keyname)
+        if not entries:
+            return values
+        for e in entries:
+            values.extend(e.values)
+        if not values and substitute_timestamp:
+            for e in entries:
+                if e.dt_stamp != default_date:
+                    values.extend(e.dt_string)            
         return values
-        
-    def get_timestamp(self, keyname):
-        entry = self.get_first_meta_entry(keyname)
-        if not entry:            
-            return default_date
-        return entry.dt_stamp
+  
 
+    def get_entries(self, keyname):
+        keyname = keyname.lower()
+        if keyname in self.entries:
+            return self.entries[keyname]
+        return []
+        
     def get_date(self, keyname):
         """
         Returns the timestamp of the FIRST matching metadata entry with the given key.
         Requires the project be parsed (dt_stamp set from dt_string)
         """
-        keyname = keyname.lower()
-        for entry in self.entries:
-            if entry.keyname.lower() == keyname:
-                return entry.dt_stamp
-        return default_date
+        entries = self.get_entries(keyname)
+        if entries:
+            return entries[0].dt_stamp
+
+        return default_date # ?
 
     # Setting
     
     def add_meta_entry(self, 
         key, 
-        value,
+        values,
         from_node=None):
 
-        existing_entries = self.get_meta_entries(key)
-        for entry in existing_entries:
-            if value in entry.values:
-                return
-        new_entry = MetadataEntry(key, [value], None, from_node=from_node)
-        self.entries.append(new_entry)
+        new_entry = MetadataEntry(key, values, None, from_node=from_node)
+        self._entries.append(new_entry)
+        self._sort()
 
-    def remove_dynamic_meta_from_source_node(self, source_node_id):
-        for entry in list(self.entries):
+    def clear_from_source(self, source_node_id):
+        for entry in list(self._entries):
             if entry.from_node == source_node_id:
-                self.entries.remove(entry)
-    
+                self._entries.remove(entry)
+        self._sort()
+
+    def to_json(self):
+        return [e.to_json() for e in self._entries]
+
     # Debug
 
     def log(self):
-        for entry in self.entries:
+        for entry in self._entries:
             entry.log()
 
     def _is_id(self, node_id): # debug only
-        if self.get_first_meta_entry('id') == node_id:
+        if self.entries.get('id')[0] == node_id:
             return True
 
 class MetadataEntry:  # container for a single metadata entry
@@ -187,6 +138,8 @@ class MetadataEntry:  # container for a single metadata entry
         keyname, 
         value, 
         dt_string,
+        dynamic=False,
+        recursive=False,
         position=None,
         end_position=None, 
         from_node=None):
@@ -198,7 +151,13 @@ class MetadataEntry:  # container for a single metadata entry
         self.from_node = from_node
         self.position = position
         self.end_position = end_position
+        self.dynamic = dynamic
+        self.recursive = recursive
 
+    def to_json(self):
+        _json = dict(self.__dict__)
+        _json['dt_stamp'] = self.dt_stamp.isoformat()
+        return _json
 
     def log(self):
         print('key: %s' % self.keyname)
@@ -206,3 +165,79 @@ class MetadataEntry:  # container for a single metadata entry
         print('datetimestring: %s' % self.dt_string)
         print('datetimestamp: %s' % self.dt_stamp)
         print('from_node: %s' % self.from_node)
+        print('dynamic: %s' % self.dynamic)
+        print('recursive: %s' % self.recursive)
+
+def parse_contents(full_contents, settings=None):
+
+    parsed_contents = full_contents
+
+    # parse inline metadata:
+    entries = []
+    for m in inline_meta.finditer(full_contents):
+
+        key, value = m.group().strip(';').split('::', 1)
+        key = key.lower()
+        """
+        For lines containing a timestamp
+        """
+        timestamp = timestamp_match.search(value)
+        dt_string = ''
+        if timestamp:
+            dt_string = timestamp.group(1).strip()
+            value = value.replace(timestamp.group(0), '').strip()
+
+        values = []
+        value_list = value.split('|')
+
+        for value in value_list:
+
+            if key not in case_sensitive_values:
+                value = value.lower()
+            value = value.strip()
+            if key in numeric_values:
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = -1
+            if value:
+                values.append(value)
+
+        recursive = False
+        dynamic = False
+        if key[0] == '*' :
+            dynamic = True
+            key = key[1:]
+        if key[0] == '*' :
+            recursive = True
+            key = key[1:]
+
+        end_position = m.start() + len(m.group())
+        entries.append(
+            MetadataEntry(
+                key, 
+                values, 
+                dt_string, 
+                dynamic = dynamic,
+                recursive = recursive,       
+                position=m.start(), 
+                end_position=end_position)
+            )    
+
+        parsed_contents = parsed_contents.replace(m.group(),'')
+
+    # parse inline timestamps:
+    for m in timestamp_match.finditer(parsed_contents):
+        stamp = m.group()
+        position = m.start()
+        end_position = position + len(m.group())
+        entries.append(
+            MetadataEntry(
+                'inline-timestamp', 
+                '', 
+                stamp[1:-1],              
+                position=position, 
+                end_position=end_position)
+                )    
+
+    return entries

@@ -108,7 +108,6 @@ class UrtextDynamicDefinition:
         self.source_id = 'EMPTY'
         self.all_projects = False
         self.export_kind = None
-        self.last_accessed = False
         self.use_timestamp = False
         self.reverse = False
         self.multiline_meta = False
@@ -161,10 +160,6 @@ class UrtextDynamicDefinition:
                         self.include_all = True
                         # no need to continue
                         break
-
-                    if param == 'indexed':
-                        self.include_or.append('indexed')
-                        continue
 
                     if param == 'and':
                         # and overrides or if it appears at all
@@ -241,9 +236,6 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'SORT':
-                
-                if has_flags(['-last_accessed','-la'], flags):
-                    self.last_accessed = True
 
                 if has_flags(['-use-timestamp','-t'], flags):
                     self.use_timestamp = True
@@ -279,20 +271,6 @@ class UrtextDynamicDefinition:
                 self.target_file = inside_parentheses
                 continue
 
-            if func == 'TAG_ALL':
-
-                if has_flags(['-recursive','r'], flags):
-                    self.recursive = True
-
-                for param in separate(inside_parentheses):
-
-                    key, value, delimiter = key_value(param, delimiters=['::'])
-                    if value:
-                        if key not in self.tag_all:
-                            self.tag_all[key] = []
-                        self.tag_all[key].extend(value)
-
-                continue
 
             if func == 'METADATA':
                 

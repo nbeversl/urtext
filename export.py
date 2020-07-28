@@ -160,7 +160,7 @@ class UrtextExport:
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
-        title_found = True if self.project.nodes[root_node_id].metadata.get_first_meta_value('title') else False
+        title_found = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
 
         if root_node_id in exclude or root_node_id in visited_nodes:
             return added_contents, points, visited_nodes

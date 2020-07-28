@@ -35,6 +35,7 @@ import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
 from watchdog.observers import Observer
+import pprint
 
 from .file import UrtextFile
 from .interlinks import Interlinks
@@ -89,7 +90,10 @@ class UrtextProject:
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = []  # { target : definition, etc.}
-        self.dynamic_meta = {} # source_id : [ target_id, ... ]
+        
+        # dict of nodes tagged recursively from parent/ancestors
+        self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
+
         self.compiled = False
         self.links_to = {}
         self.links_from = {}
@@ -144,6 +148,24 @@ class UrtextProject:
         if watchdog:
             self._initialize_watchdog()        
 
+        self.to_json()
+        
+    def to_json(self):
+        _json = dict(self.__dict__)
+        _json.pop('executor')
+        _json.pop('aux_executor')
+        _json.pop('access_history')
+        _json.pop('messages')
+        _json.pop('default_timezone')
+        _json.pop('files')
+        _json.pop('observer')
+        _json['nodes'] = [self.nodes[n].to_json() for n in self.nodes]
+        
+        pp = pprint.PrettyPrinter(indent=4)
+        s = pp.pformat(_json)
+        with open(os.path.join(self.path,'BUILD.json'),"w", encoding='utf-8') as f:
+            f.write(s)
+
     def _initialize_watchdog(self):
 
         self.observer = Observer()
@@ -195,7 +217,6 @@ class UrtextProject:
             self.update_links_in(node_id)
 
     def update_links_in(self, node_id):
-
         for link_from in self.links_from[node_id]:
             if link_from not in self.links_to:
                 self.links_to[link_from] = []
@@ -401,18 +422,23 @@ class UrtextProject:
                 else:
                     self.dynamic_nodes.append(definition)
 
-        if len(new_node.metadata.get_meta_value('ID')) > 1:
+        if len(new_node.metadata.get_first_value('ID')) > 1:
             message = ''.join([ 
                     'Multiple ID tags in >' , new_node.id ,': ',
-                    ', '.join(new_node.metadata.get_meta_value('ID')),' - using the first one found.'])
+                    ', '.join(new_node.metadata.get_first_value('ID')),' - using the first one found.'])
             if new_node.filename not in self.messages: #why?
                 self.messages[new_node.filename] = []
             self.messages[new_node.filename].append(message)
             self._log_item(message)
+
+        for e in [n for n in new_node.metadata._entries if n.dynamic]:
+            if new_node.id not in self.dynamic_meta:
+                self.dynamic_meta[new_node.id] = { 'entries' : [] , 'targets' : []}
+            self.dynamic_meta[new_node.id]['entries'].append(e)
         
         new_node.parent_project = self.title
         if new_node.id in self.access_history:
-            new_node.last_accessed = self.access_history[new_node.id]
+            new_node.metadata.entries['_last_accessed'] = self.access_history[new_node.id]
 
         # TODO : it's not necessary to keep a copy of this
         # inside the node. do it at the project level only. 
@@ -426,7 +452,7 @@ class UrtextProject:
     def _parse_meta_dates(self, node_id):
         """ Parses dates (requires that timestamp_format already be set) """
         
-        for entry in self.nodes[node_id].metadata.entries:
+        for entry in self.nodes[node_id].metadata._entries:
 
             if entry.dt_string:
                 dt_stamp = self._date_from_timestamp(entry.dt_string)
@@ -1045,7 +1071,7 @@ class UrtextProject:
             'console_log',
         ]
 
-        for entry in node.metadata.entries:
+        for entry in node.metadata._entries:
             key = entry.keyname
             values = entry.values
            
@@ -1384,7 +1410,7 @@ class UrtextProject:
 
         for node_id, access_time in self.access_history.items():
             if node_id in self.nodes:
-                self.nodes[node_id].last_accessed = access_time
+                self.nodes[node_id].metadata.entries['_last_accessed'] = access_time
 
     def _save_access_history(self):
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
@@ -1399,7 +1425,7 @@ class UrtextProject:
                 if node_id == self.access_history[access_time]:
                     del self.access_history[access_time]
         access_time = int(time.time()) # UNIX timestamp
-        self.nodes[node_id].last_accessed = access_time 
+        self.nodes[node_id].metadata.entries['_last_accessed'] = access_time 
         self.access_history[node_id] = access_time
         self._save_access_history()
 

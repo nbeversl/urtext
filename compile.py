@@ -38,21 +38,20 @@ def _compile(self,
     if modified_files is None:
         modified_files = []
 
+
+        
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
    
     """ This has to be done before anything else """
-    for dynamic_definition in [ r for r in self.dynamic_nodes if r.tag_all ] :
+    for node_id in self.dynamic_meta:
 
         """
         Tag All
         """            
-        self._add_sub_tags(
-            dynamic_definition.source_id,
-            dynamic_definition.target_id, 
-            dynamic_definition.tag_all, 
-            recursive=dynamic_definition.recursive)                    
+        for e in self.dynamic_meta[node_id]['entries']:
+            self._add_sub_tags( node_id, node_id, e)                    
 
     for dynamic_definition in [ r for r in self.dynamic_nodes if not r.tag_all ]:
  
@@ -185,12 +184,9 @@ def _compile(self,
                 new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
             else:
 
-                """ otherwise this is a list. """
                 """ custom sort the nodes if a sort type is provided """
-                if dynamic_definition.last_accessed:
-                    sort_func = lambda node: node.last_accessed
 
-                elif dynamic_definition.sort_keyname:
+                if dynamic_definition.sort_keyname:
 
                     # ( Otherwise the sort type is alpha by string )
                     # Title is not always given by metadata so we do this manually 
@@ -208,7 +204,7 @@ def _compile(self,
                             sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
                         else:
-                            sort_func = lambda node: node.metadata.get_first_meta_value(dynamic_definition.sort_keyname)
+                            sort_func = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname)
 
                 else:
                     """ otherwise sort them by node date by default """
@@ -250,7 +246,7 @@ def _compile(self,
                         next_content.contents = targeted_node.content_only().strip('\n').strip()
  
                     for meta_key in next_content.needs_other_format_keys:
-                        values = targeted_node.metadata.get_meta_value(meta_key, substitute_timestamp=True)
+                        values = targeted_node.metadata.get_values(meta_key, substitute_timestamp=True)
                         replacement = ''
                         if values:
                             replacement = ' '.join(values)

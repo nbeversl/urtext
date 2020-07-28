@@ -17,19 +17,28 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 import os
+import json
 from .metadata import NodeMetadata
 from .dynamic import UrtextDynamicDefinition
+
+from anytree.exporter import JsonExporter
+
 import re
 import datetime
 import logging
 import pytz
 from anytree import Node
 
+exporter = JsonExporter(indent=2, sort_keys=True)
+
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
+timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
+inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:}})?', flags=re.DOTALL)
+
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -68,8 +77,8 @@ class UrtextNode:
         stripped_contents = self.strip_metadata(stripped_contents)
         self.title = self.set_title(stripped_contents)
        
-        if self.metadata.get_first_meta_value('id'):
-            node_id = self.metadata.get_first_meta_value('id')
+        if self.metadata.get_first_value('id'):
+            node_id = self.metadata.get_first_value('id')
             node_id = node_id.lower().strip()
             if re.match('^[a-z0-9]{3}$', node_id):
                 self.id = node_id
@@ -80,13 +89,13 @@ class UrtextNode:
                 self.id = contents[-3:]
                 self.trailing_node_id = True
 
-        title_value = self.metadata.get_first_meta_value('title')
+        title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
             self.project_settings = True
 
         self.parent = None
         self.index = self.assign_as_int(
-                self.metadata.get_first_meta_value('index'),
+                self.metadata.get_first_value('index'),
                 self.index)
 
         # create tree node
@@ -104,6 +113,14 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
+    def to_json(self):
+        json_ = dict(self.__dict__)
+        json_.pop('tz')
+        json_['metadata'] = self.metadata.to_json()
+        json_['tree_node'] = exporter.export(self.tree_node)
+        json_['date'] = self.date.isoformat()
+        return json_
+
     def default_sort(self):
         r = str(self.date.timestamp()) + self.title
         return r
@@ -141,16 +158,9 @@ class UrtextNode:
     def strip_metadata(self, contents=''):
         if contents == '':
             return contents
-    
-        stripped_contents = re.sub(r'(\w+)(\:\:)([^\n};]+)?;?(?=>:}})?',
-                                   '',
-                                   contents,
-                                   flags=re.DOTALL)
 
-        stripped_contents = re.sub(r'(?:<)([^-/<][^=<]*?)(?:>)' ,
-                                    '', 
-                                    stripped_contents, 
-                                    flags=re.DOTALL)
+        stripped_contents = inline_meta.sub('', contents )
+        stripped_contents = timestamp_match.sub('',  stripped_contents)
 
         # TODO: integrate this with checking for self.trailing_node_id
         if re.match('\s[a-z0-9]{3}', stripped_contents[-4:]):
@@ -209,7 +219,7 @@ class UrtextNode:
 
     def set_title(self, contents):
 
-        title_value = self.metadata.get_first_meta_value('title')
+        title_value = self.metadata.get_first_value('title')
         if title_value: 
             return title_value
         #
@@ -235,8 +245,8 @@ class UrtextNode:
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
-        if len(self.metadata.get_first_meta_value('ID')):  # title is the first many lines if not set
-            return self.metadata.get_first_meta_value('ID')
+        if len(self.metadata.get_first_value('ID')):  # title is the first many lines if not set
+            return self.metadata.get_first_value('ID')
         return self.id  # don't include links in the title, for traversing files clearly.
 
     def log(self):
@@ -248,7 +258,7 @@ class UrtextNode:
     def consolidate_metadata(self, one_line=True):
         
         keynames = {}
-        for entry in self.metadata.entries:
+        for entry in self.metadata._entries:
             if entry.keyname not in keynames:
                 keynames[entry.keyname] = []
             timestamp = ''
@@ -289,11 +299,7 @@ class UrtextNode:
         return new_metadata 
 
     def get_all_meta_keynames(self):
-        keynames = []
-        for entry in self.metadata.entries:
-            if entry.keyname not in keynames:
-                keynames.append(entry.keyname)
-        return keynames
+        return self.metadata._entries.keys()
 
     def get_region(self, region):
         region = self.ranges[region]
