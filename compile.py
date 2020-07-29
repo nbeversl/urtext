@@ -96,15 +96,15 @@ def _compile(self,
             """
             new_node_contents.append(self.show_tree_from(dynamic_definition.tree))
 
-        # elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+        elif dynamic_definition.output_type == '-interlinks' and dynamic_definition.interlinks in self.nodes:
 
-        #     """
-        #     Interlinks
-        #     """
+            """
+            Interlinks
+            """
 
-        #     new_node_contents.append(self.get_node_relationships(
-        #         dynamic_definition.interlinks,
-        #         omit=dynamic_definition.omit))
+            new_node_contents.append(self.get_node_relationships(
+                dynamic_definition.interlinks,
+                omit=dynamic_definition.omit))
     
         included_projects = [self]
         if dynamic_definition.all_projects:

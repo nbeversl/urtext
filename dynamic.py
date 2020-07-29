@@ -72,7 +72,8 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
 
         '-collection',
         '-list',
-        '-tree'
+        '-tree',
+        '-interlinks'
     ]   
 ]
 
@@ -122,6 +123,7 @@ class UrtextDynamicDefinition:
         self.export_kind = None
         self.use_timestamp = False
         self.multiline_meta = False
+
         # METADATA()
         self.metadata = {}
        
@@ -134,9 +136,9 @@ class UrtextDynamicDefinition:
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
 
-            if func == 'ID':
+            if func in ['ID','TARGET']:
                 
-                if flags and flags[0] in ['-tree','-list','-collection']:
+                if flags and flags[0] in ['-tree','-list','-collection', '-interlinks']:
                     self.output_type = flags[0]
                 
                 if self.output_type == '-collection':
@@ -156,34 +158,10 @@ class UrtextDynamicDefinition:
                 self.keys.extend(keys)
 
             if func == 'INCLUDE':
-                group = []
-                operator = 'or' # default
-
-                if has_flags(['-all-projects','-*p'], flags):
-                    self.all_projects = True
-
-                for param in separate(inside_parentheses):
-                    
-                    if param == '-all': 
-                        self.include_all = True
-                        # no need to continue
-                        break
-
-                    if param == '-and':
-                        # and overrides or if it appears at all
-                        operator = '-and'
-                        continue
-
-                    key, value, delimiter = key_value(param, ['=','?','~'])
-                    if value:
-                        for v in value:
-                            group.append((key,v, delimiter))
-                
-                if group and operator == '-and':
-                    self.include_and.extend(group)
-                elif group:
-                    self.include_or.extend(group)
-
+                parse_group(self,
+                    self.include_and, 
+                    self.include_or,
+                    inside_parentheses)
                 continue
 
             if func == 'SORT':
@@ -206,33 +184,12 @@ class UrtextDynamicDefinition:
                 continue
 
             if func == 'EXCLUDE':
-                group = []
-                operator = 'or'
-
-                for param in separate(inside_parentheses):
-
-                    if param == 'all': 
-                        self.exclude_or = 'all'
-                        break
-
-                    if param == 'indexed':
-                        self.exclude_or.append('indexed')
-                        continue
-
-                    if param == 'and':
-                        operator = 'and'
-                        continue
-                   
-                    key, value, delimiter = key_value(param, ['=','?','~'])
-                    if value:
-                        for v in value:
-                            group.append((key,v,delimiter))
-                        
-                if group and operator == 'and':
-                    self.exclude_and.extend(group)
-                elif group:
-                    self.exclude_or.extend(group)
+                parse_group(self,
+                    self.exclude_and, 
+                    self.exclude_or,
+                    inside_parentheses)
                 continue
+             
 
             if func == "FORMAT":
                 if has_flags(['-multiline-meta','-mm'], flags):
@@ -241,13 +198,13 @@ class UrtextDynamicDefinition:
                 for param in separate(inside_parentheses):                      
                     key, value, delimiter = key_value(param)
                     if value and key == 'indent':
-                        self.spaces = self.assign_as_int(value[0], self.spaces)
+                        self.spaces = assign_as_int(value[0], self.spaces)
                         continue
                 
                 continue
 
             if func == 'LIMIT':
-                self.limit = self.assign_as_int(inside_parentheses, self.limit)
+                self.limit = assign_as_int(inside_parentheses, self.limit)
                 continue
 
  
@@ -280,12 +237,41 @@ class UrtextDynamicDefinition:
 
                 continue
 
-    def assign_as_int(self, value, default):
-        try:
-            number = int(value)
-            return number
-        except ValueError:
-            return default
+
+
+def assign_as_int(value, default):
+    try:
+        number = int(value)
+        return number
+    except ValueError:
+        return default
+
+
+def parse_group(definition, and_group, or_group, inside_parentheses):
+
+    group = []
+    operator = 'or'
+
+    for param in separate(inside_parentheses):
+
+        if param == 'all': 
+            or_group = 'all'
+            return
+
+        if param == 'and':
+            operator = 'and'
+            continue
+       
+        key, value, delimiter = key_value(param, ['=','?','~'])
+        if value:
+            for v in value:
+                group.append((key,v,delimiter))
+            
+    if group and operator == 'and':
+        and_group.extend(group)
+    elif group:
+        or_group.extend(group)
+
 
 def has_flags(flags, flag_list):
     for f in flag_list:
