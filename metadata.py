@@ -43,9 +43,9 @@ numeric_values = [
 
 class NodeMetadata:
 
-    def __init__(self, full_contents, settings=None):
-        
-        """ Parse initial entries from node contents """
+    def __init__(self, node, full_contents, settings=None):
+
+        self.node = node
         self._entries = parse_contents(
             full_contents,
             settings=settings)
@@ -61,7 +61,15 @@ class NodeMetadata:
 
         self.entries['_last_accessed'] = default_date
 
+    def get_links_to(self):
+        return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
+
+    def get_links_from(self):
+        return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
+
     def get_first_value(self, keyname):
+        if keyname == 'title' and self.node.title:
+            return self.node.title
         entries = self.entries.get(keyname)
         if not entries or not entries[0].values:
             return ''
@@ -85,7 +93,6 @@ class NodeMetadata:
                     values.extend(e.dt_string)            
         return values
   
-
     def get_entries(self, keyname):
         keyname = keyname.lower()
         if keyname in self.entries:
@@ -103,7 +110,7 @@ class NodeMetadata:
 
         return default_date # ?
 
-    # Setting
+    # Set
     
     def add_meta_entry(self, 
         key, 
@@ -128,10 +135,6 @@ class NodeMetadata:
     def log(self):
         for entry in self._entries:
             entry.log()
-
-    def _is_id(self, node_id): # debug only
-        if self.entries.get('id')[0] == node_id:
-            return True
 
 class MetadataEntry:  # container for a single metadata entry
     def __init__(self, 

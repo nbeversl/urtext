@@ -37,7 +37,7 @@ dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
-inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:}})?', flags=re.DOTALL)
+inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:}})?)?', flags=re.DOTALL)
 
 
 class UrtextNode:
@@ -50,6 +50,7 @@ class UrtextNode:
 
         self.filename = os.path.basename(filename)
         self.project_path = os.path.dirname(filename)
+        self.project = None
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
@@ -70,9 +71,10 @@ class UrtextNode:
         self.last_accessed = 0
         self.trailing_node_id = False
         self.dynamic_definitions = []
+        self.title = None
 
         stripped_contents = self.strip_dynamic_definitions(contents)
-        self.metadata = NodeMetadata(stripped_contents)
+        self.metadata = NodeMetadata(self, stripped_contents)
 
         stripped_contents = self.strip_metadata(stripped_contents)
         self.title = self.set_title(stripped_contents)

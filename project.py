@@ -46,7 +46,7 @@ from .meta_handling import metadata_functions
 from .reindex import reindex_functions
 from .watch import UrtextWatcher
 from .search import search_functions
-from .timeline import timeline_functions
+from .collection import collection_functions
 from .dynamic import UrtextDynamicDefinition
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
@@ -59,7 +59,7 @@ functions.extend(compile_functions)
 functions.extend(metadata_functions)
 functions.extend(reindex_functions)
 functions.extend(search_functions)
-functions.extend(timeline_functions)
+functions.extend(collection_functions)
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -148,7 +148,7 @@ class UrtextProject:
         if watchdog:
             self._initialize_watchdog()        
 
-        self.to_json()
+        #self.to_json()
         
     def to_json(self):
         _json = dict(self.__dict__)
@@ -440,6 +440,7 @@ class UrtextProject:
         if new_node.id in self.access_history:
             new_node.metadata.entries['_last_accessed'] = self.access_history[new_node.id]
 
+        new_node.project = self
         # TODO : it's not necessary to keep a copy of this
         # inside the node. do it at the project level only. 
         self.links_from[new_node.id] = new_node.links_from
@@ -1028,10 +1029,10 @@ class UrtextProject:
         self._log_item('No node ID, web link, or file found on this line.')
         return None
 
-    def build_timeline(self):
-        """ Returns a timeline of the whole project """ 
+    def build_collection(self):
+        """ Returns a collection of context-aware metadata anchors """ 
         s = UrtextDynamicDefinition('')
-        return self._timeline([self.nodes[j] for j in self.nodes], s)
+        return self._collection([self.nodes[j] for j in self.nodes], s)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1429,6 +1430,53 @@ class UrtextProject:
         self.access_history[node_id] = access_time
         self._save_access_history()
 
+    def get_by_meta(self, key, values, operator):
+        if isinstance(values,str):
+            values = [values]
+
+        results = []
+
+        if key == '_contents' and operator == '?':
+            for node_id in self.nodes:
+                if self.nodes[node_id].dynamic:
+                    continue
+                matches = []
+                contents = self.nodes[node_id].content_only()
+                lower_contents = contents.lower()           
+
+                for v in values:
+                    if v.lower() in lower_contents:
+                        results.append(node_id)
+
+            return results
+
+        if key == '_links_to':
+
+            for v in values:
+                if v in self.links_to:
+                    results.extend(self.links_to[v])
+            return results
+
+        if key == '_links_from':
+            for v in values:
+                if v in self.links_from:
+                    results.extend(self.links_from[v])
+            return results
+
+        results = set([])
+
+        for value in values:
+
+            if value == '*':
+                # include all values
+                for v in self.keynames[key]:
+                    results = results.union(set(self.keynames[key][v])) 
+
+            elif value in self.keynames[key]:
+                results = results.union(set(self.keynames[key][value]))
+
+        return results
+
     """
     Export
     """
@@ -1444,9 +1492,11 @@ class UrtextProject:
         return False
 
     def get_file_and_position(self, node_id):
-        filename = self.get_file_name(node_id, absolute=True)
-        position = self.nodes[node_id].start_position()
-        return filename, position
+        if node_id in self.nodes:
+            filename = self.get_file_name(node_id, absolute=True)
+            position = self.nodes[node_id].start_position()
+            return filename, position
+        return None, None
 
     """
     FUTURE : Calendar

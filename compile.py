@@ -38,27 +38,22 @@ def _compile(self,
     if modified_files is None:
         modified_files = []
 
-
-        
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
    
     """ This has to be done before anything else """
     for node_id in self.dynamic_meta:
-
-        """
-        Tag All
-        """            
-        for e in self.dynamic_meta[node_id]['entries']:
+       for e in self.dynamic_meta[node_id]['entries']:
             self._add_sub_tags( node_id, node_id, e)                    
 
-    for dynamic_definition in [ r for r in self.dynamic_nodes if not r.tag_all ]:
+    for dynamic_definition in self.dynamic_nodes:
  
         points = {}
         new_node_contents = []
         
         if dynamic_definition.export:
+
             """
             Export
             """
@@ -93,166 +88,133 @@ def _compile(self,
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                           ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
-                
-        if dynamic_definition.search:
-
-            search_term = dynamic_definition.search
-            search = UrtextSearch(self, 
-                search_term, 
-                format_string=dynamic_definition.show)
-
-            new_node_contents = search.initiate_search()
            
-        elif dynamic_definition.tree:
+        elif dynamic_definition.output_type == '-tree':
 
             """
             Tree
             """
-
-            if dynamic_definition.tree not in self.nodes:
-                continue
             new_node_contents.append(self.show_tree_from(dynamic_definition.tree))
 
-        elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
+        # elif dynamic_definition.interlinks and dynamic_definition.interlinks in self.nodes:
 
-            """
-            Interlinks
-            """
-      
-            new_node_contents.append(self.get_node_relationships(
-                dynamic_definition.interlinks,
-                omit=dynamic_definition.omit))
-        
-        elif dynamic_definition.include_all or dynamic_definition.include_or or dynamic_definition.include_and or dynamic_definition.links_to or dynamic_definition.links_from:  
-            
-            """
-            Otherwise this is going to pull from contents of individual nodes,
-            either as a timeline or as node list
-            """
+        #     """
+        #     Interlinks
+        #     """
 
-            included_projects = [self]
-            if dynamic_definition.all_projects:
-                included_projects.extend(self.other_projects)
-
-            # include all nodes?
-            elif dynamic_definition.include_all:
-                included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
-
-            # otherwise determind which nodes to include
-            else:
-                included_nodes = []
-              
-                if 'indexed' in dynamic_definition.include_or:
-                    included_nodes = [self.nodes[node_id] for node_id in self.indexed_nodes() if not self.nodes[node_id].dynamic]
+        #     new_node_contents.append(self.get_node_relationships(
+        #         dynamic_definition.interlinks,
+        #         omit=dynamic_definition.omit))
     
-                included_nodes = set(included_nodes)
+        included_projects = [self]
+        if dynamic_definition.all_projects:
+            included_projects.extend(self.other_projects)
 
-                for project in included_projects:
-                    included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))
-                    included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
+        # include all nodes?
+        elif dynamic_definition.include_all:
+            included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
 
-            excluded_nodes = set([])
+
+        # otherwise determine which nodes to include
+        else:
+                
+            included_nodes = set([])
+
             for project in included_projects:
+                included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))
+                included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
 
-                excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
-                excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
+        excluded_nodes = set([])
+        for project in included_projects:
 
-            included_nodes = set(included_nodes)
-            included_nodes -= excluded_nodes
+            excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
+            excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-            # Never include a dynamic node in itself.
-            included_nodes.discard(self.nodes[dynamic_definition.target_id])
-            included_nodes = list(included_nodes)
-           
-            if dynamic_definition.links_to or dynamic_definition.links_from:
+        included_nodes = set(included_nodes)
+        included_nodes -= excluded_nodes
 
-                included_nodes = []
-                for node_id in dynamic_definition.links_to:
-                    if node_id in self.links_to:
-                        included_nodes.extend([r for r in self.links_to[node_id] if not self.nodes[r].dynamic])
-                for node_id in dynamic_definition.links_from:
-                    if node_id in self.links_from:
-                       included_nodes.extend([r for r in self.links_from[node_id] if not self.nodes[r].dynamic])
+        # Never include a dynamic node in itself.
+        included_nodes.discard(self.nodes[dynamic_definition.target_id])           
+        if self.settings['log_id'] in self.nodes:
+            included_nodes.discard(self.nodes[self.settings['log_id']])
+        #included_nodes = [self.nodes[node_id] for node_id in list(included_nodes)]
+
+        """
+        build collection if specified
+        """ 
+        if dynamic_definition.output_type == '-collection':
+            new_node_contents.append(self._collection(included_nodes, self, dynamic_definition))
             
-                included_nodes = [self.nodes[node_id] for node_id in included_nodes]
+        elif dynamic_definition.output_type == '-list':
 
+            """ custom sort the nodes if a sort type is provided """
+            if dynamic_definition.sort_keyname:
 
-            """
-            build timeline if specified
-            """ 
-            if dynamic_definition.timeline:
-                new_node_contents.append(self._timeline(included_nodes, dynamic_definition))
-            else:
+                # ( Otherwise the sort type is alpha by string )
+                # Title is not always given by metadata so we do this manually 
+                if dynamic_definition.sort_keyname == 'title':
+                    sort_func = lambda node: node.title.lower()
 
-                """ custom sort the nodes if a sort type is provided """
-
-                if dynamic_definition.sort_keyname:
-
-                    # ( Otherwise the sort type is alpha by string )
-                    # Title is not always given by metadata so we do this manually 
-                    if dynamic_definition.sort_keyname == 'title':
-                        sort_func = lambda node: node.title.lower()
-
-                    elif dynamic_definition.sort_keyname == 'index':
-                        sort_func = lambda node: node.index
-
-                    else:
-                        # For all other keys, sort by key
-
-                        # If specified, sort by timestamp, not value of the selected key
-                        if dynamic_definition.use_timestamp:
-                            sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
-
-                        else:
-                            sort_func = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname)
+                elif dynamic_definition.sort_keyname == 'index':
+                    sort_func = lambda node: node.index
 
                 else:
-                    """ otherwise sort them by node date by default """
-                    sort_func = lambda node: node.default_sort()
-                    
-                # sort them using the determined sort function
-                included_nodes = sorted(
-                    included_nodes,
-                    key=sort_func,
-                    reverse=dynamic_definition.reverse)
+                    # For all other keys, sort by key
 
-                """
-                Truncate the list if a maximum is specified
-                """            
-                if dynamic_definition.limit:
-                    included_nodes = included_nodes[0:dynamic_definition.limit]
- 
-                for targeted_node in included_nodes:
+                    # If specified, sort by timestamp, not value of the selected key
+                    if dynamic_definition.use_timestamp:
+                        sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
 
-                    next_content = DynamicOutput(dynamic_definition.show)
-                   
-                    if next_content.needs_title:
-                        next_content.title = targeted_node.title
-                   
-                    if next_content.needs_link:
-                        link = []
-                        if targeted_node.parent_project not in [self.title, self.path]:
-                            link.extend(['{"',targeted_node.parent_project,'"}'])
-                        else:
-                            link.append('>')
-                        link.extend(['>', str(targeted_node.id)])
-                        next_content.link = ''.join(link)
+                    else:
+                        sort_func = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname)
 
-                    if next_content.needs_date:
-                        next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
-                    if next_content.needs_meta:
-                        next_content.meta = targeted_node.consolidate_metadata()
-                    if next_content.needs_contents: 
-                        next_content.contents = targeted_node.content_only().strip('\n').strip()
- 
-                    for meta_key in next_content.needs_other_format_keys:
-                        values = targeted_node.metadata.get_values(meta_key, substitute_timestamp=True)
-                        replacement = ''
-                        if values:
-                            replacement = ' '.join(values)
-                        next_content.other_format_keys[meta_key] = values
+            else:
+                """ otherwise sort them by node date by default """
+                sort_func = lambda node: node.default_sort()
+                
+            # sort them using the determined sort function
+            included_nodes = sorted(
+                included_nodes,
+                key=sort_func,
+                reverse=dynamic_definition.sort_reverse)
 
-                    new_node_contents.append(next_content.output())
+            """
+            Truncate the list if a maximum is specified
+            """            
+            if dynamic_definition.limit:
+                included_nodes = included_nodes[0:dynamic_definition.limit]
+
+            for targeted_node in included_nodes:
+
+                next_content = DynamicOutput(dynamic_definition.show)
+               
+                if next_content.needs_title:
+                    next_content.title = targeted_node.title
+               
+                if next_content.needs_link:
+                    link = []
+                    if targeted_node.parent_project not in [self.title, self.path]:
+                        link.extend(['{"',targeted_node.parent_project,'"}'])
+                    else:
+                        link.append('>')
+                    link.extend(['>', str(targeted_node.id)])
+                    next_content.link = ''.join(link)
+
+                if next_content.needs_date:
+                    next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
+                if next_content.needs_meta:
+                    next_content.meta = targeted_node.consolidate_metadata()
+                if next_content.needs_contents: 
+                    next_content.contents = targeted_node.content_only().strip('\n').strip()
+
+                for meta_key in next_content.needs_other_format_keys:
+                    values = targeted_node.metadata.get_values(meta_key, substitute_timestamp=True)
+                    replacement = ''
+                    if values:
+                        replacement = ' '.join(values)
+                    next_content.other_format_keys[meta_key] = values
+
+                new_node_contents.append(next_content.output())
              
 
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
@@ -268,7 +230,7 @@ def _compile(self,
         
         if dynamic_definition.export: # must be reset since the file will have been re-parsed
             self.nodes[dynamic_definition.target_id].export_points = points           
-        if dynamic_definition.tree:
+        if dynamic_definition.output_type == '-tree':
             self.nodes[dynamic_definition.target_id].is_tree = True
         
         self.nodes[dynamic_definition.target_id].dynamic = True
@@ -328,43 +290,23 @@ def build_final_output(dynamic_definition, contents):
 
     return final_contents
 
-
 def _build_group_and(project, groups, include_dynamic=False):
     
-    final_group = set([])
-    new_group = set([])
     found_sets = []
+    new_group = []
     for pair in groups:
 
-        new_group = set([])
-        key, value = pair[0], pair[1]
-
-        if key in project.keynames:
-
-            if value.lower() == 'all':
-                for v in project.keynames[key]:
-                    if include_dynamic:
-                        new_group = new_group.union(set(project.keynames[key][v])) 
-                    else:
-                        new_group = new_group.union(set([
-                            r for r in project.keynames[key][v] if not project.nodes[r].dynamic
-                            ]))
-
-            elif value in project.keynames[key]:
-                if include_dynamic:
-                    new_group = set(project.keynames[key][value])
-                else:
-                    new_group = set([
-                        r for r in project.keynames[key][value] if not project.nodes[r].dynamic
-                        ])
-
+        key, value, operator = pair[0], pair[1], pair[2]
+        new_group = project.get_by_meta(key,value,operator)            
         found_sets.append(new_group)
 
     for this_set in found_sets:
         new_group = new_group.intersection(this_set)
 
-    final_group = set([project.nodes[node_id] for node_id in new_group])
-    return final_group
+    if new_group and not include_dynamic:
+        new_group = [f for f in new_group if not project.nodes[f].dynamic]
+
+    return set([project.nodes[node_id] for node_id in new_group])
 
 def _build_group_or(project, group, include_dynamic=False):
 
@@ -372,31 +314,14 @@ def _build_group_or(project, group, include_dynamic=False):
 
     for pair in group:
 
-        key, value = pair[0], pair[1]
+        key, values, operator = pair[0], pair[1], pair[2]
 
-        if key in project.keynames:
+        final_group = final_group.union(project.get_by_meta(key, values, operator))
+            
+    if final_group and not include_dynamic:
+        final_group = [f for f in final_group if not project.nodes[f].dynamic]
 
-            if value.lower() == 'all':
-                for v in project.keynames[key]:
-                    if include_dynamic:
-                        final_group = final_group.union(set(project.keynames[key][v])) 
-                    else:
-                        final_group = final_group.union(set([
-                            r for r in project.keynames[key][v] if not project.nodes[r].dynamic
-                            ])) 
-
-
-            elif value in project.keynames[key]:
-                if include_dynamic:
-                    final_group = final_group.union(set(project.keynames[key][value]))
-                else:
-                    final_group = final_group.union(set([
-                        r for r in project.keynames[key][value] if not project.nodes[r].dynamic
-                        ]))
-
-    final_group = [ project.nodes[node_id] for node_id in final_group ]
-
-    return final_group
+    return [ project.nodes[node_id] for node_id in final_group ]
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')

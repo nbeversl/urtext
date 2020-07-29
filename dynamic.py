@@ -64,8 +64,15 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
         '-num',
         '-n',
 
+        '-date',
+        '-d'
+
         '-alpha',
-        '-a'
+        '-a',
+
+        '-collection',
+        '-list',
+        '-tree'
     ]   
 ]
 
@@ -75,42 +82,49 @@ class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
     def __init__(self, contents):
 
-        self.spaces = 0
+
+        # TARGET()
         self.target_id = None
         self.target_file = None
+        self.output_type = '-list' # default
+         
+        # inclusions / exclusions
         self.include_all = False
         self.comparison_type = None
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
         self.exclude_and = []
-        self.links_to = []
-        self.links_from = []
-        self.tree = None
-        self.sort_keyname = None
-        self.metadata = {}
-        self.interlinks = None
         self.omit=[]
-        self.export = None
-        self.tag_all = {}
-        self.timeline_meta_key = None
-        self.timeline_sort_numeric = False
-        self.timeline = False
-        self.search = None
-        self.show = '$title $link\n' # default
-        self.preformat = False
-        self.display = 'list'
-        self.recursive = False
         self.limit = None
+        self.all_projects = False
+        self.keys = []
+
+        # SORT()
         self.sort_type = 'alpha'
-        self.access_history = 0
+        self.sort_reverse = False
+        self.sort_keyname = None
+        self.sort_numeric = False
+        self.sort_date = False
+        
+        # formatting
+        self.spaces = 0
+        self.preformat = False
+
+        # show        
+        self.show = '$title $link\n' # default
+
+        # to be removed or reviewed
+        self.export = None
         self.export_source = None
         self.source_id = 'EMPTY'
-        self.all_projects = False
+        
         self.export_kind = None
         self.use_timestamp = False
-        self.reverse = False
         self.multiline_meta = False
+        # METADATA()
+        self.metadata = {}
+       
         self.init_self(contents)
 
     def init_self(self, contents):
@@ -121,31 +135,25 @@ class UrtextDynamicDefinition:
             inside_parentheses, flags = get_flags(match[1][1:-1])
 
             if func == 'ID':
-                self.target_id = inside_parentheses
+                
+                if flags and flags[0] in ['-tree','-list','-collection']:
+                    self.output_type = flags[0]
+                
+                if self.output_type == '-collection':
+                    # different default output
+                    self.show = "$entry $link \n $contents\n\n"               
+                
+                #TODO FIX
+                self.target_id = inside_parentheses[:3]
                 continue
 
             if func == 'SHOW':
                 self.show = inside_parentheses
                 continue
 
-            if func == 'TREE':
-                self.tree = inside_parentheses
-                continue
-
-            if func == 'COLLECTION':
-                
-                self.timeline = True
-
-                if has_flags(['-n','-num'], flags):
-                        self.timeline_sort_numeric = True
-
-                for param in separate(inside_parentheses, delimiter=' '):
-
-                    key, value, delimiter = key_value(param)
-                    if key == 'key':
-                        self.timeline_meta_key = value[0]
-
-                continue
+            if func == 'KEYS':
+                keys = separate(inside_parentheses, delimiter=" ")
+                self.keys.extend(keys)
 
             if func == 'INCLUDE':
                 group = []
@@ -156,27 +164,45 @@ class UrtextDynamicDefinition:
 
                 for param in separate(inside_parentheses):
                     
-                    if param == 'all': 
+                    if param == '-all': 
                         self.include_all = True
                         # no need to continue
                         break
 
-                    if param == 'and':
+                    if param == '-and':
                         # and overrides or if it appears at all
-                        operator = 'and'
+                        operator = '-and'
                         continue
 
                     key, value, delimiter = key_value(param, ['=','?','~'])
                     if value:
                         for v in value:
-                            group.append((key,v))
-                        self.comparison_type = delimiter
+                            group.append((key,v, delimiter))
                 
-                if group and operator == 'and':
+                if group and operator == '-and':
                     self.include_and.extend(group)
                 elif group:
                     self.include_or.extend(group)
 
+                continue
+
+            if func == 'SORT':
+
+                if has_flags(['-n','-num'], flags):
+                    self.sort_numeric = True
+
+                if has_flags(['-use-timestamp','-t'], flags):
+                    self.use_timestamp = True
+
+                if has_flags(['-reverse','-r'], flags):
+                    self.sort_reverse = True
+
+                if has_flags(['-date','-d'], flags):
+                    self.sort_date = True
+                for param in separate(inside_parentheses):
+                    # TODO: Add multiple sort fallbacks
+                    if param and param[0] == '$': 
+                        self.sort_keyname = param[1:]
                 continue
 
             if func == 'EXCLUDE':
@@ -200,20 +226,13 @@ class UrtextDynamicDefinition:
                     key, value, delimiter = key_value(param, ['=','?','~'])
                     if value:
                         for v in value:
-                            group.append((key,v))
-                        self.comparison_type = delimiter
+                            group.append((key,v,delimiter))
                         
                 if group and operator == 'and':
                     self.exclude_and.extend(group)
                 elif group:
                     self.exclude_or.extend(group)
                 continue
-
-            if func == "LINKS_TO":
-                self.links_to = separate(inside_parentheses)
-
-            if func == "LINKS_FROM":
-                self.links_from = separate(inside_parentheses)
 
             if func == "FORMAT":
                 if has_flags(['-multiline-meta','-mm'], flags):
@@ -227,29 +246,11 @@ class UrtextDynamicDefinition:
                 
                 continue
 
-            if func == 'SEARCH':
-                self.search = inside_parentheses
-                continue
-
             if func == 'LIMIT':
                 self.limit = self.assign_as_int(inside_parentheses, self.limit)
                 continue
 
-            if func == 'SORT':
-
-                if has_flags(['-use-timestamp','-t'], flags):
-                    self.use_timestamp = True
-
-                if has_flags(['-reverse','-r'], flags):
-                    self.reverse = True
-
-                for param in separate(inside_parentheses):
-                    # TODO: Add multiple sort fallbacks
-                    if param and param[0] == '$': 
-                        self.sort_keyname = param[1:]
-
-                continue
-
+ 
             if func == 'EXPORT':
 
                 if has_flags(['-preformat','-p'], flags):
@@ -265,12 +266,6 @@ class UrtextDynamicDefinition:
                     if value and key == 'source':
                         self.export_source = value[0]
                 continue
-
-            if func == 'FILE':
-               
-                self.target_file = inside_parentheses
-                continue
-
 
             if func == 'METADATA':
                 
@@ -338,4 +333,5 @@ def get_export_kind(flgs):
     return None
 
 def separate(param, delimiter=';'):
+
     return [r.strip() for r in re.split(delimiter+'|\n', param)]

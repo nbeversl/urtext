@@ -29,6 +29,7 @@ class DynamicOutput():
         self.date = ''
         self.link = ''
         self.meta = ''
+        self.entry = ''
         self.contents = ''
         self.other_format_keys = {}
 
@@ -37,6 +38,7 @@ class DynamicOutput():
         self.needs_link = False
         self.needs_date = False
         self.needs_contents = False
+        self.needs_entry = False
         self.needs_other_format_keys = []
 
         self.format_string = format_string
@@ -67,6 +69,7 @@ class DynamicOutput():
             'date',
             'meta',
             'contents',
+            'entry' # for metadata collection
         ]
 
         if self.shah + '$title' in self.item_format:
@@ -77,6 +80,8 @@ class DynamicOutput():
             self.needs_date = True
         if self.shah + '$meta' in self.item_format:
             self.needs_meta = True
+        if self.shah + '$entry' in self.item_format:
+            self.needs_entry = True
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)
@@ -95,6 +100,7 @@ class DynamicOutput():
         self.item_format = self.item_format.replace(self.shah + '$link', self.link)
         self.item_format = self.item_format.replace(self.shah + '$date', self.date)
         self.item_format = self.item_format.replace(self.shah + '$meta', self.meta)
+        self.item_format = self.item_format.replace(self.shah + '$entry', self.entry)
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)
@@ -117,3 +123,6 @@ class DynamicOutput():
             self.item_format = self.item_format.replace(token, value );    
 
         return self.item_format
+
+    
+
