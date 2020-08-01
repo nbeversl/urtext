@@ -115,6 +115,7 @@ class UrtextDynamicDefinition:
         # show        
         self.show = '$title $link\n' # default
 
+        self.root = None
         # to be removed or reviewed
         self.export = None
         self.export_source = None
@@ -143,7 +144,12 @@ class UrtextDynamicDefinition:
                 
                 if self.output_type == '-collection':
                     # different default output
-                    self.show = "$entry $link \n $contents\n\n"               
+                    self.show = "$entry $link \n $contents\n\n"
+
+                for param in separate(inside_parentheses):                      
+                    key, value, delimiter = key_value(param)
+                    if key == 'root':
+                        self.root = value[0]
                 
                 #TODO FIX
                 self.target_id = inside_parentheses[:3]
@@ -158,9 +164,17 @@ class UrtextDynamicDefinition:
                 self.keys.extend(keys)
 
             if func == 'INCLUDE':
+
                 parse_group(self,
                     self.include_and, 
                     self.include_or,
+                    inside_parentheses)
+                continue
+
+            if func == 'EXCLUDE':
+                parse_group(self,
+                    self.exclude_and, 
+                    self.exclude_or,
                     inside_parentheses)
                 continue
 
@@ -182,15 +196,7 @@ class UrtextDynamicDefinition:
                     if param and param[0] == '$': 
                         self.sort_keyname = param[1:]
                 continue
-
-            if func == 'EXCLUDE':
-                parse_group(self,
-                    self.exclude_and, 
-                    self.exclude_or,
-                    inside_parentheses)
-                continue
-             
-
+        
             if func == "FORMAT":
                 if has_flags(['-multiline-meta','-mm'], flags):
                     self.multiline_meta = True
@@ -238,14 +244,12 @@ class UrtextDynamicDefinition:
                 continue
 
 
-
 def assign_as_int(value, default):
     try:
         number = int(value)
         return number
     except ValueError:
         return default
-
 
 def parse_group(definition, and_group, or_group, inside_parentheses):
 
@@ -254,8 +258,8 @@ def parse_group(definition, and_group, or_group, inside_parentheses):
 
     for param in separate(inside_parentheses):
 
-        if param == 'all': 
-            or_group = 'all'
+        if param == '-all': 
+            or_group = '-all'
             return
 
         if param == 'and':
@@ -271,7 +275,6 @@ def parse_group(definition, and_group, or_group, inside_parentheses):
         and_group.extend(group)
     elif group:
         or_group.extend(group)
-
 
 def has_flags(flags, flag_list):
     for f in flag_list:

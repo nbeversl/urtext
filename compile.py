@@ -89,21 +89,14 @@ def _compile(self,
                           ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
            
-        elif dynamic_definition.output_type == '-tree':
+        elif dynamic_definition.output_type == '-tree' and dynamic_definition.root in self.nodes:
 
-            """
-            Tree
-            """
-            new_node_contents.append(self.show_tree_from(dynamic_definition.tree))
+            new_node_contents.append(self.show_tree_from(dynamic_definition.root))
 
-        elif dynamic_definition.output_type == '-interlinks' and dynamic_definition.interlinks in self.nodes:
-
-            """
-            Interlinks
-            """
+        elif dynamic_definition.output_type == '-interlinks' and dynamic_definition.root in self.nodes:
 
             new_node_contents.append(self.get_node_relationships(
-                dynamic_definition.interlinks,
+                dynamic_definition.root,
                 omit=dynamic_definition.omit))
     
         included_projects = [self]
