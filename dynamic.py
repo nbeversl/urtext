@@ -22,67 +22,15 @@ import os
  
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'\b[0-9,a-z]{3}\b'
+filename_regex = r'f>[^;]*'
 function_regex = re.compile('([A-Z_]+)(\(.*?\))', re.DOTALL)
 key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
 string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
 
-valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
-
-        '-rr', 
-        '-recursive',
-
-        '-use-timestamp',
-        '-t',
-
-        '-last-accessed',
-        '-la',
-
-        '-r',
-        '-reverse',
-
-        '-and',
-        '-&',
-
-        '-all-projects',
-        '-*p',
-
-        '-markdown',
-        '-md',
-
-        '-html',
-
-        '-plaintext',
-        '-txt',
-
-        '-preformat',
-        '-p',
-
-        '-multiline-meta',
-        '-mm',
-
-        '-num',
-        '-n',
-
-        '-date',
-        '-d'
-
-        '-alpha',
-        '-a',
-
-        '-collection',
-        '-list',
-        '-tree',
-        '-interlinks'
-    ]   
-]
-
-
-
 class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
     def __init__(self, contents):
-
 
         # TARGET()
         self.target_id = None
@@ -90,21 +38,19 @@ class UrtextDynamicDefinition:
         self.output_type = '-list' # default
          
         # inclusions / exclusions
-        self.include_all = False
-        self.comparison_type = None
         self.include_or = []
         self.include_and = []
         self.exclude_or = []
         self.exclude_and = []
-        self.omit=[]
         self.limit = None
+        self.include_all = False
         self.all_projects = False
-        self.keys = []
+        self.collection_keys = []
 
         # SORT()
         self.sort_type = 'alpha'
         self.sort_reverse = False
-        self.sort_keyname = None
+        self.sort_keyname = []
         self.sort_numeric = False
         self.sort_date = False
         
@@ -114,19 +60,9 @@ class UrtextDynamicDefinition:
 
         # show        
         self.show = '$title $link\n' # default
-
-        self.root = None
-        # to be removed or reviewed
-        self.export = None
-        self.export_source = None
-        self.source_id = 'EMPTY'
         
-        self.export_kind = None
         self.use_timestamp = False
         self.multiline_meta = False
-
-        # METADATA()
-        self.metadata = {}
        
         self.init_self(contents)
 
@@ -139,35 +75,49 @@ class UrtextDynamicDefinition:
 
             if func in ['ID','TARGET']:
                 
-                if flags and flags[0] in ['-tree','-list','-collection', '-interlinks']:
+                if flags and flags[0] in [
+                        '-tree',
+                        '-list',
+                        '-collection',
+                        '-interlinks',
+                        '-plaintext',
+                        '-txt',
+                        '-markdown',
+                        '-search',
+                        '-md',
+                        '-html']:
+
                     self.output_type = flags[0]
                 
                 if self.output_type == '-collection':
-                    # different default output
                     self.show = "$entry $link \n $contents\n\n"
+               
+                node_id_match = re.search(node_id_regex, inside_parentheses)
+                if node_id_match:
+                    self.target_id = node_id_match.group(0)[1:]
+                    continue
 
-                for param in separate(inside_parentheses):                      
-                    key, value, delimiter = key_value(param)
-                    if key == 'root':
-                        self.root = value[0]
-                
-                #TODO FIX
-                self.target_id = inside_parentheses[:3]
-                continue
+                filename match = re.search(filename_regex, inside_parentheses)
+                if filename_match:
+                    self.target_file = filename_match.group(0)[1:]
+                    continue
 
             if func == 'SHOW':
                 self.show = inside_parentheses
                 continue
 
-            if func == 'KEYS':
-                keys = separate(inside_parentheses, delimiter=" ")
-                self.keys.extend(keys)
-
             if func == 'INCLUDE':
+
+                if has_flags(['-all_projects','-*p'], flags):
+                    self.all_projects = True
+
+                if has_flags(['-all','-*'], flags):
+                    self.include_all = True
 
                 parse_group(self,
                     self.include_and, 
                     self.include_or,
+                    self.collection_keys,
                     inside_parentheses)
                 continue
 
@@ -175,6 +125,7 @@ class UrtextDynamicDefinition:
                 parse_group(self,
                     self.exclude_and, 
                     self.exclude_or,
+                    self.collection_keys,
                     inside_parentheses)
                 continue
 
@@ -183,7 +134,7 @@ class UrtextDynamicDefinition:
                 if has_flags(['-n','-num'], flags):
                     self.sort_numeric = True
 
-                if has_flags(['-use-timestamp','-t'], flags):
+                if has_flags(['-timestamp','-t'], flags):
                     self.use_timestamp = True
 
                 if has_flags(['-reverse','-r'], flags):
@@ -191,15 +142,19 @@ class UrtextDynamicDefinition:
 
                 if has_flags(['-date','-d'], flags):
                     self.sort_date = True
+
                 for param in separate(inside_parentheses):
-                    # TODO: Add multiple sort fallbacks
-                    if param and param[0] == '$': 
-                        self.sort_keyname = param[1:]
+                    self.sort_keyname.append(param)
+
                 continue
         
             if func == "FORMAT":
                 if has_flags(['-multiline-meta','-mm'], flags):
                     self.multiline_meta = True
+                
+                if has_flags(['-preformat','-p'], flags):
+                    self.preformat = True
+
 
                 for param in separate(inside_parentheses):                      
                     key, value, delimiter = key_value(param)
@@ -214,34 +169,18 @@ class UrtextDynamicDefinition:
                 continue
 
  
-            if func == 'EXPORT':
-
-                if has_flags(['-preformat','-p'], flags):
-                    self.preformat = True
-
-                self.export_kind = get_export_kind(flags)
-
-                for param in separate(inside_parentheses, delimiter=' '):
-
-                    self.export = param
-
-                    key, value, delimiter = key_value(param)
-                    if value and key == 'source':
-                        self.export_source = value[0]
-                continue
-
-            if func == 'METADATA':
+            # if func == 'METADATA':
                 
-                for param in separate(inside_parentheses):
+            #     for param in separate(inside_parentheses):
 
-                    key, value, delimiter = key_value(param, delimiters=['::'])
+            #         key, value, delimiter = key_value(param, delimiters=['::'])
 
-                    if key:
-                        if key not in self.metadata:
-                            self.metadata[key] = []
-                        self.metadata[key].extend(value)
+            #         if key:
+            #             if key not in self.metadata:
+            #                 self.metadata[key] = []
+            #             self.metadata[key].extend(value)
 
-                continue
+            #     continue
 
 
 def assign_as_int(value, default):
@@ -251,7 +190,7 @@ def assign_as_int(value, default):
     except ValueError:
         return default
 
-def parse_group(definition, and_group, or_group, inside_parentheses):
+def parse_group(definition, and_group, or_group, collection_keys, inside_parentheses):
 
     group = []
     operator = 'or'
@@ -270,6 +209,8 @@ def parse_group(definition, and_group, or_group, inside_parentheses):
         if value:
             for v in value:
                 group.append((key,v,delimiter))
+        else:
+            collection_keys.append(param)
             
     if group and operator == 'and':
         and_group.extend(group)
@@ -324,3 +265,60 @@ def get_export_kind(flgs):
 def separate(param, delimiter=';'):
 
     return [r.strip() for r in re.split(delimiter+'|\n', param)]
+
+
+valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
+
+
+        '-all',
+        '-\*', 
+        
+        '-rr', 
+        '-recursive',
+
+        '-use-timestamp',
+        '-t',
+
+        '-last-accessed',
+        '-la',
+
+        '-r',
+        '-reverse',
+
+        '-and',
+        '-&',
+
+        '-all-projects',
+        '-\*p',
+
+        '-markdown',
+        '-md',
+
+        '-html',
+
+        '-plaintext',
+        '-txt',
+
+        '-preformat',
+        '-p',
+
+        '-multiline-meta',
+        '-mm',
+
+        '-num',
+        '-n',
+
+        '-date',
+        '-d'
+
+        '-alpha',
+        '-a',
+
+        '-collection',
+        '-list',
+        '-tree',
+        '-interlinks'
+    ]   
+]
+
+

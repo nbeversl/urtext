@@ -28,10 +28,11 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
     """ generates a collection of context-aware metadata anchros """
 
     found_stuff = []
-
+    
     for node in nodes:
+        
          
-        for k in dynamic_definition.keys:
+        for k in dynamic_definition.collection_keys:
 
             for entry in node.metadata.get_entries(k):
 
@@ -66,7 +67,7 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                              # TODO: error catching
                              sort_value = float(value)
     
-                         found_item['sort_value'] = node.metadata.get_first_value(dynamic_definition.sort_keyname)
+                         found_item['sort_value'] = node.metadata.get_first_value(k)
 
                      found_item['keyname'] = k
                      found_item['position'] = str(start_pos)

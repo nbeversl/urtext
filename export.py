@@ -100,7 +100,7 @@ class UrtextExport:
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
-        if kind == 'markdown':
+        if kind in ['-markdown', '-md']:
             clean_whitespace = True
             
         exported_content, points, visited_nodes = self._add_node_content(
@@ -202,13 +202,13 @@ class UrtextExport:
                 # prepend
                 range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
 
-                if kind == 'html' and not strip_urtext_syntax:
+                if kind == '-html' and not strip_urtext_syntax:
 
                     # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
 
-            if kind == 'html':
+            if kind == '-html':
                 """
                 Insert special HTML wrappers
                 """
@@ -242,7 +242,7 @@ class UrtextExport:
             """
             Add the range contents only after the title, if any.
             """
-            if kind == 'markdown':
+            if kind in ['-markdown', '-md']:
                 range_contents = strip_leading_space(range_contents)
                 if self.project.nodes[root_node_id].is_tree and preformat:
                     range_contents = insert_format_character(range_contents)
@@ -257,7 +257,7 @@ class UrtextExport:
                 if range_contents:
                     range_contents = range_contents + '\n'
 
-            if single_range != ranges[0] and kind == 'html':    
+            if single_range != ranges[0] and kind == '-html':    
  
                 """
                 Otherwise, only for HTML, wrap all important elements
@@ -300,7 +300,7 @@ class UrtextExport:
                 if next_node and next_node not in visited_nodes:
 
                     """ for HTML, if this is a dynamic node and contains a tree, add the tree"""
-                    if kind == 'html' and next_node in self.project.dynamic_nodes and self.project.dynamic_nodes[next_node].tree:
+                    if kind == '-html' and next_node in self.project.dynamic_nodes and self.project.dynamic_nodes[next_node].tree:
                         exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
 
                     else:
@@ -481,7 +481,7 @@ class UrtextExport:
 
                 title = self.project.nodes[node_id].title
 
-                if kind == 'html':
+                if kind == '-html':
 
                     filename = self.project.nodes[node_id].filename
                     
@@ -495,11 +495,11 @@ class UrtextExport:
                 
                     contents = contents.replace(match, '<a href="'+link+'">'+title+'</a>')
 
-                if kind == 'plaintext':
+                if kind in ['-plaintext','-txt']:
 
                     contents = contents.replace(match, '"'+title+'"') # TODO - make quote wrapper optional
         
-                if kind == 'markdown':
+                if kind in ['-markdown','-md']:
 
 
                     link = '#' + title.lower().replace(' ','-');

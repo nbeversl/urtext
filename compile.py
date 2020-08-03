@@ -25,6 +25,7 @@ import os
 import re
 import operator
 
+
 """
 compile method for the UrtextProject class
 """
@@ -49,70 +50,20 @@ def _compile(self,
 
     for dynamic_definition in self.dynamic_nodes:
  
-        points = {}
-        new_node_contents = []
-        
-        if dynamic_definition.export:
-
-            """
-            Export
-            """
-            
-            if not dynamic_definition.export_source:
-                continue 
-
-            exclude=[]
-            if dynamic_definition.target_id:
-                exclude.append(dynamic_definition.target_id)
-
-            exported = UrtextExport(self) 
-            exported_content, points = exported.export_from(
-                 dynamic_definition.export_source,
-                 kind=dynamic_definition.export,
-                 exclude =exclude, # prevents recurssion
-                 as_single_file=True, # TOdO should be option 
-                 clean_whitespace=True,
-                 preformat = dynamic_definition.preformat)
-
-            if dynamic_definition.target_file:
-                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-                    f.write(exported_content)
-                    f.close()
-                
-            new_node_contents.append(exported_content)
-         
-        if not dynamic_definition.target_id:
-            continue
-        
         if dynamic_definition.target_id not in self.nodes:
-            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
-                          ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
-           
-        elif dynamic_definition.output_type == '-tree' and dynamic_definition.root in self.nodes:
+            
+        # Determine included and excluded nodes
 
-            new_node_contents.append(self.show_tree_from(dynamic_definition.root))
-
-        elif dynamic_definition.output_type == '-interlinks' and dynamic_definition.root in self.nodes:
-
-            new_node_contents.append(self.get_node_relationships(
-                dynamic_definition.root,
-                omit=dynamic_definition.omit))
-    
         included_projects = [self]
         if dynamic_definition.all_projects:
             included_projects.extend(self.other_projects)
 
-        # include all nodes?
         elif dynamic_definition.include_all:
             included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
 
-
-        # otherwise determine which nodes to include
-        else:
-                
+        else: 
             included_nodes = set([])
-
             for project in included_projects:
                 included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))
                 included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
@@ -130,18 +81,65 @@ def _compile(self,
         included_nodes.discard(self.nodes[dynamic_definition.target_id])           
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
+
+        points = {}
+        new_node_contents = []
+
+        # if not dynamic_definition.target_id:
+        #     continue
+        
+        if dynamic_definition.target_id not in self.nodes:
+            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
+                          ' points to nonexistent node >' + dynamic_definition.target_id)
+            continue
+           
+        elif dynamic_definition.output_type == '-tree':
+
+            for source_node in included_nodes:
+                new_node_contents.append(self.show_tree_from(source_node.id))
+
+        elif dynamic_definition.output_type == '-interlinks':
+
+            for source_node in included_nodes:
+                new_node_contents.append(self.get_node_relationships(source_node.id))
+    
+        
         #included_nodes = [self.nodes[node_id] for node_id in list(included_nodes)]
 
-        """
-        build collection if specified
-        """ 
+        # Export
+        if dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
+
+            for source_node in included_nodes:
+
+                exclude=[source_node.id]
+
+                exported = UrtextExport(self) 
+                exported_content, points = exported.export_from(
+                     source_node,
+                     kind=dynamic_definition.output_type,
+                     exclude=exclude, # prevents recurssion
+                     as_single_file=True, # TOdO should be option 
+                     clean_whitespace=True,
+                     preformat = dynamic_definition.preformat)
+                    
+                new_node_contents.append(exported_content)
+         
+            if dynamic_definition.target_file:
+                with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
+                    f.write(exported_content)
+                    f.close()
+
         if dynamic_definition.output_type == '-collection':
+           
             new_node_contents.append(self._collection(included_nodes, self, dynamic_definition))
             
         elif dynamic_definition.output_type == '-list':
 
             """ custom sort the nodes if a sort type is provided """
             if dynamic_definition.sort_keyname:
+
+                #temporary
+                dynamic_definition.sort_keyname = dynamic_definition.sort_keyname[0]
 
                 # ( Otherwise the sort type is alpha by string )
                 # Title is not always given by metadata so we do this manually 
@@ -209,20 +207,20 @@ def _compile(self,
 
                 new_node_contents.append(next_content.output())
              
-
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
 
         if not initial:
             filename = self.nodes[dynamic_definition.target_id].filename    
             self._parse_file(filename)
-        #print( self.nodes[dynamic_definition.target_id].filename )
+
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file:
             modified_files.append(changed_file)       
         
-        if dynamic_definition.export: # must be reset since the file will have been re-parsed
+        if dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
             self.nodes[dynamic_definition.target_id].export_points = points           
+
         if dynamic_definition.output_type == '-tree':
             self.nodes[dynamic_definition.target_id].is_tree = True
         
@@ -267,16 +265,16 @@ def build_final_output(dynamic_definition, contents):
         'ID': [ dynamic_definition.target_id ],
         'def' : [ '>'+dynamic_definition.source_id ] }
 
-    metadata_values.update(dynamic_definition.metadata) 
+    #metadata_values.update(dynamic_definition.metadata) 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
         one_line = not dynamic_definition.multiline_meta)
 
-    title = ''
-    if 'title' in dynamic_definition.metadata:
-        title = dynamic_definition.metadata['title'][0] + '\n'
+    # title = ''
+    # if 'title' in dynamic_definition.metadata:
+    #     title = dynamic_definition.metadata['title'][0] + '\n'
 
-    final_contents = '\n' + title + contents + built_metadata
+    final_contents = '\n' + contents + built_metadata
 
     if dynamic_definition.spaces:
         final_contents = indent(final_contents, dynamic_definition.spaces)
@@ -290,7 +288,7 @@ def _build_group_and(project, groups, include_dynamic=False):
     for pair in groups:
 
         key, value, operator = pair[0], pair[1], pair[2]
-        new_group = project.get_by_meta(key,value,operator)            
+        new_group = project.get_by_meta(key, value, operator)            
         found_sets.append(new_group)
 
     for this_set in found_sets:

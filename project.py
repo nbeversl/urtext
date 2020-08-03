@@ -1431,6 +1431,7 @@ class UrtextProject:
         self._save_access_history()
 
     def get_by_meta(self, key, values, operator):
+        
         if isinstance(values,str):
             values = [values]
 
@@ -1466,7 +1467,6 @@ class UrtextProject:
         results = set([])
 
         for value in values:
-
             if value == '*':
                 # include all values
                 for v in self.keynames[key]:
