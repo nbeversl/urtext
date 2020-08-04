@@ -1437,7 +1437,7 @@ class UrtextProject:
 
         results = []
 
-        if key == '_contents' and operator == '?':
+        if key == '_contents' and operator == '?': # `=` not currently implemented
             for node_id in self.nodes:
                 if self.nodes[node_id].dynamic:
                     continue

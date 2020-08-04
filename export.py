@@ -33,9 +33,10 @@ class UrtextExport:
     def __init__(self, project):
         self.project = project
         self.extensions  = {
-            'plaintext':'.txt',
-            'html' : '.html',
-            'markdown' :'.md'
+            '-plaintext':'.txt',
+            '-html' : '.html',
+            '-markdown' :'.md',
+            '-md' :'.md'
         }
    
     def _strip_urtext_syntax(self, contents):
@@ -48,17 +49,19 @@ class UrtextExport:
 
     def _opening_wrapper(self, kind, node_id, nested):
         wrappers = { 
-            'html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
-            'markdown': '',
-            'plaintext': ''
+            '-html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
+            '-markdown': '',
+            '-plaintext': '',
+            '-md': ''
             }
         return wrappers[kind]
 
     def _closing_wrapper(self, kind):
         wrappers = { 
-            'html': '</div>',
-            'markdown': '',
-            'plaintext': ''
+            '-html': '</div>',
+            '-markdown': '',
+            '-plaintext': '',
+            '-md': '',
             }
         return wrappers[kind]
 
@@ -70,9 +73,10 @@ class UrtextExport:
 
 
         wrappers = {
-            'markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
-            'html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
-            'plaintext' : title,
+            '-markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
+            '-md': '\n\n' + '#' * nested + ' ' + title.strip(),
+            '-html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
+            '-plaintext' : title,
         }
         return wrappers[kind]
 
@@ -87,7 +91,7 @@ class UrtextExport:
         kind='plaintext',
         preformat=False,
         ):
-
+    
         if exclude == None:
             exclude = []
 
@@ -116,6 +120,7 @@ class UrtextExport:
             points=points,
             )
 
+        
         return exported_content, points
 
     def _add_node_content(self, 
@@ -125,7 +130,7 @@ class UrtextExport:
             strip_urtext_syntax=True,                   # for HTML, strip Urtext syntax?
             style_titles=True,                          # style titles ????
             exclude=None,                                 # specify any nodes to exclude
-            kind='plaintext',                           # format
+            kind='-plaintext',                           # format
             nested=None,
             points = None,                               # nested level (private)
             single_node_only=False,                      # stop at this node, no inline nodes
@@ -285,7 +290,7 @@ class UrtextExport:
             points[ (len(added_contents), len(added_contents) + len(range_contents) ) ] = ( root_node_id, single_range[0] )
 
             added_contents += range_contents
-
+            
             """
             If we are adding subnodes, find the node_id of the node immediately following this range
             and add it, assuming we are including all sub-nodes.

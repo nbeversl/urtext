@@ -48,9 +48,18 @@ def _compile(self,
        for e in self.dynamic_meta[node_id]['entries']:
             self._add_sub_tags( node_id, node_id, e)                    
 
-    for dynamic_definition in self.dynamic_nodes:
- 
-        if dynamic_definition.target_id not in self.nodes:
+
+    for dynamic_definition in self.dynamic_nodes: 
+
+        points = {}
+        new_node_contents = []
+
+        if not dynamic_definition.target_id and not dynamic_definition.target_file:
+            continue
+
+        if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
+            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
+                          ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
             
         # Determine included and excluded nodes
@@ -78,23 +87,13 @@ def _compile(self,
         included_nodes -= excluded_nodes
 
         # Never include a dynamic node in itself.
-        included_nodes.discard(self.nodes[dynamic_definition.target_id])           
+        if dynamic_definition.target_id:
+            included_nodes.discard(self.nodes[dynamic_definition.target_id])           
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
 
-        points = {}
-        new_node_contents = []
-
-        # if not dynamic_definition.target_id:
-        #     continue
-        
-        if dynamic_definition.target_id not in self.nodes:
-            self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
-                          ' points to nonexistent node >' + dynamic_definition.target_id)
-            continue
-           
-        elif dynamic_definition.output_type == '-tree':
-
+            
+        if dynamic_definition.output_type == '-tree':
             for source_node in included_nodes:
                 new_node_contents.append(self.show_tree_from(source_node.id))
 
@@ -103,70 +102,58 @@ def _compile(self,
             for source_node in included_nodes:
                 new_node_contents.append(self.get_node_relationships(source_node.id))
     
-        
-        #included_nodes = [self.nodes[node_id] for node_id in list(included_nodes)]
-
-        # Export
-        if dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
+        elif dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
+            
+            #exclude = [source_node.id]
 
             for source_node in included_nodes:
 
-                exclude=[source_node.id]
-
                 exported = UrtextExport(self) 
                 exported_content, points = exported.export_from(
-                     source_node,
+                     source_node.id,
                      kind=dynamic_definition.output_type,
-                     exclude=exclude, # prevents recurssion
+                     #exclude=exclude, # prevents recurssion
                      as_single_file=True, # TOdO should be option 
                      clean_whitespace=True,
-                     preformat = dynamic_definition.preformat)
+                     preformat=dynamic_definition.preformat)
                     
                 new_node_contents.append(exported_content)
-         
+            
             if dynamic_definition.target_file:
                 with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
                     f.write(exported_content)
                     f.close()
 
-        if dynamic_definition.output_type == '-collection':
-           
+            if not dynamic_definition.target_id:
+                continue
+
+        elif dynamic_definition.output_type == '-collection':
             new_node_contents.append(self._collection(included_nodes, self, dynamic_definition))
-            
+
+        elif dynamic_definition.output_type == '-search':
+            for term in dynamic_definition.other_params:
+                search = UrtextSearch(self, term, format_string=dynamic_definition.show)
+                new_node_contents.extend(search.initiate_search())
+
         elif dynamic_definition.output_type == '-list':
 
             """ custom sort the nodes if a sort type is provided """
             if dynamic_definition.sort_keyname:
-
-                #temporary
-                dynamic_definition.sort_keyname = dynamic_definition.sort_keyname[0]
-
-                # ( Otherwise the sort type is alpha by string )
-                # Title is not always given by metadata so we do this manually 
-                if dynamic_definition.sort_keyname == 'title':
-                    sort_func = lambda node: node.title.lower()
-
-                elif dynamic_definition.sort_keyname == 'index':
-                    sort_func = lambda node: node.index
-
-                else:
-                    # For all other keys, sort by key
-
-                    # If specified, sort by timestamp, not value of the selected key
-                    if dynamic_definition.use_timestamp:
-                        sort_func = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname)
-
-                    else:
-                        sort_func = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname)
+                sort_order = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname[0])               
+                
+            # If specified, sort by timestamp, not value of the selected key
+            elif dynamic_definition.use_timestamp:
+                sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
 
             else:
                 """ otherwise sort them by node date by default """
-                sort_func = lambda node: node.default_sort()
+                sort_order = lambda node: node.default_sort()
                 
             # sort them using the determined sort function
+            
             included_nodes = sorted(
                 included_nodes,
-                key=sort_func,
+                key=sort_order,
                 reverse=dynamic_definition.sort_reverse)
 
             """
@@ -207,6 +194,7 @@ def _compile(self,
 
                 new_node_contents.append(next_content.output())
              
+
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
 
         if not initial:
@@ -220,16 +208,13 @@ def _compile(self,
         
         if dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
             self.nodes[dynamic_definition.target_id].export_points = points           
-
-        if dynamic_definition.output_type == '-tree':
-            self.nodes[dynamic_definition.target_id].is_tree = True
         
         self.nodes[dynamic_definition.target_id].dynamic = True
         
         messages_file = self._populate_messages()
         if messages_file:
              modified_files.append(messages_file)
-
+    
     return list(set(modified_files))
 
 

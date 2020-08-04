@@ -21,7 +21,7 @@ import os
 
  
 parent_dir = os.path.dirname(__file__)
-node_id_regex = r'\b[0-9,a-z]{3}\b'
+node_id_regex = r'>[0-9,a-z]{3}\b'
 filename_regex = r'f>[^;]*'
 function_regex = re.compile('([A-Z_]+)(\(.*?\))', re.DOTALL)
 key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
@@ -45,7 +45,7 @@ class UrtextDynamicDefinition:
         self.limit = None
         self.include_all = False
         self.all_projects = False
-        self.collection_keys = []
+        self.other_params = []
 
         # SORT()
         self.sort_type = 'alpha'
@@ -72,7 +72,6 @@ class UrtextDynamicDefinition:
 
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
-
             if func in ['ID','TARGET']:
                 
                 if flags and flags[0] in [
@@ -97,9 +96,9 @@ class UrtextDynamicDefinition:
                     self.target_id = node_id_match.group(0)[1:]
                     continue
 
-                filename match = re.search(filename_regex, inside_parentheses)
+                filename_match = re.search(filename_regex, inside_parentheses)
                 if filename_match:
-                    self.target_file = filename_match.group(0)[1:]
+                    self.target_file = filename_match.group(0)[2:]
                     continue
 
             if func == 'SHOW':
@@ -117,7 +116,7 @@ class UrtextDynamicDefinition:
                 parse_group(self,
                     self.include_and, 
                     self.include_or,
-                    self.collection_keys,
+                    self.other_params,
                     inside_parentheses)
                 continue
 
@@ -125,7 +124,7 @@ class UrtextDynamicDefinition:
                 parse_group(self,
                     self.exclude_and, 
                     self.exclude_or,
-                    self.collection_keys,
+                    self.other_params,
                     inside_parentheses)
                 continue
 
@@ -190,11 +189,11 @@ def assign_as_int(value, default):
     except ValueError:
         return default
 
-def parse_group(definition, and_group, or_group, collection_keys, inside_parentheses):
+def parse_group(definition, and_group, or_group, other_params, inside_parentheses):
 
     group = []
     operator = 'or'
-
+    
     for param in separate(inside_parentheses):
 
         if param == '-all': 
@@ -210,7 +209,7 @@ def parse_group(definition, and_group, or_group, collection_keys, inside_parenth
             for v in value:
                 group.append((key,v,delimiter))
         else:
-            collection_keys.append(param)
+            other_params.append(param)
             
     if group and operator == 'and':
         and_group.extend(group)
@@ -224,18 +223,14 @@ def has_flags(flags, flag_list):
     return False
 
 def key_value(param, delimiters=[':']):
-
     if isinstance(delimiters, str):
         delimiters = [delimiters]
-    
     for delimiter in delimiters:
-
         if delimiter in param:
             key,value = param.split(delimiter,1)
             key = key.lower().strip()
             value = [v.strip() for v in value.split('|')]
             return key, value, delimiter
-
     return None, None, None
 
 def get_flags(contents):
@@ -263,7 +258,6 @@ def get_export_kind(flgs):
     return None
 
 def separate(param, delimiter=';'):
-
     return [r.strip() for r in re.split(delimiter+'|\n', param)]
 
 
@@ -309,7 +303,8 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
         '-n',
 
         '-date',
-        '-d'
+        '-d',
+        '-search',
 
         '-alpha',
         '-a',

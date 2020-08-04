@@ -32,7 +32,7 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
     for node in nodes:
         
          
-        for k in dynamic_definition.collection_keys:
+        for k in dynamic_definition.other_params:
 
             for entry in node.metadata.get_entries(k):
 
