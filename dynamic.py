@@ -60,7 +60,8 @@ class UrtextDynamicDefinition:
 
         # show        
         self.show = '$title $link\n' # default
-        
+        self.header = ''
+        self.footer = ''
         self.use_timestamp = False
         self.multiline_meta = False
        
@@ -168,18 +169,12 @@ class UrtextDynamicDefinition:
                 continue
 
  
-            # if func == 'METADATA':
-                
-            #     for param in separate(inside_parentheses):
+            if func == 'HEADER':
+                self.header += inside_parentheses
 
-            #         key, value, delimiter = key_value(param, delimiters=['::'])
+            if func == 'FOOTER':
+                self.footer += inside_parentheses
 
-            #         if key:
-            #             if key not in self.metadata:
-            #                 self.metadata[key] = []
-            #             self.metadata[key].extend(value)
-
-            #     continue
 
 
 def assign_as_int(value, default):

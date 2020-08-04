@@ -250,7 +250,6 @@ def build_final_output(dynamic_definition, contents):
         'ID': [ dynamic_definition.target_id ],
         'def' : [ '>'+dynamic_definition.source_id ] }
 
-    #metadata_values.update(dynamic_definition.metadata) 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
         one_line = not dynamic_definition.multiline_meta)
@@ -259,8 +258,7 @@ def build_final_output(dynamic_definition, contents):
     # if 'title' in dynamic_definition.metadata:
     #     title = dynamic_definition.metadata['title'][0] + '\n'
 
-    final_contents = '\n' + contents + built_metadata
-
+    final_contents = '\n' + dynamic_definition.header + '\n' + contents + '\n' + dynamic_definition.footer + '\n' + built_metadata
     if dynamic_definition.spaces:
         final_contents = indent(final_contents, dynamic_definition.spaces)
 
