@@ -144,8 +144,9 @@ class UrtextDynamicDefinition:
                     self.sort_date = True
 
                 for param in separate(inside_parentheses):
-                    self.sort_keyname.append(param)
-
+                    if param:
+                        self.sort_keyname.append(param)
+    
                 continue
         
             if func == "FORMAT":

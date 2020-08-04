@@ -138,12 +138,12 @@ def _compile(self,
         elif dynamic_definition.output_type == '-list':
 
             """ custom sort the nodes if a sort type is provided """
-            if dynamic_definition.sort_keyname:
-                sort_order = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname[0])               
-                
             # If specified, sort by timestamp, not value of the selected key
-            elif dynamic_definition.use_timestamp:
+            if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
                 sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
+
+            elif dynamic_definition.sort_keyname:
+                sort_order = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname[0])               
 
             else:
                 """ otherwise sort them by node date by default """
