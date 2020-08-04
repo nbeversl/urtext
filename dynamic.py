@@ -118,7 +118,8 @@ class UrtextDynamicDefinition:
                     self.include_and, 
                     self.include_or,
                     self.other_params,
-                    inside_parentheses)
+                    inside_parentheses,
+                    flags=flags)
                 continue
 
             if func == 'EXCLUDE':
@@ -126,7 +127,8 @@ class UrtextDynamicDefinition:
                     self.exclude_and, 
                     self.exclude_or,
                     self.other_params,
-                    inside_parentheses)
+                    inside_parentheses,
+                    flags=flags)
                 continue
 
             if func == 'SORT':
@@ -185,29 +187,24 @@ def assign_as_int(value, default):
     except ValueError:
         return default
 
-def parse_group(definition, and_group, or_group, other_params, inside_parentheses):
+def parse_group(definition, and_group, or_group, other_params, inside_parentheses, flags=[]):
 
     group = []
     operator = 'or'
-    
+    print(flags)
+    if has_flags(['-and','-&'], flags):
+        operator = '-and'
+
     for param in separate(inside_parentheses):
 
-        if param == '-all': 
-            or_group = '-all'
-            return
-
-        if param == 'and':
-            operator = 'and'
-            continue
-       
         key, value, delimiter = key_value(param, ['=','?','~'])
         if value:
             for v in value:
                 group.append((key,v,delimiter))
         else:
             other_params.append(param)
-            
-    if group and operator == 'and':
+        
+    if group and operator == '-and':
         and_group.extend(group)
     elif group:
         or_group.extend(group)
