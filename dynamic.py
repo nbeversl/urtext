@@ -63,7 +63,7 @@ class UrtextDynamicDefinition:
         self.header = ''
         self.footer = ''
         self.use_timestamp = False
-        self.multiline_meta = False
+        self.multiline_meta = True
        
         self.init_self(contents)
 
