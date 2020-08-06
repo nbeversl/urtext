@@ -30,9 +30,12 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
     found_stuff = []
     
     for node in nodes:
-        
-         
-        for k in dynamic_definition.other_params:
+
+        # refine?
+        keys = [r[0] for r in dynamic_definition.include_and]
+        keys.extend([r[0] for r in dynamic_definition.include_or])
+
+        for k in keys:
 
             for entry in node.metadata.get_entries(k):
 
