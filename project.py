@@ -464,13 +464,13 @@ class UrtextProject:
                     entry.dt_stamp = dt_stamp 
                     if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
                         self.nodes[node_id].date = dt_stamp
-                else:
+                # else:
                     
-                    message =''.join([ 'Timestamp ' , entry.dt_string ,
-                                  ' not in any specified date format in >',
-                                  node_id ])
-                    self.messages[self.nodes[node_id].filename].append(message)
-                    self._log_item(message)
+                #     message =''.join([ 'Timestamp ' , entry.dt_string ,
+                #                   ' not in any specified date format in >',
+                #                   node_id ])
+                #     self.messages[self.nodes[node_id].filename].append(message)
+                #     self._log_item(message)
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None

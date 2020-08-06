@@ -288,8 +288,6 @@ class UrtextNode:
   
         new_metadata = ''
 
-        if not one_line: 
-            new_metadata += line_separator
         for keyname in metadata:
             new_metadata += keyname + '::'
             if isinstance(metadata[keyname], list):

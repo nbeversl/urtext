@@ -254,11 +254,14 @@ def build_final_output(dynamic_definition, contents):
         metadata_values, 
         one_line = not dynamic_definition.multiline_meta)
 
+    footer = ''
+    if dynamic_definition.footer:
+        footer = bytes(dynamic_definition.footer, "utf-8").decode("unicode_escape") + '\n'
+
     final_contents = ''.join([
         bytes(dynamic_definition.header, "utf-8").decode("unicode_escape"),
         contents,
-        bytes(dynamic_definition.footer, "utf-8").decode("unicode_escape"),
-        '\n',
+        footer,
         built_metadata
     ])
     if dynamic_definition.spaces:
