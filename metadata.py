@@ -50,6 +50,7 @@ class NodeMetadata:
             full_contents,
             settings=settings)
         self._sort()       
+        self._last_accessed = 0
 
     def _sort(self):
         """ from extant entries, populate a dict by key"""
@@ -58,8 +59,6 @@ class NodeMetadata:
             self.entries.setdefault(e.keyname, [])
             if e not in self.entries[e.keyname]:
                self.entries[e.keyname].append(e)
-
-        self.entries['_last_accessed'] = default_date
 
     def get_links_to(self):
         return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
@@ -70,6 +69,9 @@ class NodeMetadata:
     def get_first_value(self, keyname):
         if keyname == 'title' and self.node.title:
             return self.node.title
+        if keyname == '_last_accessed':
+            return self.node.last_accessed
+
         entries = self.entries.get(keyname)
         if not entries or not entries[0].values:
             return ''
@@ -238,7 +240,7 @@ def parse_contents(full_contents, settings=None):
             MetadataEntry(
                 'inline-timestamp', 
                 '', 
-                stamp[1:-1],              
+                stamp[1:-1],     
                 position=position, 
                 end_position=end_position)
                 )    

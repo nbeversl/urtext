@@ -94,10 +94,17 @@ def _rebuild_node_meta(self, node_id):
             self.keynames[entry.keyname.lower()][entry.dt_string].append(node_id)
             continue
 
+
         # add the values to the keyname
-       
         for value in entry.values:
                     
+            if entry.keyname in self.settings['numerical_keys']:
+                try:
+                    value = float(value)
+                except ValueError:
+                    print('cannot parse '+value+' as a numerical key')
+                    continue
+
             if value not in self.keynames[entry.keyname]:
                 self.keynames[entry.keyname][value] = [] 
             if node_id not in self.keynames[entry.keyname][value]:

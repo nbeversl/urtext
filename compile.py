@@ -143,7 +143,7 @@ def _compile(self,
                 sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
 
             elif dynamic_definition.sort_keyname:
-                sort_order = lambda node: node.metadata.get_first_value(dynamic_definition.sort_keyname[0])               
+                sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               
 
             else:
                 """ otherwise sort them by node date by default """
@@ -254,11 +254,13 @@ def build_final_output(dynamic_definition, contents):
         metadata_values, 
         one_line = not dynamic_definition.multiline_meta)
 
-    # title = ''
-    # if 'title' in dynamic_definition.metadata:
-    #     title = dynamic_definition.metadata['title'][0] + '\n'
-
-    final_contents = '\n' + dynamic_definition.header + '\n' + contents + '\n' + dynamic_definition.footer + '\n' + built_metadata
+    final_contents = ''.join([
+        bytes(dynamic_definition.header, "utf-8").decode("unicode_escape"),
+        contents,
+        bytes(dynamic_definition.footer, "utf-8").decode("unicode_escape"),
+        '\n',
+        built_metadata
+    ])
     if dynamic_definition.spaces:
         final_contents = indent(final_contents, dynamic_definition.spaces)
 

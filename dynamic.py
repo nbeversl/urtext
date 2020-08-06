@@ -191,7 +191,6 @@ def parse_group(definition, and_group, or_group, other_params, inside_parenthese
 
     group = []
     operator = 'or'
-    print(flags)
     if has_flags(['-and','-&'], flags):
         operator = '-and'
 

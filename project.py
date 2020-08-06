@@ -132,6 +132,8 @@ class UrtextProject:
             'strict':False,
             'node_date_keyname' : 'created',
             'log_id': '',
+            'numerical_keys': ['_index'],
+            'datetime_keys': ['_timestamp']
         }
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -438,7 +440,7 @@ class UrtextProject:
         
         new_node.parent_project = self.title
         if new_node.id in self.access_history:
-            new_node.metadata.entries['_last_accessed'] = self.access_history[new_node.id]
+            new_node.last_accessed = self.access_history[new_node.id]
 
         new_node.project = self
         # TODO : it's not necessary to keep a copy of this
@@ -524,7 +526,7 @@ class UrtextProject:
         if not keys:
             keys = sorted([
                 k for k in self.keynames
-                if k.lower() not in ['def', 'id', self.settings['node_date_keyname'], 'index']
+                if k.lower() not in ['def', 'id', self.settings['node_date_keyname'], '_index']
             ])
 
         root = Node('Metadata Keys')
@@ -903,8 +905,7 @@ class UrtextProject:
                     node_id,
                     self.nodes[node_id].index
                 ])
-        sorted_indexed_nodes = sorted(indexed_nodes_list,
-                                      key=lambda item: item[1])
+        sorted_indexed_nodes = sorted(indexed_nodes_list, key=lambda item: item[1])
         for index, node in enumerate(sorted_indexed_nodes):
             sorted_indexed_nodes[index] = node[0] 
         return sorted_indexed_nodes
@@ -1090,10 +1091,21 @@ class UrtextProject:
                 self.settings['timestamp_format'] = formats
                 continue
 
+            if key == 'numerical_keys':
+                self.settings['numerical_keys'].extend(values)
+                continue
+
+            if key == 'datetime_keys':
+                self.settings['datetime_keys'].extend(values)
+                continue
+
             if key == 'filenames':
                 #always a list
                 self.settings['filenames'] = values
                 continue
+
+            if key == 'node_date_keyname':
+                self.settings['datetime_keys'].extend(values)
 
             if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
@@ -1411,7 +1423,8 @@ class UrtextProject:
 
         for node_id, access_time in self.access_history.items():
             if node_id in self.nodes:
-                self.nodes[node_id].metadata.entries['_last_accessed'] = access_time
+                self.nodes[node_id].last_accessed = access_time
+
 
     def _save_access_history(self):
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
@@ -1426,9 +1439,18 @@ class UrtextProject:
                 if node_id == self.access_history[access_time]:
                     del self.access_history[access_time]
         access_time = int(time.time()) # UNIX timestamp
-        self.nodes[node_id].metadata.entries['_last_accessed'] = access_time 
+        self.nodes[node_id].last_accessed = access_time
         self.access_history[node_id] = access_time
         self._save_access_history()
+
+    def get_first_value(self, node, keyname):
+        value = node.metadata.get_first_value(keyname)
+        if keyname in self.settings['numerical_keys']:
+            try:
+                value = float(value)
+            except ValueError:
+                return 0
+        return value
 
     def get_by_meta(self, key, values, operator):
         
@@ -1472,7 +1494,14 @@ class UrtextProject:
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
 
-            elif value in self.keynames[key]:
+            if key in self.settings['numerical_keys']:
+                try:
+                    value = float(value)
+                except ValueError:
+                    print('cannot parse '+value+' as a numerical key')
+                    continue
+           
+            if value in self.keynames[key]:
                 results = results.union(set(self.keynames[key][value]))
 
         return results
