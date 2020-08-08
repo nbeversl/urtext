@@ -27,7 +27,6 @@ node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 
-
 class UrtextExport:
 
     def __init__(self, project):

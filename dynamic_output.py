@@ -123,6 +123,3 @@ class DynamicOutput():
             self.item_format = self.item_format.replace(token, value );    
 
         return self.item_format
-
-    
-

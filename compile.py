@@ -25,14 +25,12 @@ import os
 import re
 import operator
 
-
 """
 compile method for the UrtextProject class
 """
 def _compile(self, 
     initial=False,
     modified_files=None):
-    """ Main method to compile dynamic nodes from their definitions """
    
     self.formulate_links_to()
     
@@ -63,7 +61,6 @@ def _compile(self,
             continue
             
         # Determine included and excluded nodes
-
         included_projects = [self]
         if dynamic_definition.all_projects:
             included_projects.extend(self.other_projects)
@@ -104,8 +101,6 @@ def _compile(self,
     
         elif dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
             
-            #exclude = [source_node.id]
-
             for source_node in included_nodes:
 
                 exported = UrtextExport(self) 
@@ -113,7 +108,7 @@ def _compile(self,
                      source_node.id,
                      kind=dynamic_definition.output_type,
                      #exclude=exclude, # prevents recurssion
-                     as_single_file=True, # TOdO should be option 
+                     as_single_file=True, # TODO should be option 
                      clean_whitespace=True,
                      preformat=dynamic_definition.preformat)
                     
@@ -137,8 +132,6 @@ def _compile(self,
 
         elif dynamic_definition.output_type == '-list':
 
-            """ custom sort the nodes if a sort type is provided """
-            # If specified, sort by timestamp, not value of the selected key
             if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
                 sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
 
@@ -146,19 +139,13 @@ def _compile(self,
                 sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               
 
             else:
-                """ otherwise sort them by node date by default """
                 sort_order = lambda node: node.default_sort()
                 
-            # sort them using the determined sort function
-            
             included_nodes = sorted(
                 included_nodes,
                 key=sort_order,
                 reverse=dynamic_definition.sort_reverse)
 
-            """
-            Truncate the list if a maximum is specified
-            """            
             if dynamic_definition.limit:
                 included_nodes = included_nodes[0:dynamic_definition.limit]
 
@@ -219,9 +206,6 @@ def _compile(self,
 
 
 def _export(self, dynamic_definition):
-    """
-    Export
-    """
 
     exclude=[]
     if dynamic_definition.target_id:

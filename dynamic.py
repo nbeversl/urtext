@@ -19,7 +19,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import os
 
- 
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'>[0-9,a-z]{3}\b'
 filename_regex = r'f>[^;]*'
@@ -178,8 +177,6 @@ class UrtextDynamicDefinition:
             if func == 'FOOTER':
                 self.footer += inside_parentheses
 
-
-
 def assign_as_int(value, default):
     try:
         number = int(value)
@@ -252,7 +249,6 @@ def get_export_kind(flgs):
 def separate(param, delimiter=';'):
     return [r.strip() for r in re.split(delimiter+'|\n', param)]
 
-
 valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
 
 
@@ -307,5 +303,3 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
         '-interlinks'
     ]   
 ]
-
-
