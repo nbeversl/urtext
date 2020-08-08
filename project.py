@@ -133,7 +133,6 @@ class UrtextProject:
             'node_date_keyname' : '',
             'log_id': '',
             'numerical_keys': ['_index'],
-            'datetime_keys': ['_timestamp']
         }
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -1091,17 +1090,10 @@ class UrtextProject:
                 self.settings['numerical_keys'].extend(values)
                 continue
 
-            if key == 'datetime_keys':
-                self.settings['datetime_keys'].extend(values)
-                continue
-
             if key == 'filenames':
                 #always a list
                 self.settings['filenames'] = values
                 continue
-
-            if key == 'node_date_keyname':
-                self.settings['datetime_keys'].extend(values)
 
             if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
