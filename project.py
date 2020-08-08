@@ -587,11 +587,10 @@ class UrtextProject:
         date = creation_date(os.path.join(self.path, filename))
         now = datetime.datetime.now()
         contents = '\n\n'
-        contents += "/-- id:" + self.next_index() + '\n'
+        contents += "id::" + self.next_index() + '\n'
         if self.settings['node_date_keyname']:
-            contents += self.settings['node_date_keyname']+': ' + self.timestamp(date) + '\n'
-        contents += 'imported:' + self.timestamp(now) + '\n'
-        contents += " --/"
+            contents += self.settings['node_date_keyname']+'::' + self.timestamp(date) + '\n'
+        contents += 'imported::' + self.timestamp(now) + '\n'
 
         full_file_contents += contents
 
