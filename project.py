@@ -130,7 +130,7 @@ class UrtextProject:
             'always_oneline_meta' : True,
             'format_string': '$title\n-\n',
             'strict':False,
-            'node_date_keyname' : 'created',
+            'node_date_keyname' : '',
             'log_id': '',
             'numerical_keys': ['_index'],
             'datetime_keys': ['_timestamp']
@@ -464,13 +464,6 @@ class UrtextProject:
                     entry.dt_stamp = dt_stamp 
                     if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
                         self.nodes[node_id].date = dt_stamp
-                # else:
-                    
-                #     message =''.join([ 'Timestamp ' , entry.dt_string ,
-                #                   ' not in any specified date format in >',
-                #                   node_id ])
-                #     self.messages[self.nodes[node_id].filename].append(message)
-                #     self._log_item(message)
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None
@@ -595,7 +588,8 @@ class UrtextProject:
         now = datetime.datetime.now()
         contents = '\n\n'
         contents += "/-- id:" + self.next_index() + '\n'
-        contents += self.settings['node_date_keyname']+': ' + self.timestamp(date) + '\n'
+        if self.settings['node_date_keyname']:
+            contents += self.settings['node_date_keyname']+': ' + self.timestamp(date) + '\n'
         contents += 'imported:' + self.timestamp(now) + '\n'
         contents += " --/"
 
@@ -747,7 +741,8 @@ class UrtextProject:
         if not node_id:
             node_id = self.next_index()   
         metadata['id'] = node_id
-        metadata[self.settings['node_date_keyname']] = self.timestamp(date)
+        if self.settings['node_date_keyname']:
+            metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         metadata['from'] = platform.node()
         metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         contents = '\n\n\n' +metadata_block
@@ -780,7 +775,8 @@ class UrtextProject:
         if include_timestamp:
             if date == None:
                 date = datetime.datetime.now()
-            metadata[self.settings['node_date_keyname']] = self.timestamp(date)
+            if self.settings['node_date_keyname']:
+                metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         new_node_contents = "{{ " + contents 
         metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + ' '
@@ -808,7 +804,8 @@ class UrtextProject:
         if date == None:
             date = datetime.datetime.now()
         metadata['id']=self.next_index()
-        metadata[self.settings['node_date_keyname']] = self.timestamp(date)
+        self.settings['node_date_keyname']:
+            metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         return '^  '+contents + metadata_block
 
