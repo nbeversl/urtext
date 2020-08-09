@@ -802,7 +802,7 @@ class UrtextProject:
         if date == None:
             date = datetime.datetime.now()
         metadata['id']=self.next_index()
-        self.settings['node_date_keyname']:
+        if self.settings['node_date_keyname']:
             metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         return '^  '+contents + metadata_block
