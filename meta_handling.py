@@ -86,7 +86,7 @@ def _rebuild_node_meta(self, node_id):
         if entry.keyname not in self.keynames:
             self.keynames[entry.keyname] = {}
 
-        # if the key has no a value, assign the use the STRING version of its timestamp
+        # if the key has no value, assign the use the STRING version of its timestamp
         # [ if not entry.values and ... ? ]
         if entry.keyname.lower() == self.settings['node_date_keyname']:
             if entry.dt_string not in self.keynames[entry.keyname.lower()]:
@@ -105,10 +105,10 @@ def _rebuild_node_meta(self, node_id):
                     print('cannot parse '+value+' as a numerical key')
                     continue
 
-            if value not in self.keynames[entry.keyname]:
-                self.keynames[entry.keyname][value] = [] 
-            if node_id not in self.keynames[entry.keyname][value]:
-                self.keynames[entry.keyname][value].append(node_id)
+            if value not in self.keynames[entry.keyname.lower()]:
+                self.keynames[entry.keyname.lower()][value] = [] 
+            if node_id not in self.keynames[entry.keyname.lower()][value]:
+                self.keynames[entry.keyname.lower()][value].append(node_id)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata

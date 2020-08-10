@@ -1477,19 +1477,22 @@ class UrtextProject:
         results = set([])
 
         for value in values:
+            print(value)
             if value == '*':
-                # include all values
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
+                    continue
 
             if key in self.settings['numerical_keys']:
+                print(key)
+                print('NUMERICAL')
                 try:
                     value = float(value)
                 except ValueError:
                     print('cannot parse '+value+' as a numerical key')
                     continue
            
-            if value in self.keynames[key]:
+            if key in self.keynames and value in self.keynames[key]:
                 results = results.union(set(self.keynames[key][value]))
 
         return results
@@ -1529,11 +1532,6 @@ class UrtextProject:
         with open('my.ics', 'w') as f:
             f.write(c)
 
-    
-
-
-
-    
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
     pass
