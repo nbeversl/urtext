@@ -1476,7 +1476,7 @@ class UrtextProject:
 
         results = set([])
 
-        if key in self.keynames:
+        if key not in self.keynames:
             return results
 
         for value in values:
