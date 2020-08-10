@@ -71,9 +71,8 @@ def consolidate_metadata(self, node_id, one_line=False):
     self._parse_file(filename)
 
 def _rebuild_node_meta(self, node_id):
-    """ Rebuilds metadata info for a single node """
+    """ Rebuild metadata for a single node """
 
-    # first remove it from the project keywords dict.
     self._unbuild_node_meta(node_id)
 
     for entry in self.nodes[node_id].metadata._entries:
@@ -82,33 +81,31 @@ def _rebuild_node_meta(self, node_id):
         if entry.keyname == 'title':
            continue 
 
-        # add the key to the project if necessary
         if entry.keyname not in self.keynames:
             self.keynames[entry.keyname] = {}
 
-        # if the key has no value, assign the use the STRING version of its timestamp
-        # [ if not entry.values and ... ? ]
-        if entry.keyname.lower() == self.settings['node_date_keyname']:
-            if entry.dt_string not in self.keynames[entry.keyname.lower()]:
-                self.keynames[entry.keyname.lower()][entry.dt_string] = [] 
-            self.keynames[entry.keyname.lower()][entry.dt_string].append(node_id)
-            continue
+        keyname = entry.keyname.lower()
 
+        if not entry.values and entry.dt_string:
+            if entry.dt_string not in self.keynames[keyname]:
+                self.keynames[keyname][entry.dt_string] = [] 
+            self.keynames[keyname][entry.dt_string].append(node_id)
+            continue
 
         # add the values to the keyname
         for value in entry.values:
                     
-            if entry.keyname in self.settings['numerical_keys']:
+            if keyname in self.settings['numerical_keys']:
                 try:
                     value = float(value)
                 except ValueError:
                     print('cannot parse '+value+' as a numerical key')
                     continue
 
-            if value not in self.keynames[entry.keyname.lower()]:
-                self.keynames[entry.keyname.lower()][value] = [] 
-            if node_id not in self.keynames[entry.keyname.lower()][value]:
-                self.keynames[entry.keyname.lower()][value].append(node_id)
+            if value not in self.keynames[keyname]:
+                self.keynames[keyname][value] = [] 
+            if node_id not in self.keynames[keyname][value]:
+                self.keynames[keyname][value].append(node_id)
 
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata

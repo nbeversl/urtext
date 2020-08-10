@@ -639,13 +639,8 @@ class UrtextProject:
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
 
-                # remove the node's metadata from the project
                 self._unbuild_node_meta(node_id)
-
-                # remove the dynamic tags defined by TAG_ALL()
-                # (also rebuilds the meta for the target nodes)
-                self._remove_sub_tags(node_id)
-                
+                self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]
                 self.remove_links_in(node_id)
                 del self.nodes[node_id]
@@ -1481,14 +1476,11 @@ class UrtextProject:
 
         for value in values:
             if value == '*':
-
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
-                    continue
+                continue
 
             if key in self.settings['numerical_keys']:
-                print(key)
-                print('NUMERICAL')
                 try:
                     value = float(value)
                 except ValueError:

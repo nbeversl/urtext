@@ -66,7 +66,7 @@ def _compile(self,
             included_projects.extend(self.other_projects)
 
         elif dynamic_definition.include_all:
-            included_nodes = [self.nodes[node_id] for node_id in self.nodes if not self.nodes[node_id].dynamic]
+            included_nodes = set([node_id for node_id in self.nodes if not self.nodes[node_id].dynamic])
 
         else: 
             included_nodes = set([])
@@ -80,8 +80,8 @@ def _compile(self,
             excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
             excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
 
-        included_nodes = set(included_nodes)
         included_nodes -= excluded_nodes
+        included_nodes = set([self.nodes[i] for i in included_nodes])
 
         # Never include a dynamic node in itself.
         if dynamic_definition.target_id:
@@ -269,7 +269,7 @@ def _build_group_and(project, groups, include_dynamic=False):
     if new_group and not include_dynamic:
         new_group = [f for f in new_group if not project.nodes[f].dynamic]
 
-    return set([project.nodes[node_id] for node_id in new_group])
+    return new_group
 
 def _build_group_or(project, group, include_dynamic=False):
 
@@ -284,7 +284,7 @@ def _build_group_or(project, group, include_dynamic=False):
     if final_group and not include_dynamic:
         final_group = [f for f in final_group if not project.nodes[f].dynamic]
 
-    return [ project.nodes[node_id] for node_id in final_group ]
+    return final_group
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')
