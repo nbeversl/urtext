@@ -1476,9 +1476,12 @@ class UrtextProject:
 
         results = set([])
 
+        if key in self.keynames:
+            return results
+
         for value in values:
-            print(value)
             if value == '*':
+
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
                     continue
@@ -1492,7 +1495,7 @@ class UrtextProject:
                     print('cannot parse '+value+' as a numerical key')
                     continue
            
-            if key in self.keynames and value in self.keynames[key]:
+            if value in self.keynames[key]:
                 results = results.union(set(self.keynames[key][value]))
 
         return results
