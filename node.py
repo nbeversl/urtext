@@ -32,7 +32,7 @@ from anytree import Node
 exporter = JsonExporter(indent=2, sort_keys=True)
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
-subnode_regexp = re.compile(r'{{(?!.*{{)(?:(?!}}).)*}}', re.DOTALL)
+subnode_regexp = re.compile(r'{(?!.*{{)(?:(?!}).)*}}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -149,8 +149,8 @@ class UrtextNode:
         return node_contents
 
     def strip_wrappers(self, contents):
-        contents = contents.replace('{{','')
-        contents = contents.replace('}}','')
+        contents = contents.replace('{','')
+        contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('^','',1)        
         contents = contents.lstrip().replace('^','',1)
@@ -235,7 +235,7 @@ class UrtextNode:
                 return '(untitled)'
             index += 1
 
-        first_line = stripped_contents_lines[index][:100].replace('{{','').replace('}}', '')
+        first_line = stripped_contents_lines[index][:100].replace('{','').replace('}', '')
         first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
         first_line = re.sub('┌──','',first_line, re.DOTALL)

@@ -40,8 +40,8 @@ class UrtextExport:
    
     def _strip_urtext_syntax(self, contents):
         contents = UrtextNode.strip_contents(contents)
-        contents = contents.replace('{{','')
-        contents = contents.replace('}}','')
+        contents = contents.replace('{','')
+        contents = contents.replace('}','')
         contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
         contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents

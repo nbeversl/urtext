@@ -69,7 +69,7 @@ class ProjectList():
         this should be done by the calling procedure.
         """
         node_id = None
-        project_link_r = re.compile(r'{\"(.*?)\"}(>([0-9,a-z]{3})\b)?')
+        project_link_r = re.compile(r'{{\"(.*?)\"}}(>([0-9,a-z]{3})\b)?')
         project_name = project_link_r.search(string)
         
         """ If a project name has been specified, locate the project and node """
@@ -152,7 +152,7 @@ class ProjectList():
             link += '>'
         link += node_id
         if include_project or project != self.current_project:
-            link = '{"' + project.title +'"}'+link
+            link = '{{"' + project.title +'"}}'+link
         return link
 
     def nav_current(self):
