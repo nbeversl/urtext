@@ -1475,7 +1475,7 @@ class UrtextProject:
             return results
 
         for value in values:
-            if value == '*':
+            if value in ['*']:
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
                 continue

@@ -107,10 +107,10 @@ class UrtextDynamicDefinition:
 
             if func == 'INCLUDE':
 
-                if has_flags(['-all_projects','-*p'], flags):
+                if has_flags(['-all_projects'], flags):
                     self.all_projects = True
 
-                if has_flags(['-all','-*'], flags):
+                if has_flags(['-all','*'], flags):
                     self.include_all = True
 
                 parse_group(self,
@@ -253,7 +253,7 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
 
 
         '-all',
-        '-\*', 
+        '\*', 
         
         '-rr', 
         '-recursive',
@@ -271,8 +271,6 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [
         '-&',
 
         '-all-projects',
-        '-\*p',
-
         '-markdown',
         '-md',
 
