@@ -89,7 +89,25 @@ def _compile(self,
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
 
+        # Sort
+        if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
+                sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
+
+        elif dynamic_definition.sort_keyname:
+            sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               
+
+        else:
+            sort_order = lambda node: node.default_sort()
             
+        included_nodes = sorted(
+            included_nodes,
+            key=sort_order,
+            reverse=dynamic_definition.sort_reverse)
+
+        # Apply limiting after sort
+        if dynamic_definition.limit:
+            included_nodes = included_nodes[0:dynamic_definition.limit]
+
         if dynamic_definition.output_type == '-tree':
             for source_node in included_nodes:
                 new_node_contents.append(self.show_tree_from(source_node.id))
@@ -131,23 +149,6 @@ def _compile(self,
                 new_node_contents.extend(search.initiate_search())
 
         elif dynamic_definition.output_type == '-list':
-
-            if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
-                sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
-
-            elif dynamic_definition.sort_keyname:
-                sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               
-
-            else:
-                sort_order = lambda node: node.default_sort()
-                
-            included_nodes = sorted(
-                included_nodes,
-                key=sort_order,
-                reverse=dynamic_definition.sort_reverse)
-
-            if dynamic_definition.limit:
-                included_nodes = included_nodes[0:dynamic_definition.limit]
 
             for targeted_node in included_nodes:
 
