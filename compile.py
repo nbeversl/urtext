@@ -71,14 +71,13 @@ def _compile(self,
         else: 
             included_nodes = set([])
             for project in included_projects:
-                included_nodes = included_nodes.union(_build_group_and(project, dynamic_definition.include_and))
-                included_nodes = included_nodes.union(_build_group_or(project, dynamic_definition.include_or))
+                for group in dynamic_definition.include_groups:
+                    included_nodes = included_nodes.union(_build_group_and(project, group))
 
         excluded_nodes = set([])
         for project in included_projects:
-
-            excluded_nodes = excluded_nodes.union(_build_group_and(project, dynamic_definition.exclude_and))
-            excluded_nodes = excluded_nodes.union(_build_group_or(project, dynamic_definition.exclude_or))
+                for group in dynamic_definition.exclude_groups:
+                    excluded_nodes = excluded_nodes.union(_build_group_and(project, group))
 
         included_nodes -= excluded_nodes
         included_nodes = set([self.nodes[i] for i in included_nodes])
@@ -257,11 +256,10 @@ def build_final_output(dynamic_definition, contents):
 def _build_group_and(project, groups, include_dynamic=False):
     
     found_sets = []
-    new_group = []
+    new_group = set([])
     for pair in groups:
-
         key, value, operator = pair[0], pair[1], pair[2]
-        new_group = project.get_by_meta(key, value, operator)            
+        new_group = set(project.get_by_meta(key, value, operator))
         found_sets.append(new_group)
 
     for this_set in found_sets:
@@ -271,21 +269,6 @@ def _build_group_and(project, groups, include_dynamic=False):
         new_group = [f for f in new_group if not project.nodes[f].dynamic]
 
     return new_group
-
-def _build_group_or(project, group, include_dynamic=False):
-
-    final_group = set([])
-
-    for pair in group:
-
-        key, values, operator = pair[0], pair[1], pair[2]
-
-        final_group = final_group.union(project.get_by_meta(key, values, operator))
-            
-    if final_group and not include_dynamic:
-        final_group = [f for f in final_group if not project.nodes[f].dynamic]
-
-    return final_group
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')

@@ -32,8 +32,10 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
     for node in nodes:
 
         # refine?
-        keys = [r[0] for r in dynamic_definition.include_and]
-        keys.extend([r[0] for r in dynamic_definition.include_or])
+        keys = []
+        # TODO: this is ugly
+        for r in dynamic_definition.include_groups:
+            keys.extend([t[0] for t in r])
 
         for k in keys:
 

@@ -236,7 +236,6 @@ class UrtextNode:
             index += 1
 
         first_line = stripped_contents_lines[index][:100].replace('{','').replace('}', '')
-        first_line = re.sub('\/-.*(-\/)?', '', first_line, re.DOTALL)
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
         first_line = re.sub('┌──','',first_line, re.DOTALL)
         first_line = re.sub('\|','',first_line, re.DOTALL) # pipe character cannot be in node names

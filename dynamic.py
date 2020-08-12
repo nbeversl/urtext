@@ -22,7 +22,7 @@ import os
 parent_dir = os.path.dirname(__file__)
 node_id_regex = r'>[0-9,a-z]{3}\b'
 filename_regex = r'f>[^;]*'
-function_regex = re.compile('([A-Z_]+)(\(.*?\))', re.DOTALL)
+function_regex = re.compile('([A-Z_\-\+]+)(\(.*?\))', re.DOTALL)
 key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
 string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
@@ -37,10 +37,8 @@ class UrtextDynamicDefinition:
         self.output_type = '-list' # default
          
         # inclusions / exclusions
-        self.include_or = []
-        self.include_and = []
-        self.exclude_or = []
-        self.exclude_and = []
+        self.include_groups = []
+        self.exclude_groups = []
         self.limit = None
         self.include_all = False
         self.all_projects = False
@@ -105,7 +103,7 @@ class UrtextDynamicDefinition:
                 self.show = inside_parentheses
                 continue
 
-            if func == 'INCLUDE':
+            if func in ['INCLUDE','+']:
 
                 if has_flags(['-all_projects'], flags):
                     self.all_projects = True
@@ -114,17 +112,15 @@ class UrtextDynamicDefinition:
                     self.include_all = True
 
                 parse_group(self,
-                    self.include_and, 
-                    self.include_or,
+                    self.include_groups, 
                     self.other_params,
                     inside_parentheses,
                     flags=flags)
                 continue
 
-            if func == 'EXCLUDE':
+            if func in ['EXCLUDE','-']:
                 parse_group(self,
-                    self.exclude_and, 
-                    self.exclude_or,
+                    self.exclude_groups, 
                     self.other_params,
                     inside_parentheses,
                     flags=flags)
@@ -184,26 +180,20 @@ def assign_as_int(value, default):
     except ValueError:
         return default
 
-def parse_group(definition, and_group, or_group, other_params, inside_parentheses, flags=[]):
+def parse_group(definition, group, other_params, inside_parentheses, flags=[]):
 
-    group = []
-    operator = 'or'
-    if has_flags(['-and','-&'], flags):
-        operator = '-and'
+    new_group = []
 
     for param in separate(inside_parentheses):
 
         key, value, delimiter = key_value(param, ['=','?','~'])
         if value:
             for v in value:
-                group.append((key,v,delimiter))
+                new_group.append((key,v,delimiter))
         else:
             other_params.append(param)
         
-    if group and operator == '-and':
-        and_group.extend(group)
-    elif group:
-        or_group.extend(group)
+    group.append(new_group)
 
 def has_flags(flags, flag_list):
     for f in flag_list:
