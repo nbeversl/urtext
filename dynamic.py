@@ -104,7 +104,6 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['INCLUDE','+']:
-
                 if has_flags(['-all_projects'], flags):
                     self.all_projects = True
 
@@ -239,10 +238,10 @@ def get_export_kind(flgs):
 def separate(param, delimiter=';'):
     return [r.strip() for r in re.split(delimiter+'|\n', param)]
 
-valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
+valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [ 
 
 
-        '\*', 
+        '(^|[\s])\*($|[\s])', 
         
         '-rr', 
         '-recursive',
