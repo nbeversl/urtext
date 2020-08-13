@@ -219,7 +219,7 @@ def get_flags(contents):
             m = m.group(0).replace('(','').strip()
             if m not in this_flags:
                 this_flags.append(m)
-            contents=re.sub(f,';',contents)
+            contents=re.sub(m,';',contents)
     return contents, this_flags
 
 def get_export_kind(flgs):

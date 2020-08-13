@@ -246,9 +246,9 @@ class UrtextNode:
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
-        if len(self.metadata.get_first_value('ID')):  # title is the first many lines if not set
+        if len(self.metadata.get_first_value('ID')): 
             return self.metadata.get_first_value('ID')
-        return self.id  # don't include links in the title, for traversing files clearly.
+        return self.id
 
     def log(self):
         logging.info(self.id)

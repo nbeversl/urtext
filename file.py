@@ -142,14 +142,14 @@ class UrtextFile:
             if self.symbols[position] == '{':
 
                 # begin tracking the ranges of the next outer one
-                if [last_position, position + 2] not in nested_levels[nested]:
-                    nested_levels[nested].append([last_position, position + 2])
+                if [last_position, position + 1] not in nested_levels[nested]:
+                    nested_levels[nested].append([last_position, position + 1])
 
                 # add another level of depth
                 nested += 1 
 
                 # move the parsing pointer forward 2
-                last_position = position + 2
+                last_position = position + 1
                 continue
 
             """

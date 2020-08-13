@@ -90,7 +90,8 @@ def _compile(self,
 
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
-                sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
+            print(dynamic_definition.sort_keyname )
+            sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
 
         elif dynamic_definition.sort_keyname:
             sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               

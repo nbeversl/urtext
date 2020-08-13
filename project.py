@@ -504,6 +504,7 @@ class UrtextProject:
 
     def _set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
+
         content_changed = self.nodes[node_id].set_content(contents)
         if content_changed:
             self._parse_file(self.nodes[node_id].filename)
