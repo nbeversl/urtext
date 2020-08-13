@@ -1158,7 +1158,7 @@ class UrtextProject:
         # TODO : There may be a better place to accomplish this. 
         if self.nodes[node_id].trailing_node_id:
             popped_node_contents = popped_node_contents[:-3]
-            popped_node_contents += '/-- id:'+node_id+'--/'
+            popped_node_contents += 'id::'+node_id+'; '
 
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
