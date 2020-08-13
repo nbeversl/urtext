@@ -32,12 +32,12 @@ from anytree import Node
 exporter = JsonExporter(indent=2, sort_keys=True)
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
-subnode_regexp = re.compile(r'{(?!.*{{)(?:(?!}).)*}}', re.DOTALL)
+subnode_regexp = re.compile(r'{(?!.*{)(?:(?!}).)*}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
-inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:}})?)?', flags=re.DOTALL)
+inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 
 
 class UrtextNode:

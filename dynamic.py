@@ -108,7 +108,7 @@ class UrtextDynamicDefinition:
                 if has_flags(['-all_projects'], flags):
                     self.all_projects = True
 
-                if has_flags(['-all','*'], flags):
+                if has_flags(['*'], flags):
                     self.include_all = True
 
                 parse_group(self,
@@ -242,7 +242,6 @@ def separate(param, delimiter=';'):
 valid_flags = [re.compile(r'(^|[ ])'+f+r'\b') for f in [ 
 
 
-        '-all',
         '\*', 
         
         '-rr', 

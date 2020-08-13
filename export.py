@@ -22,7 +22,7 @@ import re
 from .node import UrtextNode
 
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
-OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123;&#123;</span>'
+OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123</span>'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'

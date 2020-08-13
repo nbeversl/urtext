@@ -770,12 +770,12 @@ class UrtextProject:
                 date = datetime.datetime.now()
             if self.settings['node_date_keyname']:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-        new_node_contents = "{{ " + contents 
+        new_node_contents = "{ " + contents 
         metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
         new_node_contents += metadata_block + ' '
         if trailing_id:
             new_node_contents += node_id   
-        new_node_contents += "}}"
+        new_node_contents += "}"
         metadata={}
         return (new_node_contents, node_id)
 

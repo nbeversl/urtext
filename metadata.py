@@ -23,7 +23,7 @@ import pytz
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
-inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:}})?')
+inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:})?')
 
 case_sensitive_values = [ 
     'title',

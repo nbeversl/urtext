@@ -180,7 +180,7 @@ class UrtextFile:
                 continue    
 
             """
-            Node closing symbols :  }}, newline, EOF
+            Node closing symbols :  }, newline, EOF
             """
             if self.symbols[position] in ['}', '[\n$]', 'EOF']:  # pop
                 
