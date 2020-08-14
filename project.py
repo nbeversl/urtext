@@ -170,8 +170,7 @@ class UrtextProject:
     def _initialize_watchdog(self):
 
         self.observer = Observer()
-        event_handler = UrtextWatcher(self)
-        self.observer.schedule(event_handler, self.path, recursive=False)
+        self.observer.schedule(UrtextWatcher(self), self.path, recursive=False)
         self.observer.start()
 
     def _initialize_project(self, 
@@ -724,8 +723,6 @@ class UrtextProject:
         one_line=None
         ):
         
-        """ add a new FILE-level node programatically """
-
         if date == None:
             date = datetime.datetime.now()
 
@@ -1125,9 +1122,6 @@ class UrtextProject:
         """
         return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
         
-        # syncronous:
-        #self._pop_node(position=position, filename=filename, node_id=node_id)
-
     def _pop_node(self, position=None, filename=None, node_id=None):
  
         if not node_id:
@@ -1170,7 +1164,7 @@ class UrtextProject:
             '\n',
             file_contents[end + 2:]])
        
-        #  existing file
+
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
         self._parse_file(filename) 

@@ -97,7 +97,7 @@ class UrtextNode:
 
         self.parent = None
         self.index = self.assign_as_int(
-                self.metadata.get_first_value('_index'),
+                self.metadata.get_first_value('index'),
                 self.index)
 
         # create tree node

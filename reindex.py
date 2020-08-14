@@ -10,7 +10,7 @@ def reindex_files(self):
     the result to rename_file_nodes() to rename them.
     """
 
-    # Calculate the required zero-padded digit length for the file prefix:
+    # Calculate zero-padded digit length for the file prefix:
     prefix = 0
     
     # this should actually just be the first root node, not all root nodes.
@@ -32,13 +32,13 @@ def reindex_files(self):
         node.prefix = prefix
         prefix += 1
     
-    return self.rename_file_nodes(list(self.files), reindex=True)
+    return self.executor.submit(self._rename_file_nodes, list(self.files), reindex=True)
 
-def rename_file_nodes(self, filenames, reindex=False):
-    """
-    public
-    Renames a file or list of files by metadata
-    """
+def _rename_file_nodes(self, filenames, reindex=False):
+
+    self.observer.stop() # watchdog must be off
+
+    """ Rename a file or list of files by metadata """
     if isinstance(filenames, str):
         filenames = [filenames]
     used_names = []
@@ -59,15 +59,14 @@ def rename_file_nodes(self, filenames, reindex=False):
         if not self.files[old_filename].root_nodes:
             self._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
             continue
+
         ## Name each file from the first root_node
         root_node_id = self.files[old_filename].root_nodes[0]
         root_node = self.nodes[root_node_id]
 
         # start with the filename template, replace each element
         new_filename = ' - '.join(filename_template)
-        new_filename = new_filename.replace(
-            'TITLE', 
-            root_node.title)
+        new_filename = new_filename.replace('TITLE', root_node.title)
         
         if root_node_id not in indexed_nodes and date_template != None:
             new_filename = new_filename.replace(
@@ -117,9 +116,12 @@ def rename_file_nodes(self, filenames, reindex=False):
 
         if old_filename[-4:].lower() == '.txt': # skip history files
             self._handle_renamed(old_filename, new_filename)
+
+    self._initialize_watchdog() # set up new watchdog
+
     """
     Returns a list of renamed files with full paths
-    """
+    """    
     return renamed_files
 
-reindex_functions = [ rename_file_nodes, reindex_files ]
+reindex_functions = [ _rename_file_nodes, reindex_files ]

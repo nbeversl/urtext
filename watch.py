@@ -23,6 +23,7 @@ class UrtextWatcher (FileSystemEventHandler):
 
   def __init__(self, project):
       self.project = project
+      self.on = True
 
   def on_created(self, event):
 
