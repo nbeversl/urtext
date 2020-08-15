@@ -39,7 +39,6 @@ node_link_regex = r'>[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 
-
 class UrtextNode:
     """ Urtext Node object"""
     def __init__(self, 

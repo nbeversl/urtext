@@ -30,10 +30,12 @@ node_pointer_regex =    r'>>[0-9,a-z]{3}\b'
 compact_node_regex =    '\^[^\n]*'
 
 compiled_symbols = [re.compile(symbol) for symbol in  [
-    '{', # inline node opening wrapper
-    '}', # inline node closing wrapper
-    '>>', # node pointer
-    '[\n$]',    # line ending (closes compact node)
+    '{',                # inline node opening wrapper
+    '}',                # inline node closing wrapper
+    '>>',               # node pointer
+    '[\n$]',            # line ending (closes compact node)
+    # '%%-[A-Z-]*',       # push syntax
+    # '%%-END-[A-Z-]*'    # pop syntax 
     ]]
 
 # additional symbols using MULTILINE flag
@@ -97,6 +99,19 @@ class UrtextFile:
             locations = compiled_symbol.finditer(contents)
             for loc in locations:
                 start = loc.span()[0]
+
+
+            #     if self.symbols[position] == '%%-[^E][A-Z-]*':
+            #     push_syntax += 1
+            #     continue
+
+            # if self.symbols[position] == '%%-END-[A-Z-]*':
+            #     push_syntax -= 1
+            #     continue
+
+            # if push_syntax > 0:
+            #     continue
+
                 self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols if key != -1])
@@ -129,10 +144,13 @@ class UrtextFile:
         self.positions.append(len(contents))
         self.symbols[len(contents)] = 'EOF'
 
+        push_syntax = 0
+
         for index in range(0, len(self.positions)):
 
+
             position = self.positions[index]
-            
+
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
             

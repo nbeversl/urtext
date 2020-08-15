@@ -95,12 +95,22 @@ class NodeMetadata:
                     values.extend(e.dt_string)            
         return values
   
-    def get_entries(self, keyname):
+    def get_entries(self, keyname, value=None):
         keyname = keyname.lower()
         if keyname in self.entries:
             return self.entries[keyname]
         return []
-        
+
+    def get_matching_entries(self, keyname, value):
+        entries = self.get_entries(keyname)
+        matching_entries = []
+        for e in entries:
+            print(e.keyname)
+            print(e.values)
+            if value in e.values:
+                matching_entries.append(e)
+        return matching_entries
+
     def get_date(self, keyname):
         """
         Returns the timestamp of the FIRST matching metadata entry with the given key.

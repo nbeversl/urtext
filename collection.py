@@ -25,59 +25,63 @@ import pprint
 from .dynamic_output import DynamicOutput
 
 def _collection(self, nodes, project, dynamic_definition, amount=150):
-    """ generates a collection of context-aware metadata anchros """
-
-    found_stuff = []
+    """ generates a collection of context-aware metadata anchors """
     
+    keys = {}
+    for group in dynamic_definition.collect:
+        for entry in group:
+            k, v, operator = entry
+            keys.setdefault(k, [])            
+            if v not in keys[k]:
+                keys[k].append(v)
+    print(keys)
+    found_stuff = []
     for node in nodes:
-
-        # refine?
-        keys = []
-        # TODO: this is ugly
-        for r in dynamic_definition.include_groups:
-            keys.extend([t[0] for t in r])
 
         for k in keys:
 
-            for entry in node.metadata.get_entries(k):
+            for v in keys[k]:
+                print(v)
+                if v == '*':
+                    entries = node.metadata.get_entries(k)
+                else:
+                    entries = node.metadata.get_matching_entries(k, v)
+                    print(entries)
+                for entry in entries:
 
-                 #wtf it this?
-                 found_item = {}
-               
-                 for value in entry.values:
-
-                     # if value not in dynamic_definition.keys:
-                     #    continue
-
-                     # get surrounding text
-                     full_contents = node.content_only()
-                     start_pos = entry.position - amount
-                     end_pos = entry.end_position + amount
-                     if entry.position < amount: 
-                         start_pos = 0
-                     if entry.end_position + amount > len(full_contents):
-                         end_pos = len(full_contents)
-
-                     found_item['node_id'] = node.id
-                     found_item['title'] = node.title
-                     found_item['dt_string'] = entry.dt_string
-
-                     if dynamic_definition.sort_date:
-                         found_item['value'] = entry.dt_string
-                         found_item['sort_value'] = entry.dt_stamp
+                     found_item = {}
                    
-                     else:
-                         found_item['value'] = value
-                         if dynamic_definition.sort_numeric:
-                             # TODO: error catching
-                             sort_value = float(value)
-    
-                         found_item['sort_value'] = node.metadata.get_first_value(k)
+                     for value in entry.values:
 
-                     found_item['keyname'] = k
-                     found_item['position'] = str(start_pos)
-                     found_item['context'] = full_contents[start_pos:end_pos]
-                     found_stuff.append(found_item)
+                         # get surrounding text
+                         full_contents = node.content_only()
+                         start_pos = entry.position - amount
+                         end_pos = entry.end_position + amount
+                         if entry.position < amount: 
+                             start_pos = 0
+                         if entry.end_position + amount > len(full_contents):
+                             end_pos = len(full_contents)
+
+                         found_item['node_id'] = node.id
+                         found_item['title'] = node.title
+                         found_item['dt_string'] = entry.dt_string
+
+                         if dynamic_definition.sort_date:
+                             found_item['value'] = entry.dt_string
+                             found_item['sort_value'] = entry.dt_stamp
+                       
+                         else:
+                             found_item['value'] = value
+                             if dynamic_definition.sort_numeric:
+                                 # TODO: error catching
+                                 sort_value = float(value)
+        
+                             found_item['sort_value'] = node.metadata.get_first_value(k)
+
+                         found_item['keyname'] = k
+                         found_item['position'] = str(start_pos)
+                         found_item['context'] = full_contents[start_pos:end_pos]
+                         found_stuff.append(found_item)
 
     if not found_stuff:
          return ''
@@ -125,7 +129,6 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                  replacement = ' '.join(values)
              next_content.other_format_keys[meta_key] = values
 
-       
          collection.extend([next_content.output()])
 
     return ''.join(collection)

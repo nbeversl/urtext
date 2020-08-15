@@ -51,16 +51,19 @@ class UrtextDynamicDefinition:
         self.sort_numeric = False
         self.sort_date = False
         
-        # formatting
+        # FORMAT
         self.spaces = 0
         self.preformat = False
 
-        # show        
+        # SHOW        
         self.show = '$title $link\n' # default
         self.header = ''
         self.footer = ''
         self.use_timestamp = False
         self.multiline_meta = True
+
+        # COLLECT
+        self.collect=[]
        
         self.init_self(contents)
 
@@ -99,7 +102,7 @@ class UrtextDynamicDefinition:
                     self.target_file = filename_match.group(0)[2:]
                     continue
 
-            if func == 'SHOW':
+            if func in ['SHOW','$']:
                 self.show = inside_parentheses
                 continue
 
@@ -117,6 +120,14 @@ class UrtextDynamicDefinition:
                     flags=flags)
                 continue
 
+            if func in ['COLLECT','C']:
+
+                parse_group(self,
+                    self.collect, 
+                    [], #discard
+                    inside_parentheses)
+                continue
+
             if func in ['EXCLUDE','-']:
                 parse_group(self,
                     self.exclude_groups, 
@@ -125,7 +136,7 @@ class UrtextDynamicDefinition:
                     flags=flags)
                 continue
 
-            if func == 'SORT':
+            if func in ['SORT','S']:
 
                 if has_flags(['-n','-num'], flags):
                     self.sort_numeric = True
