@@ -34,19 +34,16 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
             keys.setdefault(k, [])            
             if v not in keys[k]:
                 keys[k].append(v)
-    print(keys)
     found_stuff = []
     for node in nodes:
 
         for k in keys:
 
             for v in keys[k]:
-                print(v)
                 if v == '*':
                     entries = node.metadata.get_entries(k)
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
-                    print(entries)
                 for entry in entries:
 
                      found_item = {}

@@ -105,8 +105,6 @@ class NodeMetadata:
         entries = self.get_entries(keyname)
         matching_entries = []
         for e in entries:
-            print(e.keyname)
-            print(e.values)
             if value in e.values:
                 matching_entries.append(e)
         return matching_entries

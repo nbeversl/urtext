@@ -74,7 +74,6 @@ class UrtextDynamicDefinition:
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
             if func in ['ID','TARGET']:
-                
                 if flags and flags[0] in [
                         '-tree',
                         '-list',
@@ -251,24 +250,20 @@ def separate(param, delimiter=';'):
 
 valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [ 
 
-
         '(^|[\s])\*($|[\s])', 
         
         '-rr', 
         '-recursive',
-
+        '-tree',
+        
         '-use-timestamp',
-        '-t',
+        
 
         '-last-accessed',
-        '-la',
-
-        '-r',
+       
         '-reverse',
-
-        '-and',
-        '-&',
-
+        
+    
         '-all-projects',
         '-markdown',
         '-md',
@@ -279,24 +274,32 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [
         '-txt',
 
         '-preformat',
-        '-p',
+        
 
         '-multiline-meta',
         '-mm',
 
         '-num',
-        '-n',
+        
 
         '-date',
-        '-d',
+        
         '-search',
 
         '-alpha',
-        '-a',
+        
 
         '-collection',
         '-list',
-        '-tree',
+       
         '-interlinks'
+
+        '-la',
+        '-a',
+        '-n',
+        '-p',
+        '-r',
+        '-t',
+        '-d',
     ]   
 ]

@@ -106,7 +106,6 @@ def _compile(self,
         # Apply limiting after sort
         if dynamic_definition.limit:
             included_nodes = included_nodes[0:dynamic_definition.limit]
-
         if dynamic_definition.output_type == '-tree':
             for source_node in included_nodes:
                 new_node_contents.append(self.show_tree_from(source_node.id))
