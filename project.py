@@ -127,7 +127,7 @@ class UrtextProject:
             'google_auth_token' : 'token.json',
             'google_calendar_id' : None,
             'timezone' : ['UTC'],
-            'always_oneline_meta' : True,
+            'always_oneline_meta' : False,
             'format_string': '$title\n-\n',
             'strict':False,
             'node_date_keyname' : '',

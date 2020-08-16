@@ -77,14 +77,14 @@ class UrtextDynamicDefinition:
                 if flags and flags[0] in [
                         '-tree',
                         '-list',
-                        '-collection',
                         '-interlinks',
                         '-plaintext',
                         '-txt',
                         '-markdown',
                         '-search',
                         '-md',
-                        '-html']:
+                        '-html',
+                        '-collection']:
 
                     self.output_type = flags[0]
                 

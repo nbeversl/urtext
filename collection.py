@@ -44,11 +44,12 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                     entries = node.metadata.get_entries(k)
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
+
                 for entry in entries:
 
                      found_item = {}
                    
-                     for value in entry.values:
+                     for value in [ve for ve in entry.values if ve == v]:
 
                          # get surrounding text
                          full_contents = node.content_only()
