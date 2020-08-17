@@ -1479,7 +1479,7 @@ class UrtextProject:
                 try:
                     value = float(value)
                 except ValueError:
-                    print('cannot parse '+value+' as a numerical key')
+                    value = 99999999
                     continue
            
             if value in self.keynames[key]:
