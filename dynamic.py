@@ -43,6 +43,7 @@ class UrtextDynamicDefinition:
         self.include_all = False
         self.all_projects = False
         self.other_params = []
+        self.include_dynamic = False
 
         # SORT()
         self.sort_type = 'alpha'
@@ -106,8 +107,13 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['INCLUDE','+']:
+                
                 if has_flags(['-all_projects'], flags):
                     self.all_projects = True
+
+                if has_flags(['-include-dynamic'], flags):
+                    self.include_dynamic = True
+                    print('HAS FLAG')
 
                 if has_flags(['*'], flags):
                     self.include_all = True
@@ -250,50 +256,30 @@ def separate(param, delimiter=';'):
 
 valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [ 
 
-        '(^|[\s])\*($|[\s])', 
-        
+        '(^|[\s])\*($|[\s])',
         '-rr', 
         '-recursive',
         '-tree',
-        
         '-use-timestamp',
-        
-
-        '-last-accessed',
-       
-        '-reverse',
-        
-    
+        '-last-accessed',       
+        '-reverse',    
         '-all-projects',
+        '-include-dynamic',
         '-markdown',
         '-md',
-
         '-html',
-
         '-plaintext',
         '-txt',
-
         '-preformat',
-        
-
         '-multiline-meta',
         '-mm',
-
         '-num',
-        
-
         '-date',
-        
         '-search',
-
         '-alpha',
-        
-
         '-collection',
         '-list',
-       
         '-interlinks'
-
         '-la',
         '-a',
         '-n',

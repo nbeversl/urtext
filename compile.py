@@ -66,18 +66,29 @@ def _compile(self,
             included_projects.extend(self.other_projects)
 
         elif dynamic_definition.include_all:
-            included_nodes = set([node_id for node_id in self.nodes if not self.nodes[node_id].dynamic])
+            included_nodes = set([node_id for node_id in self.nodes])
 
         else: 
             included_nodes = set([])
             for project in included_projects:
                 for group in dynamic_definition.include_groups:
-                    included_nodes = included_nodes.union(_build_group_and(project, group))
+                    included_nodes = included_nodes.union(
+                        _build_group_and(
+                            project, 
+                            group, 
+                            include_dynamic=dynamic_definition.include_dynamic)
+                        )
 
         excluded_nodes = set([])
+
         for project in included_projects:
                 for group in dynamic_definition.exclude_groups:
-                    excluded_nodes = excluded_nodes.union(_build_group_and(project, group))
+                    excluded_nodes = excluded_nodes.union(
+                        _build_group_and(
+                            project, 
+                            group,
+                            include_dynamic=dynamic_definition.include_dynamic)
+                        )
 
         included_nodes -= excluded_nodes
         included_nodes = set([self.nodes[i] for i in included_nodes])
