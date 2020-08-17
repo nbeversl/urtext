@@ -48,8 +48,12 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                 for entry in entries:
 
                      found_item = {}
+                     if v == '*':
+                        values = [ve for ve in entry.values]
+                     else:
+                        values = [ve for ve in entry.values if ve == v]
                    
-                     for value in [ve for ve in entry.values if ve == v]:
+                     for value in values:
 
                          # get surrounding text
                          full_contents = node.content_only()
@@ -70,11 +74,12 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                        
                          else:
                              found_item['value'] = value
+                             sort_value = value
                              if dynamic_definition.sort_numeric:
                                  # TODO: error catching
                                  sort_value = float(value)
         
-                             found_item['sort_value'] = node.metadata.get_first_value(k)
+                             found_item['sort_value'] = sort_value
 
                          found_item['keyname'] = k
                          found_item['position'] = str(start_pos)
