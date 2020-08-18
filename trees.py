@@ -180,7 +180,6 @@ def show_tree_from(self,
     self._detach_excluded_tree_nodes(start_point)
 
     tree_render = ''
- 
     for pre, _, this_node in RenderTree(start_point, 
             style=ContStyle, 
             maxlevel=dynamic_definition.depth):
@@ -224,6 +223,7 @@ def show_tree_from(self,
         else: 
             tree_render += "%s%s" % (pre, '? (Missing Node): >' +
                                  this_node.name + '\n')
+
     return tree_render
 
 def duplicate_tree(self, original_node, leaf):

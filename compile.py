@@ -118,12 +118,12 @@ def _compile(self,
         if dynamic_definition.limit:
             included_nodes = included_nodes[0:dynamic_definition.limit]
         
-        elif dynamic_definition.output_type == '-interlinks':
+        if dynamic_definition.output_type == '-interlinks':
 
             for source_node in included_nodes:
                 new_node_contents.append(self.get_node_relationships(source_node.id))
     
-        elif dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
+        if dynamic_definition.output_type in ['-plaintext','-txt','-html','-markdown','-md']:
             
             for source_node in included_nodes:
 
@@ -146,18 +146,18 @@ def _compile(self,
             if not dynamic_definition.target_id:
                 continue
 
-        elif dynamic_definition.output_type == '-collection':
+        if dynamic_definition.output_type == '-collection':
             new_node_contents.append(self._collection(included_nodes, self, dynamic_definition))
 
-        elif dynamic_definition.output_type == '-search':
+        if dynamic_definition.output_type == '-search':
             for term in dynamic_definition.other_params:
                 search = UrtextSearch(self, term, format_string=dynamic_definition.show)
                 new_node_contents.extend(search.initiate_search())
 
-        elif dynamic_definition.output_type == '-list':
+        if dynamic_definition.output_type == '-list':
             for targeted_node in included_nodes:
                 new_node_contents.append(self.show_tree_from(targeted_node.id, dynamic_definition))
-               
+
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
 
         if not initial:
