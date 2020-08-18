@@ -44,6 +44,7 @@ class UrtextDynamicDefinition:
         self.all_projects = False
         self.other_params = []
         self.include_dynamic = False
+        self.depth = 1
 
         # SORT()
         self.sort_type = 'alpha'
@@ -76,7 +77,6 @@ class UrtextDynamicDefinition:
             inside_parentheses, flags = get_flags(match[1][1:-1])
             if func in ['ID','TARGET']:
                 if flags and flags[0] in [
-                        '-tree',
                         '-list',
                         '-interlinks',
                         '-plaintext',
@@ -106,6 +106,9 @@ class UrtextDynamicDefinition:
                 self.show = inside_parentheses
                 continue
 
+            if func in ['DEPTH']:
+                self.depth = float(inside_parentheses)
+
             if func in ['INCLUDE','+']:
                 
                 if has_flags(['-all_projects'], flags):
@@ -113,7 +116,6 @@ class UrtextDynamicDefinition:
 
                 if has_flags(['-include-dynamic'], flags):
                     self.include_dynamic = True
-                    print('HAS FLAG')
 
                 if has_flags(['*'], flags):
                     self.include_all = True
@@ -259,7 +261,6 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [
         '(^|[\s])\*($|[\s])',
         '-rr', 
         '-recursive',
-        '-tree',
         '-use-timestamp',
         '-last-accessed',       
         '-reverse',    

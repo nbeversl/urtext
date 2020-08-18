@@ -117,10 +117,7 @@ def _compile(self,
         # Apply limiting after sort
         if dynamic_definition.limit:
             included_nodes = included_nodes[0:dynamic_definition.limit]
-        if dynamic_definition.output_type == '-tree':
-            for source_node in included_nodes:
-                new_node_contents.append(self.show_tree_from(source_node.id))
-
+        
         elif dynamic_definition.output_type == '-interlinks':
 
             for source_node in included_nodes:
@@ -158,40 +155,9 @@ def _compile(self,
                 new_node_contents.extend(search.initiate_search())
 
         elif dynamic_definition.output_type == '-list':
-
             for targeted_node in included_nodes:
-
-                next_content = DynamicOutput(dynamic_definition.show)
+                new_node_contents.append(self.show_tree_from(targeted_node.id, dynamic_definition))
                
-                if next_content.needs_title:
-                    next_content.title = targeted_node.title
-               
-                if next_content.needs_link:
-                    link = []
-                    if targeted_node.parent_project not in [self.title, self.path]:
-                        link.extend(['{"',targeted_node.parent_project,'"}'])
-                    else:
-                        link.append('>')
-                    link.extend(['>', str(targeted_node.id)])
-                    next_content.link = ''.join(link)
-
-                if next_content.needs_date:
-                    next_content.date = targeted_node.get_date(format_string = self.settings['timestamp_format'][0])
-                if next_content.needs_meta:
-                    next_content.meta = targeted_node.consolidate_metadata()
-                if next_content.needs_contents: 
-                    next_content.contents = targeted_node.content_only().strip('\n').strip()
-
-                for meta_key in next_content.needs_other_format_keys:
-                    values = targeted_node.metadata.get_values(meta_key, substitute_timestamp=True)
-                    replacement = ''
-                    if values:
-                        replacement = ' '.join(values)
-                    next_content.other_format_keys[meta_key] = values
-
-                new_node_contents.append(next_content.output())
-             
-
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))
 
         if not initial:

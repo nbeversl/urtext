@@ -1,6 +1,6 @@
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
-
+from .dynamic_output import DynamicOutput
 """
 Tree building
 """
@@ -152,6 +152,7 @@ def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
 
 def show_tree_from(self, 
                    node_id,
+                   dynamic_definition,
                    from_root_of=False):
 
     if node_id not in self.nodes:
@@ -169,20 +170,57 @@ def show_tree_from(self,
                 leaf.name = leaf.name[-3:]
                 if leaf.name not in [ancestor.name for ancestor in leaf.ancestors]: 
                     if leaf.name in self.nodes:
-                        new_tree = self.duplicate_tree(self.nodes[leaf.name].tree_node, leaf)            
+                        new_tree = self.duplicate_tree(
+                            self.nodes[leaf.name].tree_node, 
+                            leaf)            
                         leaf.children = new_tree.children
+
         alias_nodes = has_aliases(start_point)
 
     self._detach_excluded_tree_nodes(start_point)
 
-
     tree_render = ''
-    for pre, _, this_node in RenderTree(start_point,style=ContStyle ):
+ 
+    for pre, _, this_node in RenderTree(start_point, 
+            style=ContStyle, 
+            maxlevel=dynamic_definition.depth):
+        
         if this_node.name in self.nodes:
-            tree_render += "%s%s" % (pre, self.nodes[
-                this_node.name].title) + ' >' + this_node.name + '\n'
+
+            this_node = self.nodes[this_node.name]
+            next_content = DynamicOutput(dynamic_definition.show)
+            
+            if next_content.needs_title:
+                next_content.title = this_node.title
+           
+            if next_content.needs_link:
+                link = []
+                if this_node.parent_project not in [self.title, self.path]:
+                    link.extend(['{"',this_node.parent_project,'"}'])
+                else:
+                    link.append('>')
+                link.extend(['>', str(this_node.id)])
+                next_content.link = ''.join(link)
+
+            if next_content.needs_date:
+                next_content.date = this_node.get_date(format_string = self.settings['timestamp_format'][0])
+            if next_content.needs_meta:
+                next_content.meta = this_node.consolidate_metadata()
+            if next_content.needs_contents: 
+                next_content.contents = this_node.content_only().strip('\n').strip()
+
+            for meta_key in next_content.needs_other_format_keys:
+                values = this_node.metadata.get_values(meta_key, substitute_timestamp=True)
+                replacement = ''
+                if values:
+                    replacement = ' '.join(values)
+                next_content.other_format_keys[meta_key] = values
+
+            tree_render += "%s%s" % (pre, next_content.output())
+
         elif this_node.name[0:11] == '! RECURSION 1':
             tree_render += "%s%s" % (pre, this_node.name + '\n')    
+
         else: 
             tree_render += "%s%s" % (pre, '? (Missing Node): >' +
                                  this_node.name + '\n')
@@ -198,7 +236,7 @@ def duplicate_tree(self, original_node, leaf):
 
     # iterate immediate children only
     all_nodes = PreOrderIter(original_node, maxlevel=2)  
-    
+
     for node in all_nodes:
 
         if node == original_node:
@@ -223,7 +261,7 @@ def duplicate_tree(self, original_node, leaf):
                 new_node = Node(' !RECURSION 3:')
                 new_node.parent = new_root         
             continue
-           
+
         if node.parent == original_node:
             """ Recursively apply this function to children's children """
             new_node = self.duplicate_tree(node, leaf)
