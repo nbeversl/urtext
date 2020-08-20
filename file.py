@@ -242,7 +242,6 @@ class UrtextFile:
                 if not success:
                     if root:
                         self.messages.append('Warning : root Node has no ID.')
-                        
                     elif compact:
                         self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
                     else:
@@ -262,9 +261,10 @@ class UrtextFile:
             return self.log_error('No root nodes found', 0)
     
     def add_node(self, new_node, ranges, contents):
+        
+        new_node.ranges = ranges        
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
-            self.nodes[new_node.id].ranges = ranges
             if new_node.root_node:
                 self.root_nodes.append(new_node.id) 
             self.parsed_items[ranges[0][0]] = new_node.id

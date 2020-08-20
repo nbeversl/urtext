@@ -60,12 +60,6 @@ class NodeMetadata:
             if e not in self.entries[e.keyname]:
                self.entries[e.keyname].append(e)
 
-    def get_links_to(self):
-        return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
-
-    def get_links_from(self):
-        return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
-
     def get_first_value(self, keyname):
         if keyname == 'title' and self.node.title:
             return self.node.title
@@ -108,6 +102,13 @@ class NodeMetadata:
             if value in e.values:
                 matching_entries.append(e)
         return matching_entries
+
+    def get_links_to(self):
+        return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
+
+    def get_links_from(self):
+        return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
+
 
     def get_date(self, keyname):
         """
@@ -155,7 +156,9 @@ class MetadataEntry:  # container for a single metadata entry
         recursive=False,
         position=None,
         end_position=None, 
-        from_node=None):
+        from_node=None,
+        is_node=False,
+        node_id=None):
 
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
@@ -166,6 +169,8 @@ class MetadataEntry:  # container for a single metadata entry
         self.end_position = end_position
         self.dynamic = dynamic
         self.recursive = recursive
+        self.is_node = is_node
+        self.node = None
 
     def to_json(self):
         _json = dict(self.__dict__)
@@ -180,6 +185,8 @@ class MetadataEntry:  # container for a single metadata entry
         print('from_node: %s' % self.from_node)
         print('dynamic: %s' % self.dynamic)
         print('recursive: %s' % self.recursive)
+        print('is_node : %s' % self.is_node)
+        print('node : %s' % self.node)
 
 def parse_contents(full_contents, settings=None):
 
@@ -200,6 +207,16 @@ def parse_contents(full_contents, settings=None):
             dt_string = timestamp.group(1).strip()
             value = value.replace(timestamp.group(0), '').strip()
 
+        if value and value[0] == '{':
+            entries.append(MetadataEntry(
+                key,
+                '',
+                dt_string,
+                is_node=True,
+                position=m.start()
+                ))
+            continue
+            
         values = []
         value_list = value.split('|')
 
@@ -248,7 +265,8 @@ def parse_contents(full_contents, settings=None):
             MetadataEntry(
                 'inline-timestamp', 
                 '', 
-                stamp[1:-1],     
+                stamp[1:-1],   
+                is_node=False,  
                 position=position, 
                 end_position=end_position)
                 )    

@@ -66,6 +66,10 @@ class UrtextDynamicDefinition:
 
         # COLLECT
         self.collect=[]
+
+        # export
+        self.export_to_node= None
+        self.export_file = None
        
         self.init_self(contents)
 
@@ -107,7 +111,13 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['DEPTH']:
-                self.depth = float(inside_parentheses)
+                if inside_parentheses == '*':
+                    self.depth = 999999
+                    continue
+                try:
+                    self.depth = float(inside_parentheses)
+                except:
+                    self.depth = 0
 
             if func in ['INCLUDE','+']:
                 
@@ -143,6 +153,30 @@ class UrtextDynamicDefinition:
                     flags=flags)
                 continue
 
+            if func in ['EXPORT','X']:
+                if has_flags(['-multiline-meta','-mm'], flags):
+                    self.multiline_meta = True
+                
+                if has_flags(['-preformat','-p'], flags):
+                    self.preformat = True
+                
+                node_id_match = re.search(node_id_regex, inside_parentheses)
+                if node_id_match:
+                    self.export_to_node = node_id_match.group(0)[1:]
+                    continue
+
+                filename_match = re.search(filename_regex, inside_parentheses)
+                if filename_match:
+                    self.export_file = filename_match.group(0)[2:]
+                    continue
+
+                for param in separate(inside_parentheses):                      
+                    key, value, delimiter = key_value(param)
+                    if value and key == 'indent':
+                        self.spaces = assign_as_int(value[0], self.spaces)
+                        continue
+
+
             if func in ['SORT','S']:
 
                 if has_flags(['-n','-num'], flags):
@@ -162,27 +196,10 @@ class UrtextDynamicDefinition:
                         self.sort_keyname.append(param)
     
                 continue
-        
-            if func == "FORMAT":
-                if has_flags(['-multiline-meta','-mm'], flags):
-                    self.multiline_meta = True
-                
-                if has_flags(['-preformat','-p'], flags):
-                    self.preformat = True
-
-
-                for param in separate(inside_parentheses):                      
-                    key, value, delimiter = key_value(param)
-                    if value and key == 'indent':
-                        self.spaces = assign_as_int(value[0], self.spaces)
-                        continue
-                
-                continue
-
+    
             if func == 'LIMIT':
                 self.limit = assign_as_int(inside_parentheses, self.limit)
                 continue
-
  
             if func == 'HEADER':
                 self.header += inside_parentheses
