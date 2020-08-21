@@ -127,18 +127,19 @@ class UrtextFile:
         compact_node_open = False
 
         """
-        Trim leading symbols that are newlines or node pointers
+        Trim leading symbols that are newlines
         """
 
         if self.positions:
             while self.positions and self.symbols[self.positions[0]] == '[\n$]' :
                 self.positions.pop(0)
         
+        ## find the first (possible) wrapper 
         first_wrapper = 0
-        while first_wrapper < len(self.positions) - 1 and self.symbols[self.positions[first_wrapper]] ==  '>>' :
+        while first_wrapper < len(self.positions) - 1 and self.symbols[self.positions[first_wrapper]] == '>>' :
              first_wrapper += 1
-
-        if self.positions:
+        
+        if self.positions and self.symbols[self.positions[first_wrapper]] != '[\n$]':
             nested_levels[0] = [ [0, self.positions[first_wrapper] + symbol_length[self.symbols[self.positions[first_wrapper]]] ] ]
 
         self.positions.append(len(contents))
@@ -147,7 +148,6 @@ class UrtextFile:
         push_syntax = 0
 
         for index in range(0, len(self.positions)):
-
 
             position = self.positions[index]
 
@@ -237,7 +237,7 @@ class UrtextFile:
                     root=root,
                     compact=compact,
                     )
-                
+
                 success = self.add_node(new_node, nested_levels[nested], node_contents)
                 if not success:
                     if root:

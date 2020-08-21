@@ -152,7 +152,6 @@ class UrtextNode:
         contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('^','',1)        
-        contents = contents.lstrip().replace('^','',1)
         return contents
 
     @classmethod
@@ -327,7 +326,9 @@ class UrtextNode:
 
         if not bypass_check and contents == self.contents():
             return False
-
+        # print(contents)
+        # print('-------')
+        # print(self.contents())
         with open(os.path.join(self.project_path, self.filename),
                   'r',
                   encoding='utf-8') as theFile:
