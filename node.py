@@ -294,7 +294,7 @@ class UrtextNode:
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
-        
+
         return new_metadata 
 
     def get_all_meta_keynames(self):
@@ -324,12 +324,8 @@ class UrtextNode:
                   encoding='utf-8') as theFile:
             theFile.write(new_contents)
 
-    def set_content(self, contents, bypass_check=False, keep_metadata=False):
+    def set_content(self, contents, bypass_check=False):
 
-        metadata = ''
-        if keep_metadata:
-            metadata = ' '+self.consolidate_metadata(self.metadata)
-            
         if not bypass_check and contents == self.contents():
             return False
 
@@ -341,13 +337,12 @@ class UrtextNode:
 
         start_range = self.ranges[0][0]
         end_range = self.ranges[-1][1]
-        
+
         new_file_contents = ''.join([
             file_contents[0:start_range],
             contents,
-            metadata, 
             file_contents[end_range:]]) 
-       
+        
         with open(os.path.join(self.project_path, self.filename),
                   'w',
                   encoding='utf-8') as theFile:
@@ -363,21 +358,5 @@ class UrtextNode:
             return number
         except ValueError:
             return default
-
-    def contains_position(self, position):
-        """ 
-        Given a position, and node_id, returns whether the position is in the node 
-        """
-        for this_range in self.ranges:
-            if position >= this_range[0] and position <= this_range[1]:
-                return True
-        return False
-
-    def length(self):
-        length = 0
-        for r in self.ranges:
-            length += r[1] - r[0]
-        length -= self.ranges[0][0]
-        return length
 
 

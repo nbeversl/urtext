@@ -107,7 +107,6 @@ def _rebuild_node_meta(self, node_id):
             if node_id not in self.keynames[keyname][value]:
                 self.keynames[keyname][value].append(node_id)
 
-
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata
     target_id,

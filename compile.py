@@ -26,13 +26,16 @@ import re
 import operator
 
 """
-compile method for UrtextProject 
+compile method for the UrtextProject class
 """
 def _compile(self, 
     initial=False,
-    modified_files=[]):
+    modified_files=None):
    
     self.formulate_links_to()
+    
+    if modified_files is None:
+        modified_files = []
 
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
