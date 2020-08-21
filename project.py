@@ -34,7 +34,6 @@ from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
-from watchdog.observers import Observer
 import pprint
 
 from .file import UrtextFile
@@ -44,7 +43,6 @@ from .compile import compile_functions
 from .trees import trees_functions
 from .meta_handling import metadata_functions
 from .reindex import reindex_functions
-from .watch import UrtextWatcher
 from .search import search_functions
 from .collection import collection_functions
 from .dynamic import UrtextDynamicDefinition
@@ -167,11 +165,6 @@ class UrtextProject:
         with open(os.path.join(self.path,'BUILD.json'),"w", encoding='utf-8') as f:
             f.write(s)
 
-    def _initialize_watchdog(self):
-
-        self.observer = Observer()
-        self.observer.schedule(UrtextWatcher(self), self.path, recursive=False)
-        self.observer.start()
 
     def _initialize_project(self, 
         import_project=False, 
@@ -382,8 +375,10 @@ class UrtextProject:
 
     def _target_file_defined(self, file):
         for definition in self.dynamic_nodes:
-            if definition.target_file and definition.target_file == file:
-                return definition.source_id
+            for e in  definition.exports:
+                for f in e.to_files:
+                    if f == file:
+                        return definition.source_id
         return
 
     """
@@ -1274,9 +1269,7 @@ class UrtextProject:
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
-        if not self.watchdog:
-            modified_files.extend(self._check_for_new_files())
-
+        modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
         return modified_files
 

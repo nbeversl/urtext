@@ -208,12 +208,6 @@ def _export(self, dynamic_definition):
          as_single_file=True, # TOdO should be option 
          clean_whitespace=True,
          preformat = dynamic_definition.preformat)
-
-
-    if dynamic_definition.target_file:
-        with open(os.path.join(self.path, dynamic_definition.target_file), 'w',encoding='utf-8') as f:
-            f.write(exported_content)
-            f.close()
         
     return exported_content
 

@@ -36,7 +36,7 @@ def reindex_files(self):
 
 def _rename_file_nodes(self, filenames, reindex=False):
 
-    self.observer.stop() # watchdog must be off
+    #self.observer.stop() # watchdog must be off
 
     """ Rename a file or list of files by metadata """
     if isinstance(filenames, str):
@@ -117,7 +117,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
         if old_filename[-4:].lower() == '.txt': # skip history files
             self._handle_renamed(old_filename, new_filename)
 
-    self._initialize_watchdog() # set up new watchdog
+    #self._initialize_watchdog() # set up new watchdog
 
     """
     Returns a list of renamed files with full paths
