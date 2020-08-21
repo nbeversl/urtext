@@ -77,19 +77,14 @@ class UrtextDynamicDefinition:
             inside_parentheses, flags = get_flags(match[1][1:-1])
             if func in ['ID','TARGET']:
                 if flags and flags[0] in [
-                        '-list',
                         '-interlinks',
                         '-plaintext',
                         '-txt',
                         '-markdown',
-                        '-search',
                         '-md',
                         '-html']:
-
                     self.output_type = flags[0]
                 
-               
-               
                 node_id_match = re.search(node_id_regex, inside_parentheses)
                 if node_id_match:
                     self.target_id = node_id_match.group(0)[1:]
