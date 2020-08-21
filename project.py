@@ -90,7 +90,7 @@ class UrtextProject:
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = []  # { target : definition, etc.}
-        
+        self.watchdog = watchdog
         # dict of nodes tagged recursively from parent/ancestors
         self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
 
@@ -1232,9 +1232,11 @@ class UrtextProject:
                 self._set_file_contents(filename, new_contents)
                 self.executor.submit(self._file_update, filename)
 
+    ## file modification 
+
     def on_modified(self, filename):
     
-        do_not_update = ['history']
+        do_not_update = ['history','files']
         
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
@@ -1260,20 +1262,20 @@ class UrtextProject:
         return self._update(modified_files=modified_files)
 
     def _update(self, 
-        modified_files=None
+        modified_files=[]
         ):
         
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
-        if modified_files is None:
-            modified_files = []
+        if not self.watchdog:
+            modified_files.extend(self._check_for_new_files())
 
-        modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
-
         return modified_files
+
+    ## 
 
     def _check_for_new_files(self):
         filelist = os.listdir(self.path)
