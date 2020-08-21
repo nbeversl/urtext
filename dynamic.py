@@ -33,7 +33,6 @@ class UrtextDynamicDefinition:
 
         # TARGET()
         self.target_id = None
-        self.target_file = None
         self.output_type = '-list' # default
          
         # inclusions / exclusions
@@ -66,6 +65,9 @@ class UrtextDynamicDefinition:
 
         # COLLECT
         self.collect=[]
+
+        # EXPORT
+        self.exports = []
        
         self.init_self(contents)
        
@@ -76,24 +78,11 @@ class UrtextDynamicDefinition:
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
 
-            if func in ['ID','TARGET']:
-                if flags and flags[0] in [
-                        '-interlinks',
-                        '-plaintext',
-                        '-txt',
-                        '-markdown',
-                        '-md',
-                        '-html']:
-                    self.output_type = flags[0]
+            if func =='ID':
                 
                 node_id_match = re.search(node_id_regex, inside_parentheses)
                 if node_id_match:
                     self.target_id = node_id_match.group(0)[1:]
-                    continue
-
-                filename_match = re.search(filename_regex, inside_parentheses)
-                if filename_match:
-                    self.target_file = filename_match.group(0)[2:]
                     continue
 
             if func in ['SHOW','$']:
@@ -180,17 +169,52 @@ class UrtextDynamicDefinition:
                         continue
                 
                 continue
+            
+            if func in ['EXPORT','X']:
+                
+                this_export = Export()
+
+                if flags and flags[0] in [
+                        '-interlinks',
+                        '-plaintext',
+                        '-markdown',
+                        '-md',
+                        '-html']:
+                    
+                    this_export.output_type = flags[0]
+                
+                if flags and '-preformat' in flags:
+                        this_export.preformat = True
+
+                node_id_match = re.findall(node_id_regex, inside_parentheses)
+                for n in node_id_match:
+                     this_export.to_nodes.append(n[1:])
+
+                filename_match = re.findall(filename_regex, inside_parentheses)
+                for f in filename_match:
+                    this_export.to_files.append(f[2:])
+
+                self.exports.append(this_export)
+                continue
 
             if func == 'LIMIT':
                 self.limit = assign_as_int(inside_parentheses, self.limit)
                 continue
-
  
             if func == 'HEADER':
                 self.header += inside_parentheses
 
             if func == 'FOOTER':
                 self.footer += inside_parentheses
+
+
+class Export:
+    def __init__(self):
+        self.output_type = '-plaintext'
+        self.to_nodes = []
+        self.to_files = []
+        self.flags = []
+        self.preformat = False
 
 def assign_as_int(value, default):
     try:
@@ -282,7 +306,6 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [
         '-alpha',
         '-collection',
         '-list',
-        '-interlinks'
         '-la',
         '-a',
         '-n',

@@ -80,7 +80,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -411,19 +411,20 @@ class UrtextProject:
                 else:
                     self.dynamic_nodes.append(definition)
                 
-            if definition.target_file:
-
-                defined = self._target_file_defined(definition.target_file)
-                if defined and defined != new_node.id:
-                    message = ''.join([ 
-                                  'File >f' , definition.target_file ,
-                                  ' has duplicate definition in >' , new_node.id ,
-                                  '. Keeping the definition in >' , defined , '.'
-                                  ])
-                    self.message[new_node.filename].append(message)
-                    self._log_item(message)
-                else:
-                    self.dynamic_nodes.append(definition)
+            if definition.exports:
+                for e in definition.exports:
+                    for f in e.to_files:
+                        defined = self._target_file_defined(f)
+                        if defined and defined != new_node.id:
+                            message = ''.join([ 
+                                          'File >f' , f ,
+                                          ' has duplicate definition in >' , new_node.id ,
+                                          '. Keeping the definition in >' , defined , '.'
+                                          ])
+                            self.message[new_node.filename].append(message)
+                            self._log_item(message)
+                        else:
+                            self.dynamic_nodes.append(definition)
 
         if len(new_node.metadata.get_first_value('ID')) > 1:
             message = ''.join([ 
