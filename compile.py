@@ -163,9 +163,8 @@ def _compile(self,
         if not initial:
             filename = self.nodes[dynamic_definition.target_id].filename    
             self._parse_file(filename)
-    
-        if dynamic_definition.target_id:
-            changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
+
+        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
 
         if changed_file:
             modified_files.append(changed_file)       
@@ -207,11 +206,9 @@ def _export(self, dynamic_definition):
 
 def build_final_output(dynamic_definition, contents):
 
-    metadata_values = {}
-    if dynamic_definition.target_id:
-        metadata_values['id'] = dynamic_definition.target_id
-    
-    metadata_values['def'] = [ '>'+dynamic_definition.source_id ] 
+    metadata_values = { 
+        'ID': [ dynamic_definition.target_id ],
+        'def' : [ '>'+dynamic_definition.source_id ] }
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 

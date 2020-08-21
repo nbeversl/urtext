@@ -201,7 +201,6 @@ def parse_contents(full_contents, settings=None):
             dt_string = timestamp.group(1).strip()
             value = value.replace(timestamp.group(0), '').strip()
 
-
         values = []
         value_list = value.split('|')
 
