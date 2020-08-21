@@ -127,7 +127,7 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['COLLECT','C']:
-                self.output_type = '-collection':
+                self.output_type = '-collection'
                 self.show = "$entry $link \n $contents\n\n"
 
                 parse_group(self,
