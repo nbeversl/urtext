@@ -84,13 +84,11 @@ class UrtextDynamicDefinition:
                         '-markdown',
                         '-search',
                         '-md',
-                        '-html',
-                        '-collection']:
+                        '-html']:
 
                     self.output_type = flags[0]
                 
-                if self.output_type == '-collection':
-                    self.show = "$entry $link \n $contents\n\n"
+               
                
                 node_id_match = re.search(node_id_regex, inside_parentheses)
                 if node_id_match:
@@ -134,6 +132,8 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['COLLECT','C']:
+                self.output_type = '-collection':
+                self.show = "$entry $link \n $contents\n\n"
 
                 parse_group(self,
                     self.collect, 
