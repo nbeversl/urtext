@@ -514,9 +514,8 @@ class UrtextProject:
         """ Refreshes the Metadata List file """
 
         if not keys:
-            keys = sorted([
-                k for k in self.keynames
-                if k.lower() not in ['def', 'id', self.settings['node_date_keyname'], '_index']
+            keys = sorted([ k for k in self.keynames
+                if k not in ['def', 'id', self.settings['node_date_keyname'].lower(), '_index']
             ])
 
         root = Node('Metadata Keys')
@@ -1195,11 +1194,11 @@ class UrtextProject:
     def get_all_meta_pairs(self):
         pairs = []
         ignore = [ 'id' ]
-        for keyname in self.keynames: 
-            if keyname.lower() in ignore:
+        for k in self.keynames: 
+            if k in ignore:
                 continue
-            for value in self.keynames[keyname]:
-                meta_string = ''.join([keyname, '::', str(value) ])            
+            for value in self.keynames[k]:
+                meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
 

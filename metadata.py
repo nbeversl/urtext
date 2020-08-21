@@ -191,7 +191,7 @@ def parse_contents(full_contents, settings=None):
     for m in inline_meta.finditer(full_contents):
 
         key, value = m.group().strip(';').split('::', 1)
-        key = key.lower()
+        #key = key.lower()
         """
         For lines containing a timestamp
         """
@@ -206,8 +206,8 @@ def parse_contents(full_contents, settings=None):
 
         for value in value_list:
 
-            if key not in case_sensitive_values:
-                value = value.lower()
+            # if key not in case_sensitive_values:
+            #     value = value.lower()
             value = value.strip()
             if key in numeric_values:
                 try:
