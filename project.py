@@ -135,15 +135,18 @@ class UrtextProject:
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
         
-        self._initialize_project(
-            import_project=import_project, 
-            init_project=init_project)
-        
+        if self.is_async:
+            self.executor.submit(self._initialize_project,
+                import_project=import_project, 
+                init_project=init_project)
+        else:
+            self._initialize_project(
+                 import_project=import_project, 
+                 init_project=init_project)
+
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
 
-        self.loaded = True
-        
         if watchdog:
             self._initialize_watchdog()        
 
@@ -165,7 +168,6 @@ class UrtextProject:
         with open(os.path.join(self.path,'BUILD.json'),"w", encoding='utf-8') as f:
             f.write(s)
 
-
     def _initialize_project(self, 
         import_project=False, 
         init_project=False):
@@ -176,7 +178,7 @@ class UrtextProject:
         if import_project:
             for file in self.to_import:
                 self.import_file(file)
-
+        
         self.default_timezone = timezone(self.settings['timezone'][0])
         if self.nodes == {}:
             if init_project == True:
@@ -195,11 +197,8 @@ class UrtextProject:
             
         self._get_access_history()
 
-        if self.is_async:
-           self.executor.submit(self._compile, initial=True)
-        else:
-            self._compile(initial=True)
-    
+        self._compile(initial=True)
+
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
