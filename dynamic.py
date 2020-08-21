@@ -107,8 +107,14 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['DEPTH']:
-                self.depth = float(inside_parentheses)
-
+                if inside_parentheses == '*':
+                    self.depth = 999999
+                    continue
+                try:
+                    self.depth = float(inside_parentheses)
+                except:
+                    self.depth = 0
+                    
             if func in ['INCLUDE','+']:
                 
                 if has_flags(['-all_projects'], flags):
