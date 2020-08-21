@@ -201,8 +201,7 @@ class UrtextProject:
             self._parse_meta_dates(node_id)
             
         self._get_access_history()
-        self._compile(initial=True)
-        self.compiled = True # critical to set this here
+        self.executor.submit(self._compile, initial=True)
         
     def _node_id_generator(self):
         chars = [

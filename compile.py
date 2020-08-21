@@ -99,6 +99,10 @@ def _compile(self,
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
 
+
+        #pre -sort 
+        included_nodes = sorted(included_nodes, key=lambda node: node.id)
+
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
             sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
@@ -177,7 +181,9 @@ def _compile(self,
         messages_file = self._populate_messages()
         if messages_file:
              modified_files.append(messages_file)
-    
+
+        self.compiled = True
+
     return list(set(modified_files))
 
 
