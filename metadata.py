@@ -169,8 +169,8 @@ class MetadataEntry:  # container for a single metadata entry
         self.end_position = end_position
         self.dynamic = dynamic
         self.recursive = recursive
-        self.is_node = is_node
-        self.node = None
+        # self.is_node = is_node
+        # self.node = None
 
     def to_json(self):
         _json = dict(self.__dict__)
@@ -185,8 +185,8 @@ class MetadataEntry:  # container for a single metadata entry
         print('from_node: %s' % self.from_node)
         print('dynamic: %s' % self.dynamic)
         print('recursive: %s' % self.recursive)
-        print('is_node : %s' % self.is_node)
-        print('node : %s' % self.node)
+        #print('is_node : %s' % self.is_node)
+        #print('node : %s' % self.node)
 
 def parse_contents(full_contents, settings=None):
 
@@ -207,15 +207,15 @@ def parse_contents(full_contents, settings=None):
             dt_string = timestamp.group(1).strip()
             value = value.replace(timestamp.group(0), '').strip()
 
-        if value and value[0] == '{':
-            entries.append(MetadataEntry(
-                key,
-                '',
-                dt_string,
-                is_node=True,
-                position=m.start()
-                ))
-            continue
+        # if value and value[0] == '{':
+        #     entries.append(MetadataEntry(
+        #         key,
+        #         '',
+        #         dt_string,
+        #         is_node=True,
+        #         position=m.start()
+        #         ))
+        #     continue
             
         values = []
         value_list = value.split('|')

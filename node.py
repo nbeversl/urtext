@@ -289,6 +289,7 @@ class UrtextNode:
         for keyname in metadata:
             new_metadata += keyname + '::'
             if isinstance(metadata[keyname], list):
+                print(metadata[keyname])
                 new_metadata += ' | '.join(metadata[keyname])
             else:
                 new_metadata += metadata[keyname]

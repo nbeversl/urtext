@@ -1271,7 +1271,7 @@ class UrtextProject:
         if modified_files is None:
             modified_files = []
 
-        modified_files.extend(self._check_for_new_files())
+        #modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
 
         return modified_files

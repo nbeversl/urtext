@@ -80,22 +80,7 @@ class UrtextDynamicDefinition:
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
             if func in ['ID','TARGET']:
-                if flags and flags[0] in [
-                        '-list',
-                        '-interlinks',
-                        '-plaintext',
-                        '-txt',
-                        '-markdown',
-                        '-search',
-                        '-md',
-                        '-html',
-                        '-collection']:
-
-                    self.output_type = flags[0]
-                
-                if self.output_type == '-collection':
-                    self.show = "$entry $link \n $contents\n\n"
-               
+                               
                 node_id_match = re.search(node_id_regex, inside_parentheses)
                 if node_id_match:
                     self.target_id = node_id_match.group(0)[1:]
@@ -139,6 +124,7 @@ class UrtextDynamicDefinition:
 
             if func in ['COLLECT','C']:
 
+                self.show = "$entry $link \n $contents\n\n"
                 parse_group(self,
                     self.collect, 
                     [], #discard
@@ -154,6 +140,12 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['EXPORT','X']:
+
+                self.output_type = '-txt'
+
+                if has_flags(['-multiline-meta','-mm'], flags):
+                    self.multiline_meta = True
+
                 if has_flags(['-multiline-meta','-mm'], flags):
                     self.multiline_meta = True
                 
@@ -293,11 +285,7 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [
         '-mm',
         '-num',
         '-date',
-        '-search',
         '-alpha',
-        '-collection',
-        '-list',
-        '-interlinks'
         '-la',
         '-a',
         '-n',
@@ -305,5 +293,6 @@ valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [
         '-r',
         '-t',
         '-d',
+        '-r',
     ]   
 ]
