@@ -68,13 +68,14 @@ class UrtextDynamicDefinition:
         self.collect=[]
        
         self.init_self(contents)
-
+       
     def init_self(self, contents):
 
         for match in re.findall(function_regex,contents):
 
             func = match[0]
             inside_parentheses, flags = get_flags(match[1][1:-1])
+
             if func in ['ID','TARGET']:
                 if flags and flags[0] in [
                         '-interlinks',

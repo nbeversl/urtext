@@ -201,8 +201,12 @@ class UrtextProject:
             self._parse_meta_dates(node_id)
             
         self._get_access_history()
-        self.executor.submit(self._compile, initial=True)
-        
+
+        if self.is_async:
+           self.executor.submit(self._compile, initial=True)
+        else:
+            self._compile(initial=True)
+    
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',

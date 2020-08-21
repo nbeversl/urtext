@@ -31,7 +31,7 @@ compile method for the UrtextProject class
 def _compile(self, 
     initial=False,
     modified_files=[]):
-   
+    
     self.formulate_links_to()
     
     for dynamic_definition in self.dynamic_nodes:
@@ -96,19 +96,16 @@ def _compile(self,
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
 
-
-        #pre -sort 
-        included_nodes = sorted(included_nodes, key=lambda node: node.id)
-
+        
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
-            sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
+            sort_order = lambda node: ( node.metadata.get_date(dynamic_definition.sort_keyname[0]), node.id) 
 
         elif dynamic_definition.sort_keyname:
-            sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])               
+            sort_order = lambda node: ( self.get_first_value(node, dynamic_definition.sort_keyname[0]), node.id )               
 
         else:
-            sort_order = lambda node: node.default_sort()
+            sort_order = lambda node: ( node.default_sort(), node.id )
             
         included_nodes = sorted(
             included_nodes,
@@ -180,7 +177,7 @@ def _compile(self,
              modified_files.append(messages_file)
 
         self.compiled = True
-
+       
     return list(set(modified_files))
 
 
