@@ -27,7 +27,8 @@ class ProjectList():
     def __init__(self, 
         base_path, 
         import_project=False,
-        watchdog=False):
+        watchdog=False,
+        first_project=None):
 
         self.watchdog = watchdog # development option
         self.projects = []
@@ -40,6 +41,10 @@ class ProjectList():
         if self.projects:
             self.current_project = self.projects[0]
         self._propagate_projects(None)
+        if first_project:
+            self.set_current_project(first_project)
+            print('SEtYTING FIST PROEJCT')
+            print(first_project)
 
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
@@ -48,7 +53,6 @@ class ProjectList():
                 project = UrtextProject(folder, 
                     import_project=import_project, 
                     watchdog=self.watchdog)
-
                 self.projects.append(project)
                 print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
@@ -58,7 +62,7 @@ class ProjectList():
                 print('No project found in '+folder)
         sub_dirs = next(os.walk(folder))[1]
         for subdir in sub_dirs:
-            if subdir not in ['.git','.DS_Store','/']:
+            if subdir not in ['.git','.DS_Store','/','history','files']:
                 self._add_folder(os.path.join(folder, subdir))
 
     def get_link_and_set_project(self, string, position=0):

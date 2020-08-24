@@ -76,7 +76,8 @@ class UrtextProject:
                  recursive=False,
                  import_project=False,
                  init_project=False,
-                 watchdog=False):
+                 watchdog=False,
+                 on_retrieved=None):
         
         self.is_async = True # use False for development only
         self.path = path
@@ -92,6 +93,7 @@ class UrtextProject:
         # dict of nodes tagged recursively from parent/ancestors
         self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
 
+        self.quick_loaded = False
         self.compiled = False
         self.links_to = {}
         self.links_from = {}
@@ -131,18 +133,22 @@ class UrtextProject:
             'node_date_keyname' : '',
             'log_id': '',
             'numerical_keys': ['_index'],
+            'preload': [],
         }
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
-        
+
+        self.quick_load(on_retrieved, import_project=import_project)
         if self.is_async:
             self.executor.submit(self._initialize_project,
                 import_project=import_project, 
-                init_project=init_project)
+                init_project=init_project,
+                on_retrieved=on_retrieved)
         else:
             self._initialize_project(
                  import_project=import_project, 
-                 init_project=init_project)
+                 init_project=init_project,
+                 on_retrieved=on_retrieved)
 
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
@@ -150,29 +156,41 @@ class UrtextProject:
         if watchdog:
             self._initialize_watchdog()        
 
-        #self.to_json()
+    def quick_load(self, callback, import_project=False):
+
+        self.retrieve()
         
-    def to_json(self):
-        _json = dict(self.__dict__)
-        _json.pop('executor')
-        _json.pop('aux_executor')
-        _json.pop('access_history')
-        _json.pop('messages')
-        _json.pop('default_timezone')
-        _json.pop('files')
-        _json.pop('observer')
-        _json['nodes'] = [self.nodes[n].to_json() for n in self.nodes]
+        if self.ql and 'last_accessed' in self.ql:
+            for file in self.ql['last_accessed']:
+                self._parse_file(file)
+        if callback:
+            callback()
+        self.quick_loaded = True
         
-        pp = pprint.PrettyPrinter(indent=4)
-        s = pp.pformat(_json)
-        with open(os.path.join(self.path,'BUILD.json'),"w", encoding='utf-8') as f:
-            f.write(s)
+
+    def retrieve(self):
+        if os.path.exists(os.path.join(self.path,'_store.json')):
+            with open(os.path.join(self.path, '_store.json'), 'r') as f:
+                self.ql = json.loads(f.read())
+                self.settings=self.ql['project_settings']
+                self.title = self.ql['title']
+        else:
+            self.ql = { 'last_accessed': [], 'title': '', 'path': self.path}
+
+
+    def store(self):
+        if self.compiled:
+            self.ql['title'] = self.title
+            self.ql['project_settings'] = self.settings       
+            with open(os.path.join(self.path,'_store.json'), "w", encoding='utf-8') as f:
+                f.write(json.dumps(self.ql))
 
     def _initialize_project(self, 
         import_project=False, 
-        init_project=False):
+        init_project=False,
+        on_retrieved=None):
 
-        for file in os.listdir(self.path):
+        for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
 
         if import_project:
@@ -831,11 +849,18 @@ class UrtextProject:
         if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
             return
 
+        if node_id in self.nodes and self.nodes[node_id].filename not in self.ql['last_accessed']:
+            self.ql.setdefault('last_accessed',[])
+            self.ql['last_accessed'].insert(0, self.nodes[node_id].filename)
+            self.ql['last_accessed'] = self.ql['last_accessed'][:20]
+            self.store()
+            
         # add the newly opened file as the new "HEAD"
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
         self.executor.submit(self._push_access_history, node_id)
+
          
     def nav_reverse(self):
         if not self.navigation:
@@ -958,6 +983,14 @@ class UrtextProject:
         """
         if to_id in self.links_to:
             return  self.links_to[to_id]
+        return []
+
+    def get_links_from(self, from_id):
+        """
+        Returns the list of all nodes linking to the passed id
+        """
+        if from_id in self.links_from:
+            return self.links_from[from_id]
         return []
 
     def get_link(self, string, position=0):
@@ -1203,8 +1236,9 @@ class UrtextProject:
         return list(set(pairs))
 
     def random_node(self):
-        node_id = random.choice(list(self.nodes))
-        return node_id
+        if self.nodes:
+            node_id = random.choice(list(self.nodes))
+            return node_id
     
     def replace_links(self, original_id, new_id='', new_project=''):
         if not new_id and not new_project:
