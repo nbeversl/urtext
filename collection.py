@@ -111,7 +111,7 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
              next_content.title = item['title']
 
          if next_content.needs_entry:
-            next_content.entry = item['keyname'] + ' :: ' + item['value']
+            next_content.entry = item['keyname'] + ' :: ' + str(item['value'])
       
          if next_content.needs_link:            
              next_content.link = '>'+item['node_id']+':'+item['position']

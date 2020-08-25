@@ -81,23 +81,20 @@ def _rebuild_node_meta(self, node_id):
         if entry.keyname == 'title':
            continue 
 
-        if entry.keyname not in self.keynames:
-            self.keynames[entry.keyname] = {}
-
+        self.keynames.setdefault(entry.keyname, {})
         keyname = entry.keyname.lower()
 
         if not entry.values and entry.dt_string:
-            if entry.dt_string not in self.keynames[keyname]:
-                self.keynames[keyname][entry.dt_string] = [] 
+            self.keynames[keyname].setdefault(entry.dt_string, [])
             self.keynames[keyname][entry.dt_string].append(node_id)
             continue
 
         # add the values to the keyname
         for value in entry.values:
-            
-            if isinstance(value, str):
+          
+            if isinstance(value, str) and keyname not in self.settings['case_sensitive']:
                 value = value.lower() # all comparisons case insensitive
-
+  
             if keyname in self.settings['numerical_keys']:
                 try:
                     value = float(value)

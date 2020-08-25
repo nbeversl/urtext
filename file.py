@@ -57,6 +57,7 @@ class UrtextFile:
 
     def __init__(self, 
         filename, 
+        settings=None,
         previous_hash=None,
         strict=False):
         
@@ -75,15 +76,12 @@ class UrtextFile:
         self.hash = self.hash_contents(contents)
         if self.hash == previous_hash:
             self.changed = False
-        else:
-            self.lex_and_parse(contents)
-            
-    def lex_and_parse(self, contents):
-        if not contents:
+        elif not contents:
             return
-        self.file_length = len(contents)        
-        self.lex(contents)
-        self.parse(contents)
+        else:
+            self.file_length = len(contents)        
+            self.lex(contents)
+            self.parse(contents, settings)
 
     def hash_contents(self, contents):
         r = bytearray(contents,'utf-8')
@@ -116,7 +114,7 @@ class UrtextFile:
 
         self.positions = sorted([key for key in self.symbols if key != -1])
 
-    def parse(self, contents):
+    def parse(self, contents, project_settings):
 
         """
         Counters and trackers
@@ -234,6 +232,7 @@ class UrtextFile:
                 new_node = UrtextNode(
                     self.filename, 
                     contents=node_contents,
+                    settings=project_settings,
                     root=root,
                     compact=compact,
                     )

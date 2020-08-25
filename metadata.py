@@ -25,22 +25,6 @@ default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
 inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:})?')
 
-case_sensitive_values = [ 
-    'title',
-    'notes',
-    'comments',
-    'project_title',
-    'timezone',
-    'timestamp_format',
-    'filenames',
-    'weblink',
-    'timestamp',
-    ]
-
-numeric_values = [
-    'index'
-    ]
-
 class NodeMetadata:
 
     def __init__(self, node, full_contents, settings=None):
@@ -48,6 +32,7 @@ class NodeMetadata:
         self.node = node
         self._entries = parse_contents(
             full_contents,
+            node.project,
             settings=settings)
         self._sort()       
         self._last_accessed = 0
@@ -67,8 +52,8 @@ class NodeMetadata:
         return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
 
     def get_first_value(self, keyname):
-        if keyname == 'title' and self.node.title:
-            return self.node.title
+        # if keyname == 'title' and self.node.title:
+        #     return self.node.title
         if keyname == '_last_accessed':
             return self.node.last_accessed
 
@@ -182,7 +167,7 @@ class MetadataEntry:  # container for a single metadata entry
         print('dynamic: %s' % self.dynamic)
         print('recursive: %s' % self.recursive)
 
-def parse_contents(full_contents, settings=None):
+def parse_contents(full_contents, project, settings=None):
 
     parsed_contents = full_contents
 
@@ -191,7 +176,7 @@ def parse_contents(full_contents, settings=None):
     for m in inline_meta.finditer(full_contents):
 
         key, value = m.group().strip(';').split('::', 1)
-        #key = key.lower()
+
         """
         For lines containing a timestamp
         """
@@ -206,10 +191,10 @@ def parse_contents(full_contents, settings=None):
 
         for value in value_list:
 
-            # if key not in case_sensitive_values:
-            #     value = value.lower()
+            if key not in settings['case_sensitive']:
+                value = value.lower()
             value = value.strip()
-            if key in numeric_values:
+            if key in settings['numerical_keys']:
                 try:
                     value = int(value)
                 except ValueError:

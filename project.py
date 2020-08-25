@@ -132,8 +132,18 @@ class UrtextProject:
             'strict':False,
             'node_date_keyname' : '',
             'log_id': '',
-            'numerical_keys': ['_index'],
+            'numerical_keys': ['_index' ,'index'],
             'preload': [],
+            'case_sensitive': [
+                'title',
+                'notes',
+                'comments',
+                'project_title',
+                'timezone',
+                'timestamp_format',
+                'filenames',
+                'weblink',
+                'timestamp',]
         }
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -262,6 +272,7 @@ class UrtextProject:
         """
         new_file = UrtextFile(
             os.path.join(self.path, filename), 
+            settings=self.settings,
             previous_hash=old_hash,
             strict=strict
             )
@@ -1505,6 +1516,9 @@ class UrtextProject:
                 for v in self.keynames[key]:
                     results = results.union(set(self.keynames[key][v])) 
                 continue
+            
+            if isinstance(value, str) and key not in self.settings['case_sensitive']:
+                value = value.lower() # all comparisons case insensitive
 
             if key in self.settings['numerical_keys']:
                 try:

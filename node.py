@@ -44,6 +44,7 @@ class UrtextNode:
     def __init__(self, 
         filename, 
         contents,
+        settings=None,
         root=False, 
         compact=False):
 
@@ -73,7 +74,7 @@ class UrtextNode:
         self.title = None
 
         stripped_contents = self.strip_dynamic_definitions(contents)
-        self.metadata = NodeMetadata(self, stripped_contents)
+        self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
 
         stripped_contents = self.strip_metadata(stripped_contents)
         self.title = self.set_title(stripped_contents)
