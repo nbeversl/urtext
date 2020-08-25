@@ -161,7 +161,7 @@ class UrtextProject:
         self.retrieve()
         
         if self.ql and 'last_accessed' in self.ql:
-            for file in self.ql['last_accessed']:
+            for file in [t for t in self.ql['last_accessed'] if t in os.listdir(self.path)]:
                 self._parse_file(file)
         if callback:
             callback()
