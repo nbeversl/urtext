@@ -1217,11 +1217,11 @@ class UrtextProject:
         return self._update(modified_files=modified_files)  
 
 
-    # def pull_node(self, string, current_file, current_position):
-    #     """ File must be saved in the editor first for this to work """
-    #     return self.executor.submit(self._pull_node, string, current_file, current_position) 
-
     def pull_node(self, string, current_file, current_position):
+        """ File must be saved in the editor first for this to work """
+        return self.executor.submit(self._pull_node, string, current_file, current_position) 
+
+    def _pull_node(self, string, current_file, current_position):
         link = self.get_link(string)
         # search optionall titled pipe - title - link pattern
         if not link or link[0] != 'NODE': return None
