@@ -106,7 +106,6 @@ class UrtextFile:
         
         push_syntax = 0
         for p in self.positions:
-            print(self.symbols[p])
             if self.symbols[p] == '%%-[^E][A-Z-]*':
                 del self.symbols[p]
                 self.positions.remove(p)
