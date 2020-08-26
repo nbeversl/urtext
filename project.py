@@ -779,10 +779,7 @@ class UrtextProject:
             one_line=None,
             trailing_id=False,
             include_timestamp=False):
-        
-        if contents == '':
-            contents = ' '
-        
+              
         if one_line == None:
             one_line = self.settings['always_oneline_meta']
             
