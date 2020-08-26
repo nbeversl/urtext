@@ -66,10 +66,6 @@ class UrtextExport:
 
     def _wrap_title(self, kind, node_id, nested):
         title = self.project.nodes[node_id].title
-        if title.strip() == '':
-            print('NO TITLE HERE')
-            print(node_id)
-
 
         wrappers = {
             '-markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
@@ -164,7 +160,8 @@ class UrtextExport:
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
-        title_found = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
+        meta_title = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
+        title_found = False
 
         if root_node_id in exclude or root_node_id in visited_nodes:
             return added_contents, points, visited_nodes
@@ -194,7 +191,7 @@ class UrtextExport:
             range_contents = self._strip_urtext_syntax(range_contents)
             
             ## Replace Title
-            if not title_found and title in range_contents: 
+            if meta_title and not title_found and title in range_contents: 
                 range_contents = range_contents.replace(title,'',1)
                 title_found = True
 
@@ -204,7 +201,9 @@ class UrtextExport:
             if single_range == ranges[0]:
 
                 # prepend
-                range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
+                if meta_title:
+                    range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
+                    title_found = True
 
                 if kind == '-html' and not strip_urtext_syntax:
 

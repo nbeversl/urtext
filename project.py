@@ -787,20 +787,27 @@ class UrtextProject:
             one_line = self.settings['always_oneline_meta']
             
         node_id = self.next_index()
+
         if not trailing_id:
             metadata['id']=node_id
+        
         if include_timestamp:
+
             if date == None:
                 date = datetime.datetime.now()
-            if self.settings['node_date_keyname']:
+ 
+            if 'node_date_keyname' in self.settings:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-        new_node_contents = "{ " + contents 
-        metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
-        new_node_contents += metadata_block + ' '
+ 
+        new_node_contents = ''.join([
+            '{ ', 
+            contents,
+            '\n',
+            UrtextNode.build_metadata(metadata, one_line=one_line),
+            ' '])
         if trailing_id:
             new_node_contents += node_id   
         new_node_contents += "}"
-        metadata={}
         return (new_node_contents, node_id)
 
     def insert_interlinks(self, node_id, one_line=True):
