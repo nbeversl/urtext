@@ -1010,37 +1010,37 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        
+        link_regex = r'\|?.*?\s>{1,2}\w{3}'
+
         link = None
         
         # look for node links where the cursor is positioned (within 4 characters)
         for index in range(0, 4):
-            if re.search(node_link_regex, string[position - index:position - index + 5]):
-                link = re.search(
-                    node_link_regex,
-                    string[position - index:position - index + 5]).group(0)
+            result = re.search(link_regex, string[position - index:position - index + 5])
+            if result:
                 break
 
-        # next try looking ahead:
-        if not link:
+        if not result:
+            # try looking ahead:
             after_cursor = string[position:]
-            if re.search(node_link_regex, after_cursor):
-                link = re.search(node_link_regex, after_cursor).group(0)
+            result = re.search(link_regex, after_cursor)
 
-        # then behind:
-        if not link:
+        if not result:
+            # then behind:
             before_cursor = string[:position]
-            if re.search(node_link_regex, before_cursor):
-                link = re.search(node_link_regex, before_cursor).group(0)
+            result = re.search(link_regex, before_cursor)
 
-        if link:
-            node_id = link.split(':')[0].strip('>')
-            if node_id.strip() in self.nodes:
+        if result:
+            link = result.group()
+            span = result.span()
+            node_id = link[-3:]
+            if node_id in self.nodes:
                 file_position = self.nodes[node_id].ranges[0][0]
-                return ('NODE', node_id, file_position)
+                return ('NODE', node_id, file_position, span)
             else:
                 self._log_item('Node ' + node_id + ' is not in the project')
                 return None
+
         editor_file_link_regex = re.compile('f>(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
         filename = re.search(editor_file_link_regex, string)
         if filename:
@@ -1184,8 +1184,6 @@ class UrtextProject:
 
         filename = self.nodes[node_id].filename
 
-        # includes the chosen node and all contained nodes 
-        # (all content between start and end of node)
         popped_node_contents = file_contents[start:end].strip()
 
         # special case:
@@ -1205,7 +1203,6 @@ class UrtextProject:
             '\n',
             file_contents[end + 2:]])
        
-
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
         self._parse_file(filename) 
@@ -1218,6 +1215,41 @@ class UrtextProject:
         modified_files = [filename, popped_node_id+'.txt']
 
         return self._update(modified_files=modified_files)  
+
+
+    # def pull_node(self, string, current_file, current_position):
+    #     """ File must be saved in the editor first for this to work """
+    #     return self.executor.submit(self._pull_node, string, current_file, current_position) 
+
+    def pull_node(self, string, current_file, current_position):
+        link = self.get_link(string)
+        # search optionall titled pipe - title - link pattern
+        if not link or link[0] != 'NODE': return None
+        node_id = link[1]
+        if node_id not in self.nodes: return None
+
+        start = self.nodes[node_id].ranges[0][0]
+        end = self.nodes[node_id].ranges[-1][1]
+        
+        contents =self._full_file_contents(filename=self.nodes[node_id].filename)
+        replaced_file_contents = ''.join([contents[0:start],contents[end:len(contents)]])
+        if self.nodes[node_id].root_node:
+            self.delete_file(self.nodes[node_id].filename)  
+        else:
+            self._set_file_contents(self.nodes[node_id].filename, replaced_file_contents)
+
+        pulled_contents = contents[start:end]
+        current_node = self.get_node_id_from_position(current_file, current_position)
+        if not current_node: return None
+        full_current_contents = self._full_file_contents(current_file)
+
+        # here we need to know the exact location of the returned link within the file
+        span = link[3]
+        replacement = string[span[0]:span[1]]
+        wrapped_contents = ''.join(['{',pulled_contents,'}'])
+        replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
+        self._set_file_contents(current_file, replacement_contents)
+        return True
 
     def titles(self):
         title_list = {}
