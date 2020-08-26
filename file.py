@@ -34,8 +34,8 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     '}',                # inline node closing wrapper
     '>>',               # node pointer
     '[\n$]',            # line ending (closes compact node)
-    # '%%-[A-Z-]*',       # push syntax
-    # '%%-END-[A-Z-]*'    # pop syntax 
+    '%%-[A-Z-]*',       # push syntax
+    '%%-END-[A-Z-]*'    # pop syntax 
     ]]
 
 # additional symbols using MULTILINE flag
@@ -95,24 +95,30 @@ class UrtextFile:
 
         for compiled_symbol in compiled_symbols:
             locations = compiled_symbol.finditer(contents)
+
             for loc in locations:
                 start = loc.span()[0]
-
-
-            #     if self.symbols[position] == '%%-[^E][A-Z-]*':
-            #     push_syntax += 1
-            #     continue
-
-            # if self.symbols[position] == '%%-END-[A-Z-]*':
-            #     push_syntax -= 1
-            #     continue
-
-            # if push_syntax > 0:
-            #     continue
-
                 self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols if key != -1])
+
+        ## Filter out Syntax Push and delete wrapper elements between them.
+        
+        push_syntax = 0
+        for p in self.positions:
+
+            if self.symbols[p] == '%%-[^E][A-Z-]*':
+                del self.symbols[p]
+                push_syntax += 1
+                continue
+
+            if self.symbols[p] == '%%-END-[A-Z-]*':
+                del self.symbols[p]
+                push_syntax -= 1
+                continue
+
+            if push_syntax > 0:
+                del self.symbols[p]
 
     def parse(self, contents, project_settings):
 
