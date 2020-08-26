@@ -89,20 +89,6 @@ class UrtextFile:
         md5.update(r)
         return md5.digest()
 
-    def _lex(self, contents):
-        """ populate a dict syntax symbols """
-        self.symbols = {}
-
-        for compiled_symbol in compiled_symbols:
-            locations = compiled_symbol.finditer(contents)
-            for loc in locations:
-                start = loc.span()[0]
-                self.symbols[start] = compiled_symbol.pattern
-
-        self.positions = sorted([key for key in self.symbols if key != -1])
-
-
-
     def lex(self, contents):
         """ populate a dict syntax symbols """
         self.symbols = {}
