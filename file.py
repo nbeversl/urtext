@@ -34,7 +34,7 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     '}',                # inline node closing wrapper
     '>>',               # node pointer
     '[\n$]',            # line ending (closes compact node)
-    '%%-[A-Z-]*',       # push syntax
+    '%%-[^E][A-Z-]*',       # push syntax
     '%%-END-[A-Z-]*'    # pop syntax 
     ]]
 
@@ -89,6 +89,20 @@ class UrtextFile:
         md5.update(r)
         return md5.digest()
 
+    def _lex(self, contents):
+        """ populate a dict syntax symbols """
+        self.symbols = {}
+
+        for compiled_symbol in compiled_symbols:
+            locations = compiled_symbol.finditer(contents)
+            for loc in locations:
+                start = loc.span()[0]
+                self.symbols[start] = compiled_symbol.pattern
+
+        self.positions = sorted([key for key in self.symbols if key != -1])
+
+
+
     def lex(self, contents):
         """ populate a dict syntax symbols """
         self.symbols = {}
@@ -106,18 +120,21 @@ class UrtextFile:
         
         push_syntax = 0
         for p in self.positions:
-
+            print(self.symbols[p])
             if self.symbols[p] == '%%-[^E][A-Z-]*':
                 del self.symbols[p]
+                self.positions.remove(p)
                 push_syntax += 1
                 continue
 
-            if self.symbols[p] == '%%-END-[A-Z-]*':
+            if self.symbols[p] ==  '%%-END-[A-Z-]*' :
                 del self.symbols[p]
+                self.positions.remove(p)
                 push_syntax -= 1
                 continue
 
             if push_syntax > 0:
+                self.positions.remove(p)
                 del self.symbols[p]
 
     def parse(self, contents, project_settings):
