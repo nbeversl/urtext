@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 This file is part of Urtext.
@@ -29,20 +30,16 @@ import operator
 compile method for the UrtextProject class
 """
 def _compile(self, 
-    initial=False,
     modified_files=[]):
-    
     self.formulate_links_to()
-    
+
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
    
-    """ This has to be done before anything else """
-    for node_id in self.dynamic_meta:
-       for e in self.dynamic_meta[node_id]['entries']:
-            self._add_sub_tags( node_id, node_id, e)                    
-
+    for n in self.nodes:
+        for e in self.nodes[n].metadata.dynamic_entries:                
+            self._add_sub_tags( n, n, e)
 
     for dynamic_definition in self.dynamic_nodes: 
         
@@ -63,7 +60,7 @@ def _compile(self,
         if dynamic_definition.all_projects:
             included_projects.extend(self.other_projects)
 
-        elif dynamic_definition.include_all:
+        if dynamic_definition.include_all:
             included_nodes = set([node_id for node_id in self.nodes])
 
         else: 
@@ -80,13 +77,13 @@ def _compile(self,
         excluded_nodes = set([])
 
         for project in included_projects:
-                for group in dynamic_definition.exclude_groups:
-                    excluded_nodes = excluded_nodes.union(
-                        _build_group_and(
-                            project, 
-                            group,
-                            include_dynamic=dynamic_definition.include_dynamic)
-                        )
+            for group in dynamic_definition.exclude_groups:
+                excluded_nodes = excluded_nodes.union(
+                    _build_group_and(
+                        project, 
+                        group,
+                        include_dynamic=dynamic_definition.include_dynamic)
+                    )
 
         included_nodes -= excluded_nodes
         included_nodes = set([self.nodes[i] for i in included_nodes])
@@ -143,7 +140,8 @@ def _compile(self,
         if changed_file:
             modified_files.append(changed_file)       
             self._parse_file(changed_file)
-
+           
+                                    
         self.nodes[dynamic_definition.target_id].dynamic = True
 
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
@@ -193,7 +191,10 @@ def _compile(self,
                         f.write(exported_content)
                         f.close()
 
-       
+    # for node_id in self.dynamic_meta:
+    #    for e in self.dynamic_meta[node_id]['entries']:
+    #         self._add_sub_tags( node_id, node_id, e)                    
+
     return list(set(modified_files))
 
 def _export(self, dynamic_definition):

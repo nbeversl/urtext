@@ -19,7 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
-format_key_regex = re.compile('\$[A-Za-z0-9_-]+', re.DOTALL)
+format_key_regex = re.compile('\$_?[A-Za-z0-9_-]+', re.DOTALL)
 
 class DynamicOutput():
 
@@ -31,6 +31,7 @@ class DynamicOutput():
         self.meta = ''
         self.entry = ''
         self.contents = ''
+        self.last_accessed = ''
         self.other_format_keys = {}
 
         self.needs_title = False
@@ -40,7 +41,8 @@ class DynamicOutput():
         self.needs_contents = False
         self.needs_entry = False
         self.needs_other_format_keys = []
-
+        self.needs_last_accessed = False
+        
         self.format_string = format_string
         self.shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
         self.values = []
@@ -70,6 +72,7 @@ class DynamicOutput():
             'meta',
             'contents',
             'entry' # for metadata collection
+            '_last_accessed',
         ]
 
         if self.shah + '$title' in self.item_format:
@@ -82,6 +85,8 @@ class DynamicOutput():
             self.needs_meta = True
         if self.shah + '$entry' in self.item_format:
             self.needs_entry = True
+        if self.shah + '$_last_accessed' in self.item_format:
+            self.needs_last_accessed = True
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)
@@ -101,6 +106,7 @@ class DynamicOutput():
         self.item_format = self.item_format.replace(self.shah + '$date', self.date)
         self.item_format = self.item_format.replace(self.shah + '$meta', self.meta)
         self.item_format = self.item_format.replace(self.shah + '$entry', self.entry)
+        self.item_format = self.item_format.replace(self.shah + '$_last_accessed', str(self.last_accessed))
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)
@@ -119,7 +125,7 @@ class DynamicOutput():
         # all other meta keys
         for meta_key in self.other_format_keys:
             token = self.shah+'$'+meta_key
-            value = ' '.join(self.other_format_keys[meta_key])
+            value = ''.join(self.other_format_keys[meta_key])
             self.item_format = self.item_format.replace(token, value );    
 
         return self.item_format

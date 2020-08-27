@@ -123,12 +123,18 @@ def _add_sub_tags(self,
         """
         node_to_tag = child.name.strip('ALIAS') 
 
+        if source_id not in self.dynamic_meta:
+            self.dynamic_meta[source_id] = { 'entries' : [] , 'targets' : []}
+
         if node_to_tag in self.nodes and node_to_tag not in self.dynamic_meta[source_id]['targets']:
             self.nodes[node_to_tag].metadata.add_meta_entry(
                 entry.keyname, 
                 entry.values,
                 from_node=source_id)
             self.dynamic_meta[source_id]['targets'].append(node_to_tag)
+            if entry not in self.dynamic_meta[source_id]['entries']:
+                self.dynamic_meta[source_id]['entries'].append(entry)
+            self.dynamic_meta[source_id]['entries'].append(entry)
             if node_to_tag not in nodes_to_rebuild:
                 nodes_to_rebuild.append(node_to_tag)
             if entry.recursive:
@@ -136,6 +142,7 @@ def _add_sub_tags(self,
 
     for node_id in nodes_to_rebuild:
         self._rebuild_node_meta(node_id)
+    
 
 def _remove_sub_tags(self, source_id):
     

@@ -30,7 +30,7 @@ class NodeMetadata:
     def __init__(self, node, full_contents, settings=None):
 
         self.node = node
-        self._entries = parse_contents(
+        self._entries, self.dynamic_entries = parse_contents(
             full_contents,
             node.project,
             settings=settings)
@@ -52,8 +52,6 @@ class NodeMetadata:
         return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
 
     def get_first_value(self, keyname):
-        # if keyname == 'title' and self.node.title:
-        #     return self.node.title
         if keyname == '_last_accessed':
             return self.node.last_accessed
 
@@ -122,9 +120,6 @@ class NodeMetadata:
                 self._entries.remove(entry)
         self._sort()
 
-    def to_json(self):
-        return [e.to_json() for e in self._entries]
-
     # Debug
 
     def log(self):
@@ -136,7 +131,7 @@ class MetadataEntry:  # container for a single metadata entry
         keyname, 
         value, 
         dt_string,
-        dynamic=False,
+        children=False,
         recursive=False,
         position=None,
         end_position=None, 
@@ -149,14 +144,8 @@ class MetadataEntry:  # container for a single metadata entry
         self.from_node = from_node
         self.position = position
         self.end_position = end_position
-        self.dynamic = dynamic
+        self.children = children
         self.recursive = recursive
-
-
-    def to_json(self):
-        _json = dict(self.__dict__)
-        _json['dt_stamp'] = self.dt_stamp.isoformat()
-        return _json
 
     def log(self):
         print('key: %s' % self.keyname)
@@ -164,7 +153,7 @@ class MetadataEntry:  # container for a single metadata entry
         print('datetimestring: %s' % self.dt_string)
         print('datetimestamp: %s' % self.dt_stamp)
         print('from_node: %s' % self.from_node)
-        print('dynamic: %s' % self.dynamic)
+        print('children: %s' % self.children)
         print('recursive: %s' % self.recursive)
 
 def parse_contents(full_contents, project, settings=None):
@@ -173,6 +162,7 @@ def parse_contents(full_contents, project, settings=None):
 
     # parse inline metadata:
     entries = []
+    dynamic_entries = []
     for m in inline_meta.finditer(full_contents):
 
         key, value = m.group().strip(';').split('::', 1)
@@ -203,25 +193,30 @@ def parse_contents(full_contents, project, settings=None):
                 values.append(value)
 
         recursive = False
-        dynamic = False
+        children = False
         if key[0] == '*' :
-            dynamic = True
+            children = True
             key = key[1:]
-        if key[0] == '*' :
-            recursive = True
-            key = key[1:]
+            if key[0] == '*' :
+                recursive = True
+                key = key[1:]
 
         end_position = m.start() + len(m.group())
-        entries.append(
-            MetadataEntry(
+        
+        entry = MetadataEntry(
                 key, 
                 values, 
                 dt_string, 
-                dynamic = dynamic,
-                recursive = recursive,       
+                children=children,
+                recursive=recursive,       
                 position=m.start(), 
-                end_position=end_position)
-            )    
+                end_position=end_position)    
+
+        if children or recursive:
+            dynamic_entries.append(entry)
+
+        else:
+            entries.append(entry)
 
         parsed_contents = parsed_contents.replace(m.group(),'')
 
@@ -239,4 +234,4 @@ def parse_contents(full_contents, project, settings=None):
                 end_position=end_position)
                 )    
 
-    return entries
+    return entries, dynamic_entries

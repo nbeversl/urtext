@@ -31,8 +31,9 @@ def reindex_files(self):
     for node in date_sorted_nodes:
         node.prefix = prefix
         prefix += 1
-    
-    return self.executor.submit(self._rename_file_nodes, list(self.files), reindex=True)
+    if self.is_async:
+        return self.executor.submit(self._rename_file_nodes, list(self.files), reindex=True)
+    return self._rename_file_nodes(list(self.files), reindex=True)
 
 def _rename_file_nodes(self, filenames, reindex=False):
 

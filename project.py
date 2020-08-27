@@ -69,7 +69,7 @@ def add_functions_as_methods(functions):
 @add_functions_as_methods(functions)
 class UrtextProject:
     """ Urtext project object """
-    
+
     def __init__(self,
                  path,
                  rename=False,
@@ -92,7 +92,6 @@ class UrtextProject:
         self.watchdog = watchdog
         # dict of nodes tagged recursively from parent/ancestors
         self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
-
         self.quick_loaded = False
         self.compiled = False
         self.links_to = {}
@@ -101,7 +100,6 @@ class UrtextProject:
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        self.aux_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.access_history = {}
         self.messages = {}
         self.settings = {  # defaults
@@ -225,7 +223,7 @@ class UrtextProject:
             
         self._get_access_history()
 
-        self._compile(initial=True)
+        self._compile()
 
     def _node_id_generator(self):
         chars = [
@@ -292,7 +290,6 @@ class UrtextProject:
         if duplicate nodes were found.
         FUTURE: return value should be sanitized Currently returns None, False or list.
         """
-       
         filename = os.path.basename(filename)
         if self._filter_filenames(filename) == None:
             return
@@ -340,10 +337,13 @@ class UrtextProject:
 
         """
         If this is not the initial load of the project, parse the timestamps in the file
+        and rebuild sub-tags
         """        
         if self.compiled:
             for node_id in new_file.nodes:
                 self._parse_meta_dates(node_id)
+                for e in self.nodes[node_id].metadata.dynamic_entries:                
+                    self._add_sub_tags( node_id, node_id, e)
 
         """ returns None if successful """
         return None
@@ -458,11 +458,6 @@ class UrtextProject:
             self.messages[new_node.filename].append(message)
             self._log_item(message)
 
-        for e in [n for n in new_node.metadata._entries if n.dynamic]:
-            if new_node.id not in self.dynamic_meta:
-                self.dynamic_meta[new_node.id] = { 'entries' : [] , 'targets' : []}
-            self.dynamic_meta[new_node.id]['entries'].append(e)
-        
         new_node.parent_project = self.title
         if new_node.id in self.access_history:
             new_node.last_accessed = self.access_history[new_node.id]
@@ -874,8 +869,8 @@ class UrtextProject:
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
-        self.executor.submit(self._push_access_history, node_id)
-
+        #self.executor.submit(self._push_access_history, node_id)
+        self._push_access_history(node_id)
          
     def nav_reverse(self):
         if not self.navigation:
@@ -1014,7 +1009,7 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        link_regex = r'\|?.*?\s>{1,2}\w{3}'
+        link_regex = r'\|?.*?>{1,2}\w{3}'
 
         link = None
         
@@ -1165,8 +1160,9 @@ class UrtextProject:
 
         Returns a future containing a list of modified files as the result.
         """
-        return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
-        
+        #return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
+        return self._pop_node( position=position, filename=filename, node_id=node_id)
+
     def _pop_node(self, position=None, filename=None, node_id=None):
  
         if not node_id:
@@ -1223,8 +1219,8 @@ class UrtextProject:
 
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
-        return self.executor.submit(self._pull_node, string, current_file, current_position) 
-
+        #return self.executor.submit(self._pull_node, string, current_file, current_position) 
+        self._pull_node(string, current_file, current_position)
     def _pull_node(self, string, current_file, current_position):
         link = self.get_link(string)
         # search optionall titled pipe - title - link pattern
@@ -1309,12 +1305,19 @@ class UrtextProject:
                     new_contents = new_contents.replace(link, replacement, 1)
             if contents != new_contents:
                 self._set_file_contents(filename, new_contents)
-                self.executor.submit(self._file_update, filename)
-
+                if self.is_async:
+                    self.executor.submit(self._file_update, filename)
+                else:
+                    self._file_update(filename)
+                    
     ## file modification 
 
     def on_modified(self, filename):
-    
+        """ 
+        Main method to keep the project updated. 
+        Should be called whenever file or directory content changes
+        """
+
         do_not_update = ['history','files']
         
         filename = os.path.basename(filename)
@@ -1322,32 +1325,25 @@ class UrtextProject:
             return (True, '')
         
         self._log_item('MODIFIED f>' + filename +' - Updating the project object')
-
         if self.is_async:
             return self.executor.submit(self._file_update, filename)
         return self._file_update(filename)
     
     def _file_update(self, filename):
+        
         modified_files = []
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
             modified_files.append(filename)
 
-        # re-parse the file
         self._parse_file(filename)
-
-        #update the project
         return self._update(modified_files=modified_files)
 
     def _update(self, 
         modified_files=[]
         ):
-        
-        """ 
-        Main method to keep the project updated. 
-        Should be called whenever file or directory content changes
-        """
+       
         modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
         return modified_files
@@ -1381,11 +1377,19 @@ class UrtextProject:
             self._log_item('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
             raise DuplicateIDs()
         else:
-            return self.executor.submit(self._update)
+            if self.is_async:
+                return self.executor.submit(self._update)
+            else:
+                self._update()
+
 
     def remove_file(self, filename):
-        self._remove_file(os.path.basename(filename)) 
-        return self.executor.submit(self._update)
+        if self.is_async:
+            self.executor.submit(self._remove_file, os.path.basename(filename))
+            self.executor.submit(self._update)
+        else:
+            self._remove_file(os.path.basename(filename))
+            self._file_update(filename)
     
     def get_file_name(self, node_id, absolute=False):
         filename = None
