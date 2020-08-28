@@ -78,7 +78,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -587,9 +587,6 @@ class UrtextProject:
     def _set_file_contents(self, filename, contents):
         with open(os.path.join(self.path, filename), 'w', encoding='utf-8') as theFile:
             theFile.write(contents)
-            theFile.close()
-        return
-
 
     def import_file(self, filename):
 
@@ -1183,9 +1180,7 @@ class UrtextProject:
         popped_node_contents = file_contents[start:end].strip()
 
         # special case:
-        # for popped nodes with trailing IDs, manually repopulate
-        # the node ID at file level.
-        # TODO : There may be a better place to accomplish this. 
+        # for popped nodes with trailing IDs, manually repopulate the node ID at file level.
         if self.nodes[node_id].trailing_node_id:
             popped_node_contents = popped_node_contents[:-3]
             popped_node_contents += 'id::'+node_id+'; '
@@ -1212,18 +1207,29 @@ class UrtextProject:
 
         return self._update(modified_files=modified_files)  
 
-
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
-        #return self.executor.submit(self._pull_node, string, current_file, current_position) 
-        self._pull_node(string, current_file, current_position)
+        if self.is_async:
+            return self.executor.submit(self._pull_node, string, current_file, current_position) 
+        else:
+            self._pull_node(string, current_file, current_position)
+    
     def _pull_node(self, string, current_file, current_position):
-        link = self.get_link(string)
-        # search optionall titled pipe - title - link pattern
-        if not link or link[0] != 'NODE': return None
-        node_id = link[1]
-        if node_id not in self.nodes: return None
 
+        link = self.get_link(string)
+        
+        if not link or link[0] != 'NODE': 
+            return None
+        
+        node_id = link[1]
+        if node_id not in self.nodes: 
+            return None
+
+        current_node = self.get_node_id_from_position(current_file, current_position)
+        if not current_node:
+            return None
+
+        modified_files = [current_file] 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         
@@ -1233,10 +1239,9 @@ class UrtextProject:
             self.delete_file(self.nodes[node_id].filename)  
         else:
             self._set_file_contents(self.nodes[node_id].filename, replaced_file_contents)
-
+            modified_files.append(self.nodes[node_id].filename)
+            self._parse_file(self.nodes[node_id].filename)
         pulled_contents = contents[start:end]
-        current_node = self.get_node_id_from_position(current_file, current_position)
-        if not current_node: return None
         full_current_contents = self._full_file_contents(current_file)
 
         # here we need to know the exact location of the returned link within the file
@@ -1245,7 +1250,9 @@ class UrtextProject:
         wrapped_contents = ''.join(['{',pulled_contents,'}'])
         replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
         self._set_file_contents(current_file, replacement_contents)
-        return True
+        self._parse_file(current_file)
+        
+        return self._update(modified_files=modified_files)  
 
     def titles(self):
         title_list = {}
