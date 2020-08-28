@@ -76,8 +76,7 @@ class UrtextProject:
                  recursive=False,
                  import_project=False,
                  init_project=False,
-                 watchdog=False,
-                 on_retrieved=None):
+                 watchdog=False):
         
         self.is_async = True # use False for development only
         self.path = path
@@ -146,17 +145,15 @@ class UrtextProject:
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
 
-        self.quick_load(on_retrieved, import_project=import_project)
+        self.quick_load(import_project=import_project)
         if self.is_async:
             self.executor.submit(self._initialize_project,
                 import_project=import_project, 
-                init_project=init_project,
-                on_retrieved=on_retrieved)
+                init_project=init_project)
         else:
             self._initialize_project(
                  import_project=import_project, 
-                 init_project=init_project,
-                 on_retrieved=on_retrieved)
+                 init_project=init_project)
 
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
@@ -164,15 +161,13 @@ class UrtextProject:
         if watchdog:
             self._initialize_watchdog()        
 
-    def quick_load(self, callback, import_project=False):
+    def quick_load(self, import_project=False):
 
         self.retrieve()
         
         if self.ql and 'last_accessed' in self.ql:
             for file in [t for t in self.ql['last_accessed'] if t in os.listdir(self.path)]:
                 self._parse_file(file)
-        if callback:
-            callback()
         self.quick_loaded = True
         
 
@@ -195,8 +190,7 @@ class UrtextProject:
 
     def _initialize_project(self, 
         import_project=False, 
-        init_project=False,
-        on_retrieved=None):
+        init_project=False):
 
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
@@ -218,9 +212,12 @@ class UrtextProject:
             return None            
         
         # must be done once manually on project init
+        # TODO refactor
         for node_id in self.nodes:
             self._parse_meta_dates(node_id)
-            
+            for e in self.nodes[node_id].metadata.dynamic_entries:                
+                self._add_sub_tags( node_id, node_id, e)
+
         self._get_access_history()
 
         self._compile()
@@ -869,8 +866,7 @@ class UrtextProject:
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
-        #self.executor.submit(self._push_access_history, node_id)
-        self._push_access_history(node_id)
+        self.executor.submit(self._push_access_history, node_id)
          
     def nav_reverse(self):
         if not self.navigation:
@@ -1389,7 +1385,7 @@ class UrtextProject:
             self.executor.submit(self._update)
         else:
             self._remove_file(os.path.basename(filename))
-            self._file_update(filename)
+            self._update()
     
     def get_file_name(self, node_id, absolute=False):
         filename = None
@@ -1466,7 +1462,6 @@ class UrtextProject:
             with open(accessed_file,"r") as f:
                 try:
                     contents = f.read()
-                    f.close()
                     if contents:
                         try:
                             access_history = json.loads(contents)
@@ -1476,7 +1471,7 @@ class UrtextProject:
                             print(contents)
                 except EOFError as error:
                     print(error)
-        
+         
         self._propagate_access_history()    
 
     def _propagate_access_history(self):
@@ -1485,19 +1480,15 @@ class UrtextProject:
             if node_id in self.nodes:
                 self.nodes[node_id].last_accessed = access_time
 
-
     def _save_access_history(self):
+
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
+
         with open(accessed_file,"w") as f:
             f.write(json.dumps(self.access_history))
-            f.close()
-        
+    
     def _push_access_history(self, node_id, duplicate=False):
-
-        if not duplicate:
-            for access_time in list(self.access_history):
-                if node_id == self.access_history[access_time]:
-                    del self.access_history[access_time]
+        if node_id not in self.nodes: return
         access_time = int(time.time()) # UNIX timestamp
         self.nodes[node_id].last_accessed = access_time
         self.access_history[node_id] = access_time
