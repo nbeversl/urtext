@@ -173,7 +173,7 @@ def _compile(self,
                 for f in e.to_files:
                     with open(os.path.join(self.path, f), 'w',encoding='utf-8') as f:
                         f.write(exported_content)
-
+    self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
     return list(set(modified_files))
 
 def _export(self, dynamic_definition):

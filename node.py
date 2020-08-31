@@ -323,18 +323,18 @@ class UrtextNode:
                   encoding='utf-8') as theFile:
             theFile.write(new_contents)
 
-    def set_content(self, contents, bypass_check=False):
+    def set_content(self, contents, preserve_metadata=False, bypass_check=False):
 
         if not bypass_check and contents == self.contents():
             return False
-        # print(contents)
-        # print('-------')
-        # print(self.contents())
+
         with open(os.path.join(self.project_path, self.filename),
                   'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
-            theFile.close()
+
+        # if preserve_metadata:
+        #     contents += self.consolidate_metadata()
 
         start_range = self.ranges[0][0]
         end_range = self.ranges[-1][1]
@@ -348,10 +348,8 @@ class UrtextNode:
                   'w',
                   encoding='utf-8') as theFile:
             theFile.write(new_file_contents)
-            theFile.close()
 
         return True
-        """ MUST re-parse now """
 
     def assign_as_int(self, value, default):
         try:

@@ -101,6 +101,7 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.access_history = {}
         self.messages = {}
+        self.title_completions = []
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':
@@ -525,7 +526,7 @@ class UrtextProject:
         """ project-aware alias for the Node set_content() method """
 
         self._parse_file(self.nodes[node_id].filename)
-        content_changed = self.nodes[node_id].set_content(contents)
+        content_changed = self.nodes[node_id].set_content(contents, preserve_metadata=True)
         if content_changed:
             self._parse_file(self.nodes[node_id].filename)
             if node_id in self.nodes:
@@ -639,6 +640,7 @@ class UrtextProject:
                     'title':'Log',
                     'timestamp' : self.timestamp(datetime.datetime.now())
                 })
+            self.messages = {}
             changed = self._set_node_contents(self.settings['log_id'], output)     
             if changed:
                 return self.nodes[self.settings['log_id']].filename
@@ -1285,7 +1287,7 @@ class UrtextProject:
 
     def get_all_titles(self):
 
-        return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
+        return self.title_completions
 
     def random_node(self):
         if self.nodes:
