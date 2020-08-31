@@ -37,10 +37,6 @@ def _compile(self,
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
    
-    for n in self.nodes:
-        for e in self.nodes[n].metadata.dynamic_entries:                
-            self._add_sub_tags( n, n, e)
-
     for dynamic_definition in self.dynamic_nodes: 
         
         points = {}
@@ -94,10 +90,6 @@ def _compile(self,
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.nodes[self.settings['log_id']])
 
-
-
-
-
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
             sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
@@ -112,9 +104,6 @@ def _compile(self,
             included_nodes,
             key=sort_order,
             reverse=dynamic_definition.sort_reverse)
-
-
-
 
 
         # Apply limiting after sort
@@ -133,15 +122,12 @@ def _compile(self,
             for targeted_node in included_nodes:
                 new_node_contents.append(self.show_tree_from(targeted_node.id, dynamic_definition))
 
-
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
-        
+
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
         if changed_file:
             modified_files.append(changed_file)       
-            self._parse_file(changed_file)
-           
-                                    
+                                               
         self.nodes[dynamic_definition.target_id].dynamic = True
 
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
@@ -152,7 +138,6 @@ def _compile(self,
         if messages_file:
              modified_files.append(messages_file)
 
-        self.compiled = True
     
     for dynamic_definition in self.dynamic_nodes: 
 
@@ -182,18 +167,12 @@ def _compile(self,
                         changed_file = self._set_node_contents(n, exported_content + built_metadata)
                         if changed_file:
                             modified_files.append(changed_file)
-                            self._parse_file(changed_file)
                             self.nodes[n].export_points = points           
                             self.nodes[n].dynamic = True
 
                 for f in e.to_files:
                     with open(os.path.join(self.path, f), 'w',encoding='utf-8') as f:
                         f.write(exported_content)
-                        f.close()
-
-    # for node_id in self.dynamic_meta:
-    #    for e in self.dynamic_meta[node_id]['entries']:
-    #         self._add_sub_tags( node_id, node_id, e)                    
 
     return list(set(modified_files))
 
@@ -233,7 +212,7 @@ def build_final_output(dynamic_definition, contents):
         contents,
         footer,
         built_metadata
-    ])
+        ])
     if dynamic_definition.spaces:
         final_contents = indent(final_contents, dynamic_definition.spaces)
 
@@ -252,7 +231,7 @@ def _build_group_and(project, groups, include_dynamic=False):
         new_group = new_group.intersection(this_set)
 
     if new_group and not include_dynamic:
-        new_group = [f for f in new_group if not project.nodes[f].dynamic]
+        new_group = [f for f in new_group if f in project.nodes and not project.nodes[f].dynamic]
 
     return new_group
 

@@ -272,22 +272,8 @@ class ProjectList():
             meta_pairs = project.get_all_meta_pairs()
             for pair in meta_pairs:
                 if pair not in meta_values:
-                    meta_values.append(pair)
+                    meta_values.append((pair, pair+';'))
         return meta_values
-
-    # future
-    # def move_all_linked_nodes(self, filename, to_project):
-    #     to_project = self.get_project(to_project)
-    #     if not to_project:
-    #         return None
-    #     filename = os.path.basename(filename)
-    #     self.current_project.remove_file(filename)
-    #     os.rename(
-    #         os.path.join( self.current_project.path, filename),
-    #         os.path.join( to_project.path, filename)
-    #         )        
-    #     to_project.add_file(filename)
-    #     return True
         
     def get_node_link(self, string):
 

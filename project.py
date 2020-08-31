@@ -78,7 +78,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = False # use False for development only
+        self.is_async = True # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -221,6 +221,7 @@ class UrtextProject:
         self._get_access_history()
 
         self._compile()
+        self.compiled = True
 
     def _node_id_generator(self):
         chars = [
@@ -523,6 +524,7 @@ class UrtextProject:
     def _set_node_contents(self, node_id, contents):
         """ project-aware alias for the Node set_content() method """
 
+        self._parse_file(self.nodes[node_id].filename)
         content_changed = self.nodes[node_id].set_content(contents)
         if content_changed:
             self._parse_file(self.nodes[node_id].filename)
@@ -1280,6 +1282,10 @@ class UrtextProject:
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
+
+    def get_all_titles(self):
+
+        return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
 
     def random_node(self):
         if self.nodes:
