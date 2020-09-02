@@ -24,9 +24,12 @@ from .node import UrtextNode
 import pprint
 from .dynamic_output import DynamicOutput
 
-def _collection(self, nodes, project, dynamic_definition, amount=150):
+def _collection(self, 
+    nodes, 
+    project, 
+    dynamic_definition):
     """ generates a collection of context-aware metadata anchors """
-    
+
     keys = {}
     for group in dynamic_definition.collect:
         for entry in group:
@@ -34,14 +37,19 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
             keys.setdefault(k, [])            
             if v not in keys[k]:
                 keys[k].append(v)
+
     found_stuff = []
     for node in nodes:
 
         for k in keys:
 
+            use_timestamp = k in self.settings['use_timestamp']
+
             for v in keys[k]:
+
                 if v == '*':
                     entries = node.metadata.get_entries(k)
+
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
 
@@ -50,26 +58,23 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                      found_item = {}
                      
                      if v == '*':
-                        values = [ve for ve in entry.values]
+                        if use_timestamp:
+                            values = [entry.dt_stamp]
+                        else:
+                            values = [ve for ve in entry.values]
+
                      else:
-                        values = [ve for ve in entry.values if ve == v]
-                   
+                        if use_timestamp and entry.dt_stamp == v:
+                            values = [entry.dt_stamp]
+                        else:
+                            values = [ve for ve in entry.values if ve == v]
+
                      for value in values:
-
-                         # get surrounding text
-                         full_contents = node.content_only()
-                         start_pos = entry.position - amount
-                         end_pos = entry.end_position + amount
-                         if entry.position < amount: 
-                             start_pos = 0
-                         if entry.end_position + amount > len(full_contents):
-                             end_pos = len(full_contents)
-
                          found_item['node_id'] = node.id
                          found_item['title'] = node.title
                          found_item['dt_string'] = entry.dt_string
 
-                         if dynamic_definition.sort_date:
+                         if use_timestamp:
                              found_item['value'] = entry.dt_string
                              found_item['sort_value'] = entry.dt_stamp
                        
@@ -85,8 +90,41 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
                              found_item['sort_value'] = sort_value
 
                          found_item['keyname'] = k
-                         found_item['position'] = str(start_pos)
-                         found_item['context'] = full_contents[start_pos:end_pos]
+                         
+                         # get context and position
+                         # lines = 1 # FUTURE
+
+                         # get content with full meta.
+                         full_contents = node.contents().split('\n')
+                         
+                         context = []
+                         length = 0
+                         for i in range(len(full_contents)):
+
+                            line = full_contents[i]
+                            if line.strip():
+                                context.append(line.strip())
+                            if entry.position in range(length, length+len(line)+1):
+                                 if line.strip(): 
+                                    context = [ line.strip() ]
+                                    break
+                                 elif context: 
+                                    break
+                            if entry.position < length:
+                                if line.strip(): 
+                                    context.append(line.strip())
+                                    break
+                            length += len(line)
+
+                         if len(context) > 1:
+                            context = [context[-1]]
+
+                         found_item['context'] = '\n'.join(context)
+                         found_item['context'] = UrtextNode.strip_metadata(contents=found_item['context'])
+
+                         # this will be position in NODE, not FILE:
+                         found_item['position'] = str(entry.position)                         
+
                          found_stuff.append(found_item)
 
     if not found_stuff:
@@ -111,8 +149,10 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
              next_content.title = item['title']
 
          if next_content.needs_entry:
-            next_content.entry = item['keyname'] + ' :: ' + str(item['value'])
-      
+            next_content.entry = item['keyname'] + ' :: ' +  str(item['value'])
+            next_content.key = item['keyname']
+            next_content.values = item['value']
+
          if next_content.needs_link:            
              next_content.link = '>'+item['node_id']+':'+item['position']
 
@@ -123,7 +163,7 @@ def _collection(self, nodes, project, dynamic_definition, amount=150):
               next_content.meta = project.nodes[item['node_id']].consolidate_metadata()
 
          if next_content.needs_contents: 
-             contents = item['context'].strip()
+             contents = item['context']
              while '\n\n' in contents:
                  contents = contents.replace('\n\n', '\n')
              next_content.contents = contents

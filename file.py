@@ -21,13 +21,13 @@ import re
 from .node import UrtextNode
 from . import node
 import concurrent.futures
-from concurrent.futures import ALL_COMPLETED
 import hashlib
 
 node_id_regex =         r'\b[0-9,a-z]{3}\b'
 node_link_regex =       r'>[0-9,a-z]{3}\b'
 node_pointer_regex =    r'>>[0-9,a-z]{3}\b'
 compact_node_regex =    '\^[^\n]*'
+error_messages =        '<!{1,2}.*?!{1,2}>\n?'
 
 compiled_symbols = [re.compile(symbol) for symbol in  [
     '{',                # inline node opening wrapper
@@ -79,10 +79,12 @@ class UrtextFile:
         elif not contents:
             return
         else:
+            contents = self.clear_errors(contents)
             self.file_length = len(contents)        
             self.lex(contents)
             self.parse(contents, settings)
-
+            self.write_errors(settings)
+            
     def hash_contents(self, contents):
         r = bytearray(contents,'utf-8')
         md5 = hashlib.md5()
@@ -105,22 +107,24 @@ class UrtextFile:
         ## Filter out Syntax Push and delete wrapper elements between them.
         
         push_syntax = 0
+        to_remove = []
         for p in self.positions:
             if self.symbols[p] == '%%-[^E][A-Z-]*':
-                del self.symbols[p]
-                self.positions.remove(p)
+                to_remove.append(p)
                 push_syntax += 1
                 continue
 
             if self.symbols[p] ==  '%%-END-[A-Z-]*' :
-                del self.symbols[p]
-                self.positions.remove(p)
+                to_remove.append(p)
                 push_syntax -= 1
                 continue
 
             if push_syntax > 0:
-                self.positions.remove(p)
-                del self.symbols[p]
+                to_remove.append(p)
+
+        for s in to_remove:
+            del self.symbols[s]
+            self.positions.remove(s)
 
     def parse(self, contents, project_settings):
 
@@ -249,12 +253,11 @@ class UrtextFile:
                 if not success:
                     if root:
                         self.messages.append('Warning : root Node has no ID.')
-                        
                     elif compact:
                         self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
                     else:
                         self.messages.append('Warning: Node missing ID at position '+str(position))
- 
+
                 del nested_levels[nested]
                 last_position = position + symbol_length[self.symbols[position]]
 
@@ -262,12 +265,20 @@ class UrtextFile:
                 if not root:
                     nested -= 1                       
 
-                if self.strict and nested < 0:
-                    return self.log_error('Stray closing wrapper', position)  
-                
-        if self.strict and len(self.root_nodes) == 0:
-            return self.log_error('No root nodes found', 0)
-    
+                if nested < 0:
+                    message = 'Stray closing wrapper ', str(position)
+                    if self.strict:
+                        return self.log_error(message, position)  
+                    else:
+                        self.messages.append(message) 
+
+        if len(self.root_nodes) == 0:
+            message = 'No root nodes found'
+            if self.strict: 
+                return self.log_error(message, 0)
+            else: 
+                self.messages.append(message)
+
     def add_node(self, new_node, ranges, contents):
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
@@ -290,12 +301,62 @@ class UrtextFile:
             ) as theFile:
                 full_file_contents = theFile.read()
                 theFile.close()
-            return full_file_contents.encode('utf-8').decode('utf-8')
         except IsADirectoryError:
             return None
         except UnicodeDecodeError:
             self.log_error('UnicodeDecode Error: f>' + self.filename)
             return None
+        full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
+
+            
+        return full_file_contents
+    
+    def clear_errors(self, contents):
+        cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
+        if cleared_contents != contents:
+            with open(
+                self.filename,
+                'w',
+                encoding='utf-8',
+            ) as theFile:
+                theFile.write(cleared_contents)
+        return cleared_contents
+
+    def write_errors(self, settings):    
+        if not self.messages:
+            return False
+        contents = self.get_file_contents()
+        
+        messages = ''.join([ 
+            '<!!\n',
+            '\n'.join(self.messages),
+            '\n!!>\n',
+            ])
+        message_length = len(messages)
+        for n in re.finditer('position \d{1,10}', messages):
+            old_n = int(n.group().strip('position '))
+            new_n = old_n + message_length
+            messages = messages.replace(str(old_n), str(new_n))
+        if len(messages) != message_length:
+            print('STILL NOT RIGHT BUT IT WAS A GOOD TRY')
+
+        new_contents = ''.join([
+            messages,
+            contents,
+            ])
+
+        with open(
+                self.filename,
+                'w',
+                encoding='utf-8',
+            ) as theFile:
+            theFile.write(new_contents)
+        self.nodes = {}
+        self.root_nodes = []
+        self.anonymous_nodes = []
+        self.parsed_items = {}
+        self.messages = []
+        self.parse(new_contents, settings)
 
     def log_error(self, message, position):
 

@@ -62,6 +62,7 @@ class NodeMetadata:
 
     def get_values(self, 
         keyname,
+        # use_timestamp=False, # use timestamp as value (FUTURE)
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
 
@@ -78,18 +79,30 @@ class NodeMetadata:
                     values.extend(e.dt_string)            
         return values
   
-    def get_entries(self, keyname, value=None):
+    def get_entries(self, 
+        keyname, 
+        value=None):
+
         keyname = keyname.lower()
         if keyname in self.entries:
             return self.entries[keyname]
         return []
 
-    def get_matching_entries(self, keyname, value):
+    def get_matching_entries(self, 
+        keyname, 
+        value,
+        use_timestamp=False):
+
         entries = self.get_entries(keyname)
         matching_entries = []
         for e in entries:
-            if value in e.values:
-                matching_entries.append(e)
+            if not use_timestamp:
+                if value in e.values:
+                    matching_entries.append(e)
+            else:
+                if value == e.dt_stamp:
+                    matching_entries.append(e)
+
         return matching_entries
 
     def get_date(self, keyname):

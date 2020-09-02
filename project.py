@@ -27,14 +27,13 @@ import random
 import time
 import pickle
 from time import strftime
-from pytz import timezone
-import pytz
 import concurrent.futures
 from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
 import pprint
+from pytz import timezone
 
 from .file import UrtextFile
 from .interlinks import Interlinks
@@ -120,6 +119,7 @@ class UrtextProject:
                 '%B %d, %Y',
                 '%A, %B %d, %Y, %I:%M%p'
                 ],
+            'use_timestamp': ['timestamp','inline-timestamp'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log': True,
             'google_auth_token' : 'token.json',
@@ -374,6 +374,12 @@ class UrtextProject:
             start = match.start() + offset
             end = match.end() + offset
             location_node_id = self.get_node_id_from_position(filename, start)
+            if not location_node_id:
+                print('NO NODE FOUND')
+                print(start)
+                print(end)
+                print(filename)
+                continue
             if not self.nodes[location_node_id].dynamic:          
                 match_contents = new_contents[start:end]
                 node_id = match_contents[-3:]
@@ -1284,10 +1290,6 @@ class UrtextProject:
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
-
-    def get_all_titles(self):
-
-        return self.title_completions
 
     def random_node(self):
         if self.nodes:

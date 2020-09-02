@@ -50,7 +50,6 @@ class UrtextDynamicDefinition:
         self.sort_reverse = False
         self.sort_keyname = []
         self.sort_numeric = False
-        self.sort_date = False
         
         # FORMAT
         self.spaces = 0
@@ -120,10 +119,15 @@ class UrtextDynamicDefinition:
                 self.output_type = '-collection'
                 self.show = "$entry $link \n $contents\n\n"
 
+                # other_params = [] ## standalone tags no operators.
                 parse_group(self,
                     self.collect, 
-                    [], #discard
+                    [], #other_params,
                     inside_parentheses)
+                # for p in other_params:
+                #     if p:
+                #         self.collect.append((p,'*','=')) # default
+
                 continue
 
             if func in ['EXCLUDE','-']:
@@ -144,9 +148,6 @@ class UrtextDynamicDefinition:
 
                 if has_flags(['-reverse','-r'], flags):
                     self.sort_reverse = True
-
-                if has_flags(['-date','-d'], flags):
-                    self.sort_date = True
 
                 for param in separate(inside_parentheses):
                     if param:
@@ -258,12 +259,12 @@ def key_value(param, delimiters=[':']):
 def get_flags(contents):
     this_flags = []
     for f in valid_flags:
-        m = f.search(contents)
-        if m:
-            m = m.group(0).replace('(','').strip()
-            if m not in this_flags:
-                this_flags.append(m)
-            contents=contents.replace(m,';')
+        for m in re.finditer(f, contents):
+            if m:
+                flag = m.group().replace('(','').strip()
+                if flag not in this_flags:
+                    this_flags.append(flag)
+                contents=contents[:m.start()] + ';' + contents[m.end():]
     return contents, this_flags
 
 def get_export_kind(flgs):
@@ -282,7 +283,7 @@ def get_export_kind(flgs):
 def separate(param, delimiter=';'):
     return [r.strip() for r in re.split(delimiter+'|\n', param)]
 
-valid_flags = [re.compile(r'(^|[ ])'+f+r'\s?') for f in [ 
+valid_flags = [re.compile(r'(^|\s)'+f+r'\s?') for f in [ 
 
         '(^|[\s])\*($|[\s])',
         '-rr', 

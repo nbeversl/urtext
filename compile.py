@@ -31,6 +31,12 @@ compile method for the UrtextProject class
 """
 def _compile(self, 
     modified_files=[]):
+
+    if not modified_files:
+        modified_files = []
+    pre_modified_files = modified_files
+    modified_files = []
+
     self.formulate_links_to()
 
     for dynamic_definition in self.dynamic_nodes:
@@ -81,6 +87,7 @@ def _compile(self,
                         include_dynamic=dynamic_definition.include_dynamic)
                     )
 
+    
         included_nodes -= excluded_nodes
         included_nodes = set([self.nodes[i] for i in included_nodes])
 
@@ -173,8 +180,14 @@ def _compile(self,
                 for f in e.to_files:
                     with open(os.path.join(self.path, f), 'w',encoding='utf-8') as f:
                         f.write(exported_content)
+
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-    return list(set(modified_files))
+    
+    if modified_files:
+        print('COMPILING AGAIN')
+        return self._compile(modified_files=pre_modified_files.extend(modified_files))
+
+    return list(set(pre_modified_files))
 
 def _export(self, dynamic_definition):
 

@@ -30,6 +30,7 @@ class DynamicOutput():
         self.link = ''
         self.meta = ''
         self.entry = ''
+        self.key = ''
         self.contents = ''
         self.last_accessed = ''
         self.other_format_keys = {}
@@ -85,6 +86,10 @@ class DynamicOutput():
             self.needs_meta = True
         if self.shah + '$entry' in self.item_format:
             self.needs_entry = True
+        if self.shah + '$key' in self.item_format:
+            self.needs_entry = True
+        if self.shah + '$values' in self.item_format:
+            self.needs_entry = True
         if self.shah + '$_last_accessed' in self.item_format:
             self.needs_last_accessed = True
 
@@ -106,6 +111,8 @@ class DynamicOutput():
         self.item_format = self.item_format.replace(self.shah + '$date', self.date)
         self.item_format = self.item_format.replace(self.shah + '$meta', self.meta)
         self.item_format = self.item_format.replace(self.shah + '$entry', self.entry)
+        self.item_format = self.item_format.replace(self.shah + '$key', self.key)
+        self.item_format = self.item_format.replace(self.shah + '$values', str(self.values))
         self.item_format = self.item_format.replace(self.shah + '$_last_accessed', str(self.last_accessed))
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
