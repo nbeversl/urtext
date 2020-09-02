@@ -183,9 +183,9 @@ def _compile(self,
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
     
-    if modified_files:
-        print('COMPILING AGAIN')
-        return self._compile(modified_files=pre_modified_files.extend(modified_files))
+    # if modified_files:
+    #     print('COMPILING AGAIN')
+    #     return self._compile(modified_files=pre_modified_files.extend(modified_files))
 
     return list(set(pre_modified_files))
 
