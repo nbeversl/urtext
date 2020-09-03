@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = False # use False for development only
+        self.is_async = True # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -1381,7 +1381,7 @@ class UrtextProject:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
                     new_files.append(os.path.basename(file))
-        for filename in self.files:
+        for filename in list(self.files):
             if filename not in filelist:
                 self._log_item(filename+' no longer seen in project path. Dropping it from the project.')
                 self.remove_file(filename)

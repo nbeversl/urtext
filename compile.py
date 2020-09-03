@@ -44,7 +44,7 @@ def _compile(self,
     for dynamic_definition in self.dynamic_nodes: 
         
         points = {}
-        new_node_contents = []
+        new_node_contents = [' '] ## TODO: Make leading space an option.
         
         if not dynamic_definition.target_id and not dynamic_definition.exports:
             continue

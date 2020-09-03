@@ -28,7 +28,6 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
-exporter = JsonExporter(indent=2, sort_keys=True)
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{(?!.*{)(?:(?!}).)*}', re.DOTALL)
@@ -37,6 +36,8 @@ default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
+embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
+
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -76,6 +77,8 @@ class UrtextNode:
         self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
 
         stripped_contents = self.strip_metadata(stripped_contents)
+        stripped_contents = self.strip_embedded_syntaxes(stripped_contents)
+        
         self.title = self.set_title(stripped_contents)
        
         if self.metadata.get_first_value('id'):
@@ -138,6 +141,7 @@ class UrtextNode:
             node_contents.append(file_contents[segment[0]:segment[1]])
         node_contents = ''.join(node_contents)
         node_contents = self.strip_wrappers(node_contents)
+        node_contents = self.strip_embedded_syntaxes(contents=node_contents)
         return node_contents
 
     def strip_wrappers(self, contents):
@@ -159,6 +163,16 @@ class UrtextNode:
         if re.match('\s[a-z0-9]{3}', stripped_contents[-4:]):
             stripped_contents = stripped_contents[:-3]
 
+        return stripped_contents
+
+    @classmethod
+    def strip_embedded_syntaxes(self, contents=''):
+        if contents == '':
+            contents = self.contents()
+        stripped_contents = contents
+        for e in embedded_syntax.findall(stripped_contents):
+            print(e)
+            stripped_contents = stripped_contents.replace(e,'')
         return stripped_contents
 
     @classmethod
