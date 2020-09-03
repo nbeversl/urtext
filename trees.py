@@ -289,7 +289,7 @@ def duplicate_tree(self, original_node, leaf):
 
         if node.parent == original_node:
             """ Recursively apply this function to children's children """
-            new_node = self.duplicate_tree(node, leaf)
+            new_node = duplicate_tree(node, leaf)
             new_node.parent = new_root
 
     return new_root
