@@ -27,8 +27,7 @@ import re
 import datetime
 import logging
 import pytz
-from anytree import Node
-
+from anytree import Node, PreOrderIter
 exporter = JsonExporter(indent=2, sort_keys=True)
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
@@ -115,13 +114,6 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
-    def to_json(self):
-        json_ = dict(self.__dict__)
-        json_.pop('tz')
-        json_['metadata'] = self.metadata.to_json()
-        json_['tree_node'] = exporter.export(self.tree_node)
-        json_['date'] = self.date.isoformat()
-        return json_
 
     def default_sort(self):
         r = str(self.date.timestamp()) + self.title
@@ -357,5 +349,34 @@ class UrtextNode:
             return number
         except ValueError:
             return default
+
+    def duplicate_tree(self):
+        return duplicate_tree(self.tree_node)
+
+
+def duplicate_tree(original_node):
+
+    new_root = Node(original_node.name)
+
+    # iterate immediate children only
+    all_nodes = PreOrderIter(original_node, maxlevel=2)  
+
+    for node in all_nodes:
+
+        if node == original_node:
+            continue
+
+        if node.name in [ancestor.name for ancestor in node.ancestors]:
+
+            new_node = Node('! RECURSION :' + node.name)
+            new_node.parent = new_root
+            continue
+
+        if node.parent == original_node:
+            """ Recursively apply this function to children's children """
+            new_node = duplicate_tree(node)
+            new_node.parent = new_root
+    
+    return new_root
 
 

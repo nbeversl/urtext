@@ -220,7 +220,8 @@ class UrtextProject:
                 self._add_sub_tags( node_id, node_id, e)
 
         self._get_access_history()
-
+        self._build_alias_trees()  
+        self._rewrite_recursion()
         self._compile()
         self.compiled = True
 
@@ -1353,9 +1354,16 @@ class UrtextProject:
         self._parse_file(filename)
         return self._update(modified_files=modified_files)
 
+
+
     def _update(self, 
         modified_files=[]
         ):
+
+        # Build copies of trees wherever there are Node Pointers (>>)
+       
+        self._build_alias_trees()  
+        self._rewrite_recursion()
        
         modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
