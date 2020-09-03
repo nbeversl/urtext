@@ -86,6 +86,8 @@ def _collection(self,
                                     sort_value = float(value)
                                  except ValueError: 
                                     sort_value = 99999999
+                             else:
+                                sort_value = str(sort_value)
         
                              found_item['sort_value'] = sort_value
 

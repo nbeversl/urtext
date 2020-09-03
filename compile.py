@@ -30,12 +30,10 @@ import operator
 compile method for the UrtextProject class
 """
 def _compile(self, 
-    modified_files=[]):
+    modified_files=None):
 
     if not modified_files:
         modified_files = []
-    pre_modified_files = modified_files
-    modified_files = []
 
     self.formulate_links_to()
 
@@ -89,13 +87,15 @@ def _compile(self,
 
     
         included_nodes -= excluded_nodes
-        included_nodes = set([self.nodes[i] for i in included_nodes])
-
         # Never include a dynamic node in itself.
         if dynamic_definition.target_id:
-            included_nodes.discard(self.nodes[dynamic_definition.target_id])           
+            print('DISCARDING')
+            print(dynamic_definition.target_id)
+            included_nodes.discard(dynamic_definition.target_id)           
         if self.settings['log_id'] in self.nodes:
-            included_nodes.discard(self.nodes[self.settings['log_id']])
+            included_nodes.discard(self.settings['log_id'])
+        
+        included_nodes = set([self.nodes[i] for i in included_nodes])
 
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
@@ -145,7 +145,6 @@ def _compile(self,
         if messages_file:
              modified_files.append(messages_file)
 
-    
     for dynamic_definition in self.dynamic_nodes: 
 
         if dynamic_definition.exports:
@@ -183,11 +182,7 @@ def _compile(self,
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
     
-    # if modified_files:
-    #     print('COMPILING AGAIN')
-    #     return self._compile(modified_files=pre_modified_files.extend(modified_files))
-
-    return list(set(pre_modified_files))
+    return list(set(modified_files))
 
 def _export(self, dynamic_definition):
 

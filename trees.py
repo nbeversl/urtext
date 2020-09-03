@@ -157,9 +157,12 @@ def show_tree_from(self,
                    dynamic_definition,
                    from_root_of=False):
 
+
     if node_id not in self.nodes:
         self._log_item(root_node_id + ' is not in the project')
         return None
+
+
 
     start_point = self.nodes[node_id].tree_node
     if from_root_of == True:
@@ -182,7 +185,8 @@ def show_tree_from(self,
     self._detach_excluded_tree_nodes(start_point)
 
     tree_render = ''
-    for pre, _, this_node in RenderTree(start_point, 
+    for pre, _, this_node in RenderTree(
+            start_point, 
             style=ContStyle, 
             maxlevel=dynamic_definition.depth):
         
@@ -222,7 +226,7 @@ def show_tree_from(self,
 
             tree_render += "%s%s" % (pre, next_content.output())
 
-        elif this_node.name[0:11] == '! RECURSION 1':
+        elif this_node.name[0:11] == '! RECURSION':
             tree_render += "%s%s" % (pre, this_node.name + '\n')    
 
         else: 
