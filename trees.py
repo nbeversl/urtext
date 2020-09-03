@@ -105,52 +105,28 @@ def _build_alias_tree(self, alias_node_id):
     if new_root_node:
         new_root_node.parent = alias_node
 
-def _rewrite_recursion(self):
-    """
-    If alias nodes have themselves as ancestors, 
-    prevent recursion.
-    """
-
-    for node in self.alias_nodes:
-
-        """ Iterate the entire tree from this node """
-        all_nodes = PreOrderIter(node) 
-
-        for sub_node in all_nodes:
-            """ 
-            .name in this context is the node ID.
-            In case it has already been marked as recursion,
-            we always want just the last 3 characters.
-            """
-            alias_node_id = sub_node.name[-3:]
- 
-            if alias_node_id in [ancestor.name for ancestor in sub_node.ancestors]:
-
-                sub_node.name = '! RECURSION : ' + self.nodes[alias_node_id].title + ' >'+alias_node_id
-
-                """ prevent recursion by ending the tree here """
-                sub_node.children = []
-
 def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
+
+    found_nodes = []
 
     for descendant in self.nodes[root_id.name].tree_node.descendants:
 
         flag = flag.lower()
 
         # allow for tree nodes with names that are not node IDs, 
-        # such as RECURION >, etc. 
+        # such as RECURSION >, etc.             
         if descendant.name not in self.nodes:
             continue 
 
         # Otherwise, remove it from the tree if it is flagged
         if flag == 'tree' and 'exclude_from_tree' in self.nodes[descendant.name].metadata.get_values('flags'):
             descendant.parent = None
-            continue
 
         # Otherwise, remove it from export if it is flagged
         if flag == 'export' and 'exclude_from_export' in self.nodes[descendant.name].metadata.get_values('flags'):
             descendant.parent = None
 
+        found_nodes.append(descendant.name)
 
 def show_tree_from(self, 
                    node_id,
@@ -200,7 +176,7 @@ def show_tree_from(self,
                     link.extend(['{"',this_node.parent_project,'"}'])
                 else:
                     link.append('>')
-                link.extend(['>', str(this_node.id)])
+                link.append(str(this_node.id))
                 next_content.link = ''.join(link)
 
             if next_content.needs_date:
@@ -241,14 +217,13 @@ def duplicate_tree(self, original_node, leaf):
 
     # iterate immediate children only
     all_nodes = PreOrderIter(original_node, maxlevel=2)  
-
     for node in all_nodes:
 
         if node == original_node:
             continue
 
         if node.name in ancestors:
-            new_node = Node('! RECURSION 2:' + node.name)
+            new_node = Node('! RECURSION (node in own ancestors): >' + node.name)
             new_node.parent = new_root
             continue
  
@@ -263,7 +238,7 @@ def duplicate_tree(self, original_node, leaf):
                     new_node.parent = new_root            
                 continue
             else:
-                new_node = Node(' !RECURSION 3:')
+                new_node = Node('! RECURSION 3:')
                 new_node.parent = new_root         
             continue
 
@@ -286,7 +261,6 @@ def has_aliases(start_point):
 trees_functions=[
     show_tree_from, 
     _detach_excluded_tree_nodes, 
-    _rewrite_recursion, 
     _build_alias_tree,
     _set_tree_elements,
     duplicate_tree,
