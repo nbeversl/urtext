@@ -115,13 +115,6 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
-    def to_json(self):
-        json_ = dict(self.__dict__)
-        json_.pop('tz')
-        json_['metadata'] = self.metadata.to_json()
-        json_['tree_node'] = exporter.export(self.tree_node)
-        json_['date'] = self.date.isoformat()
-        return json_
 
     def default_sort(self):
         r = str(self.date.timestamp()) + self.title

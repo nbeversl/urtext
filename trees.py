@@ -32,7 +32,7 @@ def _set_tree_elements(self, filename):
                     alias_node = Node('ALIAS'+inserted_node_id)
                     alias_node.parent = self.nodes[parent_node].tree_node
                     if inserted_node_id not in self.alias_nodes:
-                        self.alias_nodes.append(inserted_node_id)
+                        self.alias_nodes.append(Node(inserted_node_id))
                     break
             continue
 
@@ -70,6 +70,22 @@ def _set_tree_elements(self, filename):
             if parent == None:
                 continue
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
+
+def _build_alias_trees(self):
+    """ 
+    Adds copies of trees wherever there are Node Pointers (>>) 
+    Must be called only when all nodes are parsed (exist) so it does not miss any
+    """
+
+    # must use EXISTING node so it appears at the right place in the tree.
+    for node in self.alias_nodes:
+        node_id = node.name[-3:]
+        if node_id in self.nodes:
+            duplicate_node = self.nodes[node_id].duplicate_tree()
+            node.children = [s for s in duplicate_node.children]
+        else:
+            new_node = Node('MISSING NODE ' + node_id)
+
 
 def _build_alias_tree(self, alias_node_id):
     """ 
@@ -291,7 +307,7 @@ trees_functions=[
     show_tree_from, 
     _detach_excluded_tree_nodes, 
     _rewrite_recursion, 
-    _build_alias_tree,
+    _build_alias_trees,
     _set_tree_elements,
     duplicate_tree,
     ]
