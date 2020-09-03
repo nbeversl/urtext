@@ -89,8 +89,6 @@ def _compile(self,
         included_nodes -= excluded_nodes
         # Never include a dynamic node in itself.
         if dynamic_definition.target_id:
-            print('DISCARDING')
-            print(dynamic_definition.target_id)
             included_nodes.discard(dynamic_definition.target_id)           
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.settings['log_id'])

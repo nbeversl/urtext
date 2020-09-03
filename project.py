@@ -220,7 +220,8 @@ class UrtextProject:
                 self._add_sub_tags( node_id, node_id, e)
 
         self._get_access_history()
-
+        self._build_alias_trees()  
+        self._rewrite_recursion()
         self._compile()
         self.compiled = True
 
@@ -1360,6 +1361,7 @@ class UrtextProject:
         ):
 
         # Build copies of trees wherever there are Node Pointers (>>)
+       
         self._build_alias_trees()  
         self._rewrite_recursion()
        

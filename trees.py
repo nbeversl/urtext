@@ -15,12 +15,7 @@ def _set_tree_elements(self, filename):
     for index, position in enumerate(positions):
 
         node = parsed_items[position]
-
-        #
-        # If the parsed item is a tree marker to another node,
-        # parse the markers, positioning it within its parent node
-        #
-
+        # parse each marker, positioning it within its parent node
         if node[:2] == '>>':
             inserted_node_id = node[2:]
             for other_node in [
@@ -87,39 +82,37 @@ def _build_alias_trees(self):
             new_node = Node('MISSING NODE ' + node_id)
 
 
-def _build_alias_tree(self, alias_node_id):
-    """ 
-    Adds copies of trees wherever there are Node Pointers (>>) 
-    Must be called only when all nodes are parsed (exist) so it does not miss any
-    """
-
- 
-    duplicate_node = self.nodes[node_id].duplicate_tree()
+# def _build_alias_tree(self, alias_node_id):
+#     """ 
+#     Adds copies of trees wherever there are Node Pointers (>>) 
+#     Must be called only when all nodes are parsed (exist) so it does not miss any
+#     """
+#     duplicate_node = self.nodes[node_id].duplicate_tree()
     
-    all_dup_nodes = PreOrderIter(duplicate_node)  
-    s = [ancestor.name for ancestor in alias_node.ancestors]
-    s.append(alias_node.name)            
-    new_nodes = []
+#     all_dup_nodes = PreOrderIter(duplicate_node)  
+#     s = [ancestor.name for ancestor in alias_node.ancestors]
+#     s.append(alias_node.name)            
+#     new_nodes = []
 
-    for dup_node in all_dup_nodes:
-        if dup_node.name == alias_node.name:
-            continue
-        if not dup_node:
-            continue
-        if dup_node not in new_nodes:
-            if dup_node.is_root:
-                new_root_node = Node(dup_node.root.name)
-                new_nodes.append(new_root_node)
-            new_node = Node(dup_node.name)
-            if dup_node.parent and dup_node.parent not in new_nodes:
-                parent_node = Node(dup_node.parent.name)
-                new_node.parent = parent_node
-                new_nodes.append(parent_node)
-            new_nodes.append(new_node)
-    else:
-        new_node = Node('MISSING NODE ' + node_id)
-    if new_root_node:
-        new_root_node.parent = alias_node
+#     for dup_node in all_dup_nodes:
+#         if dup_node.name == alias_node.name:
+#             continue
+#         if not dup_node:
+#             continue
+#         if dup_node not in new_nodes:
+#             if dup_node.is_root:
+#                 new_root_node = Node(dup_node.root.name)
+#                 new_nodes.append(new_root_node)
+#             new_node = Node(dup_node.name)
+#             if dup_node.parent and dup_node.parent not in new_nodes:
+#                 parent_node = Node(dup_node.parent.name)
+#                 new_node.parent = parent_node
+#                 new_nodes.append(parent_node)
+#             new_nodes.append(new_node)
+#     else:
+#         new_node = Node('MISSING NODE ' + node_id)
+#     if new_root_node:
+#         new_root_node.parent = alias_node
 
 def _rewrite_recursion(self):
     """
@@ -139,10 +132,12 @@ def _rewrite_recursion(self):
             we always want just the last 3 characters.
             """
             alias_node_id = sub_node.name[-3:]
- 
-            if alias_node_id in [ancestor.name for ancestor in sub_node.ancestors]:
 
+            if alias_node_id in [ancestor.name for ancestor in sub_node.ancestors]:
                 sub_node.name = '! RECURSION : ' + self.nodes[alias_node_id].title + ' >'+alias_node_id
+                if alias_node_id in ['0y8','6zi']:
+                    print('TRAPPED IT.')
+                    print(sub_node.name)
 
                 """ prevent recursion by ending the tree here """
                 sub_node.children = []
@@ -154,8 +149,11 @@ def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
         flag = flag.lower()
 
         # allow for tree nodes with names that are not node IDs, 
-        # such as RECURION >, etc. 
+        # such as RECURSION >, etc. 
+
         if descendant.name not in self.nodes:
+            print('lETTING THIS STAY:')
+            print(descendant.name)
             continue 
 
         # Otherwise, remove it from the tree if it is flagged
@@ -173,12 +171,9 @@ def show_tree_from(self,
                    dynamic_definition,
                    from_root_of=False):
 
-
     if node_id not in self.nodes:
         self._log_item(root_node_id + ' is not in the project')
         return None
-
-
 
     start_point = self.nodes[node_id].tree_node
     if from_root_of == True:
@@ -198,6 +193,7 @@ def show_tree_from(self,
 
         alias_nodes = has_aliases(start_point)
 
+
     self._detach_excluded_tree_nodes(start_point)
 
     tree_render = ''
@@ -205,7 +201,9 @@ def show_tree_from(self,
             start_point, 
             style=ContStyle, 
             maxlevel=dynamic_definition.depth):
-        
+       
+        if this_node.name in ['0y8','6zi']:
+            print('TRAPPED IT AGAIN.')
         if this_node.name in self.nodes:
 
             this_node = self.nodes[this_node.name]
@@ -242,6 +240,7 @@ def show_tree_from(self,
 
             tree_render += "%s%s" % (pre, next_content.output())
 
+        
         elif this_node.name[0:11] == '! RECURSION':
             tree_render += "%s%s" % (pre, this_node.name + '\n')    
 
@@ -283,13 +282,13 @@ def duplicate_tree(self, original_node, leaf):
                     new_node.parent = new_root            
                 continue
             else:
-                new_node = Node(' !RECURSION 3:')
+                new_node = Node('! RECURSION 3:')
                 new_node.parent = new_root         
             continue
 
         if node.parent == original_node:
             """ Recursively apply this function to children's children """
-            new_node = duplicate_tree(node, leaf)
+            new_node = self.duplicate_tree(node, leaf)
             new_node.parent = new_root
 
     return new_root
@@ -298,7 +297,7 @@ def duplicate_tree(self, original_node, leaf):
 def has_aliases(start_point):
     alias_nodes = []
     leaves = start_point.leaves  
-    for leaf in leaves:       
+    for leaf in leaves:
         if 'ALIAS' in leaf.name and leaf not in alias_nodes:
             alias_nodes.append(leaf)
     return alias_nodes
