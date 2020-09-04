@@ -480,16 +480,15 @@ class UrtextProject:
 
     def _parse_meta_dates(self, node_id):
         """ Parses dates (requires that timestamp_format already be set) """
-        
         for entry in self.nodes[node_id].metadata._entries:
 
-            if entry.dt_string:
+            if entry.dt_string:                    
                 dt_stamp = self._date_from_timestamp(entry.dt_string)
-
                 if dt_stamp:
                     entry.dt_stamp = dt_stamp 
                     if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
                         self.nodes[node_id].date = dt_stamp
+
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None
@@ -828,7 +827,7 @@ class UrtextProject:
         if self.settings['node_date_keyname']:
             metadata[self.settings['node_date_keyname']] = self.timestamp(date)
         metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
-        return '^  '+contents + metadata_block
+        return '^  '+contents + ' ' + metadata_block
 
     def _prefix_length(self):
         """ Determines the prefix length for indexing files (requires an already-compiled project) """

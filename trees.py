@@ -183,10 +183,13 @@ def show_tree_from(self,
 
             if next_content.needs_date:
                 next_content.date = this_node.get_date(format_string = self.settings['timestamp_format'][0])
+  
             if next_content.needs_meta:
                 next_content.meta = this_node.consolidate_metadata()
+
             if next_content.needs_contents: 
                 next_content.contents = this_node.content_only().strip('\n').strip()
+
             if next_content.needs_last_accessed: 
                 t = datetime.datetime.utcfromtimestamp(this_node.metadata.get_first_value('_last_accessed'))
                 next_content.last_accessed = t.strftime(self.settings['timestamp_format'][0])
@@ -194,10 +197,10 @@ def show_tree_from(self,
             for meta_key in next_content.needs_other_format_keys:
                 values = this_node.metadata.get_values(meta_key, substitute_timestamp=True)
                 replacement = ''
-                if values:
+                if values and isinstance(values,list):
                     replacement = ' | '.join(values)
                 next_content.other_format_keys[meta_key] = replacement
-
+           
             tree_render += "%s%s" % (pre, next_content.output())
 
         

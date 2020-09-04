@@ -73,6 +73,7 @@ class NodeMetadata:
             return values
         for e in entries:
             values.extend(e.values)
+            
         if not values and substitute_timestamp:
             for e in entries:
                 if e.dt_stamp != default_date:
