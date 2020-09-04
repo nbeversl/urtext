@@ -35,9 +35,13 @@ def reindex_files(self):
         return self.executor.submit(self._rename_file_nodes, list(self.files), reindex=True)
     return self._rename_file_nodes(list(self.files), reindex=True)
 
-def _rename_file_nodes(self, filenames, reindex=False):
+def rename_file_nodes(self, filename, reindex=False):
+    if self.is_async:
+        self.executor.submit(self._rename_file_nodes, filename, reindex=reindex)
+    else:
+        self._rename_file_nodes(filename, reindex=reindex)
 
-    #self.observer.stop() # watchdog must be off
+def _rename_file_nodes(self, filenames, reindex=False):
 
     """ Rename a file or list of files by metadata """
     if isinstance(filenames, str):
@@ -117,8 +121,6 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         if old_filename[-4:].lower() == '.txt': # skip history files
             self._handle_renamed(old_filename, new_filename)
-
-    #self._initialize_watchdog() # set up new watchdog
 
     """
     Returns a list of renamed files with full paths
