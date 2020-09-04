@@ -22,20 +22,26 @@ Metadata
 """
 import datetime
 import re 
+from .node import UrtextNode
 
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?',re.DOTALL)
 
+def tag_other_node(self,node_id, metadata={}):
+    return self.executor.submit(self._tag_other_node, node_id, metadata=metadata)
 
-def tag_other_node(self, node_id, tag_contents):
+def _tag_other_node(self, node_id, metadata={}):
     """adds a metadata tag to a node programmatically"""
 
-    timestamp = self.timestamp(datetime.datetime.now())
     territory = self.nodes[node_id].ranges
-    
+    metadata_contents = UrtextNode.build_metadata(metadata)
+   
     full_file_contents = self._full_file_contents(node_id=node_id)
     tag_position = territory[-1][1]
 
-    new_contents = full_file_contents[:tag_position] + tag_contents + full_file_contents[tag_position:]
+    new_contents = ''.join([
+        full_file_contents[:tag_position],
+        metadata_contents,
+        full_file_contents[tag_position:]])
 
     self._set_file_contents(self.nodes[node_id].filename, new_contents)
     return self.on_modified(self.nodes[node_id].filename)
@@ -163,4 +169,4 @@ def _remove_sub_tags(self, source_id):
     for node_id in nodes_to_rebuild:
         self._rebuild_node_meta(node_id)
 
-metadata_functions = [ _add_sub_tags, _remove_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]
+metadata_functions = [ _add_sub_tags,  _tag_other_node, _remove_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]

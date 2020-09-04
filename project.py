@@ -798,7 +798,7 @@ class UrtextProject:
         new_node_contents = ''.join([
             '{ ', 
             contents,
-            '\n',
+            '  ',
             UrtextNode.build_metadata(metadata, one_line=one_line),
             ' '])
         if trailing_id:
