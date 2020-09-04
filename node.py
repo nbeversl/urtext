@@ -76,8 +76,8 @@ class UrtextNode:
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
 
-        stripped_contents = self.strip_metadata(stripped_contents)
-        stripped_contents = self.strip_embedded_syntaxes(stripped_contents)
+        stripped_contents = self.strip_metadata(contents=stripped_contents)
+        stripped_contents = self.strip_embedded_syntaxes(contents=stripped_contents)
         
         self.title = self.set_title(stripped_contents)
        
@@ -166,8 +166,8 @@ class UrtextNode:
         return stripped_contents
 
     @classmethod
-    def strip_embedded_syntaxes(self, contents=''):
-        if contents == '':
+    def strip_embedded_syntaxes(self, contents=None):
+        if contents == None:
             contents = self.contents()
         stripped_contents = contents
         for e in embedded_syntax.findall(stripped_contents):
