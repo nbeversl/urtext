@@ -195,8 +195,8 @@ def show_tree_from(self,
                 values = this_node.metadata.get_values(meta_key, substitute_timestamp=True)
                 replacement = ''
                 if values:
-                    replacement = ' '.join(values)
-                next_content.other_format_keys[meta_key] = values
+                    replacement = ' | '.join(values)
+                next_content.other_format_keys[meta_key] = replacement
 
             tree_render += "%s%s" % (pre, next_content.output())
 
