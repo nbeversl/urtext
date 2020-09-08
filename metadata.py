@@ -77,7 +77,7 @@ class NodeMetadata:
         if not values and substitute_timestamp:
             for e in entries:
                 if e.dt_stamp != default_date:
-                    values.extend(e.dt_string)            
+                    values.append(e.dt_string)            
         return values
   
     def get_entries(self, 

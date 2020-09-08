@@ -214,6 +214,7 @@ def build_final_output(dynamic_definition, contents):
         footer = bytes(dynamic_definition.footer, "utf-8").decode("unicode_escape") + '\n'
 
     final_contents = ''.join([
+        ' ',
         bytes(dynamic_definition.header, "utf-8").decode("unicode_escape"),
         contents,
         footer,

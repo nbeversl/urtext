@@ -806,15 +806,15 @@ class UrtextProject:
         new_node_contents += "}"
         return (new_node_contents, node_id)
 
-    def insert_interlinks(self, node_id, one_line=True):
-        new_node = self.add_inline_node()
-        insertion = new_node[0]
-        new_node_id = new_node[1]
-        dynamic_def =   '[[ id('+ new_node_id +'); '
-        dynamic_def +=  'interlinks:'+node_id
-        dynamic_def += ' ]]'
+    # def insert_interlinks(self, node_id, one_line=True):
+    #     new_node = self.add_inline_node()
+    #     insertion = new_node[0]
+    #     new_node_id = new_node[1]
+    #     dynamic_def =   '[[ id('+ new_node_id +'); '
+    #     dynamic_def +=  'interlinks:'+node_id
+    #     dynamic_def += ' ]]'
 
-        return '\n'.join([insertion, dynamic_def])
+    #     return '\n'.join([insertion, dynamic_def])
 
     def add_compact_node(self, 
             date=None, 
