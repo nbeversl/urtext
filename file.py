@@ -322,11 +322,13 @@ class UrtextFile:
                 theFile.write(cleared_contents)
         return cleared_contents
 
-    def write_errors(self, settings):    
-        if not self.messages:
+    def write_errors(self, settings, messages=None):
+        if not messages and not self.messages:
             return False
-        contents = self.get_file_contents()
-        
+        if messages:
+            self.messages = messages
+            
+        contents = self.get_file_contents()        
         messages = ''.join([ 
             '<!!\n',
             '\n'.join(self.messages),

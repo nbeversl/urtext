@@ -359,9 +359,15 @@ class UrtextProject:
             basename = os.path.basename(file_obj.filename)
             self.messages[basename].append('Duplicate node ID(s) found')
 
+            messages = []
             for node_id in duplicate_nodes:
-                self.messages[basename].append(''.join(['ID >',node_id,' exists in ',duplicate_nodes[node_id]]))
-                self._log_item(''.join(['ID >',node_id,' exists in >f',duplicate_nodes[node_id]]))
+                messages.append(''.join([
+                    'node ID >',
+                    node_id,
+                    ' exists in f>',
+                    duplicate_nodes[node_id]]) )
+
+            file_obj.write_errors( self.settings, messages=messages)
             return duplicate_nodes
 
         return False
@@ -376,10 +382,6 @@ class UrtextProject:
             end = match.end() + offset
             location_node_id = self.get_node_id_from_position(filename, start)
             if not location_node_id:
-                print('NO NODE FOUND')
-                print(start)
-                print(end)
-                print(filename)
                 continue
             if not self.nodes[location_node_id].dynamic:          
                 match_contents = new_contents[start:end]
@@ -702,17 +704,18 @@ class UrtextProject:
         and returns a future of modified files.
         """
         filename = os.path.basename(filename)
-        node_ids = list(self.files[filename].nodes)
-        future = self.remove_file(filename)
-        os.remove(os.path.join(self.path, filename))
-        for node_id in node_ids:
-            while node_id in self.navigation:
-                index = self.navigation.index(node_id)
-                del self.navigation[index]
-                if self.nav_index > index: # >= ?
-                    self.nav_index -= 1
-        
-        return node_ids # to project_list
+        if filename in self.files:
+            node_ids = list(self.files[filename].nodes)
+            future = self.remove_file(filename)
+            os.remove(os.path.join(self.path, filename))
+            for node_id in node_ids:
+                while node_id in self.navigation:
+                    index = self.navigation.index(node_id)
+                    del self.navigation[index]
+                    if self.nav_index > index: # >= ?
+                        self.nav_index -= 1            
+            return node_ids # to project_list
+        return []
 
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
@@ -995,7 +998,7 @@ class UrtextProject:
         Returns the list of all nodes linking to the passed id
         """
         if to_id in self.links_to:
-            return  self.links_to[to_id]
+            return [i for i in self.links_to[to_id] if i in self.nodes]
         return []
 
     def get_links_from(self, from_id):
@@ -1003,7 +1006,7 @@ class UrtextProject:
         Returns the list of all nodes linking to the passed id
         """
         if from_id in self.links_from:
-            return self.links_from[from_id]
+            return [i for i in self.links_from[from_id] if i in self.nodes]
         return []
 
     def get_link(self, string, position=0):

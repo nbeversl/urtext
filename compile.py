@@ -44,7 +44,7 @@ def _compile(self,
     for dynamic_definition in self.dynamic_nodes: 
         
         points = {}
-        new_node_contents = [' '] ## TODO: Make leading space an option.
+        new_node_contents = []
         
         if not dynamic_definition.target_id and not dynamic_definition.exports:
             continue
@@ -213,9 +213,15 @@ def build_final_output(dynamic_definition, contents):
     if dynamic_definition.footer:
         footer = bytes(dynamic_definition.footer, "utf-8").decode("unicode_escape") + '\n'
 
+    header = ''
+    if dynamic_definition.header:
+        header = bytes(dynamic_definition.header, "utf-8").decode("unicode_escape")
+        if header[-1] != '\n':
+            header += '\n'
+
     final_contents = ''.join([
-        ' ',
-        bytes(dynamic_definition.header, "utf-8").decode("unicode_escape"),
+        ' ', ## TODO: Make leading space an option.
+        header,
         contents,
         footer,
         built_metadata
