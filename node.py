@@ -92,6 +92,7 @@ class UrtextNode:
             if r:
                 self.id = contents[-3:]
                 self.trailing_node_id = True
+                self.metadata.add_meta_entry('id',[self.id])
 
         title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
