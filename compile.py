@@ -45,15 +45,11 @@ def _compile(self,
         
         points = {}
         new_node_contents = []
-        
-        if not dynamic_definition.target_id and not dynamic_definition.exports:
-            continue
 
         if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                           ' points to nonexistent node >' + dynamic_definition.target_id)
-            if not dynamic_definition.exports:
-                continue
+            continue
            
         # Determine included and excluded nodes
         included_projects = [self]
@@ -88,8 +84,10 @@ def _compile(self,
     
         included_nodes -= excluded_nodes
         # Never include a dynamic node in itself.
+        
         if dynamic_definition.target_id:
             included_nodes.discard(dynamic_definition.target_id)           
+
         if self.settings['log_id'] in self.nodes:
             included_nodes.discard(self.settings['log_id'])
         
@@ -110,7 +108,6 @@ def _compile(self,
             key=sort_order,
             reverse=dynamic_definition.sort_reverse)
 
-
         # Apply limiting after sort
         if dynamic_definition.limit:
             included_nodes = included_nodes[0:dynamic_definition.limit]
@@ -128,38 +125,46 @@ def _compile(self,
                 new_node_contents.append(self.show_tree_from(targeted_node.id, dynamic_definition))
 
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
+        
+        if dynamic_definition.target_id:
 
-        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
-        if changed_file:
-            modified_files.append(changed_file)       
-                                               
-        self.nodes[dynamic_definition.target_id].dynamic = True
+            changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
+            
+            if changed_file:
+                modified_files.append(changed_file)
 
-        # Dynamic nodes have blank title by default. Title can be set by header or title key.
-        if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
-            self.nodes[dynamic_definition.target_id].title = ''
+            self.nodes[dynamic_definition.target_id].dynamic = True
 
-        messages_file = self._populate_messages()
-        if messages_file:
-             modified_files.append(messages_file)
+            # Dynamic nodes have blank title by default. Title can be set by header or title key.
+            if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
+                self.nodes[dynamic_definition.target_id].title = ''
 
-    for dynamic_definition in self.dynamic_nodes: 
+            messages_file = self._populate_messages()
+            if messages_file:
+                 modified_files.append(messages_file)        
 
         if dynamic_definition.exports:
 
             for e in dynamic_definition.exports:
 
                 exported = UrtextExport(self) 
-                exported_content, points = exported.export_from(
-                     dynamic_definition.target_id,
-                     kind=e.output_type,
-                     #exclude=exclude, # prevents recurssion
-                     as_single_file=True, # TODO should be option 
-                     clean_whitespace=True,
-                     preformat=e.preformat)
+                exported_content = ''
+                for node in included_nodes:
+
+                    node_export, points = exported.export_from(
+                         node.id,
+                         kind=e.output_type,
+                         exclude=list(excluded_nodes),
+                         as_single_file=True, # TODO should be option 
+                         clean_whitespace=True,
+                         preformat=e.preformat)
                     
+                    exported_content += '\n'+node_export
+
                 for n in e.to_nodes:
+                    
                     if n in self.nodes:
+                        
                         metadata_values = { 
                             'ID': [ n ],
                             'def' : [ '>'+dynamic_definition.source_id ] }
@@ -182,28 +187,12 @@ def _compile(self,
     
     return list(set(modified_files))
 
-def _export(self, dynamic_definition):
-
-    exclude=[]
-    if dynamic_definition.target_id:
-        exclude.append(dynamic_definition.target_id)
-
-    exported = UrtextExport(self) 
-    exported_content, points = exported.export_from(
-         dynamic_definition.export_source,
-         kind=dynamic_definition.export,
-         exclude =exclude, # prevents recurssion
-         as_single_file=True, # TOdO should be option 
-         clean_whitespace=True,
-         preformat = dynamic_definition.preformat)
-        
-    return exported_content
-
 def build_final_output(dynamic_definition, contents):
 
-    metadata_values = { 
-        'ID': [ dynamic_definition.target_id ],
-        'def' : [ '>'+dynamic_definition.source_id ] }
+    metadata_values = {}
+    if dynamic_definition.target_id:
+        metadata_values['ID'] = dynamic_definition.target_id
+        metadata_values['def'] = [ '>'+dynamic_definition.source_id ] 
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
@@ -255,4 +244,4 @@ def indent(contents, spaces=4):
             content_lines[index] = ' ' * spaces + line
     return '\n'.join(content_lines)
 
-compile_functions = [_compile, _export ]
+compile_functions = [_compile ]

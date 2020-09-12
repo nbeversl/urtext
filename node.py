@@ -34,7 +34,7 @@ subnode_regexp = re.compile(r'{(?!.*{)(?:(?!}).)*}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>[0-9,a-z]{3}\b'
-timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)', flags=re.DOTALL)
+timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
 
@@ -92,7 +92,7 @@ class UrtextNode:
             if r:
                 self.id = contents[-3:]
                 self.trailing_node_id = True
-                self.metadata.add_meta_entry('id',[self.id])
+                self.metadata.add_meta_entry('id',[self.id],position=len(contents)-3)
 
         title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
@@ -146,8 +146,12 @@ class UrtextNode:
         return node_contents
 
     def strip_wrappers(self, contents):
-        contents = contents.replace('{','')
-        contents = contents.replace('}','')
+        if contents and contents[0] in ['}','{']:
+            contents = contents[1:]
+        if contents and contents[-1] in ['}','{']:
+            contents = contents[:-1]
+        # contents = contents.replace('{','')
+        # contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('^','',1)        
         return contents
@@ -261,7 +265,7 @@ class UrtextNode:
         logging.info(self.filename)
         logging.info(self.metadata.log())
 
-    def consolidate_metadata(self, one_line=True):
+    def consolidate_metadata(self, one_line=True, separator='::'):
         
         keynames = {}
         for entry in self.metadata._entries:
@@ -275,12 +279,13 @@ class UrtextNode:
             for value in entry.values:
                 keynames[entry.keyname].append(str(value)+timestamp)
 
-        return self.build_metadata(keynames, one_line=one_line)
+        return self.build_metadata(keynames, one_line=one_line, separator=separator)
 
     @classmethod
     def build_metadata(self, 
         metadata, 
         one_line=False, 
+        separator='::'
         ):
 
         if not metadata:
@@ -293,7 +298,7 @@ class UrtextNode:
         new_metadata = ''
 
         for keyname in metadata:
-            new_metadata += keyname + '::'
+            new_metadata += keyname + separator
             if isinstance(metadata[keyname], list):
                 new_metadata += ' | '.join(metadata[keyname])
             else:

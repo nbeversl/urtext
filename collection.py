@@ -97,7 +97,7 @@ def _collection(self,
                          # lines = 1 # FUTURE
 
                          # get content with full meta.
-                         full_contents = node.contents().split('\n')
+                         full_contents = node.content_only().split('\n')
                          
                          context = []
                          length = 0
@@ -112,6 +112,8 @@ def _collection(self,
                                     break
                                  elif context: 
                                     break
+                            if not entry.position:
+                                entry.log()
                             if entry.position < length:
                                 if line.strip(): 
                                     context.append(line.strip())

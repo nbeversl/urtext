@@ -27,6 +27,8 @@ node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 
+
+
 class UrtextExport:
 
     def __init__(self, project):
@@ -38,44 +40,6 @@ class UrtextExport:
             '-md' :'.md'
         }
    
-    def _strip_urtext_syntax(self, contents):
-        contents = UrtextNode.strip_contents(contents)
-        contents = contents.replace('{','')
-        contents = contents.replace('}','')
-        contents = re.sub(r'^\%', '', contents, flags=re.MULTILINE)
-        contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
-        return contents
-
-    def _opening_wrapper(self, kind, node_id, nested):
-        wrappers = { 
-            '-html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
-            '-markdown': '',
-            '-plaintext': '',
-            '-md': ''
-            }
-        return wrappers[kind]
-
-    def _closing_wrapper(self, kind):
-        wrappers = { 
-            '-html': '</div>',
-            '-markdown': '',
-            '-plaintext': '',
-            '-md': '',
-            }
-        return wrappers[kind]
-
-    def _wrap_title(self, kind, node_id, nested):
-        title = self.project.nodes[node_id].title
-
-        wrappers = {
-            '-markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
-            '-md': '\n\n' + '#' * nested + ' ' + title.strip(),
-            '-html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
-            '-plaintext' : title,
-        }
-        return wrappers[kind]
-
-
     def export_from(self, 
         root_node_id, 
         as_single_file=False,
@@ -86,22 +50,20 @@ class UrtextExport:
         kind='plaintext',
         preformat=False,
         ):
-    
+ 
         if exclude == None:
             exclude = []
 
-        """
-        Public method to export a tree of nodes from a given root node
-        """
         visited_nodes = []
         points = {}
+
         """
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
         if kind in ['-markdown', '-md']:
             clean_whitespace = True
-            
+        
         exported_content, points, visited_nodes = self._add_node_content(
             root_node_id,
             as_single_file=as_single_file,
@@ -114,8 +76,7 @@ class UrtextExport:
             preformat=preformat,
             points=points,
             )
-
-        
+        exported_content = preformat_embedded_syntaxes(exported_content)
         return exported_content, points
 
     def _add_node_content(self, 
@@ -127,16 +88,24 @@ class UrtextExport:
             exclude=None,                                 # specify any nodes to exclude
             kind='-plaintext',                           # format
             nested=None,
-            points = None,                               # nested level (private)
+            points = None,                               
             single_node_only=False,                      # stop at this node, no inline nodes
             clean_whitespace=False,
             visited_nodes=None,
             preformat=False,
             ):     
-
+       
+        if exclude == None:
+            exclude = []
+        
+        if not root_node_id:
+            self.project._log_item('Root node ID is None')
+            return
+            
         if root_node_id not in self.project.nodes:
-            self.project._log_item('EXPORT: Root node ID '+root_node_id+' not in the project.')
+            self.project._log_item('EXPORT: Root node ID ' + root_node_id +' not in the project.')
             return '','',''    
+
         """
         Recursively add nodes, its inline nodes and node pointers, in order
         from a given starting node, keeping track of nesting level, and wrapping in markup.        
@@ -154,7 +123,7 @@ class UrtextExport:
         if exclude == None:
             exclude = []
         if nested == None:
-            nested = 0
+            nested = 1
 
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
@@ -188,26 +157,25 @@ class UrtextExport:
             Get and add the range's contents
             """
             range_contents = file_contents[single_range[0]:single_range[1]]
-            range_contents = self._strip_urtext_syntax(range_contents)
-            
-            ## Replace Title
-            if meta_title and not title_found and title in range_contents: 
-                range_contents = range_contents.replace(title,'',1)
-                title_found = True
 
+            if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('flags'):
+                range_contents = self._strip_urtext_syntax(range_contents)
+            
             """
             If this is the node's first range:
             """
             if single_range == ranges[0]:
+    
 
-                # prepend
-                if meta_title:
-                    range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
-                    title_found = True
+                ## Replace and Format Title
+                if not meta_title: 
+                    range_contents = range_contents.replace(title,'',1)
+                    # range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
+                    # title_found = True
+
+                range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
 
                 if kind == '-html' and not strip_urtext_syntax:
-
-                    # add Urtext styled {{ wrapper
                     added_contents += OPENING_BRACKETS
 
 
@@ -442,6 +410,7 @@ class UrtextExport:
                 nested=nested+1,
                 as_single_file=True,
                 kind=kind,
+                exclude=exclude,
                 strip_urtext_syntax=strip_urtext_syntax,
                 style_titles=style_titles,
                 clean_whitespace=clean_whitespace,
@@ -500,22 +469,66 @@ class UrtextExport:
 
                 if kind in ['-plaintext','-txt']:
 
-                    contents = contents.replace(match, '"'+title+'"') # TODO - make quote wrapper optional
+                    contents = contents.replace(match, '"'+title+'"')
+                     # TODO - make quote wrapper optional
         
                 if kind in ['-markdown','-md']:
-
 
                     link = '#' + title.lower().replace(' ','-');
                     link = link.replace(')','')
                     link = link.replace('(','')
 
-                    contents = contents.replace(match, '['+title+']('+link+')') # TODO - make quote wrapper optional
+                    contents = contents.replace(match, '['+title+']('+link+')') 
+                    # TODO - make quote wrapper optional
 
         return contents
+
+    def _strip_urtext_syntax(self, contents):
+        contents = UrtextNode.strip_contents(contents)
+        if contents and contents[0] in ['}','{']:
+            contents = contents[1:]
+        if contents and contents[-1] == '{':
+            contents = contents[:-1]
+            
+        # contents = contents.replace('{','')
+        # contents = contents.replace('}','')
+        contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
+        return contents
+ 
+    def _opening_wrapper(self, kind, node_id, nested):
+        wrappers = { 
+            '-html': '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>',
+            '-markdown': '',
+            '-plaintext': '',
+            '-md': ''
+            }
+        return wrappers[kind]
+    def _closing_wrapper(self, kind):
+        wrappers = { 
+            '-html': '</div>',
+            '-markdown': '',
+            '-plaintext': '',
+            '-md': '',
+            }
+        return wrappers[kind]
+
+    def _wrap_title(self, kind, node_id, nested):
+        title = self.project.nodes[node_id].title
+        wrappers = {
+            '-markdown': '\n\n' + '#' * nested + ' ' + title.strip(),
+            '-md': '\n\n' + '#' * nested + ' ' + title.strip(),
+            '-html' : '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
+            '-plaintext' : title,
+        }
+        return wrappers[kind]
 
 def insert_format_character(text):
     return '\n'.join(['    '+n for n in text.split('\n')])
 
+def preformat_embedded_syntaxes(text):
+    text = re.sub('%%-[^E][A-Z-]*','```',text )
+    text = re.sub('%%-END-[A-Z-]*','```',text )
+    return text
 
 def strip_leading_space(text):
     result = []
@@ -524,4 +537,3 @@ def strip_leading_space(text):
             line = line.lstrip()
         result.append(line)
     return '\n'.join(result)
-

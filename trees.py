@@ -185,7 +185,7 @@ def show_tree_from(self,
                 next_content.date = this_node.get_date(format_string = self.settings['timestamp_format'][0])
   
             if next_content.needs_meta:
-                next_content.meta = this_node.consolidate_metadata()
+                next_content.meta = this_node.consolidate_metadata(separator=':')
 
             if next_content.needs_contents: 
                 next_content.contents = this_node.content_only().strip('\n').strip()

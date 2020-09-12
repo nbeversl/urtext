@@ -22,7 +22,7 @@ import datetime
 import pytz
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
-timestamp_match = re.compile('(?:<)([^-/<][^=<]*?)(?:>)')
+timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
 inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:})?')
 
 class NodeMetadata:
@@ -122,9 +122,10 @@ class NodeMetadata:
     def add_meta_entry(self, 
         key, 
         values,
-        from_node=None):
+        from_node=None,
+        position=None):
 
-        new_entry = MetadataEntry(key, values, None, from_node=from_node)
+        new_entry = MetadataEntry(key, values, None, from_node=from_node, position=position)
         self._entries.append(new_entry)
         self._sort()
 

@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -114,7 +114,6 @@ class UrtextProject:
                 '%A, %B %d, %Y, %I:%M %p',
                 '%B %d, %Y, %I:%M %p',
                 '%B %d, %Y, %I:%M%p',
-                '%B %Y',
                 '%Y',
                 '%B %d, %Y',
                 '%A, %B %d, %Y, %I:%M%p'
