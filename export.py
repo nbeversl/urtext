@@ -526,6 +526,9 @@ def insert_format_character(text):
     return '\n'.join(['    '+n for n in text.split('\n')])
 
 def preformat_embedded_syntaxes(text):
+    text = re.sub('%%-DOC','',text )
+    text = re.sub('%%-END-DOC','',text )
+
     text = re.sub('%%-[^E][A-Z-]*','```',text )
     text = re.sub('%%-END-[A-Z-]*','```',text )
     return text
