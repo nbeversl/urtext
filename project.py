@@ -1014,7 +1014,7 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        link_regex = r'\|?.*?>{1,2}\w{3}'
+        link_regex = r'(\|?.*?>{1,2}\w{3})(\:\d{1,10})?'
 
         link = None
         
@@ -1035,11 +1035,14 @@ class UrtextProject:
             result = re.search(link_regex, before_cursor)
 
         if result:
-            link = result.group()
+            link = result.group(1)
             span = result.span()
             node_id = link[-3:]
             if node_id in self.nodes:
-                file_position = self.nodes[node_id].ranges[0][0]
+                if len(result.groups()) == 2:
+                    file_position = int(result.group(2)[1:])
+                else:
+                    file_position = self.nodes[node_id].ranges[0][0]
                 return ('NODE', node_id, file_position, span)
             else:
                 self._log_item('Node ' + node_id + ' is not in the project')

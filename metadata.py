@@ -233,7 +233,7 @@ def parse_contents(full_contents, project, settings=None):
         else:
             entries.append(entry)
 
-        parsed_contents = parsed_contents.replace(m.group(),'')
+        parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 
     # parse inline timestamps:
     for m in timestamp_match.finditer(parsed_contents):

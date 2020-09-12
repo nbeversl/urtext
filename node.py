@@ -139,7 +139,12 @@ class UrtextNode:
             file_contents = theFile.read()
         node_contents = []
         for segment in self.ranges:
-            node_contents.append(file_contents[segment[0]:segment[1]])
+            this_range = file_contents[segment[0]:segment[1]]
+            if this_range and this_range[0] in ['}','{']:
+                this_range = this_range[1:]
+            if this_range and this_range[-1] in ['}','{']:
+                this_range = this_range[:-1]
+            node_contents.append(this_range)
         node_contents = ''.join(node_contents)
         node_contents = self.strip_wrappers(node_contents)
         node_contents = self.strip_embedded_syntaxes(contents=node_contents)
