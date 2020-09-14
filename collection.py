@@ -98,7 +98,7 @@ def _collection(self,
 
                          # get content with full meta.
                          full_contents = node.content_only().split('\n')
-                         
+                        
                          context = []
                          length = 0
                          for i in range(len(full_contents)):
@@ -123,6 +123,8 @@ def _collection(self,
                          if len(context) > 1:
                             context = [context[-1]]
 
+                         while '>>' in context:
+                            context = context.replace('>>','(>)>')
                          found_item['context'] = '\n'.join(context)
                          found_item['context'] = UrtextNode.strip_metadata(contents=found_item['context'])
 
