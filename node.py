@@ -150,13 +150,14 @@ class UrtextNode:
         node_contents = self.strip_embedded_syntaxes(contents=node_contents)
         return node_contents
 
-    def strip_wrappers(self, contents):
+    def strip_wrappers(self, contents, outside_only=False):
         if contents and contents[0] in ['}','{']:
             contents = contents[1:]
         if contents and contents[-1] in ['}','{']:
             contents = contents[:-1]
-        # contents = contents.replace('{','')
-        # contents = contents.replace('}','')
+        if not outside_only:
+            contents = contents.replace('{','')
+            contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('^','',1)        
         return contents

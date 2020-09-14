@@ -122,7 +122,12 @@ def _compile(self,
 
         if dynamic_definition.output_type == '-list':
             for targeted_node in included_nodes:
-                new_node_contents.append(self.show_tree_from(targeted_node.id, dynamic_definition))
+                new_node_contents.append(
+                    self.show_tree_from(
+                        targeted_node.id, 
+                        dynamic_definition, 
+                        exclude=excluded_nodes)
+                    )
 
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
         

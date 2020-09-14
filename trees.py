@@ -106,31 +106,22 @@ def _rewrite_recursion(self):
                 """ prevent recursion by ending the tree here """
                 sub_node.children = []
 
-def _detach_excluded_tree_nodes(self, root_id, flag='tree'):
-
-    found_nodes = []
+def _detach_excluded_tree_nodes(self, root_id, excluded_nodes):
 
     for descendant in self.nodes[root_id.name].tree_node.descendants:
-
-        flag = flag.lower()
 
         # allow for tree nodes with names that are not node IDs, 
         if descendant.name not in self.nodes:
             continue
 
         # Otherwise, remove it from the tree if it is flagged
-        if flag == 'tree' and 'exclude_from_tree' in self.nodes[descendant.name].metadata.get_values('flags'):
+        if descendant.name in excluded_nodes:
             descendant.parent = None
-
-        # Otherwise, remove it from export if it is flagged
-        if flag == 'export' and 'exclude_from_export' in self.nodes[descendant.name].metadata.get_values('flags'):
-            descendant.parent = None
-
-        found_nodes.append(descendant.name)
 
 def show_tree_from(self, 
                    node_id,
                    dynamic_definition,
+                   exclude=[],
                    from_root_of=False):
 
     if node_id not in self.nodes:
@@ -156,7 +147,7 @@ def show_tree_from(self,
         alias_nodes = has_aliases(start_point)
 
 
-    self._detach_excluded_tree_nodes(start_point)
+    self._detach_excluded_tree_nodes(start_point, exclude)
 
     tree_render = ''
     for pre, _, this_node in RenderTree(

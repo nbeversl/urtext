@@ -1039,7 +1039,7 @@ class UrtextProject:
             span = result.span()
             node_id = link[-3:]
             if node_id in self.nodes:
-                if len(result.groups()) == 2:
+                if len(result.groups()) == 2 and result.group(2):
                     file_position = int(result.group(2)[1:])
                 else:
                     file_position = self.nodes[node_id].ranges[0][0]
@@ -1341,7 +1341,6 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True, '')
-        
         self._log_item('MODIFIED f>' + filename +' - Updating the project object')
         if self.is_async:
             return self.executor.submit(self._file_update, filename)
