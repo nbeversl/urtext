@@ -214,6 +214,7 @@ class UrtextNode:
             contents = self.contents()
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
+        contents = self.strip_embedded_syntaxes(contents=contents)
         if self.trailing_node_id:
             contents = contents[:-3]
         return contents
