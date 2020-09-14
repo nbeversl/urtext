@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -1014,58 +1014,61 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        link_regex = r'(\|?.*?>{1,2}\w{3})(\:\d{1,10})?'
-
+    
         link = None
+    
+        # start after cursor    
+        link = self.find_link(string[position:])
+
+        # then work backwards along the whole line
+        if not link[0]:
+            h = position
+            while h > -1:
+                link = self.find_link(string[h:])
+                if link[0]:
+                    break
+                h -= 1
+
         
-        # look for node links where the cursor is positioned (within 4 characters)
-        for index in range(0, 4):
-            result = re.search(link_regex, string[position - index:position - index + 5])
-            if result:
-                break
+        if not link[0]:
+            self._log_item('No node ID, web link, or file found on this line.')
+            return None
 
-        if not result:
-            # try looking ahead:
-            after_cursor = string[position:]
-            result = re.search(link_regex, after_cursor)
+        if link[0] == 'NODE' and link[1] not in self.nodes:
+            self._log_item('Node ' + node_id + ' is not in the project')
+            return None
 
-        if not result:
-            # then behind:
-            before_cursor = string[:position]
-            result = re.search(link_regex, before_cursor)
+        return link
 
-        if result:
-            link = result.group(1)
-            span = result.span()
-            node_id = link[-3:]
-            if node_id in self.nodes:
-                if len(result.groups()) == 2 and result.group(2):
-                    file_position = int(result.group(2)[1:])
-                else:
-                    file_position = self.nodes[node_id].ranges[0][0]
-                return ('NODE', node_id, file_position, span)
-            else:
-                self._log_item('Node ' + node_id + ' is not in the project')
-                return None
+    def find_link(self, string):
 
-        editor_file_link_regex = re.compile('f>(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
-        filename = re.search(editor_file_link_regex, string)
-        if filename:
-            return('EDITOR_LINK',filename.group(0)[2:]) 
-
+        node_link_regex = re.compile('(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+        editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
         url_scheme = re.compile('http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-        url = re.search(url_scheme, string)
-        if url:
-            return ('HTTP', url.group(0))
 
-        file_path = re.compile('(\\\\?([^\\/]*[\\/])*)([^\\/]+)')
-        file_link = re.search(file_path, string)
-        if file_link:
-            return ('FILE', os.path.join(self.path,file_link.group(0).strip()))
+        kind = ''
+        result = None
+        link = ''
+        position = 0
+        result = re.search(node_link_regex, string)        
+        if result:
+            kind = 'NODE'
+            link = result.group(2) # node id
+            if len(result.groups()) > 2:
+                position = result.group(3) # position
+        else:
+            result = re.search(editor_file_link_regex, string)            
+            if result:
+                kind='EDITOR_LINK'
+                link = os.path.join(self.path, result.group(2))
+            else:
+                result = re.search(url_scheme, string)                
+                if result:
+                    kind ='HTTP'
+                    link = result.group()
 
-        self._log_item('No node ID, web link, or file found on this line.')
-        return None
-
+        return (kind, link, position)
+             
     def build_collection(self):
         """ Returns a collection of context-aware metadata anchors """ 
         s = UrtextDynamicDefinition('')

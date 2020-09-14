@@ -123,10 +123,11 @@ def _collection(self,
                          if len(context) > 1:
                             context = [context[-1]]
 
-                         while '>>' in context:
-                            context = context.replace('>>','(>)>')
+                         
                          found_item['context'] = '\n'.join(context)
                          found_item['context'] = UrtextNode.strip_metadata(contents=found_item['context'])
+                         while '>>' in found_item['context']:
+                            found_item['context'] = found_item['context'].replace('>>','>')
 
                          # this will be position in NODE, not FILE:
                          found_item['position'] = str(entry.position)                         

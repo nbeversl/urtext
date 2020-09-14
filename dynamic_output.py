@@ -120,6 +120,8 @@ class DynamicOutput():
 
         if contents_match:
             contents = self.contents
+            while '>>' in contents:
+                contents = contents.replace('>>','(>)>')
             suffix = ''
             if contents_match.group(1):
                 suffix = contents_match.group(1)                        

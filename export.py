@@ -26,8 +26,7 @@ OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123</span>'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
-
-
+file_link_regex = re.compile('f>.*')
 
 class UrtextExport:
 
@@ -158,7 +157,7 @@ class UrtextExport:
             """
             range_contents = file_contents[single_range[0]:single_range[1]]
 
-            if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('flags'):
+            if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('_settings'):
                 range_contents = self._strip_urtext_syntax(range_contents)
             
             """
@@ -223,6 +222,9 @@ class UrtextExport:
                 ## or it is a tree and preformat was not selected
                 range_contents = self.replace_node_links(range_contents, kind)
             
+            if kind in ['-markdown', '-md']:
+                range_contents = self.replace_file_links(range_contents)
+
             if clean_whitespace:
                 range_contents = range_contents.strip()
                 if range_contents:
@@ -483,6 +485,12 @@ class UrtextExport:
 
         return contents
 
+    def replace_file_links(self, contents):
+        file_links = re.findall(file_link_regex, contents)
+        for link in file_links:
+            contents = contents.replace(link, '!['+link[2:]+']('+link[2:]+')')
+        return contents
+
     def _strip_urtext_syntax(self, contents):
         contents = UrtextNode.strip_contents(contents)
         if contents and contents[0] in ['}','{']:
@@ -526,8 +534,9 @@ def insert_format_character(text):
     return '\n'.join(['    '+n for n in text.split('\n')])
 
 def preformat_embedded_syntaxes(text):
-    text = re.sub('%%-DOC','',text )
-    text = re.sub('%%-END-DOC','',text )
+    
+    text = re.sub('[^`]%%-DOC','',text )
+    text = re.sub('[^`]%%-END-DOC','',text )
 
     text = re.sub('%%-[^E][A-Z-]*','```',text )
     text = re.sub('%%-END-[A-Z-]*','```',text )

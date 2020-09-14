@@ -181,6 +181,7 @@ class UrtextNode:
         if contents == None:
             contents = self.contents()
         stripped_contents = contents
+
         for e in embedded_syntax.findall(stripped_contents):
             stripped_contents = stripped_contents.replace(e,'')
         return stripped_contents
