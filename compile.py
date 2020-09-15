@@ -121,12 +121,13 @@ def _compile(self,
                 new_node_contents.extend(search.initiate_search())
 
         if dynamic_definition.output_type == '-list':
+            print(excluded_nodes)
             for targeted_node in included_nodes:
                 new_node_contents.append(
                     self.show_tree_from(
                         targeted_node.id, 
                         dynamic_definition, 
-                        exclude=excluded_nodes)
+                        exclude=list(excluded_nodes))
                     )
 
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
@@ -237,16 +238,17 @@ def _build_group_and(project, groups, include_dynamic=False):
     for this_set in found_sets:
         new_group = new_group.intersection(this_set)
 
-    if new_group and not include_dynamic:
+    if not include_dynamic:
         new_group = [f for f in new_group if f in project.nodes and not project.nodes[f].dynamic]
 
     return new_group
 
 def indent(contents, spaces=4):
     content_lines = contents.split('\n')
+    content_lines[0] = content_lines[0].strip()
     for index, line in enumerate(content_lines):
         if line.strip() != '':
-            content_lines[index] = ' ' * spaces + line
-    return '\n'.join(content_lines)
+            content_lines[index] = '\t' * spaces + line
+    return '\n'+'\n'.join(content_lines)
 
 compile_functions = [_compile ]

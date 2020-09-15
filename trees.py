@@ -118,6 +118,9 @@ def _detach_excluded_tree_nodes(self, root_id, excluded_nodes):
         if descendant.name in excluded_nodes:
             descendant.parent = None
 
+    if root_id.name in excluded_nodes:
+        root_id.parent = None
+
 def show_tree_from(self, 
                    node_id,
                    dynamic_definition,
@@ -145,7 +148,6 @@ def show_tree_from(self,
                         leaf.children = new_tree.children
 
         alias_nodes = has_aliases(start_point)
-
 
     self._detach_excluded_tree_nodes(start_point, exclude)
 

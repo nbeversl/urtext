@@ -89,8 +89,9 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['DEPTH']:
-                if inside_parentheses == '*':
-                    self.depth = 999999
+                if has_flags(['*'], flags):
+
+                    self.depth = 999
                     continue
                 try:
                     self.depth = float(inside_parentheses)

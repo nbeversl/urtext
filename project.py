@@ -658,13 +658,14 @@ class UrtextProject:
        
         if filename in self.files:
             
-            for node_id in self.files[filename].nodes:
+            for node_id in self.files[filename].nodes: 
 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
-
+                
+                self.nodes[node_id].tree_node.parent = None
                 self._unbuild_node_meta(node_id)
                 self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]
@@ -672,8 +673,6 @@ class UrtextProject:
                 del self.nodes[node_id]
 
             del self.files[filename]
-
-        return None
 
     def _unbuild_node_meta(self, node_id):
         
@@ -1035,7 +1034,7 @@ class UrtextProject:
             return None
 
         if link[0] == 'NODE' and link[1] not in self.nodes:
-            self._log_item('Node ' + node_id + ' is not in the project')
+            self._log_item('Node ' + link[1] + ' is not in the project')
             return None
 
         return link

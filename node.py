@@ -313,7 +313,7 @@ class UrtextNode:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
 
-        return new_metadata 
+        return new_metadata.strip()
 
     def get_all_meta_keynames(self):
         return self.metadata._entries.keys()
@@ -360,7 +360,7 @@ class UrtextNode:
 
         new_file_contents = ''.join([
             file_contents[0:start_range],
-            contents,
+            contents+' ',
             file_contents[end_range:]]) 
         
         with open(os.path.join(self.project_path, self.filename),
