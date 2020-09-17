@@ -15,6 +15,7 @@ def _set_tree_elements(self, filename):
     for index, position in enumerate(positions):
 
         node = parsed_items[position]
+
         # parse each marker, positioning it within its parent node
         if node[:2] == '>>':
             inserted_node_id = node[2:]
@@ -42,6 +43,7 @@ def _set_tree_elements(self, filename):
         if position == 0 and parsed_items[0] == '{':
             self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
             continue
+
         """
         if this is a compact node, its parent is the node right before it.
         <Thu., Feb. 27, 2020, 08:00 AM -0500>
@@ -58,9 +60,9 @@ def _set_tree_elements(self, filename):
         Otherwise, this is either an inline node not at the beginning of the file,
         or else a root (file level) node, so:
         """
+      
         if not self.nodes[node].root_node:
             parent = self.get_parent(node)
-            
             # will be none if parent or root node is anonymous.
             if parent == None:
                 continue
@@ -132,6 +134,7 @@ def show_tree_from(self,
         return None
 
     start_point = self.nodes[node_id].tree_node
+
     if from_root_of == True:
         start_point = self.nodes[node_id].tree_node.root
 

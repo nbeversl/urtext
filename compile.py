@@ -121,7 +121,6 @@ def _compile(self,
                 new_node_contents.extend(search.initiate_search())
 
         if dynamic_definition.output_type == '-list':
-            print(excluded_nodes)
             for targeted_node in included_nodes:
                 new_node_contents.append(
                     self.show_tree_from(

@@ -666,6 +666,7 @@ class UrtextProject:
                         del self.dynamic_nodes[index]
                 
                 self.nodes[node_id].tree_node.parent = None
+                self.nodes[node_id].tree_node = None
                 self._unbuild_node_meta(node_id)
                 self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]

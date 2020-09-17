@@ -43,8 +43,6 @@ class ProjectList():
         self._propagate_projects(None)
         if first_project:
             self.set_current_project(first_project)
-            print('SEtYTING FIST PROEJCT')
-            print(first_project)
 
     def _add_folder(self, folder, import_project=False):
         """ recursively add folders """
