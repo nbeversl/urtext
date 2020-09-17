@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -659,18 +659,14 @@ class UrtextProject:
         if filename in self.files:
             
             for node_id in self.files[filename].nodes: 
-                
-                if node_id in self.alias_nodes:
-                    for a in self.alias_nodes[node_id]:
-                        a.children = []
 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
                 
-                # self.nodes[node_id].tree_node.parent = None
-                # self.nodes[node_id].tree_node = None
+                self.nodes[node_id].tree_node.parent = None
+                self.nodes[node_id].tree_node = None
                 self._unbuild_node_meta(node_id)
                 self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]

@@ -48,9 +48,7 @@ def _build_alias_trees(self):
     """ 
     Adds copies of trees wherever there are Node Pointers (>>) 
     Must be called only when all nodes are parsed (exist) so it does not miss any
-    """
-    # must use EXISTING node so it appears at the right place in the tree.
-  
+    """  
     for node_id in self.alias_nodes:
         for a in self.alias_nodes[node_id]:
             if node_id in self.nodes:
@@ -62,7 +60,6 @@ def _rewrite_recursion(self):
     If alias nodes have themselves as ancestors, 
     prevent recursion.
     """
-
     for node_id in self.alias_nodes:
 
         for node in self.alias_nodes[node_id]:
@@ -110,8 +107,6 @@ def show_tree_from(self,
     if from_root_of == True:
         start_point = self.nodes[node_id].tree_node.root
         
-    #self._detach_excluded_tree_nodes(start_point, exclude)
-
     tree_render = ''
     for pre, _, this_node in RenderTree(
             start_point, 
