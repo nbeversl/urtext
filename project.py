@@ -94,7 +94,7 @@ class UrtextProject:
         self.compiled = False
         self.links_to = {}
         self.links_from = {}
-        self.alias_nodes = []
+        self.alias_nodes = {}
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -659,14 +659,20 @@ class UrtextProject:
         if filename in self.files:
             
             for node_id in self.files[filename].nodes: 
+                
+                # if node_id in self.alias_nodes:
+                #     for a in self.alias_nodes[node_id]:
+                #         a.parent = None
+                #         a.children = []
+                #     del self.alias_nodes[node_id]
 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
                     if definition.source_id == node_id:
                         del self.dynamic_nodes[index]
                 
-                self.nodes[node_id].tree_node.parent = None
-                self.nodes[node_id].tree_node = None
+                # self.nodes[node_id].tree_node.parent = None
+                # self.nodes[node_id].tree_node = None
                 self._unbuild_node_meta(node_id)
                 self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]
