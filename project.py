@@ -660,11 +660,9 @@ class UrtextProject:
             
             for node_id in self.files[filename].nodes: 
                 
-                # if node_id in self.alias_nodes:
-                #     for a in self.alias_nodes[node_id]:
-                #         a.parent = None
-                #         a.children = []
-                #     del self.alias_nodes[node_id]
+                if node_id in self.alias_nodes:
+                    for a in self.alias_nodes[node_id]:
+                        a.children = []
 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
