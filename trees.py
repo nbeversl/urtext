@@ -41,7 +41,8 @@ def _set_tree_elements(self, filename):
             continue
             
         parent = self.get_parent(node)
-        self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
+        if parent:
+            self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
 def _build_alias_trees(self):
     """ 
@@ -52,8 +53,9 @@ def _build_alias_trees(self):
   
     for node_id in self.alias_nodes:
         for a in self.alias_nodes[node_id]:
-            duplicate_node = duplicate_tree(self.nodes[node_id].tree_node)
-            a.children = [c for c in duplicate_node.children]
+            if node_id in self.nodes:
+                duplicate_node = duplicate_tree(self.nodes[node_id].tree_node)
+                a.children = [c for c in duplicate_node.children]
 
 def _rewrite_recursion(self):
     """
