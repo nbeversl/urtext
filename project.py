@@ -219,8 +219,8 @@ class UrtextProject:
 
         self._get_access_history()
         
-        for f in self.files:
-            self._build_alias_trees(f)  
+        # for f in self.files:
+        #     self._build_alias_trees(f)  
         
         self._compile()
 
@@ -1373,8 +1373,6 @@ class UrtextProject:
         ):
 
         # Build copies of trees wherever there are Node Pointers (>>)
-        for f in self.files:
-            self._build_alias_trees(f)  
         self._compile()
         modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
