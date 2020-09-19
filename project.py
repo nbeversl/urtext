@@ -94,7 +94,6 @@ class UrtextProject:
         self.compiled = False
         self.links_to = {}
         self.links_from = {}
-        self.alias_nodes = {}
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -219,9 +218,12 @@ class UrtextProject:
                 self._add_sub_tags( node_id, node_id, e)
 
         self._get_access_history()
-        self._build_alias_trees()  
-        self._rewrite_recursion()
+        
+        for f in self.files:
+            self._build_alias_trees(f)  
+        
         self._compile()
+
         self.compiled = True
 
     def _node_id_generator(self):
@@ -274,14 +276,13 @@ class UrtextProject:
             strict=strict
             )
         
-        if not new_file.changed:
-            return False
+        # if new_file.changed == False:
+        #     return False
 
         return new_file
 
     def _parse_file(self, 
             filename, 
-            strict=False, 
             import_project=False):
         """
         Parses a single file into the project.
@@ -294,13 +295,13 @@ class UrtextProject:
             return
         
         already_in_project = False
-        
-        strict = False if not import_project else True
 
-        new_file = self._file_changed(filename, strict=strict)
+        new_file = self._file_changed(filename)
  
-        if not new_file:
-            return False
+        # if not new_file:
+        #     print('FILE NOT CHANGED')
+        #     print(filename)
+        #     return False
 
         self.messages[filename] = []
         if new_file.messages:
@@ -330,7 +331,7 @@ class UrtextProject:
             self._add_node(new_file.nodes[node_id])
         
         self._set_tree_elements(new_file.basename)
-
+        
         for node_id in new_file.nodes:
             self._rebuild_node_meta(node_id)
 
@@ -343,7 +344,7 @@ class UrtextProject:
                 self._parse_meta_dates(node_id)
                 for e in self.nodes[node_id].metadata.dynamic_entries:                
                     self._add_sub_tags( node_id, node_id, e)
-
+     
         """ returns None if successful """
         return None
 
@@ -533,6 +534,9 @@ class UrtextProject:
         """ project-aware alias for the Node set_content() method """
 
         self._parse_file(self.nodes[node_id].filename)
+        if node_id not in self.nodes:
+            print('NODE LOST')
+            print(contents)
         content_changed = self.nodes[node_id].set_content(contents, preserve_metadata=True)
         if content_changed:
             self._parse_file(self.nodes[node_id].filename)
@@ -659,7 +663,6 @@ class UrtextProject:
         if filename in self.files:
             
             for node_id in self.files[filename].nodes: 
-
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
                     if definition.source_id == node_id:
@@ -672,6 +675,10 @@ class UrtextProject:
                 del self.links_from[node_id]
                 self.remove_links_in(node_id)
                 del self.nodes[node_id]
+
+            for a in self.files[filename].alias_nodes:
+                a.parent = None
+                a.children = []
 
             del self.files[filename]
 
@@ -1334,11 +1341,11 @@ class UrtextProject:
     ## file modification 
 
     def on_modified(self, filename):
+        print('RUNNING')
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
         """
-
         do_not_update = ['history','files']
         
         filename = os.path.basename(filename)
@@ -1361,16 +1368,14 @@ class UrtextProject:
         return self._update(modified_files=modified_files)
 
 
-
     def _update(self, 
         modified_files=[]
         ):
 
         # Build copies of trees wherever there are Node Pointers (>>)
-       
-        self._build_alias_trees()  
-        self._rewrite_recursion()
-       
+        for f in self.files:
+            self._build_alias_trees(f)  
+        self._compile()
         modified_files.extend(self._check_for_new_files())
         modified_files = self._compile(modified_files=modified_files)
         return modified_files

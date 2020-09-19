@@ -30,10 +30,13 @@ import operator
 compile method for the UrtextProject class
 """
 def _compile(self, 
-    modified_files=None):
+    modified_files=None,
+    i=0):
 
     if not modified_files:
         modified_files = []
+
+    pre_modified_files = list(modified_files)
 
     self.formulate_links_to()
 
@@ -45,6 +48,7 @@ def _compile(self,
         
         points = {}
         new_node_contents = []
+        changed_file = False
 
         if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
@@ -121,6 +125,7 @@ def _compile(self,
                 new_node_contents.extend(search.initiate_search())
 
         if dynamic_definition.output_type == '-list':
+            
             for targeted_node in included_nodes:
                 new_node_contents.append(
                     self.show_tree_from(
@@ -189,7 +194,7 @@ def _compile(self,
                         f.write(exported_content)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-    
+
     return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):

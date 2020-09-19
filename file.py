@@ -63,6 +63,7 @@ class UrtextFile:
         
         self.nodes = {}
         self.root_nodes = []
+        self.alias_nodes = []
         self.filename = filename
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
@@ -78,12 +79,11 @@ class UrtextFile:
             self.changed = False
         elif not contents:
             return
-        else:
-            contents = self.clear_errors(contents)
-            self.file_length = len(contents)        
-            self.lex(contents)
-            self.parse(contents, settings)
-            self.write_errors(settings)
+        contents = self.clear_errors(contents)
+        self.file_length = len(contents)        
+        self.lex(contents)
+        self.parse(contents, settings)
+        self.write_errors(settings)
             
     def hash_contents(self, contents):
         r = bytearray(contents,'utf-8')
