@@ -40,67 +40,6 @@ def _set_tree_elements(self, filename):
         if parent:
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
-
-def _build_alias_trees(self, file):
-    """ 
-    Adds copies of trees wherever there are Node Pointers (>>) 
-    Must be called only when all nodes are parsed (exist) so it does not miss any
-    """  
-    for a in self.files[file].alias_nodes:
-    
-        alias_nodes = self.has_aliases(a)
-        i = 0
-        while alias_nodes:        
-            for leaf in alias_nodes:
-                if leaf.name[:5] == 'ALIAS':
-                    if leaf.name not in [ancestor.name for ancestor in leaf.ancestors]: 
-                        if leaf.name[-3:] in self.nodes:
-                            new_tree = self.duplicate_tree(
-                                self.nodes[leaf.name[-3:]].tree_node, 
-                                leaf)            
-                            leaf.children = new_tree.children
-
-            alias_nodes = self.has_aliases(a)
-           
-
-    # WHAT IF IT COMES ACROSS AN ALIAS WHOSE CHILDREN HAVE NOT YET BEEN ASSIGNED?
-    # HOW WOULD IT KNOW TO CONTINUE ADDING CHILDREN?
-    # It has to start at the top of a tree and continue adding children until there are no more aliases.
-    # that must have been what the old "while aliases" was for.
-
-    """
-    Also is this even necessary if alias trees are built at the time of rendering?
-    """
-
-    self._rewrite_recursion(file) 
-
-
-
-def _rewrite_recursion(self, file):
-    """
-    If alias nodes have themselves as ancestors, 
-    prevent recursion.
-    """
-        
-    for node in self.files[file].alias_nodes:
-    
-        """ Iterate the entire tree from this node """
-        all_nodes = PreOrderIter(node) 
-
-        for sub_node in all_nodes:
-            """ 
-            .name in this context is the node ID.
-            In case it has already been marked as recursion,
-            we always want just the last 3 characters.
-            """
-            alias_node_id = sub_node.name[-3:]
-
-            if alias_node_id in [ancestor.name for ancestor in sub_node.ancestors]:
-                sub_node.name = '! RECURSION : ' + self.nodes[alias_node_id].title + ' >'+alias_node_id
-
-                """ prevent recursion by ending the tree here """
-                sub_node.children = []
-
 def _tree_node_is_excluded(self, tree_node, excluded_nodes):
 
     node_id = tree_node.name[-3:]
@@ -120,15 +59,12 @@ def _tree_node_is_excluded(self, tree_node, excluded_nodes):
 def has_aliases(self, start_point):
     alias_nodes = []
     leaves = start_point.leaves  
-    print('LEAVES')
-    print(leaves)
+
     for leaf in leaves:
         ancestors = [a.name for a in leaf.ancestors]
         if 'ALIAS' in leaf.name and leaf.name not in ancestors and leaf.name[-3:] in self.nodes and self.nodes[leaf.name[-3:]].tree_node.children:
             alias_nodes.append(leaf)
 
-    print('ALIAS NODES NOW')
-    print(alias_nodes)
     return alias_nodes
 
 def show_tree_from(self, 
@@ -146,7 +82,7 @@ def show_tree_from(self,
         start_point = self.nodes[node_id].tree_node.root
 
     alias_nodes = self.has_aliases(start_point)
-    i = 1 
+
     while alias_nodes:  
         for leaf in alias_nodes:
             if leaf.name[:5] == 'ALIAS':
@@ -154,15 +90,7 @@ def show_tree_from(self,
                 new_tree = self.duplicate_tree(self.nodes[node_id].tree_node, leaf)            
                 leaf.children = new_tree.children
         alias_nodes = self.has_aliases(start_point)
-        # i +=1
-        # if i > 5 :
-        #     print(alias_nodes)
-        #     break
-
-    """
-    FOUND ISSUE:
-    The nodes only correct when the file containing their pointer(ALIAS) is updated. THis is problem the key.
-    """
+ 
     tree_render = ''
     for pre, _, this_node in RenderTree(
             start_point, 
@@ -263,13 +191,9 @@ def duplicate_tree(self, original_node, leaf):
 
     return new_root
 
-
-
 trees_functions=[
     show_tree_from, 
     _tree_node_is_excluded, 
-    _build_alias_trees,
-    _rewrite_recursion,
     _set_tree_elements,
     duplicate_tree,
     has_aliases,
