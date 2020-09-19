@@ -1341,7 +1341,6 @@ class UrtextProject:
     ## file modification 
 
     def on_modified(self, filename):
-        print('RUNNING')
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes

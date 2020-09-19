@@ -214,7 +214,8 @@ class UrtextExport:
             """
             if kind in ['-markdown', '-md']:
                 range_contents = strip_leading_space(range_contents)
-                if self.project.nodes[root_node_id].is_tree and preformat:
+                #print(self.project.nodes[root_node_id].is_tree)
+                if self.project.nodes[root_node_id].is_tree:
                     range_contents = insert_format_character(range_contents)
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
@@ -531,7 +532,7 @@ class UrtextExport:
         return wrappers[kind]
 
 def insert_format_character(text):
-    return '\n'.join(['    '+n for n in text.split('\n')])
+    return '`' + text + '`'
 
 def preformat_embedded_syntaxes(text):
     

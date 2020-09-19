@@ -144,6 +144,8 @@ def _compile(self,
                 modified_files.append(changed_file)
 
             self.nodes[dynamic_definition.target_id].dynamic = True
+            if dynamic_definition.output_type == '-list':
+                self.nodes[dynamic_definition.target_id].is_tree = True
 
             # Dynamic nodes have blank title by default. Title can be set by header or title key.
             if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
@@ -160,7 +162,6 @@ def _compile(self,
                 exported = UrtextExport(self) 
                 exported_content = ''
                 for node in included_nodes:
-
                     node_export, points = exported.export_from(
                          node.id,
                          kind=e.output_type,
@@ -194,7 +195,7 @@ def _compile(self,
                         f.write(exported_content)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-
+    print(self.nodes[dynamic_definition.target_id].is_tree)
     return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):
@@ -248,6 +249,7 @@ def _build_group_and(project, groups, include_dynamic=False):
     return new_group
 
 def indent(contents, spaces=4):
+  
     content_lines = contents.split('\n')
     content_lines[0] = content_lines[0].strip()
     for index, line in enumerate(content_lines):

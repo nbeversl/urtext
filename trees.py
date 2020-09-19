@@ -95,11 +95,9 @@ def show_tree_from(self,
     for pre, _, this_node in RenderTree(
             start_point, 
             style=ContStyle, 
-            maxlevel=None):
+            maxlevel=dynamic_definition.depth):
 
         if self._tree_node_is_excluded(this_node, exclude):
-            print('EXCLUDED')
-            print(this_node)
             continue
 
         if this_node.name[0:11] == '! RECURSION':
