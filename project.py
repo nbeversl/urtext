@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = False # use False for development only
+        self.is_async = True # use False for development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -87,6 +87,7 @@ class UrtextProject:
         self.to_import = []
         self.settings_initialized = False
         self.dynamic_nodes = []  # { target : definition, etc.}
+        self.dynamic_memo = {}
         self.watchdog = watchdog
         # dict of nodes tagged recursively from parent/ancestors
         self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
@@ -542,6 +543,8 @@ class UrtextProject:
             self._parse_file(self.nodes[node_id].filename)
             if node_id in self.nodes:
                 return self.nodes[node_id].filename
+            print('CONTENT CHANGED')
+            print(self.nodes[node_id].filename)
         return False
 
 

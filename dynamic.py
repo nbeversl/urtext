@@ -31,7 +31,9 @@ class UrtextDynamicDefinition:
     """ Urtext Dynamic Definition """
     def __init__(self, contents):
 
-        # TARGET()
+        self.memo = None
+        
+        # ID()
         self.target_id = None
         self.output_type = '-list' # default
          

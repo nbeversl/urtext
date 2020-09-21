@@ -43,12 +43,11 @@ def _compile(self,
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
-   
+
     for dynamic_definition in self.dynamic_nodes: 
         
         points = {}
         new_node_contents = []
-        changed_file = False
 
         if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
@@ -85,7 +84,7 @@ def _compile(self,
                         include_dynamic=dynamic_definition.include_dynamic)
                     )
 
-    
+        
         included_nodes -= excluded_nodes
         # Never include a dynamic node in itself.
         
@@ -96,17 +95,18 @@ def _compile(self,
             included_nodes.discard(self.settings['log_id'])
         
         included_nodes = set([self.nodes[i] for i in included_nodes])
-
+        
         # Sort
         if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
-            sort_order = lambda node: node.metadata.get_date(dynamic_definition.sort_keyname[0])
+            sort_order = lambda node: ( node.metadata.get_date(dynamic_definition.sort_keyname[0]), node.id)
 
         elif dynamic_definition.sort_keyname:
-            sort_order = lambda node: self.get_first_value(node, dynamic_definition.sort_keyname[0])           
+            sort_order = lambda node: ( self.get_first_value(node, dynamic_definition.sort_keyname[0]), node.id)            
 
         else:
-            sort_order = lambda node: node.default_sort()
-            
+            #sort_order = lambda node: node.default_sort()
+            sort_order = lambda node: node.id
+
         included_nodes = sorted(
             included_nodes,
             key=sort_order,
@@ -133,9 +133,27 @@ def _compile(self,
                         dynamic_definition, 
                         exclude=list(excluded_nodes))
                     )
+        
+        if dynamic_definition.target_id and dynamic_definition.target_id in self.dynamic_memo:
+            if self.dynamic_memo[dynamic_definition.target_id]['contents'] == new_node_contents:
+                continue
+
+        if dynamic_definition.exports and dynamic_definition.exports[0] in self.dynamic_memo:
+            if self.dynamic_memo[dynamic_definition.exports[0]]['contents'] == new_node_contents:
+                continue
+
+        if dynamic_definition.target_id:
+            self.dynamic_memo[dynamic_definition.target_id] = {}
+            self.dynamic_memo[dynamic_definition.target_id]['contents'] = new_node_contents
+        if dynamic_definition.exports:
+            self.dynamic_memo[dynamic_definition.exports[0]] = {}
+            self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = new_node_contents
+
 
         final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
         
+       
+
         if dynamic_definition.target_id:
 
             changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
@@ -144,8 +162,6 @@ def _compile(self,
                 modified_files.append(changed_file)
 
             self.nodes[dynamic_definition.target_id].dynamic = True
-            if dynamic_definition.output_type == '-list':
-                self.nodes[dynamic_definition.target_id].is_tree = True
 
             # Dynamic nodes have blank title by default. Title can be set by header or title key.
             if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
@@ -195,7 +211,7 @@ def _compile(self,
                         f.write(exported_content)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-    print(self.nodes[dynamic_definition.target_id].is_tree)
+    
     return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):

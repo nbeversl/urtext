@@ -214,9 +214,6 @@ class UrtextExport:
             """
             if kind in ['-markdown', '-md']:
                 range_contents = strip_leading_space(range_contents)
-                #print(self.project.nodes[root_node_id].is_tree)
-                if self.project.nodes[root_node_id].is_tree:
-                    range_contents = insert_format_character(range_contents)
                     
             if not self.project.nodes[root_node_id].is_tree or not preformat:
                 ## Only replace node links if this is not a tree
