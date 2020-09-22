@@ -342,7 +342,8 @@ class UrtextFile:
             messages = messages.replace(str(old_n), str(new_n))
 
         if len(messages) != message_length:
-            pass 
+            pass
+             
         new_contents = ''.join([
             messages,
             contents,
