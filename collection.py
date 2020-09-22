@@ -113,7 +113,8 @@ def _collection(self,
                                  elif context: 
                                     break
                             if not entry.position:
-                                entry.log()
+                                pass
+                                #entry.log()
                             if entry.position < length:
                                 if line.strip(): 
                                     context.append(line.strip())

@@ -36,16 +36,13 @@ def _compile(self,
     if not modified_files:
         modified_files = []
 
-    pre_modified_files = list(modified_files)
-
     self.formulate_links_to()
 
     for dynamic_definition in self.dynamic_nodes:
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
 
-    for dynamic_definition in self.dynamic_nodes: 
-        
+    for dynamic_definition in list(self.dynamic_nodes): 
         points = {}
         new_node_contents = []
 
@@ -53,7 +50,7 @@ def _compile(self,
             self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                           ' points to nonexistent node >' + dynamic_definition.target_id)
             continue
-           
+
         # Determine included and excluded nodes
         included_projects = [self]
         if dynamic_definition.all_projects:
@@ -84,7 +81,6 @@ def _compile(self,
                         include_dynamic=dynamic_definition.include_dynamic)
                     )
 
-        
         included_nodes -= excluded_nodes
         # Never include a dynamic node in itself.
         
@@ -134,32 +130,24 @@ def _compile(self,
                         exclude=list(excluded_nodes))
                     )
         
-        if dynamic_definition.target_id and dynamic_definition.target_id in self.dynamic_memo:
-            if self.dynamic_memo[dynamic_definition.target_id]['contents'] == new_node_contents:
+        final_output = build_final_output(dynamic_definition, ''.join(new_node_contents)) 
+        final_output += ' '
+        if dynamic_definition.target_id and dynamic_definition.target_id in self.h_content:
+            if self.h_content[dynamic_definition.target_id] == hash(final_output):
                 continue
-
+    
         if dynamic_definition.exports and dynamic_definition.exports[0] in self.dynamic_memo:
-            if self.dynamic_memo[dynamic_definition.exports[0]]['contents'] == new_node_contents:
+            if self.dynamic_memo[dynamic_definition.exports[0]]['contents'] == hash(final_output):
                 continue
 
-        if dynamic_definition.target_id:
-            self.dynamic_memo[dynamic_definition.target_id] = {}
-            self.dynamic_memo[dynamic_definition.target_id]['contents'] = new_node_contents
         if dynamic_definition.exports:
             self.dynamic_memo[dynamic_definition.exports[0]] = {}
-            self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = new_node_contents
-
-
-        final_output = build_final_output(dynamic_definition, ''.join(new_node_contents))        
+            self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = hash(final_output)
         
-       
-
         if dynamic_definition.target_id:
 
             changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
-            
-            if changed_file:
-                modified_files.append(changed_file)
+            modified_files.append(changed_file)
 
             self.nodes[dynamic_definition.target_id].dynamic = True
 
@@ -200,18 +188,17 @@ def _compile(self,
                             metadata_values, 
                             one_line = not dynamic_definition.multiline_meta)
 
-                        changed_file = self._set_node_contents(n, exported_content + built_metadata)
-                        if changed_file:
-                            modified_files.append(changed_file)
-                            self.nodes[n].export_points = points           
-                            self.nodes[n].dynamic = True
+                        changed_file = self._set_node_contents(n, exported_content + built_metadata)                       
+                        modified_files.append(changed_file)
+                        self.nodes[n].export_points = points           
+                        self.nodes[n].dynamic = True
 
                 for f in e.to_files:
                     with open(os.path.join(self.path, f), 'w',encoding='utf-8') as f:
                         f.write(exported_content)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-    
+    print(list(set(modified_files)))
     return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):

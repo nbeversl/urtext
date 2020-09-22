@@ -72,6 +72,7 @@ class UrtextNode:
         self.trailing_node_id = False
         self.dynamic_definitions = []
         self.title = None
+        self.hashed_contents = hash(contents)
 
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
@@ -344,9 +345,6 @@ class UrtextNode:
 
     def set_content(self, contents, preserve_metadata=False, bypass_check=False):
 
-        if not bypass_check and contents == self.contents():
-            return False
-
         with open(os.path.join(self.project_path, self.filename),
                   'r',
                   encoding='utf-8') as theFile:
@@ -360,7 +358,7 @@ class UrtextNode:
 
         new_file_contents = ''.join([
             file_contents[0:start_range],
-            contents+' ',
+            contents,
             file_contents[end_range:]]) 
         
         with open(os.path.join(self.project_path, self.filename),

@@ -335,13 +335,14 @@ class UrtextFile:
             '\n!!>\n',
             ])
         message_length = len(messages)
+        
         for n in re.finditer('position \d{1,10}', messages):
             old_n = int(n.group().strip('position '))
             new_n = old_n + message_length
             messages = messages.replace(str(old_n), str(new_n))
-        if len(messages) != message_length:
-            print('STILL NOT RIGHT BUT IT WAS A GOOD TRY')
 
+        if len(messages) != message_length:
+            pass 
         new_contents = ''.join([
             messages,
             contents,

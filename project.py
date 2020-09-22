@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
 """
 This file is part of Urtext.
 
@@ -77,9 +77,10 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
+        self.h_content = {}
         self.files = {}
         self.keynames = {}
         self.navigation = []  # Stores, in order, the path of navigation
@@ -218,13 +219,8 @@ class UrtextProject:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( node_id, node_id, e)
 
-        self._get_access_history()
-        
-        # for f in self.files:
-        #     self._build_alias_trees(f)  
-        
+        self._get_access_history()        
         self._compile()
-
         self.compiled = True
 
     def _node_id_generator(self):
@@ -277,8 +273,8 @@ class UrtextProject:
             strict=strict
             )
         
-        # if new_file.changed == False:
-        #     return False
+        if new_file.changed == False:
+            return False
 
         return new_file
 
@@ -298,11 +294,8 @@ class UrtextProject:
         already_in_project = False
 
         new_file = self._file_changed(filename)
- 
-        # if not new_file:
-        #     print('FILE NOT CHANGED')
-        #     print(filename)
-        #     return False
+        if not new_file:
+            return None
 
         self.messages[filename] = []
         if new_file.messages:
@@ -442,7 +435,7 @@ class UrtextProject:
                     self._log_item(message)
                 else:
                     self.dynamic_nodes.append(definition)
-                
+
             if definition.exports:
                 for e in definition.exports:
                     for f in e.to_files:
@@ -471,6 +464,7 @@ class UrtextProject:
         if new_node.id in self.access_history:
             new_node.last_accessed = self.access_history[new_node.id]
 
+        self.h_content[new_node.id] = new_node.hashed_contents
         new_node.project = self
         # TODO : it's not necessary to keep a copy of this
         # inside the node. do it at the project level only. 
@@ -538,13 +532,10 @@ class UrtextProject:
         if node_id not in self.nodes:
             print('NODE LOST')
             print(contents)
-        content_changed = self.nodes[node_id].set_content(contents, preserve_metadata=True)
-        if content_changed:
-            self._parse_file(self.nodes[node_id].filename)
-            if node_id in self.nodes:
-                return self.nodes[node_id].filename
-            print('CONTENT CHANGED')
-            print(self.nodes[node_id].filename)
+        self.nodes[node_id].set_content(contents, preserve_metadata=True)
+        self._parse_file(self.nodes[node_id].filename)
+        if node_id in self.nodes:
+            return self.nodes[node_id].filename
         return False
 
 
@@ -678,6 +669,7 @@ class UrtextProject:
                 del self.links_from[node_id]
                 self.remove_links_in(node_id)
                 del self.nodes[node_id]
+                del self.h_content[node_id]
 
             for a in self.files[filename].alias_nodes:
                 a.parent = None
