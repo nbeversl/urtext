@@ -687,7 +687,7 @@ class UrtextProject:
                 if value not in self.keynames[keyname]:  
                     continue
 
-                if node_id in self.keynames[keyname][value]:
+                if node_id in list(self.keynames[keyname][value]):
                     self.keynames[keyname][value].remove(node_id)
                 
         self._clear_empty_meta()

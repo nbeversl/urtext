@@ -78,7 +78,8 @@ def _compile(self,
                     _build_group_and(
                         project, 
                         group,
-                        include_dynamic=dynamic_definition.include_dynamic)
+                        #include_dynamic=dynamic_definition.include_dynamic)
+                        include_dynamic=True)
                     )
 
         included_nodes -= excluded_nodes
@@ -198,7 +199,6 @@ def _compile(self,
                         f.write(exported_content)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-    print(list(set(modified_files)))
     return list(set(modified_files))
 
 def build_final_output(dynamic_definition, contents):

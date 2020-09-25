@@ -43,7 +43,7 @@ def _set_tree_elements(self, filename):
 def _tree_node_is_excluded(self, tree_node, excluded_nodes):
 
     node_id = tree_node.name[-3:]
-    
+
     if node_id in excluded_nodes:
         return True
 
@@ -94,7 +94,7 @@ def show_tree_from(self,
     tree_render = ''
     for pre, _, this_node in RenderTree(
             start_point, 
-            style=ContStyle, 
+            style=AsciiStyle, 
             maxlevel=dynamic_definition.depth):
 
         if self._tree_node_is_excluded(this_node, exclude):
