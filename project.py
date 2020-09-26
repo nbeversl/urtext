@@ -77,7 +77,7 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
+        self.is_async = False # use False for development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1053,11 +1053,15 @@ class UrtextProject:
         link = ''
         position = 0
         result = re.search(node_link_regex, string)        
+        link_location = None
         if result:
             kind = 'NODE'
+            link_location = result.span()
             link = result.group(2) # node id
             if len(result.groups()) > 2:
                 position = result.group(3) # position
+                if not position:
+                    position = 0
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -1069,7 +1073,8 @@ class UrtextProject:
                     kind ='HTTP'
                     link = result.group()
 
-        return (kind, link, position)
+        
+        return (kind, link, position, link_location)
              
     def build_collection(self):
         """ Returns a collection of context-aware metadata anchors """ 
@@ -1296,7 +1301,7 @@ class UrtextProject:
         for k in self.keynames: 
             if k in ignore:
                 continue
-            for value in self.keynames[k]:
+            for value in list(self.keynames[k]):
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
