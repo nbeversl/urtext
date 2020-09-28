@@ -1,4 +1,4 @@
-from anytree import Node, RenderTree, PreOrderIter, AsciiStyle
+from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
 from .dynamic_output import DynamicOutput
 import datetime
@@ -94,7 +94,7 @@ def show_tree_from(self,
     tree_render = ''
     for pre, _, this_node in RenderTree(
             start_point, 
-            style=AsciiStyle, 
+            style=ContStyle, 
             maxlevel=dynamic_definition.depth):
 
         if self._tree_node_is_excluded(this_node, exclude):
