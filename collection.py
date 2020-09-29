@@ -139,7 +139,7 @@ def _collection(self,
          return ''
 
     sorted_stuff = sorted(found_stuff, 
-         key=lambda x: ( x['sort_value'], found_stuff.index(x)),
+         key=lambda x: ( x['sort_value'] ),
          reverse=dynamic_definition.sort_reverse) 
            
     if dynamic_definition.limit:

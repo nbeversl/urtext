@@ -98,9 +98,8 @@ class ProjectList():
 
     def on_modified(self, filename):
         if self.set_current_project(os.path.dirname(filename)):
-            modified_files = self.current_project.on_modified(filename)            
-            self.executor.submit(self._propagate_projects, modified_files)
-            return modified_files
+            future = self.current_project.on_modified(filename)            
+            self.executor.submit(self._propagate_projects, future)
         return None
         
     def _propagate_projects(self, future):

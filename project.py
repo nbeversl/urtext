@@ -78,6 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True # use False for development only
+        #self.is_async = False
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -706,10 +707,9 @@ class UrtextProject:
         """
         filename = os.path.basename(filename)
         if filename in self.files:
-            node_ids = list(self.files[filename].nodes)
             future = self.remove_file(filename)
             os.remove(os.path.join(self.path, filename))
-            for node_id in node_ids:
+            for node_id in list(self.files[filename].nodes):
                 while node_id in self.navigation:
                     index = self.navigation.index(node_id)
                     del self.navigation[index]
@@ -1227,10 +1227,7 @@ class UrtextProject:
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
         self._parse_file(popped_node_id+'.txt') 
-
-        modified_files = [filename, popped_node_id+'.txt']
-
-        return self._update(modified_files=modified_files)  
+        self._compile()  
 
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
@@ -1254,7 +1251,6 @@ class UrtextProject:
         if not current_node:
             return None
 
-        modified_files = [current_file] 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         
@@ -1264,7 +1260,6 @@ class UrtextProject:
             self.delete_file(self.nodes[node_id].filename)  
         else:
             self._set_file_contents(self.nodes[node_id].filename, replaced_file_contents)
-            modified_files.append(self.nodes[node_id].filename)
             self._parse_file(self.nodes[node_id].filename)
         pulled_contents = contents[start:end]
         full_current_contents = self._full_file_contents(current_file)
@@ -1277,7 +1272,7 @@ class UrtextProject:
         self._set_file_contents(current_file, replacement_contents)
         self._parse_file(current_file)
         
-        return self._update(modified_files=modified_files)  
+        return self._compile()  
 
     def titles(self):
         title_list = {}
@@ -1357,27 +1352,11 @@ class UrtextProject:
     
     def _file_update(self, filename):
         
-        modified_files = []
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-            modified_files.append(filename)
-
         self._parse_file(filename)
-        return self._update(modified_files=modified_files)
-
-
-    def _update(self, 
-        modified_files=[]
-        ):
-
-        # Build copies of trees wherever there are Node Pointers (>>)
         self._compile()
-        modified_files.extend(self._check_for_new_files())
-        modified_files = self._compile(modified_files=modified_files)
-        return modified_files
-
-    ## 
 
     def _check_for_new_files(self):
         filelist = os.listdir(self.path)
@@ -1407,18 +1386,18 @@ class UrtextProject:
             raise DuplicateIDs()
         else:
             if self.is_async:
-                return self.executor.submit(self._update)
+                return self.executor.submit(self._compile)
             else:
-                self._update()
+                self._compile()
 
 
     def remove_file(self, filename):
         if self.is_async:
             self.executor.submit(self._remove_file, os.path.basename(filename))
-            self.executor.submit(self._update)
+            self.executor.submit(self._compile)
         else:
             self._remove_file(os.path.basename(filename))
-            self._update()
+            self._compile()
     
     def get_file_name(self, node_id, absolute=False):
         filename = None

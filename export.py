@@ -60,8 +60,8 @@ class UrtextExport:
         Bootstrap _add_node_content() with a root node ID and then 
         return contents, recursively if specified.
         """
-        if kind in ['-markdown', '-md']:
-            clean_whitespace = True
+        # if kind in ['-markdown', '-md']:
+        #     clean_whitespace = True
         
         exported_content, points, visited_nodes = self._add_node_content(
             root_node_id,
@@ -165,18 +165,19 @@ class UrtextExport:
             """
             if single_range == ranges[0]:
     
-
                 ## Replace and Format Title
-                if not meta_title: 
-                    range_contents = range_contents.replace(title,'',1)
-                    # range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
-                    # title_found = True
-
-                range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
-
+                if 'c' not in self.project.nodes[root_node_id].metadata.get_values('flags'):
+                    if not meta_title: 
+                        range_contents = range_contents.replace(title,'',1)
+                    range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
+                else:
+                    nested -=1
+                
+                if 'n' in self.project.nodes[root_node_id].metadata.get_values('flags'):
+                    range_contents += '  \n'
+                    
                 if kind == '-html' and not strip_urtext_syntax:
                     added_contents += OPENING_BRACKETS
-
 
             if kind == '-html':
                 """

@@ -134,6 +134,7 @@ class UrtextNode:
         return self.date.strftime(format_string)
 
     def contents(self):
+   
         with open(os.path.join(self.project_path, self.filename),
                   'r',
                   encoding='utf-8') as theFile:
@@ -180,6 +181,7 @@ class UrtextNode:
     @classmethod
     def strip_embedded_syntaxes(self, contents=None):
         if contents == None:
+            #contents = self.contents
             contents = self.contents()
         stripped_contents = contents
 
@@ -190,6 +192,7 @@ class UrtextNode:
     @classmethod
     def strip_inline_nodes(self, contents=''):
         if contents == '':
+            #contents = self.contents
             contents = self.contents()
         
         stripped_contents = contents
@@ -213,6 +216,7 @@ class UrtextNode:
 
     def content_only(self, contents=None):
         if contents == None:
+            #contents = self.contents
             contents = self.contents()
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
@@ -349,7 +353,7 @@ class UrtextNode:
                   'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
-
+            
         # if preserve_metadata:
         #     contents += self.consolidate_metadata()
 
