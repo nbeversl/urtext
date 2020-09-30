@@ -497,8 +497,6 @@ class UrtextExport:
         if contents and contents[-1] == '{':
             contents = contents[:-1]
             
-        # contents = contents.replace('{','')
-        # contents = contents.replace('}','')
         contents = re.sub(r'^[^\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents
  

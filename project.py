@@ -33,6 +33,7 @@ import diff_match_patch as dmp_module
 import profile
 from logging.handlers import RotatingFileHandler
 import pprint
+from dateutil.parser import *
 from pytz import timezone
 
 from .file import UrtextFile
@@ -58,6 +59,7 @@ functions.extend(reindex_functions)
 functions.extend(search_functions)
 functions.extend(collection_functions)
 
+
 def add_functions_as_methods(functions):
     def decorator(Class):
         for function in functions:
@@ -78,7 +80,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True # use False for development only
-        #self.is_async = False
+        self.is_async = False
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -172,7 +174,6 @@ class UrtextProject:
                 self._parse_file(file)
         self.quick_loaded = True
         
-
     def retrieve(self):
         if os.path.exists(os.path.join(self.path,'_store.json')):
             with open(os.path.join(self.path, '_store.json'), 'r') as f:
@@ -181,7 +182,6 @@ class UrtextProject:
                 self.title = self.ql['title']
         else:
             self.ql = { 'last_accessed': [], 'title': '', 'path': self.path}
-
 
     def store(self):
         if self.compiled:
@@ -490,15 +490,23 @@ class UrtextProject:
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None
-        for this_format in self.settings['timestamp_format']:
-            try:
-                dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
-                if dt_stamp:
-                    if dt_stamp.tzinfo == None:
-                        dt_stamp = self.default_timezone.localize(dt_stamp) 
-                    return dt_stamp        
-            except ValueError:
-                 continue
+        try:
+            d = parse(datestamp_string)
+            if d.tzinfo == None:
+                 d = self.default_timezone.localize(d) 
+            return d
+        except:
+            pass
+
+        # for this_format in self.settings['timestamp_format']:
+        #     try:
+        #         dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
+        #         if dt_stamp:
+        #             if dt_stamp.tzinfo == None:
+        #                 dt_stamp = self.default_timezone.localize(dt_stamp) 
+        #             return dt_stamp        
+        #     except ValueError:
+        #          continue
         return None
 
     def export_from_root_node(self, root_node_id):
@@ -538,37 +546,6 @@ class UrtextProject:
         if node_id in self.nodes:
             return self.nodes[node_id].filename
         return False
-
-
-    def _get_metadata_list(self, keys=[]):
-        """ Refreshes the Metadata List file """
-
-        if not keys:
-            keys = sorted([ k for k in self.keynames
-                if k not in ['def', 'id', self.settings['node_date_keyname'].lower(), '_index']
-            ])
-
-        root = Node('Metadata Keys')
-        for key in keys:
-            s = Node(key)
-            s.parent = root
-            for value in sorted(self.keynames[key]):
-                t = Node(value)
-                t.parent = s
-                if value in self.keynames[key]:
-                    for node_id in sorted(self.keynames[key][value]):
-                        if node_id in self.nodes:
-                            n = Node(self.nodes[node_id].title + ' >' +
-                                     node_id)
-                            n.parent = t
-                        else: # debugging
-                            print(node_id+ ' WAS LOST (DEBUGGING)')
-                
-        contents = []           
-        for pre, _, node in RenderTree(root):
-            contents.append("%s%s\n" % (pre, node.name))
-            
-        return ''.join(contents)
 
     def _adjust_ranges(self, filename, from_position, amount):
         """ 
@@ -657,6 +634,7 @@ class UrtextProject:
        
         if filename in self.files:
             
+            #self._unbuild_node_meta(self.files[filename].nodes)
             for node_id in self.files[filename].nodes: 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
@@ -665,7 +643,6 @@ class UrtextProject:
                 
                 self.nodes[node_id].tree_node.parent = None
                 self.nodes[node_id].tree_node = None
-                self._unbuild_node_meta(node_id)
                 self._remove_sub_tags(node_id)                
                 del self.links_from[node_id]
                 self.remove_links_in(node_id)
@@ -678,25 +655,17 @@ class UrtextProject:
 
             del self.files[filename]
 
-    def _unbuild_node_meta(self, node_id):
-        
-        for keyname in list(self.keynames):
-
-            for value in list(self.keynames[keyname]):
-
-                #  ( in case it's been removed during the iteration ): 
-                if value not in self.keynames[keyname]:  
-                    continue
-
-                if node_id in list(self.keynames[keyname][value]):
-                    self.keynames[keyname][value].remove(node_id)
-                
         self._clear_empty_meta()
 
+    def _unbuild_node_meta(self, node_ids):
+        
+        for keyname in self.keynames:
+            for value in self.keynames[keyname]:
+                self.keynames[keyname][value] = [v for v in self.keynames[keyname][value] if v not in node_ids]
+        
     def _clear_empty_meta(self):
 
         for keyname in list(self.keynames):
-            self.keynames[keyname] = {k: v for k, v in self.keynames[keyname].items() if v}
             if not self.keynames[keyname]:
                 del self.keynames[keyname]
 
@@ -960,38 +929,16 @@ class UrtextProject:
 
     def get_parent(self, child_node_id):
         """ Given a node ID, returns its parent, if any """
-        
-        filename = self.nodes[child_node_id].filename
-        start_of_node = self.nodes[child_node_id].ranges[0][0]
-        distance_back = 1
-        if start_of_node == 0 and self.nodes[child_node_id].compact:
-            return self.files[filename].root_nodes[0]
-
-        parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
-        while not parent_node and distance_back < start_of_node:
-            distance_back += 1
-            parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
-
-        return parent_node
-
-    def _is_in_node(self, position, node_id):
-        """ 
-        Given a position, and node_id, returns whether the position is in the node 
-        """
-        if node_id not in self.nodes: 
-            return False 
-        for this_range in self.nodes[node_id].ranges:
-            if position >= this_range[0] and position <= this_range[1]:
-                return True
-        return False
+        return self.nodes[child_node_id].tree_node.parent
 
     def get_node_id_from_position(self, filename, position):
 
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
-                if self._is_in_node(position, node_id):
-                    return node_id
+                for r in self.files[filename].nodes[node_id].ranges:
+                    if position in range(r[0],r[1]):
+                        return node_id
         return None
 
     def get_links_to(self, to_id):

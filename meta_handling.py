@@ -79,7 +79,8 @@ def consolidate_metadata(self, node_id, one_line=False):
 def _rebuild_node_meta(self, node_id):
     """ Rebuild metadata for a single node """
 
-    self._unbuild_node_meta(node_id)
+    self._unbuild_node_meta([node_id])
+    self._clear_empty_meta()
 
     for entry in self.nodes[node_id].metadata._entries:
 

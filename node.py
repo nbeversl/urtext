@@ -259,12 +259,13 @@ class UrtextNode:
 
         first_line = stripped_contents_lines[index][:100].replace('{','').replace('}', '')
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
-        first_line = re.sub('┌──','',first_line, re.DOTALL)
-        first_line = re.sub('\|','',first_line, re.DOTALL) # pipe character cannot be in node names
+    
+        first_line = first_line.replace('┌──','')
+        first_line = first_line.replace('|','') # pipe character cannot be in node names
        
         # make conditional?
-        first_line = re.sub(r'^[\s]*\^','',first_line)           # compact node opening wrapper
-        first_line = re.sub(r'^\%(?!%)','',first_line)
+        if '^' in first_line:
+            first_line = re.sub(r'^[\s]*\^','',first_line)           # compact node opening wrapper
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
