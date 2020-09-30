@@ -79,8 +79,8 @@ class UrtextProject:
                  init_project=False,
                  watchdog=False):
         
-        self.is_async = True # use False for development only
-        #self.is_async = False
+        self.is_async = True 
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -107,21 +107,7 @@ class UrtextProject:
         self.title_completions = []
         self.settings = {  # defaults
             'home': None,
-            'timestamp_format':
-                [   
-                '%a., %b. %d, %Y, %I:%M %p', 
-                '%B %-d, %Y', 
-                '%B %Y', 
-                '%m-%d-%Y',
-                '%a., %b. %d, %Y, %I:%M %p %z', 
-                '%a., %b. %d, %Y, %I:%M %p',
-                '%A, %B %d, %Y, %I:%M %p',
-                '%B %d, %Y, %I:%M %p',
-                '%B %d, %Y, %I:%M%p',
-                '%Y',
-                '%B %d, %Y',
-                '%A, %B %d, %Y, %I:%M%p'
-                ],
+            'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
             'use_timestamp': ['timestamp','inline-timestamp'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log': True,
@@ -1019,7 +1005,7 @@ class UrtextProject:
         if date.tzinfo == None:
             date = self.default_timezone.localize(date)    
 
-        timestamp_format = '<' + self.settings['timestamp_format'][0] + '>'
+        timestamp_format = '<' + self.settings['timestamp_format'] + '>'
         return date.strftime(timestamp_format)
 
     def get_log_node(self):
@@ -1034,6 +1020,7 @@ class UrtextProject:
             'google_calendar_id',
             'node_date_keyname',
             'log_id',
+            'timestamp_format'
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -1048,15 +1035,6 @@ class UrtextProject:
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
                 self.title = values[0]
-                continue
-
-            if key == 'timestamp_format':
-                formats = []
-                for value in values:
-                    if value:
-                        formats.append(value)
-                formats.extend(self.settings['timestamp_format'])
-                self.settings['timestamp_format'] = formats
                 continue
 
             if key == 'numerical_keys':

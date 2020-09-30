@@ -124,7 +124,7 @@ def show_tree_from(self,
             next_content.link = ''.join(link)
 
         if next_content.needs_date:
-            next_content.date = urtext_node.get_date(format_string = self.settings['timestamp_format'][0])
+            next_content.date = urtext_node.get_date(format_string = self.settings['timestamp_format'])
 
         if next_content.needs_meta:
             next_content.meta = urtext_node.consolidate_metadata(separator=':')
@@ -134,7 +134,7 @@ def show_tree_from(self,
 
         if next_content.needs_last_accessed: 
             t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
-            next_content.last_accessed = t.strftime(self.settings['timestamp_format'][0])
+            next_content.last_accessed = t.strftime(self.settings['timestamp_format'])
 
         for meta_key in next_content.needs_other_format_keys:
             values = urtext_node.metadata.get_values(meta_key, substitute_timestamp=True)
