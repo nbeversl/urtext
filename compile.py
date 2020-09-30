@@ -24,12 +24,11 @@ from. search import UrtextSearch
 from .dynamic_output import DynamicOutput
 import os
 import re
-import operator
 
 """
 compile method for the UrtextProject class
 """
-def _compile(self, first = []):
+def _compile(self, first=[]):
 
     self.formulate_links_to()
 
@@ -41,7 +40,7 @@ def _compile(self, first = []):
 
     if first:
         for file in first:
-            compile_first = list(set([d for d in list(self.dynamic_nodes) if d.target_id in self.files[file].nodes]))
+            compile_first = list(set([d for d in self.dynamic_nodes if d.target_id in self.files[file].nodes]))
 
         for dynamic_definition in compile_first:
             self._process_dynamic_def(dynamic_definition)

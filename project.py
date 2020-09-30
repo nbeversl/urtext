@@ -20,7 +20,6 @@ import re
 import datetime
 import itertools
 import platform
-import logging
 import json
 import os
 import random
@@ -28,11 +27,7 @@ import time
 import pickle
 from time import strftime
 import concurrent.futures
-from anytree import Node, RenderTree, PreOrderIter
 import diff_match_patch as dmp_module
-import profile
-from logging.handlers import RotatingFileHandler
-import pprint
 from dateutil.parser import *
 from pytz import timezone
 
