@@ -75,7 +75,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -883,10 +883,26 @@ class UrtextProject:
         return root_nodes
 
 
+    # def get_parent(self, child_node_id):
+    #     """ Given a node ID, returns its parent, if any """
+    #     return self.nodes[child_node_id].tree_node.parent
+
     def get_parent(self, child_node_id):
         """ Given a node ID, returns its parent, if any """
-        return self.nodes[child_node_id].tree_node.parent
+          
+        filename = self.nodes[child_node_id].filename
+        start_of_node = self.nodes[child_node_id].ranges[0][0]
+        distance_back = 1
+        if start_of_node == 0 and self.nodes[child_node_id].compact:
+            return self.files[filename].root_nodes[0]
 
+        parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
+        while not parent_node and distance_back < start_of_node:
+            distance_back += 1
+            parent_node = self.get_node_id_from_position(filename, start_of_node - distance_back)
+
+        return parent_node  
+          
     def get_node_id_from_position(self, filename, position):
 
         filename = os.path.basename(filename)
