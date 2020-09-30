@@ -114,7 +114,6 @@ def _collection(self,
                                     break
                             if not entry.position:
                                 pass
-                                #entry.log()
                             if entry.position < length:
                                 if line.strip(): 
                                     context.append(line.strip())

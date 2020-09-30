@@ -59,7 +59,6 @@ def _process_dynamic_def(self, dynamic_definition):
     if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
         self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
-        #continue
         return
 
     # Determine included and excluded nodes
@@ -112,7 +111,6 @@ def _process_dynamic_def(self, dynamic_definition):
         sort_order = lambda node: ( self.get_first_value(node, dynamic_definition.sort_keyname[0]), node.id)            
 
     else:
-        #sort_order = lambda node: node.default_sort()
         sort_order = lambda node: node.id
 
     included_nodes = sorted(

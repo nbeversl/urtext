@@ -79,26 +79,17 @@ def consolidate_metadata(self, node_id, one_line=False):
 def _rebuild_node_meta(self, node_id):
     """ Rebuild metadata for a single node """
 
-    self._unbuild_node_meta([node_id])
-    self._clear_empty_meta()
-
     for entry in self.nodes[node_id].metadata._entries:
 
         # title becomes a node property elsewhere, skip
         if entry.keyname == 'title':
            continue 
 
-        self.keynames.setdefault(entry.keyname, {})
         keyname = entry.keyname.lower()
-
-        if not entry.values and entry.dt_string:
-            self.keynames[keyname].setdefault(entry.dt_string, [])
-            self.keynames[keyname][entry.dt_string].append(node_id)
-            continue
-
-        # add the values to the keyname
+        self.keynames.setdefault(keyname, [])
+ 
         for value in entry.values:
-          
+                     
             if isinstance(value, str) and keyname not in self.settings['case_sensitive']:
                 value = value.lower() # all comparisons case insensitive
   
@@ -108,11 +99,10 @@ def _rebuild_node_meta(self, node_id):
                 except ValueError:
                     print('cannot parse '+value+' as a numerical key')
                     continue
-            
-            self.keynames[keyname].setdefault(value, [])
-            if node_id not in self.keynames[keyname][value]:
-                self.keynames[keyname][value].append(node_id)
 
+            if value not in self.keynames[keyname]:
+                self.keynames[keyname].append(value)
+            
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata
     target_id,

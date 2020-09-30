@@ -498,15 +498,6 @@ class UrtextProject:
         except:
             pass
 
-        # for this_format in self.settings['timestamp_format']:
-        #     try:
-        #         dt_stamp = datetime.datetime.strptime(datestamp_string, this_format)
-        #         if dt_stamp:
-        #             if dt_stamp.tzinfo == None:
-        #                 dt_stamp = self.default_timezone.localize(dt_stamp) 
-        #             return dt_stamp        
-        #     except ValueError:
-        #          continue
         return None
 
     def export_from_root_node(self, root_node_id):
@@ -634,7 +625,6 @@ class UrtextProject:
        
         if filename in self.files:
             
-            #self._unbuild_node_meta(self.files[filename].nodes)
             for node_id in self.files[filename].nodes: 
                 # remove this node's dynamic definitions
                 for index, definition in enumerate(self.dynamic_nodes):
@@ -654,20 +644,6 @@ class UrtextProject:
                 a.children = []
 
             del self.files[filename]
-
-        self._clear_empty_meta()
-
-    def _unbuild_node_meta(self, node_ids):
-        
-        for keyname in self.keynames:
-            for value in self.keynames[keyname]:
-                self.keynames[keyname][value] = [v for v in self.keynames[keyname][value] if v not in node_ids]
-        
-    def _clear_empty_meta(self):
-
-        for keyname in list(self.keynames):
-            if not self.keynames[keyname]:
-                del self.keynames[keyname]
 
     def delete_file(self, filename):
         """
@@ -1498,13 +1474,9 @@ class UrtextProject:
 
         results = set([])
 
-        if key not in self.keynames:
-            return results
-
         for value in values:
             if value in ['*']:
-                for v in self.keynames[key]:
-                    results = results.union(set(self.keynames[key][v])) 
+                results = results.union(set(n for n in self.nodes if self.nodes[n].metadata.get_values(key))) 
                 continue
             
             if isinstance(value, str) and key not in self.settings['case_sensitive']:
@@ -1517,8 +1489,7 @@ class UrtextProject:
                     value = 99999999
                     continue
            
-            if value in self.keynames[key]:
-                results = results.union(set(self.keynames[key][value]))
+            results = results.union(set(n for n in self.nodes if value in self.nodes[n].metadata.get_values(key)))
 
         return results
 
