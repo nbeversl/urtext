@@ -35,8 +35,16 @@ def _set_tree_elements(self, filename):
         if position == 0 and parsed_items[0] == '{':
             self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
             continue
-            
-        parent = self.get_parent(node)
+        
+
+        child_node_id = node
+
+        start_of_node = self.nodes[child_node_id].ranges[0][0]
+        distance_back = 1
+        if start_of_node == 0 and self.nodes[child_node_id].compact:
+            parent = self.files[filename].root_nodes[0]
+        else:
+            parent = self.get_node_id_from_position(filename, start_of_node - 1)
         if parent:
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
