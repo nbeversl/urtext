@@ -80,7 +80,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True # use False for development only
-        self.is_async = False
+        #self.is_async = False
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -486,7 +486,6 @@ class UrtextProject:
                     entry.dt_stamp = dt_stamp 
                     if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
                         self.nodes[node_id].date = dt_stamp
-
 
     def _date_from_timestamp(self, datestamp_string):
         dt_stamp = None
