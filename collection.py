@@ -53,7 +53,9 @@ def _collection(self,
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
 
-                for entry in entries:
+                for p in range(len(entries)):
+
+                     entry = entries[p]
 
                      found_item = {}
                      
@@ -96,34 +98,46 @@ def _collection(self,
                          # get context and position
                          # lines = 1 # FUTURE
 
-                         # get content with full meta.
-                         full_contents = node.content_only().split('\n')
+                         full_contents = node.contents()
                         
                          context = []
                          length = 0
-                         for i in range(len(full_contents)):
+                         """
+                         Here we want to get, in this order:
+                            The text after the entry on the same line but before the next entry
+                            The text before the entry on the same line
+                            The next non-blank line(s), up to a certain length
+                         """
+                         stop = len(full_contents)
+                         start = entry.end_position
+                         if entry.index + 1 < len(self.nodes[entry.node].metadata._entries):
+                            stop = self.nodes[entry.node].metadata._entries[entry.index+1].position
 
-                            line = full_contents[i]
+                         poss_context = full_contents[start:stop].split('\n')
+                         for i in range(len(poss_context)):
+
+                            line = poss_context[i]
+
                             if line.strip():
                                 context.append(line.strip())
-                            if entry.position in range(length, length+len(line)+1):
-                                 if line.strip(): 
-                                    context = [ line.strip() ]
-                                    break
-                                 elif context: 
-                                    break
-                            if not entry.position:
-                                pass
-                            if entry.position < length:
-                                if line.strip(): 
+
+                            if len('\n'.join(context)) > 300:
+                                break
+
+                         if not context:
+                            start = 0
+                            stop = entry.position
+                            if entry.index > 0:
+                                start = self.nodes[entry.node].metadata._entries[entry.index-1].end_position
+
+                            poss_context = full_contents[start:stop].split('\n')
+                            for i in range(len(poss_context)):
+                                line = poss_context[i]
+                                if line.strip():
                                     context.append(line.strip())
+                                if len('\n'.join(context)) > 300:
                                     break
-                            length += len(line)
 
-                         if len(context) > 1:
-                            context = [context[-1]]
-
-                         
                          found_item['context'] = '\n'.join(context)
                          found_item['context'] = UrtextNode.strip_metadata(contents=found_item['context'])
                          while '>>' in found_item['context']:
@@ -157,7 +171,11 @@ def _collection(self,
 
          if next_content.needs_entry:
             next_content.entry = item['keyname'] + ' :: ' +  str(item['value'])
+
+         if next_content.needs_key:
             next_content.key = item['keyname']
+
+         if next_content.needs_values:
             next_content.values = item['value']
 
          if next_content.needs_link:            

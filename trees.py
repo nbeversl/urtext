@@ -177,7 +177,7 @@ def duplicate_tree(self, original_node, leaf):
                     new_node = Node('! (Missing Node) >'+node_id)
                     new_node.parent = new_root            
             else:
-                new_node = Node('! RECURSION (from duplication) : '+ self.nodes[node_id].title + ' >'+node_id)
+                new_node = Node('! RECURSION (from tree duplication) : '+ self.nodes[node_id].title + ' >'+node_id)
                 new_node.parent = new_root  
             continue
 

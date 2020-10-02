@@ -44,6 +44,9 @@ class DynamicOutput():
         self.needs_other_format_keys = []
         self.needs_last_accessed = False
         
+        self.needs_key = False
+        self.needs_values = False
+
         self.format_string = format_string
         self.shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
         self.values = []
@@ -87,9 +90,9 @@ class DynamicOutput():
         if self.shah + '$entry' in self.item_format:
             self.needs_entry = True
         if self.shah + '$key' in self.item_format:
-            self.needs_entry = True
+            self.needs_key = True
         if self.shah + '$values' in self.item_format:
-            self.needs_entry = True
+            self.needs_values = True
         if self.shah + '$_last_accessed' in self.item_format:
             self.needs_last_accessed = True
 

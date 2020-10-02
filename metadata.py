@@ -32,18 +32,26 @@ class NodeMetadata:
         self.node = node
         self._entries, self.dynamic_entries = parse_contents(
             full_contents,
-            node.project,
+            node,
             settings=settings)
         self._sort()       
         self._last_accessed = 0
-
+        
     def _sort(self):
         """ from extant entries, populate a dict by key"""
+        
         self.entries = {}
         for e in self._entries:
             self.entries.setdefault(e.keyname, [])
             if e not in self.entries[e.keyname]:
                self.entries[e.keyname].append(e)
+
+        node_id = self.get_first_value('id')
+        if node_id:
+            self._entries = sorted(self._entries, key = lambda entry: entry.position)
+            for i in range(len(self._entries)):
+                self._entries[i].index = i
+                self._entries[i].node = node_id
 
     def get_links_to(self):
         return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
@@ -59,6 +67,9 @@ class NodeMetadata:
         if not entries or not entries[0].values:
             return ''
         return entries[0].values[0]
+
+    
+        
 
     def get_values(self, 
         keyname,
@@ -123,7 +134,7 @@ class NodeMetadata:
         key, 
         values,
         from_node=None,
-        position=None):
+        position=0):
 
         new_entry = MetadataEntry(key, values, None, from_node=from_node, position=position)
         self._entries.append(new_entry)
@@ -171,7 +182,9 @@ class MetadataEntry:  # container for a single metadata entry
         print('children: %s' % self.children)
         print('recursive: %s' % self.recursive)
 
-def parse_contents(full_contents, project, settings=None):
+def parse_contents(full_contents, node, settings=None):
+
+    project = node.project
 
     parsed_contents = full_contents
 
@@ -236,6 +249,7 @@ def parse_contents(full_contents, project, settings=None):
         parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 
     # parse inline timestamps:
+    
     for m in timestamp_match.finditer(parsed_contents):
         stamp = m.group()
         position = m.start()
