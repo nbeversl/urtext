@@ -71,6 +71,7 @@ class UrtextNode:
         self.last_accessed = 0
         self.trailing_node_id = False
         self.dynamic_definitions = []
+        self.blank = False
         self.title = None
         self.hashed_contents = hash(contents)
 
@@ -80,6 +81,9 @@ class UrtextNode:
         stripped_contents = self.strip_metadata(contents=stripped_contents)
         stripped_contents = self.strip_embedded_syntaxes(contents=stripped_contents)
         
+        if stripped_contents.strip() == '':
+            self.blank = True
+            
         self.title = self.set_title(stripped_contents)
        
         if self.metadata.get_first_value('id'):

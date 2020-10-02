@@ -70,6 +70,9 @@ def _process_dynamic_def(self, dynamic_definition):
 
     else: 
         included_nodes = set([])
+        if dynamic_definition.include_blank:
+            included_nodes = set([node_id for node_id in self.nodes if self.nodes[node_id].blank])
+
         for project in included_projects:
             for group in dynamic_definition.include_groups:
                 included_nodes = included_nodes.union(
@@ -80,6 +83,8 @@ def _process_dynamic_def(self, dynamic_definition):
                     )
 
     excluded_nodes = set([])
+    if dynamic_definition.exclude_blank:
+        excluded_nodes = set([node_id for node_id in self.nodes if self.nodes[node_id].blank])
 
     for project in included_projects:
         for group in dynamic_definition.exclude_groups:

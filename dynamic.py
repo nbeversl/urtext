@@ -42,6 +42,8 @@ class UrtextDynamicDefinition:
         self.exclude_groups = []
         self.limit = None
         self.include_all = False
+        self.include_blank = False
+        self.exclude_blank = False
         self.all_projects = False
         self.other_params = []
         self.include_dynamic = False
@@ -111,6 +113,9 @@ class UrtextDynamicDefinition:
                 if has_flags(['*'], flags):
                     self.include_all = True
 
+                if has_flags(['-blank'], flags):
+                    self.include_blank = True
+
                 parse_group(self,
                     self.include_groups, 
                     self.other_params,
@@ -134,6 +139,10 @@ class UrtextDynamicDefinition:
                 continue
 
             if func in ['EXCLUDE','-']:
+
+                if has_flags(['-blank'], flags):
+                    self.exclude_blank = True
+
                 parse_group(self,
                     self.exclude_groups, 
                     self.other_params,
@@ -299,6 +308,7 @@ valid_flags = [re.compile(r'(^|\s)'+f+r'\s?') for f in [
         '-markdown',
         '-md',
         '-html',
+        '-blank',
         '-plaintext',
         '-txt',
         '-preformat',
