@@ -632,17 +632,17 @@ class UrtextProject:
         """
         filename = os.path.basename(filename)
         if filename in self.files:
-            future = self.remove_file(filename)
-            os.remove(os.path.join(self.path, filename))
-            for node_id in list(self.files[filename].nodes):
+            node_ids = list(self.files[filename].nodes)
+            for node_id in node_ids:
                 while node_id in self.navigation:
                     index = self.navigation.index(node_id)
                     del self.navigation[index]
                     if self.nav_index > index: # >= ?
                         self.nav_index -= 1            
-            return node_ids # to project_list
+            self.remove_file(filename)
+            os.remove(os.path.join(self.path, filename))
+            return node_ids
         return []
-
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
         old_filename = os.path.basename(old_filename)
@@ -1284,7 +1284,7 @@ class UrtextProject:
     def remove_file(self, filename):
         if self.is_async:
             self.executor.submit(self._remove_file, os.path.basename(filename))
-            self.executor.submit(self._compile)
+            return self.executor.submit(self._compile)
         else:
             self._remove_file(os.path.basename(filename))
             self._compile()
