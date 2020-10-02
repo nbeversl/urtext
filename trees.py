@@ -2,6 +2,7 @@ from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
 from .dynamic_output import DynamicOutput
 import datetime
+import sys
 
 """
 Tree building
@@ -19,12 +20,10 @@ def _set_tree_elements(self, filename):
         # parse each marker, positioning it within its parent node
         if node[:2] == '>>':
             inserted_node_id = node[2:]
-
             parent_node = self.get_node_id_from_position(filename,position)      
             alias_node = Node('ALIAS'+inserted_node_id)
             alias_node.parent = self.nodes[parent_node].tree_node
             self.files[filename].alias_nodes.append(alias_node)
-
             continue
 
         """
@@ -36,12 +35,8 @@ def _set_tree_elements(self, filename):
             self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
             continue
         
-
-        child_node_id = node
-
-        start_of_node = self.nodes[child_node_id].ranges[0][0]
-        distance_back = 1
-        if start_of_node == 0 and self.nodes[child_node_id].compact:
+        start_of_node = self.nodes[node].ranges[0][0]
+        if start_of_node == 0 and self.nodes[node].compact:
             parent = self.files[filename].root_nodes[0]
         else:
             parent = self.get_node_id_from_position(filename, start_of_node - 1)
@@ -70,8 +65,11 @@ def has_aliases(self, start_point):
 
     for leaf in leaves:
         ancestors = [a.name for a in leaf.ancestors]
-        if 'ALIAS' in leaf.name and leaf.name not in ancestors and leaf.name[-3:] in self.nodes and self.nodes[leaf.name[-3:]].tree_node.children:
-            alias_nodes.append(leaf)
+        if 'ALIAS' in leaf.name and leaf.name[-3:] in self.nodes and self.nodes[leaf.name[-3:]].tree_node.children:
+            if leaf.name[-3:] not in ancestors:
+                alias_nodes.append(leaf)
+            else:
+                leaf.name = '! RECURSION - (from alias) : '+ self.nodes[leaf.name[-3:]].title + ' >'+leaf.name[-3:]
 
     return alias_nodes
 
@@ -108,12 +106,12 @@ def show_tree_from(self,
         if self._tree_node_is_excluded(this_node, exclude):
             continue
 
-        if this_node.name[0:11] == '! RECURSION':
+        if this_node.name[:11] == '! RECURSION':
             tree_render += "%s%s" % (pre, this_node.name + '\n')    
             continue
 
         if this_node.name[:5] == 'ALIAS':
-            urtext_node = self.nodes[this_node.name[5:]]
+            urtext_node = self.nodes[this_node.name[-3:]]
         else:
             urtext_node = self.nodes[this_node.name]
         
@@ -156,25 +154,20 @@ def show_tree_from(self,
     return tree_render
 
 def duplicate_tree(self, original_node, leaf):
+
     new_root = Node(original_node.name)
-    ancestors = [ancestor.name for ancestor in leaf.ancestors]
-    ancestors.extend([ancestor.name for ancestor in original_node.ancestors])
-    ancestors.append(leaf.name)
-    ancestors.append(original_node.name)
+    ancestors = [ancestor.name[-3:] for ancestor in leaf.ancestors]
+    ancestors.extend([ancestor.name[-3:] for ancestor in original_node.ancestors])
+    ancestors.append(leaf.name[-3:])
+    ancestors.append(original_node.root.name[-3:])
+    ancestors.append(original_node.name[-3:])
 
     # iterate immediate children only
     all_nodes = PreOrderIter(original_node, maxlevel=2)  
 
     for node in all_nodes: 
-        if node == original_node:
-            continue
-
-        if node.name in ancestors:
-            new_node = Node('! RECURSION (node in own ancestors): >' + node.name)
-            new_node.parent = new_root
-            continue
  
-        if 'ALIAS' in node.name and leaf:
+        if 'ALIAS' in node.name:            
             node_id = node.name[-3:] 
             if node_id not in ancestors:
                 if node_id in self.nodes:
@@ -183,16 +176,14 @@ def duplicate_tree(self, original_node, leaf):
                 else:
                     new_node = Node('! (Missing Node) >'+node_id)
                     new_node.parent = new_root            
-                continue
             else:
-                new_node = Node('! RECURSION 3:')
-                new_node.parent = new_root         
+                new_node = Node('! RECURSION (from duplication) : '+ self.nodes[node_id].title + ' >'+node_id)
+                new_node.parent = new_root  
             continue
 
         if node.parent == original_node:
             """ Recursively apply this function to children's children """
             new_node = self.duplicate_tree(node, leaf)
-            # new_node = duplicate_tree(node)
             new_node.parent = new_root
 
     return new_root
