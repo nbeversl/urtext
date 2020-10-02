@@ -957,7 +957,7 @@ class UrtextProject:
             link_location = result.span()
             link = result.group(2) # node id
             if len(result.groups()) > 2:
-                position = result.group(3) # position
+                position = int(result.group(3)[1:]) # position
                 if not position:
                     position = 0
         else:
