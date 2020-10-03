@@ -75,7 +75,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -957,8 +957,10 @@ class UrtextProject:
             link_location = result.span()
             link = result.group(2) # node id
             if len(result.groups()) > 2:
-                position = int(result.group(3)[1:]) # position
-                if not position:
+                position = result.group(3) 
+                if position:
+                    position = int(position[1:])
+                else:
                     position = 0
         else:
             result = re.search(editor_file_link_regex, string)            
