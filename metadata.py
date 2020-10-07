@@ -53,11 +53,16 @@ class NodeMetadata:
                 self._entries[i].index = i
                 self._entries[i].node = node_id
 
-    def get_links_to(self):
-        return [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
+    def get_links_to(self): 
+        return sorted(
+            [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
+            key = lambda n: n.index )
 
     def get_links_from(self):
-        return [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic]
+        return sorted(
+            [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic],
+            key = lambda n: n.index )
+        
 
     def get_first_value(self, keyname):
         if keyname == '_last_accessed':

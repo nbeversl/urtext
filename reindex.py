@@ -37,29 +37,35 @@ def reindex_files(self):
 
 def rename_file_nodes(self, filename, reindex=False):
     if self.is_async:
-        self.executor.submit(self._rename_file_nodes, filename, reindex=reindex)
+        future = self.executor.submit(self._rename_file_nodes, filename, reindex=reindex)
+        return future.result()
     else:
-        self._rename_file_nodes(filename, reindex=reindex)
+        return self._rename_file_nodes(filename, reindex=reindex)
 
 def _rename_file_nodes(self, filenames, reindex=False):
-
     """ Rename a file or list of files by metadata """
+    
     if isinstance(filenames, str):
         filenames = [filenames]
+
     used_names = []
+    existing_files = os.listdir()
 
     indexed_nodes = list(self.indexed_nodes())
-    filename_template = list(self.settings['filenames'])
+    filename_template = self.settings['filenames']
     renamed_files = {}
     date_template = None
 
-    for index in range(0, len(filename_template)):
-        if 'DATE' in filename_template[index]:
-            date_template = filename_template[index].replace('DATE', '').strip()
-            filename_template[index] = 'DATE'
+    for i in range(0, len(filename_template)):
+        if 'DATE' in filename_template[i]:
+            date_template = filename_template[i].replace('DATE', '').strip()
+            filename_template[i] = 'DATE'
 
     for filename in filenames:
+
         old_filename = os.path.basename(filename)
+        if old_filename not in self.files:
+            return []
 
         if not self.files[old_filename].root_nodes:
             self._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
@@ -71,7 +77,10 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         # start with the filename template, replace each element
         new_filename = ' - '.join(filename_template)
-        new_filename = new_filename.replace('TITLE', root_node.title)
+        if root_node.title:
+            new_filename = new_filename.replace('TITLE', root_node.title)
+        else:
+            new_filename = new_filename.replace('TITLE', '(untitled)')
         
         if root_node_id not in indexed_nodes and date_template != None:
             new_filename = new_filename.replace(
@@ -94,22 +103,19 @@ def _rename_file_nodes(self, filenames, reindex=False):
         new_filename = new_filename.strip('-').strip();
         new_filename += '.txt'
 
-        if new_filename not in used_names:
+        if new_filename in used_names:
+            new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
 
-            # renamed_files retains full file paths
-            renamed_files[os.path.join(self.path, old_filename)] = os.path.join(self.path, new_filename)
-            used_names.append(new_filename)
+        # renamed_files retains full file paths
+        renamed_files[os.path.join(self.path, old_filename)] = os.path.join(self.path, new_filename)
+        used_names.append(new_filename)
 
-            # add history files
-            old_history_file = old_filename.replace('.txt','.pkl')
-            if os.path.exists(os.path.join(self.path, 'history', old_history_file)  ):
-                new_history_file = new_filename.replace('.txt','.pkl')
-                renamed_files[os.path.join(self.path, 'history', old_history_file)] = os.path.join(self.path, 'history', new_history_file)
-
-        else:
-            self._log_item('Renaming ' + old_filename +
-                          ' results in duplicate filename: ' +
-                          new_filename)
+        # add history files
+        old_history_file = old_filename.replace('.txt','.pkl')
+        if os.path.exists(os.path.join(self.path, 'history', old_history_file)  ):
+            new_history_file = new_filename.replace('.txt','.pkl')
+            renamed_files[os.path.join(self.path, 'history', old_history_file)] = os.path.join(self.path, 'history', new_history_file)
+            
 
     for filename in renamed_files:
         old_filename = filename
@@ -127,4 +133,4 @@ def _rename_file_nodes(self, filenames, reindex=False):
     """    
     return renamed_files
 
-reindex_functions = [ _rename_file_nodes, reindex_files ]
+reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files ]

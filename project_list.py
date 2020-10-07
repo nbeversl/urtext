@@ -40,7 +40,7 @@ class ProjectList():
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         if self.projects:
             self.current_project = self.projects[0]
-        self._propagate_projects(None)
+        #self._propagate_projects(None)
         if first_project:
             self.set_current_project(first_project)
 
@@ -98,9 +98,12 @@ class ProjectList():
 
     def on_modified(self, filename):
         if self.set_current_project(os.path.dirname(filename)):
-            future = self.current_project.on_modified(filename)            
-            self.executor.submit(self._propagate_projects, future)
-        return None
+            if self.current_project.is_async:
+                future = self.current_project.on_modified(filename)            
+                self.executor.submit(self._propagate_projects, future)
+            else:
+                new_filename = self.current_project.on_modified(filename)            
+                return new_filename
         
     def _propagate_projects(self, future):
         # wait on future to complete

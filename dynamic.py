@@ -59,8 +59,9 @@ class UrtextDynamicDefinition:
         self.spaces = 0
         self.preformat = False
 
-        # SHOW        
-        self.show = '$title $link\n' # default
+        # SHOW
+        self.show = None
+        self.default_show = '$title $link\n' # default
         self.header = ''
         self.footer = ''
         self.use_timestamp = False
@@ -73,7 +74,9 @@ class UrtextDynamicDefinition:
         self.exports = []
        
         self.init_self(contents)
-       
+        if not self.show:
+            self.show = self.default_show
+
     def init_self(self, contents):
 
         for match in re.findall(function_regex,contents):
@@ -125,7 +128,7 @@ class UrtextDynamicDefinition:
 
             if func in ['COLLECT','C']:
                 self.output_type = '-collection'
-                self.show = "$entry $link \n $contents\n\n"
+                self.default_show = "$entry $link \n $contents\n\n"
 
                 # other_params = [] ## standalone tags no operators.
                 parse_group(self,
@@ -220,6 +223,7 @@ class UrtextDynamicDefinition:
             if func == 'FOOTER':
                 self.footer += inside_parentheses
 
+        
 
 class Export:
     def __init__(self):

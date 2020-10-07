@@ -116,6 +116,7 @@ class UrtextProject:
             'log_id': '',
             'numerical_keys': ['_index' ,'index'],
             'preload': [],
+            'atomic_rename' : False,
             'case_sensitive': [
                 'title',
                 'notes',
@@ -643,6 +644,7 @@ class UrtextProject:
             os.remove(os.path.join(self.path, filename))
             return node_ids
         return []
+    
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
         old_filename = os.path.basename(old_filename)
@@ -838,7 +840,7 @@ class UrtextProject:
 
         unindexed_nodes = []
         for node_id in list(self.nodes):   
-            if self.nodes[node_id].index == 99999:
+            if not self.nodes[node_id].metadata.get_first_value('index'):
                 unindexed_nodes.append(node_id)
                 
         sorted_unindexed_nodes = sorted(
@@ -852,10 +854,11 @@ class UrtextProject:
 
         indexed_nodes_list = []
         for node_id in list(self.nodes):
-            if self.nodes[node_id].index != 99999:
+            index = self.nodes[node_id].metadata.get_first_value('index')
+            if index:
                 indexed_nodes_list.append([
                     node_id,
-                    self.nodes[node_id].index
+                    index
                 ])
         sorted_indexed_nodes = sorted(indexed_nodes_list, key=lambda item: item[1])
         for index, node in enumerate(sorted_indexed_nodes):
@@ -1018,6 +1021,7 @@ class UrtextProject:
             'always_oneline_meta',
             'preformat',
             'console_log',
+            'atomic_rename',
         ]
 
         for entry in node.metadata._entries:
@@ -1231,6 +1235,7 @@ class UrtextProject:
         """ 
         Main method to keep the project updated. 
         Should be called whenever file or directory content changes
+        Returns a FULL PATH to the new filename if the filename changes by atomic rename
         """
         do_not_update = ['history','files']
         
@@ -1248,7 +1253,14 @@ class UrtextProject:
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
         self._parse_file(filename)
+        full_filename = None
+        # if self.settings['atomic_rename']:
+        #     renamed = self._rename_file_nodes(filename)
+        #     if os.path.join(self.path, filename) in renamed:
+        #         full_filename = renamed[os.path.join(self.path, filename)]
         self._compile()
+        """ returns filename with full path"""
+        return full_filename
 
     def _check_for_new_files(self):
         filelist = os.listdir(self.path)

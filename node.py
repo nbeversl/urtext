@@ -33,7 +33,7 @@ dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'{(?!.*{)(?:(?!}).)*}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
-node_link_regex = r'>[0-9,a-z]{3}\b'
+node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
@@ -66,7 +66,7 @@ class UrtextNode:
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
-        self.index = 99999
+        self.index = 10
         self.parent_project = None
         self.last_accessed = 0
         self.trailing_node_id = False
@@ -234,7 +234,7 @@ class UrtextNode:
             contents = self.contents_only()
         nodes = re.findall(node_link_regex, contents)  # link RegEx
         for node in nodes:
-            self.links_from.append(node[1:])
+            self.links_from.append(node[-3:])
 
     @classmethod
     def strip_contents(self, contents):
