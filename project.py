@@ -120,6 +120,7 @@ class UrtextProject:
             'numerical_keys': ['_index' ,'index'],
             'preload': [],
             'atomic_rename' : False,
+            'tag_other': ['tags','done'],
             'case_sensitive': [
                 'title',
                 'notes',
@@ -1040,6 +1041,10 @@ class UrtextProject:
                 self.settings['numerical_keys'].extend(values)
                 continue
 
+            if key == 'tag_other':
+                self.settings['tag_other'] = values # replace
+                continue
+
             if key == 'filenames':
                 #always a list
                 self.settings['filenames'] = values
@@ -1193,9 +1198,7 @@ class UrtextProject:
     def get_all_meta_pairs(self):
         pairs = []
         ignore = [ 'id' ]
-        for k in self.keynames: 
-            if k in ignore:
-                continue
+        for k in [kn for kn in self.keynames if kn not in ignore]: 
             for value in list(self.keynames[k]):
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
@@ -1257,7 +1260,7 @@ class UrtextProject:
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
         self._parse_file(filename)
-        full_filename = None
+        full_filename = filename
         # if self.settings['atomic_rename']:
         #     renamed = self._rename_file_nodes(filename)
         #     if os.path.join(self.path, filename) in renamed:
