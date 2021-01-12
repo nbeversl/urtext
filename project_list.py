@@ -145,7 +145,6 @@ class ProjectList():
         project_title=None, 
         pointer=False, 
         include_project=False):
-        
         if project_title == None:
             project = self.current_project
         else:

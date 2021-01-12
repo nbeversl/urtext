@@ -24,12 +24,12 @@ import json
 import os
 import random
 import time
-import pickle
 from time import strftime
 import concurrent.futures
 try:
     import diff_match_patch as dmp_module
 except:
+    # Sublime Text
     import diffmatchpatch as dmp_module
 from dateutil.parser import *
 from pytz import timezone
@@ -102,6 +102,7 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.access_history = {}
         self.messages = {}
+        self.corpus = []
         self.title_completions = []
         self.settings = {  # defaults
             'home': None,
@@ -148,8 +149,9 @@ class UrtextProject:
         if not os.path.exists(os.path.join(self.path, "history")):
             os.mkdir(os.path.join(self.path, "history"))
 
-        if watchdog:
-            self._initialize_watchdog()        
+        # if watchdog:
+        #     self._initialize_watchdog()   
+
 
     def quick_load(self, import_project=False):
 
@@ -644,7 +646,7 @@ class UrtextProject:
                     del self.navigation[index]
                     if self.nav_index > index: # >= ?
                         self.nav_index -= 1            
-            self.remove_file(filename, async=False)
+            self.remove_file(filename, is_async=False)
             os.remove(os.path.join(self.path, filename))
             return node_ids
         return []
@@ -690,7 +692,8 @@ class UrtextProject:
             one_line = self.settings['always_oneline_meta']
 
         if not node_id:
-            node_id = self.next_index()   
+            node_id = self.next_index()
+
         metadata['id'] = node_id
         if self.settings['node_date_keyname']:
             metadata[self.settings['node_date_keyname']] = self.timestamp(date)
@@ -709,15 +712,18 @@ class UrtextProject:
     def add_inline_node(self, 
             date=None, 
             contents='',
-            metadata={},
+            metadata=None,
             one_line=None,
-            trailing_id=False,
+            trailing_id=None,
             include_timestamp=False):
-              
+        
         if one_line == None:
             one_line = self.settings['always_oneline_meta']
             
         node_id = self.next_index()
+
+        if not metadata:
+            metadata = {}
 
         if not trailing_id:
             metadata['id']=node_id
@@ -729,7 +735,7 @@ class UrtextProject:
  
             if 'node_date_keyname' in self.settings:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
- 
+        
         new_node_contents = ''.join([
             '{ ', 
             contents,
@@ -751,18 +757,13 @@ class UrtextProject:
 
     #     return '\n'.join([insertion, dynamic_def])
 
-    def add_compact_node(self, 
-            date=None, 
+    def add_compact_node(self,  
             contents='', 
             metadata={},
         ):
-        if date == None:
-            date = datetime.datetime.now()
-        metadata['id']=self.next_index()
-        if self.settings['node_date_keyname']:
-            metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-        metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
-        return '^  '+contents + ' ' + metadata_block
+        	metadata['id']=self.next_index()
+        	metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
+        	return '^  '+contents + ' ' + metadata_block
 
     def _prefix_length(self):
         """ Determines the prefix length for indexing files (requires an already-compiled project) """
@@ -824,7 +825,6 @@ class UrtextProject:
         return last_node
 
     def nav_current(self):
-
         if self.navigation and self.nav_index > -1:
             return self.navigation[self.nav_index]
         alternative = self.get_home()
@@ -860,10 +860,15 @@ class UrtextProject:
         for node_id in list(self.nodes):
             index = self.nodes[node_id].metadata.get_first_value('index')
             if index:
+                try:
+                    index = int(index)
+                except:
+                    index = 99999999
                 indexed_nodes_list.append([
                     node_id,
                     index
                 ])
+
         sorted_indexed_nodes = sorted(indexed_nodes_list, key=lambda item: item[1])
         for index, node in enumerate(sorted_indexed_nodes):
             sorted_indexed_nodes[index] = node[0] 
@@ -890,7 +895,6 @@ class UrtextProject:
         return root_nodes
           
     def get_node_id_from_position(self, filename, position):
-
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
@@ -1003,7 +1007,6 @@ class UrtextProject:
 
         if date.tzinfo == None:
             date = self.default_timezone.localize(date)    
-
         timestamp_format = '<' + self.settings['timestamp_format'] + '>'
         return date.strftime(timestamp_format)
 
@@ -1136,9 +1139,13 @@ class UrtextProject:
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
         if self.is_async:
-            return self.executor.submit(self._pull_node, string, current_file, current_position) 
+            return self.executor.submit(
+                self._pull_node, 
+                string, 
+                os.path.basename(current_file), 
+                current_position) 
         else:
-            self._pull_node(string, current_file, current_position)
+            self._pull_node(string, os.path.basename(current_file), current_position)
     
     def _pull_node(self, string, current_file, current_position):
 
@@ -1302,8 +1309,8 @@ class UrtextProject:
                 self._compile()
 
 
-    def remove_file(self, filename, async=True):
-        if self.is_async and async:
+    def remove_file(self, filename, is_async=True):
+        if self.is_async and is_async:
             self.executor.submit(self._remove_file, os.path.basename(filename))
             return self.executor.submit(self._compile)
         else:
@@ -1324,27 +1331,25 @@ class UrtextProject:
     File History
     """
     def snapshot_diff(self, filename, contents):
-        pass
         dmp = dmp_module.diff_match_patch()
         filename = os.path.basename(filename)
         if filename not in self.files:
             return None
-        now = int(time.time())
-        history_file = filename.replace('.txt','.pkl')
+        history_file = os.path.join(self.path, 'history',filename.replace('.txt','.diff'))
         file_history = self.get_history(filename)
         if not file_history:
             file_history = {}
-            file_history[now] = contents
-            with open( os.path.join(self.path, 'history', history_file), "wb") as f:
-                pickle.dump(file_history, f )
-            return
+            file_history[int(time.time())] = contents
+            with open( history_file, "w") as f:
+            	f.write(json.dumps(file_history))
         else:
-
             latest_history = self.apply_patches(file_history)
             if contents != latest_history:
-                file_history[now] = dmp.patch_make(latest_history, contents)
-                with open( os.path.join(self.path, 'history', history_file), "wb") as f:
-                    pickle.dump(file_history, f )
+                file_history[int(time.time())] = dmp.patch_toText(dmp.patch_make(latest_history, contents))
+                # prevent duplicate files on cloud storage
+                os.remove(history_file)
+                with open( history_file, "w") as f:
+                    f.write(json.dumps(file_history))
 
     def apply_patches(self, history, distance_back=0):
         dmp = dmp_module.diff_match_patch()
@@ -1352,23 +1357,24 @@ class UrtextProject:
         original = history[timestamps[0]]
         for index in range(1,len(timestamps)-distance_back):
             next_patch = history[timestamps[index]]
-            original = dmp.patch_apply(next_patch, original)[0]
-
+            original = dmp.patch_apply(dmp.patch_fromText(next_patch), original)[0]
         return original
 
     def get_version(self, filename, distance_back=0):
         history = self.get_history(filename)
-        version = self.apply_patches(history, distance_back)
-       
-        return version
+        return self.apply_patches(history, distance_back)       
 
     def get_history(self, filename):
+        dmp = dmp_module.diff_match_patch()
         filename = os.path.basename(filename)
-        history_file = os.path.join(self.path, 'history', filename.replace('.txt','.pkl'))
+        history_file = os.path.join(self.path, 'history', filename.replace('.txt','.diff'))
         if os.path.exists(history_file):
-            with open(history_file, "rb") as f:
-                file_history = pickle.load(f)
-            return file_history
+            with open(history_file, "r") as f:
+                file_history = f.read()
+            print('HAS HISTORY')
+            return json.loads(file_history)
+        print('DOES NOT HAVE HISTORY')
+
         return None
 
     def most_recent_history(self, history):
@@ -1407,7 +1413,9 @@ class UrtextProject:
     def _save_access_history(self):
 
         accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
-
+        # prevent duplicate files on cloud storage
+        if os.path.exists(accessed_file):
+            os.remove(accessed_file)
         with open(accessed_file,"w") as f:
             f.write(json.dumps(self.access_history))
     
@@ -1507,15 +1515,36 @@ class UrtextProject:
     FUTURE : Calendar
     """
     def export_to_ics(self):
-        c = Calendar()
-        for node_id in self.nodes:
-            e = Event()
+
+        for node_id in list(self.nodes):
             urtext_node = self.nodes[node_id]
-            e.name = urtext_node.title
-            e.begin = urtext_node.date.isoformat()
-            c.add(e)
-        with open('my.ics', 'w') as f:
-            f.write(c)
+            t = urtext_node.metadata.get_entries('timestamp')
+
+            if not t:
+                continue
+            ics_start_time = t[0].dt_stamp.strftime('%Y%m%dT%H%M%SZ')
+            t_end = t[0].dt_stamp + datetime.timedelta(hours=2)
+            ics_end_time = t_end.strftime('%Y%m%dT%H%M%SZ')
+            text = urtext_node.content_only().encode('utf-8').decode('utf-8')
+            ics = ['BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//hacksw/handcal//NONSGML v1.0//EN',
+            'BEGIN:VEVENT',
+            'METHOD:PUBLISH',
+            'UID:nathanielbeversluis@gmail.com',
+            'SUMMARY:'+urtext_node.title,
+            'DTSTART:'+ics_start_time,
+            'DTEND:'+ics_end_time,
+            'ORGANIZER;CN=Test User:MAILTO:test.user@tstdomain.com',
+            'DESCRIPTION:'+text,
+            'END:VEVENT',
+            'END:VCALENDAR',
+            ]
+            try: 
+                with open(os.path.join(self.path,urtext_node.id+'.ics'), 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(ics))
+            except:
+                pass
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

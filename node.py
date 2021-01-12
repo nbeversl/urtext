@@ -30,7 +30,7 @@ import pytz
 from anytree import Node, PreOrderIter
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
-subnode_regexp = re.compile(r'{(?!.*{)(?:(?!}).)*}', re.DOTALL)
+subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
@@ -88,7 +88,7 @@ class UrtextNode:
         if self.metadata.get_first_value('id'):
             node_id = self.metadata.get_first_value('id')
             node_id = node_id.lower().strip()
-            if re.match('^[a-z0-9]{3}$', node_id):
+            if re.match(r'^[a-z0-9]{3}$', node_id):
                 self.id = node_id
         else:
             contents = self.strip_wrappers(contents)
