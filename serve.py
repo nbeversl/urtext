@@ -19,21 +19,6 @@ if len(project_list.projects) == 0:
     print('No Urtext projects found here')
     sys.exit()
 
-# class UrtextWatcher(FileSystemEventHandler):
-        
-#     def on_created(self, event):
-#         filename = event.src_path
-#         result = project_list.on_modified(filename)
-
-#     def on_modified(self, event):
-#         filename = event.src_path
-#         result = project_list.on_modified(filename)
-
-# event_handler = UrtextWatcher()
-# observer = Observer()
-# observer.schedule(event_handler, path=project_list.base_path, recursive=False)
-# observer.start()
-
 EMPTY = json.dumps({'':''})
 app = Flask(__name__)
 
@@ -199,21 +184,24 @@ def nodes():
     d = request.form.to_dict()
     project_list.set_current_project(d['project'])
     r = { 'current_project' : project_list.current_project.title,
-        'nodes' : {} }
-    for n in project_list.current_project.nodes:
-        r['nodes'][n] = {}
+        'nodes' : [] }
+
+    nodes = project_list.current_project.nodes
+    nodes = sorted(nodes, key=lambda nid: project_list.current_project.nodes[nid].date, reverse=True)
+    for n in nodes:
+        this_node = {}
+
         if project_list.current_project.nodes[n].title.strip() == '':
-            r['nodes'][n]['title'] = '(no title)'
+            this_node['title'] = '(no title)'
         else:
-            r['nodes'][n]['title'] = project_list.current_project.nodes[n].title
-        r['nodes'][n]['date'] = str(project_list.current_project.nodes[n].date)
-        r['nodes'][n]['position'] = project_list.current_project.nodes[n].ranges[0][0]
-        r['nodes'][n]['id'] = project_list.current_project.nodes[n].id
-        r['nodes'][n]['id'] = project_list.current_project.nodes[n].id
-        r['nodes'][n]['project_title'] = project_list.current_project.title        
-        r['nodes'][n]['filename'] = os.path.join(project_list.current_project.path, project_list.current_project.nodes[n].filename)
-
-
+            this_node['title'] = project_list.current_project.nodes[n].title
+        this_node['date'] = str(
+            project_list.current_project.nodes[n].date.strftime(project_list.current_project.settings['timestamp_format']))
+        this_node['position'] = project_list.current_project.nodes[n].ranges[0][0]
+        this_node['id'] = project_list.current_project.nodes[n].id
+        this_node['project_title'] = project_list.current_project.title        
+        this_node['filename'] = os.path.join(project_list.current_project.path, project_list.current_project.nodes[n].filename)
+        r['nodes'].append(this_node)
     return json.dumps(r)
 
 @app.route('/filename-from-link', methods=['GET', 'POST'])
@@ -446,6 +434,36 @@ def random_node():
         'filename': project_list.current_project.nodes[node_id].filename,
         'position': project_list.current_project.nodes[node_id].ranges[0][0]
         })
+
+@app.route('/completions', methods=['GET', 'POST'])
+def completions():
+    d = request.form.to_dict()
+    project_list.set_current_project(d['project'])    
+    return json.dumps({
+        'completions': project_list.get_all_meta_pairs(),
+        'titles' : project_list.current_project.title_completions
+        })
+
+@app.route('/keywords', methods=['GET', 'POST'])
+def keywords():
+    d = request.form.to_dict()
+    project_list.set_current_project(d['project'])
+    r = { 'current_project' : project_list.current_project.title,
+        'nodes' : {} }
+    for n in project_list.current_project.nodes:
+        r['nodes'][n] = {}
+        if project_list.current_project.nodes[n].title.strip() == '':
+            r['nodes'][n]['title'] = '(no title)'
+        else:
+            r['nodes'][n]['title'] = project_list.current_project.nodes[n].title
+        r['nodes'][n]['date'] = str(project_list.current_project.nodes[n].date)
+        r['nodes'][n]['position'] = project_list.current_project.nodes[n].ranges[0][0]
+        r['nodes'][n]['id'] = project_list.current_project.nodes[n].id
+        r['nodes'][n]['project_title'] = project_list.current_project.title        
+        r['nodes'][n]['filename'] = os.path.join(project_list.current_project.path, project_list.current_project.nodes[n].filename)
+
+    r['keyphrases'] = project_list.current_project.keywords
+    return json.dumps(r)
 
 # NOT WORKING
 @app.route('/search', methods=['GET', 'POST'])

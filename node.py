@@ -28,6 +28,7 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
+from rake_nltk import Rake
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
@@ -73,6 +74,7 @@ class UrtextNode:
         self.blank = False
         self.title = None
         self.hashed_contents = hash(contents)
+        self.keywords = {}
 
         stripped_contents = self.strip_dynamic_definitions(contents)
         self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
@@ -122,6 +124,9 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
+        r = Rake()
+        r.extract_keywords_from_text(stripped_contents)
+        self.keywords = r.get_ranked_phrases()
 
     def default_sort(self):
         r = str(self.date.timestamp()) + self.title
@@ -219,7 +224,6 @@ class UrtextNode:
 
     def content_only(self, contents=None):
         if contents == None:
-            #contents = self.contents
             contents = self.contents()
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
@@ -230,7 +234,7 @@ class UrtextNode:
     
     def get_links(self, contents=None):
         if contents == None:
-            contents = self.contents_only()
+            contents = self.content_only()
         nodes = re.findall(node_link_regex, contents)  # link RegEx
         for node in nodes:
             self.links_from.append(node[-3:])

@@ -26,11 +26,7 @@ import random
 import time
 from time import strftime
 import concurrent.futures
-try:
-    import diff_match_patch as dmp_module
-except:
-    # Sublime Text
-    import diffmatchpatch as dmp_module
+import diff_match_patch as dmp_module
 from dateutil.parser import *
 from pytz import timezone
 
@@ -135,7 +131,7 @@ class UrtextProject:
         }
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
-
+        self.keywords = {}
         self.quick_load(import_project=import_project)
         if self.is_async:
             self.executor.submit(self._initialize_project,
@@ -312,6 +308,10 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
+            for word in new_file.nodes[node_id].keywords:
+                self.keywords.setdefault(word, [])
+                if node_id not in self.keywords[word]:
+                    self.keywords[word].append(node_id)
         
         self._set_tree_elements(new_file.basename)
         
@@ -327,7 +327,7 @@ class UrtextProject:
                 self._parse_meta_dates(node_id)
                 for e in self.nodes[node_id].metadata.dynamic_entries:                
                     self._add_sub_tags( node_id, node_id, e)
-     
+    
         """ returns None if successful """
         return None
 
