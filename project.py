@@ -763,7 +763,7 @@ class UrtextProject:
         ):
         	metadata['id']=self.next_index()
         	metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
-        	return '^  '+contents + ' ' + metadata_block
+        	return '•  '+contents + ' ' + metadata_block
 
     def _prefix_length(self):
         """ Determines the prefix length for indexing files (requires an already-compiled project) """

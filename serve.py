@@ -4,8 +4,6 @@ import os
 import json
 from .project_list import ProjectList
 import time
-# from watchdog.observers import Observer
-# from watchdog.events import FileSystemEventHandler
 import datetime
 import sys
 
@@ -32,8 +30,7 @@ def hello_world():
 
 @app.route('/projects', methods=['GET', 'POST'])
 def show_projects():
-    s = {}
-    s['projects'] = []
+    s = { 'projects' : []}
     for p in project_list.projects: 
         s['projects'].append(p.title)
     return json.dumps(s)
@@ -42,10 +39,12 @@ def show_projects():
 def set_project():
     d = request.form.to_dict()
     project_list.set_current_project(d['title'])
-    print('Project is now '+d['title'])
+    while not project_list.current_project.compiled:
+        time.sleep(1)
     filename, node_position = project_list.current_project.get_file_and_position(
         project_list.nav_current())
-   
+    if not filename:
+        return EMPTY
     return json.dumps({
         'title' : project_list.current_project.title,
         'path' : project_list.current_project.path,
@@ -402,7 +401,6 @@ def get_log_node():
 @app.route('/compact-node', methods=['GET', 'POST'])
 def compact_node():
     d = request.form.to_dict()
-    print(d)
     project_list.set_current_project(d['project'])
     new_contents = project_list.current_project.add_compact_node(contents=d['selection'])
     return json.dumps({

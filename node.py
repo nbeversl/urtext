@@ -169,7 +169,7 @@ class UrtextNode:
             contents = contents.replace('{','')
             contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
-             contents = contents.lstrip().replace('^','',1)        
+             contents = contents.lstrip().replace('•','',1)        
         return contents
 
     @classmethod
@@ -270,9 +270,9 @@ class UrtextNode:
         first_line = first_line.replace('┌──','')
         first_line = first_line.replace('|','') # pipe character cannot be in node names
        
-        # make conditional?
-        if '^' in first_line:
-            first_line = re.sub(r'^[\s]*\^','',first_line)           # compact node opening wrapper
+        if '•' in first_line:
+            # compact node opening wrapper
+            first_line = re.sub(r'^[\s]*\•','',first_line)           
         return first_line.strip().strip('\n').strip()
 
     def get_ID(self):
