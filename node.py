@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
+
+#/Users/n_beversluis/Library/Mobile Documents/iCloud~com~omz-software~Pythonista3/Documents/archive_new_ID_style/nate-big-project
 import os
 import json
 from .metadata import NodeMetadata
@@ -38,6 +40,7 @@ node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
+#node_id_minimal = re.compile(, flags=re.DOTALL)
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -90,6 +93,8 @@ class UrtextNode:
         if self.metadata.get_first_value('id'):
             node_id = self.metadata.get_first_value('id')
             node_id = node_id.lower().strip()
+
+            # trailing node ID
             if re.match(r'^[a-z0-9]{3}$', node_id):
                 self.id = node_id
         else:
@@ -99,6 +104,12 @@ class UrtextNode:
                 self.id = contents[-3:]
                 self.trailing_node_id = True
                 self.metadata.add_meta_entry('id',[self.id],position=len(contents)-3)
+            else:
+                r = re.search(r'(?:\s?)@[0-9,a-z]{3}\b',contents)
+                if r:
+                    node_id = r.group(0).strip()[1:]
+                    self.id = node_id
+                    self.metadata.add_meta_entry('id',[self.id], position = r.start())
 
         title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
