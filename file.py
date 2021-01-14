@@ -18,7 +18,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
 import re
-from .node import UrtextNode
+from urtext.node import UrtextNode
 import concurrent.futures
 import hashlib
 

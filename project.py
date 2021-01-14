@@ -30,16 +30,16 @@ import diff_match_patch as dmp_module
 from dateutil.parser import *
 from pytz import timezone
 
-from .file import UrtextFile
-from .interlinks import Interlinks
-from .node import UrtextNode 
-from .compile import compile_functions
-from .trees import trees_functions
-from .meta_handling import metadata_functions
-from .reindex import reindex_functions
-from .search import search_functions
-from .collection import collection_functions
-from .dynamic import UrtextDynamicDefinition
+from urtext.file import UrtextFile
+from urtext.interlinks import Interlinks
+from urtext.node import UrtextNode 
+from urtext.compile import compile_functions
+from urtext.trees import trees_functions
+from urtext.meta_handling import metadata_functions
+from urtext.reindex import reindex_functions
+from urtext.search import search_functions
+from urtext.collection import collection_functions
+from urtext.dynamic import UrtextDynamicDefinition
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'

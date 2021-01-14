@@ -19,7 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
-from .node import UrtextNode
+from urtext.node import UrtextNode
 
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
 OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123</span>'

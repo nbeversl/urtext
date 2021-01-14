@@ -17,7 +17,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
-from .project import UrtextProject, node_id_regex, NoProject
+from urtext.project import UrtextProject, node_id_regex, NoProject
 import concurrent.futures
 import re
 import os

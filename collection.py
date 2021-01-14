@@ -20,7 +20,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 from pytz import timezone
-from .node import UrtextNode 
+from urtext.node import UrtextNode 
 import pprint
 from .dynamic_output import DynamicOutput
 

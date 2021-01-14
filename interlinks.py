@@ -17,7 +17,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 import re
-from .metadata import NodeMetadata
+from urtext.metadata import NodeMetadata
 from anytree import Node
 from anytree import RenderTree
 node_link_regex =       r'>[0-9,a-z]{3}\b'

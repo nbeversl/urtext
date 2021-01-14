@@ -20,9 +20,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 #/Users/n_beversluis/Library/Mobile Documents/iCloud~com~omz-software~Pythonista3/Documents/archive_new_ID_style/nate-big-project
 import os
 import json
-from .metadata import NodeMetadata
-from .dynamic import UrtextDynamicDefinition
-
+from urtext.metadata import NodeMetadata
+from urtext.dynamic import UrtextDynamicDefinition
+from urtext.rake import Rake
 from anytree.exporter import JsonExporter
 
 import re
@@ -30,7 +30,7 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
-from .rake import Rake
+
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
@@ -135,7 +135,7 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
-        r = Rake("SmartStoplist.txt")
+        r = Rake()
         self.keywords = [t[0] for t in r.run(stripped_contents)]
 
     def default_sort(self):

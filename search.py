@@ -17,7 +17,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 import re
-from .dynamic_output import DynamicOutput
+from urtext.dynamic_output import DynamicOutput
 
 def search_term(self, term):
 	return UrtextSearch(self, term)

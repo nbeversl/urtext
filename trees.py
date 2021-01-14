@@ -1,6 +1,6 @@
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
-from .dynamic_output import DynamicOutput
+from urtext.dynamic_output import DynamicOutput
 import datetime
 
 """

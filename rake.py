@@ -6,10 +6,8 @@
 
 import re
 import operator
-
+from urtext.stopwords import stop_words as stop_word_list
 debug = False
-test = True
-
 
 def is_number(s):
     try:
@@ -17,21 +15,6 @@ def is_number(s):
         return True
     except ValueError:
         return False
-
-
-def load_stop_words(stop_word_file):
-    """
-    Utility function to load stop words from a file and return as a list of words
-    @param stop_word_file Path and file name of a file containing stop words.
-    @return list A list of stop words.
-    """
-    stop_words = []
-    for line in open(stop_word_file):
-        if line.strip()[0:1] != "#":
-            for word in line.split():  # in case more than one per line
-                stop_words.append(word)
-    return stop_words
-
 
 def separate_words(text, min_word_return_size):
     """
@@ -59,8 +42,7 @@ def split_sentences(text):
     return sentences
 
 
-def build_stop_word_regex(stop_word_file_path):
-    stop_word_list = load_stop_words(stop_word_file_path)
+def build_stop_word_regex():
     stop_word_regex_list = []
     for word in stop_word_list:
         word_regex = r'\b' + word + r'(?![\w-])'  # added look ahead for hyphen
@@ -120,9 +102,8 @@ def generate_candidate_keyword_scores(phrase_list, word_score):
 
 
 class Rake(object):
-    def __init__(self, stop_words_path):
-        self.stop_words_path = stop_words_path
-        self.__stop_words_pattern = build_stop_word_regex(stop_words_path)
+    def __init__(self):
+        self.__stop_words_pattern = build_stop_word_regex()
 
     def run(self, text):
         sentence_list = split_sentences(text)
@@ -137,32 +118,4 @@ class Rake(object):
         return sorted_keywords
 
 
-if test:
-    text = "Compatibility of systems of linear constraints over the set of natural numbers. Criteria of compatibility of a system of linear Diophantine equations, strict inequations, and nonstrict inequations are considered. Upper bounds for components of a minimal set of solutions and algorithms of construction of minimal generating sets of solutions for all types of systems are given. These criteria and the corresponding algorithms for constructing a minimal supporting set of solutions can be used in solving all the considered types of systems and systems of mixed types."
 
-    # Split text into sentences
-    sentenceList = split_sentences(text)
-    #stoppath = "FoxStoplist.txt" #Fox stoplist contains "numbers", so it will not find "natural numbers" like in Table 1.1
-    stoppath = "SmartStoplist.txt"  #SMART stoplist misses some of the lower-scoring keywords in Figure 1.5, which means that the top 1/3 cuts off one of the 4.0 score words in Table 1.1
-    stopwordpattern = build_stop_word_regex(stoppath)
-
-    # generate candidate keywords
-    phraseList = generate_candidate_keywords(sentenceList, stopwordpattern)
-
-    # calculate individual word scores
-    wordscores = calculate_word_scores(phraseList)
-
-    # generate candidate keyword scores
-    keywordcandidates = generate_candidate_keyword_scores(phraseList, wordscores)
-    if debug: print(keywordcandidates)
-
-    sortedKeywords = sorted(keywordcandidates.items(), key=operator.itemgetter(1), reverse=True)
-    if debug: print(sortedKeywords)
-
-    totalKeywords = len(sortedKeywords)
-    if debug: print(totalKeywords)
-    print(sortedKeywords[0:(totalKeywords // 3)])
-
-    rake = Rake("SmartStoplist.txt")
-    keywords = rake.run(text)
-    print(keywords)
