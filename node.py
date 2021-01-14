@@ -28,7 +28,7 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
-from rake_nltk import Rake
+from .rake import Rake
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
@@ -124,9 +124,8 @@ class UrtextNode:
         # parse back and forward links
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
-        r = Rake()
-        r.extract_keywords_from_text(stripped_contents)
-        self.keywords = r.get_ranked_phrases()
+        r = Rake("SmartStoplist.txt")
+        self.keywords = [t[0] for t in r.run(stripped_contents)]
 
     def default_sort(self):
         r = str(self.date.timestamp()) + self.title
