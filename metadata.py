@@ -23,12 +23,12 @@ import pytz
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
-inline_meta = re.compile('\*{0,2}\w+\:\:[^\n};]+;?(?=>:})?')
+inline_meta = re.compile('\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 
 class NodeMetadata:
 
-    def __init__(self, node, full_contents, settings=None):
+    def __init__(self, node, full_contents, node_id=None, settings=None):
 
         self.node = node
         self._entries, self.dynamic_entries = parse_contents(
@@ -47,7 +47,7 @@ class NodeMetadata:
             if e not in self.entries[e.keyname]:
                self.entries[e.keyname].append(e)
 
-        node_id = self.get_first_value('id')
+        node_id = self.node.id
         if node_id:
             self._entries = sorted(self._entries, key = lambda entry: entry.position)
             for i in range(len(self._entries)):
@@ -232,11 +232,6 @@ def parse_contents(full_contents, node, settings=None):
                 key = key[1:]
 
         end_position = m.start() + len(m.group())
-
-        # remove trailing node IDs intuitively    
-        if values and not node.compact and not node.root_node and end_position == len(full_contents):
-            if re.match('\s[a-z0-9]{3}', str(values[-1])[-4:]):
-                values[-1] = values[-1][:-4].strip()
 
         entry = MetadataEntry(
                 key, 

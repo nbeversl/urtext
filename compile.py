@@ -56,6 +56,7 @@ def _process_dynamic_def(self, dynamic_definition):
     new_node_contents = []
 
     if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
+        print(self.nodes[dynamic_definition.source_id].filename)
         self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
         return
@@ -249,7 +250,10 @@ def _build_group_and(project, groups, include_dynamic=False):
     new_group = set([])
     for pair in groups:
         key, value, operator = pair[0], pair[1], pair[2]
-        new_group = set(project.get_by_meta(key, value, operator))
+        if key.lower() == 'id' and operator == '=':
+            new_group = set([value])
+        else:
+            new_group = set(project.get_by_meta(key, value, operator))
         found_sets.append(new_group)
 
     for this_set in found_sets:

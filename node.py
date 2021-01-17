@@ -40,7 +40,7 @@ node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
-#node_id_minimal = re.compile(, flags=re.DOTALL)
+short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -72,7 +72,6 @@ class UrtextNode:
         self.index = 10
         self.parent_project = None
         self.last_accessed = 0
-        self.trailing_node_id = False
         self.dynamic_definitions = []
         self.blank = False
         self.title = None
@@ -80,6 +79,13 @@ class UrtextNode:
         self.keywords = {}
 
         stripped_contents = self.strip_dynamic_definitions(contents)
+
+        r = re.search(r'(^|\s)@[0-9,a-z]{3}\b',stripped_contents)
+        if r:
+            node_id = r.group(0).strip()[1:]
+            self.id = node_id
+            #self.metadata.add_meta_entry('id',[self.id], position = r.start())
+
         self.metadata = NodeMetadata(self, stripped_contents, settings=settings)
 
         stripped_contents = self.strip_metadata(contents=stripped_contents)
@@ -90,26 +96,7 @@ class UrtextNode:
             
         self.title = self.set_title(stripped_contents)
        
-        if self.metadata.get_first_value('id'):
-            node_id = self.metadata.get_first_value('id')
-            node_id = node_id.lower().strip()
-
-            # trailing node ID
-            if re.match(r'^[a-z0-9]{3}$', node_id):
-                self.id = node_id
-        else:
-            contents = self.strip_wrappers(contents)
-            r = re.match('\s[a-z0-9]{3}', contents[-4:])
-            if r:
-                self.id = contents[-3:]
-                self.trailing_node_id = True
-                self.metadata.add_meta_entry('id',[self.id],position=len(contents)-3)
-            else:
-                r = re.search(r'(?:\s?)@[0-9,a-z]{3}\b',contents)
-                if r:
-                    node_id = r.group(0).strip()[1:]
-                    self.id = node_id
-                    self.metadata.add_meta_entry('id',[self.id], position = r.start())
+        
 
         title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
@@ -189,22 +176,19 @@ class UrtextNode:
 
         stripped_contents = inline_meta.sub('', contents )
         stripped_contents = timestamp_match.sub('',  stripped_contents)
-
-        # TODO: integrate this with checking for self.trailing_node_id
-        if re.match('\s[a-z0-9]{3}', stripped_contents[-4:]):
-            stripped_contents = stripped_contents[:-3]
+        stripped_contents = short_id.sub('', stripped_contents)
+        stripped_contents = stripped_contents.replace('• ','')
 
         return stripped_contents
 
     @classmethod
     def strip_embedded_syntaxes(self, contents=None):
         if contents == None:
-            #contents = self.contents
             contents = self.contents()
         stripped_contents = contents
-
         for e in embedded_syntax.findall(stripped_contents):
             stripped_contents = stripped_contents.replace(e,'')
+        stripped_contents = re.sub(short_id,'', stripped_contents)
         return stripped_contents
 
     @classmethod
@@ -238,8 +222,6 @@ class UrtextNode:
         contents = self.strip_metadata(contents=contents)
         contents = self.strip_dynamic_definitions(contents=contents)
         contents = self.strip_embedded_syntaxes(contents=contents)
-        if self.trailing_node_id:
-            contents = contents[:-3]
         return contents
     
     def get_links(self, contents=None):
@@ -263,6 +245,7 @@ class UrtextNode:
         title_value = self.metadata.get_first_value('title')
         if title_value: 
             return title_value
+        contents = re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
         #
         # otherwise, title is the first non white-space line
         #
@@ -279,17 +262,13 @@ class UrtextNode:
     
         first_line = first_line.replace('┌──','')
         first_line = first_line.replace('|','') # pipe character cannot be in node names
-       
+               
         if '•' in first_line:
             # compact node opening wrapper
             first_line = re.sub(r'^[\s]*\•','',first_line)           
         return first_line.strip().strip('\n').strip()
 
-    def get_ID(self):
-        if len(self.metadata.get_first_value('ID')): 
-            return self.metadata.get_first_value('ID')
-        return self.id
-
+   
     def log(self):
         logging.info(self.id)
         logging.info(self.index)
@@ -329,6 +308,9 @@ class UrtextNode:
         new_metadata = ''
 
         for keyname in metadata:
+            if keyname.lower() == 'id':
+                new_metadata += ' @'+metadata[keyname]+' ' 
+                continue
             new_metadata += keyname + separator
             if isinstance(metadata[keyname], list):
                 new_metadata += ' | '.join(metadata[keyname])

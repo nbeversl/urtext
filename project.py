@@ -30,6 +30,7 @@ import diff_match_patch as dmp_module
 from dateutil.parser import *
 from pytz import timezone
 
+from urtext.rake import Rake
 from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
 from urtext.node import UrtextNode 
@@ -147,7 +148,6 @@ class UrtextProject:
 
         # if watchdog:
         #     self._initialize_watchdog()   
-
 
     def quick_load(self, import_project=False):
 
@@ -565,7 +565,7 @@ class UrtextProject:
         date = creation_date(os.path.join(self.path, filename))
         now = datetime.datetime.now()
         contents = '\n\n'
-        contents += "id::" + self.next_index() + '\n'
+        contents += "@" + self.next_index() + '\n'
         if self.settings['node_date_keyname']:
             contents += self.settings['node_date_keyname']+'::' + self.timestamp(date) + '\n'
         contents += 'imported::' + self.timestamp(now) + '\n'
@@ -714,7 +714,6 @@ class UrtextProject:
             contents='',
             metadata=None,
             one_line=None,
-            trailing_id=None,
             include_timestamp=False):
         
         if one_line == None:
@@ -725,8 +724,7 @@ class UrtextProject:
         if not metadata:
             metadata = {}
 
-        if not trailing_id:
-            metadata['id']=node_id
+        metadata['id']=node_id
         
         if include_timestamp:
 
@@ -742,8 +740,6 @@ class UrtextProject:
             '  ',
             UrtextNode.build_metadata(metadata, one_line=one_line),
             ' '])
-        if trailing_id:
-            new_node_contents += node_id   
         new_node_contents += "}"
         return (new_node_contents, node_id)
 
@@ -1111,12 +1107,6 @@ class UrtextProject:
 
         popped_node_contents = file_contents[start:end].strip()
 
-        # special case:
-        # for popped nodes with trailing IDs, manually repopulate the node ID at file level.
-        if self.nodes[node_id].trailing_node_id:
-            popped_node_contents = popped_node_contents[:-3]
-            popped_node_contents += 'id::'+node_id+'; '
-
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n| ',
@@ -1204,8 +1194,7 @@ class UrtextProject:
 
     def get_all_meta_pairs(self):
         pairs = []
-        ignore = [ 'id' ]
-        for k in [kn for kn in self.keynames if kn not in ignore]: 
+        for k in [kn for kn in self.keynames]: 
             for value in list(self.keynames[k]):
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
@@ -1489,6 +1478,27 @@ class UrtextProject:
             results = results.union(set(n for n in self.nodes if value in self.nodes[n].metadata.get_values(key)))
 
         return results
+    """
+    Free Association
+    """
+
+    def get_assoc_nodes(self, string, filename, position):
+        node_id = self.get_node_id_from_position(filename, position)
+        r = Rake()
+        string = UrtextNode.strip_contents(string)
+        keywords = [t[0] for t in r.run(string)]
+        print(keywords)
+        assoc_nodes = []
+        for k in keywords:
+            if k in self.keywords:
+                assoc_nodes.extend(self.keywords[k])
+        assoc_nodes = list(set(assoc_nodes))
+        if node_id in assoc_nodes:
+            assoc_nodes.remove(node_id)
+        for node_id in assoc_nodes:
+            if self.nodes[node_id].dynamic:
+                assoc_nodes.remove(node_id)
+        return assoc_nodes
 
     """
     Export

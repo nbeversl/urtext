@@ -135,7 +135,7 @@ class DynamicOutput():
             self.item_format = self.item_format.replace(self.shah + '$contents' + suffix, contents + '\n')
                     
         # all other meta keys
-        for meta_key in self.other_format_keys:
+        for meta_key in self.other_format_keys:            
             token = self.shah+'$'+meta_key
             value = ''.join(self.other_format_keys[meta_key])
             self.item_format = self.item_format.replace(token, value );    

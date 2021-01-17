@@ -25,33 +25,30 @@ import hashlib
 node_id_regex =         r'\b[0-9,a-z]{3}\b'
 node_link_regex =       r'>[0-9,a-z]{3}\b'
 node_pointer_regex =    r'>>[0-9,a-z]{3}\b'
-compact_node_regex =    '•[^\n]*'
-
 error_messages =        '<!{1,2}.*?!{1,2}>\n?'
 
 compiled_symbols = [re.compile(symbol) for symbol in  [
-    r'(?<!\\){',                # inline node opening wrapper
-    r'(?<!\\)}',                # inline node closing wrapper
-    '>>',               # node pointer
-    r'\n',            # line ending (closes compact node)
-    '%%-[^E][A-Z-]*',       # push syntax
-    '%%-END-[A-Z-]*'    # pop syntax 
+    r'(?<!\\){',  # inline node opening wrapper
+    r'(?<!\\)}',  # inline node closing wrapper
+    '>>', # node pointer
+    r'\n', # line ending (closes compact node)
+    '%%-[^E][A-Z-]*', # push syntax
+    '%%-END-[A-Z-]*' # pop syntax 
     ]]
 
 # additional symbols using MULTILINE flag
 compiled_symbols.extend( [re.compile(symbol, re.M) for symbol in [
-    #'^[^\S\n]*\^',  # compact node opening wrapper
     '^[^\S\n]*•',  # compact node opening wrapper
     ] ])
 
 # number of positions to advance parsing for of each possible symbol
 symbol_length = {   
-    '^[^\S\n]*•':  0, # compact node opening wrapper
-    r'(?<!\\){' :          1, # inline opening wrapper
-    r'(?<!\\)}' :          1, # inline closing wrapper
-    '>>' :          2, # node pointer
-    r'\n' :       0, # compact node closing
-    'EOF':          0,
+    '^[^\S\n]*•': 0, # compact node opening wrapper
+    r'(?<!\\){' : 1, # inline opening wrapper
+    r'(?<!\\)}' : 1, # inline closing wrapper
+    '>>' : 2, # node pointer
+    r'\n' : 0, # compact node closing
+    'EOF': 0,
 }
 
 class UrtextFile:
