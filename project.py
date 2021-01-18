@@ -644,7 +644,7 @@ class UrtextProject:
                 while node_id in self.navigation:
                     index = self.navigation.index(node_id)
                     del self.navigation[index]
-                    if self.nav_index > index: # >= ?
+                    if self.nav_index >= index:
                         self.nav_index -= 1            
             self.remove_file(filename, is_async=False)
             os.remove(os.path.join(self.path, filename))
@@ -1568,6 +1568,11 @@ class DuplicateIDs(Exception):
 """ 
 Helpers 
 """
+
+def soft_match_compact_node(selection):
+    if re.match(r'^[^\S\n]*•.*?@\b[0-9,a-z]{3}\b.*', selection):
+        return True
+    return False
 
 def convert_dict_values_to_int(old_dict):
     new_dict = {}
