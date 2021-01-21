@@ -75,7 +75,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1081,7 +1081,6 @@ class UrtextProject:
 
         Returns a future containing a list of modified files as the result.
         """
-        #return self.executor.submit(self._pop_node, position=position, filename=filename, node_id=node_id)        
         return self._pop_node( position=position, filename=filename, node_id=node_id)
 
     def _pop_node(self, position=None, filename=None, node_id=None):
@@ -1100,13 +1099,15 @@ class UrtextProject:
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         file_contents = self._full_file_contents(node_id=node_id)
-        
+
         popped_node_id = node_id
 
         filename = self.nodes[node_id].filename
 
         popped_node_contents = file_contents[start:end].strip()
+        parent_id = self.nodes[node_id].tree_node.parent
 
+        popped_node_contents += '\n_breadcrumb::popped from >'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n| ',
@@ -1156,7 +1157,8 @@ class UrtextProject:
         end = self.nodes[node_id].ranges[-1][1]
         
         contents =self._full_file_contents(filename=self.nodes[node_id].filename)
-        replaced_file_contents = ''.join([contents[0:start],contents[end:len(contents)]])
+        
+        replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
 
         if self.nodes[node_id].root_node:
             self.delete_file(self.nodes[node_id].filename)  
