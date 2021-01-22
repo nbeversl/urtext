@@ -75,7 +75,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1362,9 +1362,9 @@ class UrtextProject:
         if os.path.exists(history_file):
             with open(history_file, "r") as f:
                 file_history = f.read()
-            print('HAS HISTORY')
+            #print('HAS HISTORY')
             return json.loads(file_history)
-        print('DOES NOT HAVE HISTORY')
+        #print('DOES NOT HAVE HISTORY')
 
         return None
 

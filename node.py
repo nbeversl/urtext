@@ -41,6 +41,8 @@ timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
 short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
+shorthand_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
+
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -177,6 +179,7 @@ class UrtextNode:
         stripped_contents = inline_meta.sub('', contents )
         stripped_contents = timestamp_match.sub('',  stripped_contents)
         stripped_contents = short_id.sub('', stripped_contents)
+        stripped_contents = shorthand_meta.sub('', stripped_contents)
         stripped_contents = stripped_contents.replace('• ','')
 
         return stripped_contents

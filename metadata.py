@@ -249,6 +249,26 @@ def parse_contents(full_contents, node, settings=None):
 
         parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 
+
+    # parse shorthand meta:
+    if 'hash_key' in settings:
+
+        hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
+
+        for m in hash_meta.finditer(parsed_contents):
+            value = m.group().replace('#','').strip()
+            key = settings['hash_key'][0]
+            position = m.start()
+            end_position = position + len(m.group())
+            entries.append(
+            MetadataEntry(
+                key, 
+                [value], 
+                '',     
+                position=position, 
+                end_position=end_position)
+                )
+
     # parse inline timestamps:
     
     for m in timestamp_match.finditer(parsed_contents):
