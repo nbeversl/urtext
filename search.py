@@ -78,7 +78,7 @@ class UrtextSearch:
 					this_result.meta = self.project.nodes[node_id].consolidate_metadata()
 
 				if this_result.needs_date:
-					this_result.date = self.project.nodes[node_id].date
+					this_result.date = self.project.nodes[node_id].metadata.get_date(project.settings['node_date_keyname'])
 
 				self.result.append(this_result.output())				
 

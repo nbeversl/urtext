@@ -66,7 +66,6 @@ class UrtextNode:
         self.links_from = []
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.date = default_date # default, modified by the project
         self.prefix = None
         self.project_settings = False
         self.dynamic_definitions = {}
@@ -97,9 +96,7 @@ class UrtextNode:
             self.blank = True
             
         self.title = self.set_title(stripped_contents)
-       
-        
-
+    
         title_value = self.metadata.get_first_value('title')
         if title_value and title_value == 'project_settings':
             self.project_settings = True
@@ -127,18 +124,14 @@ class UrtextNode:
         r = Rake()
         self.keywords = [t[0] for t in r.run(stripped_contents)]
 
-    def default_sort(self):
-        r = str(self.date.timestamp()) + self.title
-        return r
-
     def start_position(self):
         return self.ranges[0][0]
 
     def reset_node(self):
         self.tree_node = Node(self.id)
     
-    def get_date(self, format_string=''):
-        return self.date.strftime(format_string)
+    def get_date(self, date_keyword):
+        return self.metadata.get_date(date_keyword)
 
     def contents(self):
    
@@ -170,6 +163,9 @@ class UrtextNode:
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('•','',1)        
         return contents
+
+    def date(self):
+        return self.metadata.get_date(self.project.settings['node_date_keyname'])
 
     @classmethod
     def strip_metadata(self, contents=''):
@@ -310,9 +306,10 @@ class UrtextNode:
   
         new_metadata = ''
 
+        nid = ''
         for keyname in metadata:
             if keyname.lower() == 'id':
-                new_metadata += ' @'+metadata[keyname]+' ' 
+                nid = metadata[keyname]
                 continue
             new_metadata += keyname + separator
             if isinstance(metadata[keyname], list):
@@ -320,6 +317,9 @@ class UrtextNode:
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
+
+        if nid:
+            new_metadata += '@'+nid
 
         return new_metadata.strip()
 

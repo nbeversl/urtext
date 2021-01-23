@@ -20,6 +20,8 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 import pytz
+from dateutil.parser import *
+from pytz import timezone
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
@@ -28,7 +30,11 @@ node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 
 class NodeMetadata:
 
-    def __init__(self, node, full_contents, node_id=None, settings=None):
+    def __init__(self, 
+        node, 
+        full_contents, 
+        node_id=None, 
+        settings=None):
 
         self.node = node
         self._entries, self.dynamic_entries = parse_contents(
@@ -169,12 +175,16 @@ class MetadataEntry:  # container for a single metadata entry
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
         self.dt_string = dt_string
-        self.dt_stamp = default_date # default or set by project        
         self.from_node = from_node
         self.position = position
+        self.dt_stamp = default_date
         self.end_position = end_position
         self.children = children
         self.recursive = recursive
+
+        if dt_string:                    
+            dt_stamp = date_from_timestamp(dt_string)
+            self.dt_stamp = dt_stamp if dt_stamp else default_date
 
     def log(self):
         print('key: %s' % self.keyname)
@@ -299,3 +309,18 @@ def parse_contents(full_contents, node, settings=None):
             )
 
     return entries, dynamic_entries
+
+""" Helpers """
+
+def date_from_timestamp(datestamp_string):
+    dt_stamp = None
+    d = None
+    try:
+        d = parse(datestamp_string)
+    except:
+        pass
+        #print('No date for '+datestamp_string)
+    if d and d.tzinfo == None:
+         d = timezone('UTC').localize(d) 
+    return d
+

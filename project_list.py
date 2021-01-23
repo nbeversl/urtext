@@ -52,7 +52,6 @@ class ProjectList():
                     import_project=import_project, 
                     watchdog=self.watchdog)
                 self.projects.append(project)
-                print('Added Urtext project "'+project.title+'" from '+folder)
         except NoProject:
             if import_project:
                 self.import_project(folder)
@@ -99,7 +98,10 @@ class ProjectList():
     def on_modified(self, filename):
         if self.set_current_project(os.path.dirname(filename)):
             if self.current_project.is_async:
-                future = self.current_project.on_modified(filename)            
+                future = self.current_project.on_modified(filename)
+                result = future.result()
+                if result:
+                    print(result)
                 self.executor.submit(self._propagate_projects, future)
             else:
                 new_filename = self.current_project.on_modified(filename)            
@@ -158,15 +160,8 @@ class ProjectList():
         return link
 
     def nav_current(self):
-        node_id = self.current_project.nav_current()     
-        if not node_id:
-            node_id = self.current_project.get_home()
-        if not node_id:
-            node_id = self.current_project.random_node()
-        if not node_id:
-            return None
-        return node_id
-
+        return self.current_project.nav_current()
+        
     def project_titles(self):
         titles = []
         for project in self.projects:

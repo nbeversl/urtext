@@ -52,7 +52,9 @@ def sync_project_to_calendar(project, calendar_id):
     for node_id in project.nodes:
         node = project.nodes[node_id]
 
-        date = node.date
+        
+        date = node.date # no longer exists
+
         if date.tzinfo == None:
             date = default_timezone.localize(date)
 

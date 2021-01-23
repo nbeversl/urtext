@@ -56,9 +56,8 @@ def _process_dynamic_def(self, dynamic_definition):
     new_node_contents = []
 
     if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
-        print(self.nodes[dynamic_definition.source_id].filename)
         self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
-                      ' points to nonexistent node >' + dynamic_definition.target_id)
+                      ' points to nonexistent node >' + dynamic_definition.target_id + ' in ' + self.nodes[dynamic_definition.source_id].filename)
         return
 
     # Determine included and excluded nodes

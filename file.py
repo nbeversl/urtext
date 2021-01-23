@@ -271,9 +271,7 @@ class UrtextFile:
                         self.messages.append(message) 
 
         if nested > 0:
-            message = 'Un-closed node at %s' % str(position)
-            print(message)
-            print(self.filename)
+            message = 'Un-closed node at %s' % str(position) + ' in ' + self.filename
             if self.strict:
                 return self.log_error(message, position)  
             else:

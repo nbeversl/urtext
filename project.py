@@ -27,7 +27,6 @@ import time
 from time import strftime
 import concurrent.futures
 import diff_match_patch as dmp_module
-from dateutil.parser import *
 from pytz import timezone
 
 from urtext.rake import Rake
@@ -113,7 +112,7 @@ class UrtextProject:
             'always_oneline_meta' : False,
             'format_string': '$title\n-\n',
             'strict':False,
-            'node_date_keyname' : '',
+            'node_date_keyname' : 'timestamp',
             'log_id': '',
             'numerical_keys': ['_index' ,'index'],
             'preload': [],
@@ -135,9 +134,10 @@ class UrtextProject:
         self.keywords = {}
         self.quick_load(import_project=import_project)
         if self.is_async:
-            self.executor.submit(self._initialize_project,
-                import_project=import_project, 
-                init_project=init_project)
+            future = self.executor.submit(self._initialize_project,
+                    import_project=import_project, 
+                    init_project=init_project)
+            result = future.result()
         else:
             self._initialize_project(
                  import_project=import_project, 
@@ -148,6 +148,9 @@ class UrtextProject:
 
         # if watchdog:
         #     self._initialize_watchdog()   
+
+        # TODO -- node date timezones have to be localizted to date.
+        # do this from UrtextNode.date() method
 
     def quick_load(self, import_project=False):
 
@@ -197,16 +200,15 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
-        # must be done once manually on project init
-        # TODO refactor
+        # build sub tags
         for node_id in self.nodes:
-            self._parse_meta_dates(node_id)
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( node_id, node_id, e)
 
         self._get_access_history()        
         self._compile()
         self.compiled = True
+        print('"'+self.title+'" compiled from '+self.path )
 
     def _node_id_generator(self):
         chars = [
@@ -319,12 +321,10 @@ class UrtextProject:
             self._rebuild_node_meta(node_id)
 
         """
-        If this is not the initial load of the project, parse the timestamps in the file
-        and rebuild sub-tags
+        If this is not the initial load of the project rebuild sub-tags
         """        
         if self.compiled:
             for node_id in new_file.nodes:
-                self._parse_meta_dates(node_id)
                 for e in self.nodes[node_id].metadata.dynamic_entries:                
                     self._add_sub_tags( node_id, node_id, e)
     
@@ -462,30 +462,7 @@ class UrtextProject:
         self.update_links_in(new_node.id)
 
         if new_node.project_settings:
-            self._get_settings_from(new_node)
-
-    def _parse_meta_dates(self, node_id):
-        """ Parses dates (requires that timestamp_format already be set) """
-        for entry in self.nodes[node_id].metadata._entries:
-
-            if entry.dt_string:                    
-                dt_stamp = self._date_from_timestamp(entry.dt_string)
-                if dt_stamp:
-                    entry.dt_stamp = dt_stamp 
-                    if entry.keyname.lower() == self.settings['node_date_keyname'].lower():
-                        self.nodes[node_id].date = dt_stamp
-
-    def _date_from_timestamp(self, datestamp_string):
-        dt_stamp = None
-        try:
-            d = parse(datestamp_string)
-            if d.tzinfo == None:
-                 d = self.default_timezone.localize(d) 
-            return d
-        except:
-            pass
-
-        return None
+            self._get_settings_from(new_node)            
 
     def export_from_root_node(self, root_node_id):
         export = UrtextExport(self)
@@ -826,6 +803,7 @@ class UrtextProject:
         alternative = self.get_home()
         if not alternative:
             alternative = self.random_node()
+
         return alternative
 
     """ 
@@ -845,7 +823,7 @@ class UrtextProject:
                 
         sorted_unindexed_nodes = sorted(
             unindexed_nodes,
-            key=lambda node_id: self.nodes[node_id].date,
+            key=lambda node_id: self.nodes[node_id].metadata.get_date(self.settings['node_date_keyname']),
             reverse=True)
         return sorted_unindexed_nodes
 
@@ -1206,6 +1184,7 @@ class UrtextProject:
         if self.nodes:
             node_id = random.choice(list(self.nodes))
             return node_id
+        return None
     
     def replace_links(self, original_id, new_id='', new_project=''):
         if not new_id and not new_project:
@@ -1570,6 +1549,9 @@ class DuplicateIDs(Exception):
 """ 
 Helpers 
 """
+
+
+
 
 def soft_match_compact_node(selection):
     if re.match(r'^[^\S\n]*•.*?@\b[0-9,a-z]{3}\b.*', selection):

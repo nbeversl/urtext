@@ -25,7 +25,7 @@ def reindex_files(self):
 
     unindexed_root_nodes = [self.nodes[node_id] for node_id in remaining_primary_root_nodes]
     date_sorted_nodes = sorted(unindexed_root_nodes,
-                               key=lambda r: r.date,
+                               key=lambda r: r.metadata.get_date(self.settings['node_date_keyname']),
                                reverse=True)
 
     for node in date_sorted_nodes:
