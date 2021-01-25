@@ -66,7 +66,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         old_filename = os.path.basename(filename)
         if old_filename not in self.files:
-            return []
+            return {}
 
         if not self.files[old_filename].root_nodes:
             self._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
@@ -86,7 +86,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
         if root_node_id not in indexed_nodes and date_template != None:
             new_filename = new_filename.replace(
                 'DATE', 
-                datetime.datetime.strftime(root_node.date, date_template))
+                root_node.date().strftime(date_template))
         else:
             new_filename = new_filename.replace('DATE', '')
         

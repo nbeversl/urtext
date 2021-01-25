@@ -149,7 +149,7 @@ class UrtextProject:
         # if watchdog:
         #     self._initialize_watchdog()   
 
-        # TODO -- node date timezones have to be localizted to date.
+        # TODO -- node date timezones have to be localizes
         # do this from UrtextNode.date() method
 
     def quick_load(self, import_project=False):
