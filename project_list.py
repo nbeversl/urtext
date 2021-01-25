@@ -204,7 +204,7 @@ class ProjectList():
 
     def move_file(self, 
         filename, 
-        destination_project,
+        destination_project_name_or_path,
         replace_links=True):
 
         """
@@ -213,9 +213,9 @@ class ProjectList():
         optionally replacing links to every affected node.
         """
 
-        destination_project = self.get_project(destination_project)
+        destination_project = self.get_project(destination_project_name_or_path)
         if not destination_project:
-            print('Destination project `'+ destination_project +'` was not found.')
+            print('Destination project `'+ destination_project_name_or_path +'` was not found.')
             return None
 
         filename = os.path.basename(filename)

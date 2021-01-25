@@ -1222,11 +1222,10 @@ class UrtextProject:
         Returns a FULL PATH to the new filename if the filename changes by atomic rename
         """
         do_not_update = ['history','files']
-        
+        self._sync_file_list()
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True, '')
-        self._log_item('MODIFIED f>' + filename +' - Updating the project object')
         if self.is_async:
             return self.executor.submit(self._file_update, filename)
         return self._file_update(filename)
@@ -1236,7 +1235,9 @@ class UrtextProject:
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-        self._parse_file(filename)
+        if self._parse_file(filename) == False:
+            return filename
+        self._log_item('CHANGED : ' + filename)
         full_filename = filename
         # if self.settings['atomic_rename']:
         #     renamed = self._rename_file_nodes(filename)
@@ -1246,7 +1247,7 @@ class UrtextProject:
         """ returns filename with full path"""
         return full_filename
 
-    def _check_for_new_files(self):
+    def _sync_file_list(self):
         filelist = os.listdir(self.path)
         new_files = []
         for file in filelist:
@@ -1255,6 +1256,7 @@ class UrtextProject:
             if os.path.basename(file) not in self.files:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
+                    self._log_item(filename+' found. Adding to "'+self.title+'"')    
                     new_files.append(os.path.basename(file))
         for filename in list(self.files):
             if filename not in filelist:
@@ -1341,10 +1343,7 @@ class UrtextProject:
         if os.path.exists(history_file):
             with open(history_file, "r") as f:
                 file_history = f.read()
-            #print('HAS HISTORY')
             return json.loads(file_history)
-        #print('DOES NOT HAVE HISTORY')
-
         return None
 
     def most_recent_history(self, history):

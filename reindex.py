@@ -45,7 +45,9 @@ def rename_file_nodes(self, filename, reindex=False):
 
 def _rename_file_nodes(self, filenames, reindex=False):
     """ Rename a file or list of files by metadata """
-    
+
+    self._sync_file_list()
+
     if isinstance(filenames, str):
         filenames = [filenames]
 
@@ -111,12 +113,11 @@ def _rename_file_nodes(self, filenames, reindex=False):
         used_names.append(new_filename)
 
         # add history files
-        old_history_file = old_filename.replace('.txt','.pkl')
+        old_history_file = old_filename.replace('.txt','.diff')
         if os.path.exists(os.path.join(self.path, 'history', old_history_file)  ):
-            new_history_file = new_filename.replace('.txt','.pkl')
+            new_history_file = new_filename.replace('.txt','.diff')
             renamed_files[os.path.join(self.path, 'history', old_history_file)] = os.path.join(self.path, 'history', new_history_file)
             
-
     for filename in renamed_files:
         old_filename = filename
         new_filename = renamed_files[old_filename]
