@@ -42,6 +42,7 @@ class NodeMetadata:
             node,
             settings=settings)
         self._sort()       
+        self.add_system_keys()
         self._last_accessed = 0
         
     def _sort(self):
@@ -69,29 +70,25 @@ class NodeMetadata:
         return sorted(
             [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic],
             key = lambda n: n.index )
-        
 
+    def add_system_keys(self):
+
+        t = self.get_entries('inline-timestamp')
+        if t:
+            t = sorted(t, key=lambda i: i.dt_stamp)    
+            self.add_meta_entry(
+                '_latest_timestamp',
+                [t[0].dt_string],
+                t[0].dt_string)
+            self.add_meta_entry(
+                '_earliest_timestamp',
+                [t[-1].dt_string],
+                t[0].dt_string)
+            self._sort() 
     def get_first_value(self, keyname):
 
         if keyname == '_last_accessed':
             return self.node.last_accessed
-
-        # TODO refactor
-        if keyname == '_earliest_timestamp':
-            t = self.get_entries('inline-timestamp')
-            if not t:
-                return 'None'
-            t = sorted(t, key=lambda i: i.dt_stamp)    
-            return t[0].dt_string
-
-        # TODO refactor
-        if keyname == '_latest_timestamp':
-
-            t = self.get_entries('inline-timestamp')
-            if not t:
-                return 'None'
-            t = sorted(t, key=lambda i: i.dt_stamp, reverse=True)    
-            return t[0].dt_string
 
         entries = self.entries.get(keyname)
         if not entries or not entries[0].values:
@@ -103,12 +100,6 @@ class NodeMetadata:
         # use_timestamp=False, # use timestamp as value (FUTURE)
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
-
-        # TODO refactor
-        if keyname == '_earliest_timestamp':
-            return [ self.get_first_value('_earliest_timestamp') ]
-        if keyname == '_latest_timestamp':
-            return [ self.get_first_value('_latest_timestamp') ]
 
         """ returns a list of values for the given key """
         values = []
@@ -166,10 +157,11 @@ class NodeMetadata:
     def add_meta_entry(self, 
         key, 
         values,
+        dt_string=None,
         from_node=None,
         position=0):
 
-        new_entry = MetadataEntry(key, values, None, from_node=from_node, position=position)
+        new_entry = MetadataEntry(key, values, dt_string, from_node=from_node, position=position)
         self._entries.append(new_entry)
         self._sort()
 
@@ -347,4 +339,3 @@ def date_from_timestamp(datestamp_string):
     if d and d.tzinfo == None:
          d = timezone('UTC').localize(d) 
     return d
-
