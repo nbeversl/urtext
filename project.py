@@ -282,7 +282,7 @@ class UrtextProject:
 
         new_file = self._file_changed(filename)
         if not new_file:
-            return None
+            return False
 
         self.messages[filename] = []
         if new_file.messages:
@@ -1467,7 +1467,6 @@ class UrtextProject:
         r = Rake()
         string = UrtextNode.strip_contents(string)
         keywords = [t[0] for t in r.run(string)]
-        print(keywords)
         assoc_nodes = []
         for k in keywords:
             if k in self.keywords:

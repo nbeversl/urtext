@@ -123,7 +123,7 @@ def _add_sub_tags(self,
     children = self.nodes[target_id].tree_node.children
     
     for child in children:
-        
+
         """
         This is currently necessary because of how node pointers
         are handled in tree-building.
@@ -150,10 +150,9 @@ def _add_sub_tags(self,
 
     for node_id in nodes_to_rebuild:
         self._rebuild_node_meta(node_id)
-    
 
 def _remove_sub_tags(self, source_id):
-    
+
     if source_id not in self.dynamic_meta:
         return
 
