@@ -72,8 +72,26 @@ class NodeMetadata:
         
 
     def get_first_value(self, keyname):
+
         if keyname == '_last_accessed':
             return self.node.last_accessed
+
+        # TODO refactor
+        if keyname == '_earliest_timestamp':
+            t = self.get_entries('inline-timestamp')
+            if not t:
+                return None
+            t = sorted(t, key=lambda i: i.dt_stamp)    
+            return t[0].dt_string
+
+        # TODO refactor
+        if keyname == '_latest_timestamp':
+
+            t = self.get_entries('inline-timestamp')
+            if not t:
+                return None
+            t = sorted(t, key=lambda i: i.dt_stamp, reverse=True)    
+            return t[0].dt_string
 
         entries = self.entries.get(keyname)
         if not entries or not entries[0].values:
@@ -85,6 +103,12 @@ class NodeMetadata:
         # use_timestamp=False, # use timestamp as value (FUTURE)
         substitute_timestamp=False  # substitutes the timestamp as a string if no value
         ):
+
+        # TODO refactor
+        if keyname == '_earliest_timestamp':
+            return [ self.get_first_value('_earliest_timestamp') ]
+        if keyname == '_latest_timestamp':
+            return [ self.get_first_value('_latest_timestamp') ]
 
         """ returns a list of values for the given key """
         values = []
