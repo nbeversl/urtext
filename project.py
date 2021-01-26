@@ -1256,7 +1256,7 @@ class UrtextProject:
             if os.path.basename(file) not in self.files:
                 duplicate_node_ids = self._parse_file(file)
                 if not duplicate_node_ids:
-                    self._log_item(filename+' found. Adding to "'+self.title+'"')    
+                    self._log_item(file+' found. Adding to "'+self.title+'"')    
                     new_files.append(os.path.basename(file))
         for filename in list(self.files):
             if filename not in filelist:

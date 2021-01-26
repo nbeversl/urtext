@@ -80,7 +80,7 @@ class NodeMetadata:
         if keyname == '_earliest_timestamp':
             t = self.get_entries('inline-timestamp')
             if not t:
-                return None
+                return 'None'
             t = sorted(t, key=lambda i: i.dt_stamp)    
             return t[0].dt_string
 
@@ -89,7 +89,7 @@ class NodeMetadata:
 
             t = self.get_entries('inline-timestamp')
             if not t:
-                return None
+                return 'None'
             t = sorted(t, key=lambda i: i.dt_stamp, reverse=True)    
             return t[0].dt_string
 
