@@ -95,7 +95,7 @@ def _process_dynamic_def(self, dynamic_definition):
                     #include_dynamic=dynamic_definition.include_dynamic)
                     include_dynamic=True)
                 )
-
+    
     included_nodes -= excluded_nodes
     # Never include a dynamic node in itself.
     
@@ -143,7 +143,7 @@ def _process_dynamic_def(self, dynamic_definition):
                     dynamic_definition, 
                     exclude=list(excluded_nodes))
                 )
-    
+
     final_output = build_final_output(dynamic_definition, ''.join(new_node_contents)) 
     if dynamic_definition.target_id and dynamic_definition.target_id in self.h_content:
         if self.h_content[dynamic_definition.target_id] == hash(final_output):

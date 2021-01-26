@@ -54,9 +54,14 @@ def _tree_node_is_excluded(self, tree_node, excluded_nodes):
     if node_id not in self.nodes:
         return True
 
-    for ancestor in self.nodes[node_id].tree_node.ancestors:
-        if ancestor.name[-3:] in excluded_nodes:
-            return True
+    # BUG.
+    # COMMENTED OUT TEMPORARILY;
+    # this disrupts inclusion of descendants when their parents are excluded in lists.
+    # TODO Determine what the use for this exclusion rule was.
+
+    # for ancestor in self.nodes[node_id].tree_node.ancestors:
+    #     if ancestor.name[-3:] in excluded_nodes:
+    #         return True
 
     return False
 

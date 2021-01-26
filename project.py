@@ -1456,7 +1456,7 @@ class UrtextProject:
                     continue
            
             results = results.union(set(n for n in self.nodes if value in self.nodes[n].metadata.get_values(key)))
-
+        
         return results
     """
     Free Association
