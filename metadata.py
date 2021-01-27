@@ -83,7 +83,7 @@ class NodeMetadata:
             self.add_meta_entry(
                 '_earliest_timestamp',
                 [t[-1].dt_string],
-                t[0].dt_string)
+                t[-1].dt_string)
             self._sort() 
     def get_first_value(self, keyname):
 
