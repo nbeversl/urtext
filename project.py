@@ -112,7 +112,7 @@ class UrtextProject:
             'always_oneline_meta' : False,
             'format_string': '$title\n-\n',
             'strict':False,
-            'node_date_keyname' : 'timestamp',
+            'node_date_keyname' : '_oldest_timestamp',
             'log_id': '',
             'numerical_keys': ['_index' ,'index'],
             'preload': [],

@@ -77,20 +77,25 @@ class NodeMetadata:
         if t:
             t = sorted(t, key=lambda i: i.dt_stamp)    
             self.add_meta_entry(
-                '_latest_timestamp',
+                '_oldest_timestamp',
                 [t[0].dt_string],
                 t[0].dt_string)
             self.add_meta_entry(
-                '_earliest_timestamp',
+                '_newest_timestamp',
                 [t[-1].dt_string],
                 t[-1].dt_string)
             self._sort() 
-    def get_first_value(self, keyname):
+
+    def get_first_value(self, 
+        keyname, 
+        use_timestamp=False):
 
         if keyname == '_last_accessed':
             return self.node.last_accessed
 
         entries = self.entries.get(keyname)
+        if use_timestamp:
+            return entries[0].values[0].dt_stamp
         if not entries or not entries[0].values:
             return ''
         return entries[0].values[0]

@@ -110,9 +110,11 @@ def _process_dynamic_def(self, dynamic_definition):
     if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
         sort_order = lambda node: ( node.metadata.get_date(dynamic_definition.sort_keyname[0]), node.id)
 
-    elif dynamic_definition.sort_keyname:
-        sort_order = lambda node: ( self.get_first_value(node, dynamic_definition.sort_keyname[0]), node.id)            
-
+    elif dynamic_definition.sort_keyname:        
+        if dynamic_definition.sort_keyname[0] in ['_newest_timestamp', '_oldest_timestamp']:
+            sort_order = lambda node: ( node.metadata.get_date(dynamic_definition.sort_keyname[0]), node.id)            
+        else:
+            sort_order = lambda node: ( self.get_first_value(node, dynamic_definition.sort_keyname[0]), node.id)            
     else:
         sort_order = lambda node: node.id
 

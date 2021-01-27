@@ -167,7 +167,7 @@ class UrtextDynamicDefinition:
                 for param in separate(inside_parentheses):
                     if param:
                         self.sort_keyname.append(param)
-    
+                        
                 continue
         
             if func == "FORMAT":
