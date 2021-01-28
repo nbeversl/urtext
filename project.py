@@ -1417,9 +1417,9 @@ class UrtextProject:
 
             if compare_date:
                 if operator == 'before':
-                    results = [n for n in self.nodes if default_date < self.nodes[n].metadata.get_date(key) < compare_date]
+                    results = [n for n in self.nodes if default_date != self.nodes[n].metadata.get_date(key) < compare_date]
                 if operator == 'after':
-                    results = [n for n in self.nodes if self.nodes[n].metadata.get_date(key) > compare_date > default_date ]
+                    results = [n for n in self.nodes if self.nodes[n].metadata.get_date(key) > compare_date != default_date ]
 
                 return set(results)
 
