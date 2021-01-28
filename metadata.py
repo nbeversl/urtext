@@ -149,13 +149,12 @@ class NodeMetadata:
     def get_date(self, keyname):
         """
         Returns the timestamp of the FIRST matching metadata entry with the given key.
-        Requires the project be parsed (dt_stamp set from dt_string)
         """
         entries = self.get_entries(keyname)
         if entries:
             return entries[0].dt_stamp
 
-        return default_date # ?
+        return default_date
 
     # Set
     

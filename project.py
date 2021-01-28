@@ -40,6 +40,7 @@ from urtext.reindex import reindex_functions
 from urtext.search import search_functions
 from urtext.collection import collection_functions
 from urtext.dynamic import UrtextDynamicDefinition
+from urtext.metadata import date_from_timestamp, default_date
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -74,7 +75,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1410,6 +1411,20 @@ class UrtextProject:
             values = [values]
 
         results = []
+
+        if operator in ['before','after']:
+            compare_date = date_from_timestamp(values[0][1:-1])
+
+            if compare_date:
+                if operator == 'before':
+                    results = [n for n in self.nodes if default_date < self.nodes[n].metadata.get_date(key) < compare_date]
+                if operator == 'after':
+                    results = [n for n in self.nodes if self.nodes[n].metadata.get_date(key) > compare_date > default_date ]
+
+                return set(results)
+
+            return set([])
+
 
         if key == '_contents' and operator == '?': # `=` not currently implemented
             for node_id in self.nodes:
