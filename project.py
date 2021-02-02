@@ -123,7 +123,7 @@ class UrtextProject:
             'device_keyname' : 'from',
             'popped_node_breadcrumbs':True,
             'breadcrumb_key' : 'popped_from',
-            'keyless_timestamps' : True,
+            'keyless_timestamp' : True,
             'inline_node_timestamps' :True,
             'file_node_timestamp' : True,
             'node_browser_sort' : ['index','timestamp','id'],
@@ -1035,7 +1035,7 @@ class UrtextProject:
             'atomic_rename',
             'popped_node_breadcrumbs',
             'autoindex',
-            'keyless_timestamps',
+            'keyless_timestamp',
             'file_node_timestamp',
             'inline_node_timestamp',
         ]
