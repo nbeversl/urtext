@@ -47,11 +47,15 @@ def _tag_other_node(self, node_id, metadata={}):
     full_file_contents = self._full_file_contents(node_id=node_id)
     tag_position = territory[-1][1]
 
+    separator = '\n'
+    if self.nodes[node_id].compact:
+        separator = ' '
+
     new_contents = ''.join([
         full_file_contents[:tag_position],
-        '\n',
+        separator,
         metadata_contents,
-        '\n',
+        separator,
         full_file_contents[tag_position:]])
 
     self._set_file_contents(self.nodes[node_id].filename, new_contents)

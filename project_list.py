@@ -100,8 +100,6 @@ class ProjectList():
             if self.current_project.is_async:
                 future = self.current_project.on_modified(filename)
                 result = future.result()
-                if result:
-                    print(result)
                 self.executor.submit(self._propagate_projects, future)
             else:
                 new_filename = self.current_project.on_modified(filename)            

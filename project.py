@@ -28,6 +28,7 @@ from time import strftime
 import concurrent.futures
 import diff_match_patch as dmp_module
 from pytz import timezone
+import pprint
 
 from urtext.rake import Rake
 from urtext.file import UrtextFile
@@ -104,7 +105,7 @@ class UrtextProject:
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-            'use_timestamp': ['timestamp','inline-timestamp'],
+            'use_timestamp': ['timestamp','inline-timestamp' '_oldest_timestamp', '_newest_timestamp'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log': True,
             'google_auth_token' : 'token.json',
@@ -119,6 +120,13 @@ class UrtextProject:
             'preload': [],
             'atomic_rename' : False,
             'tag_other': ['tags','done'],
+            'device_keyname' : 'from',
+            'popped_node_breadcrumbs':True,
+            'breadcrumb_key' : 'popped_from',
+            'keyless_timestamps' : True,
+            'inline_node_timestamps' :True,
+            'file_node_timestamp' : True,
+            'node_browser_sort' : ['index','timestamp','id'],
             'case_sensitive': [
                 'title',
                 'notes',
@@ -138,7 +146,6 @@ class UrtextProject:
             future = self.executor.submit(self._initialize_project,
                     import_project=import_project, 
                     init_project=init_project)
-            result = future.result()
         else:
             self._initialize_project(
                  import_project=import_project, 
@@ -209,6 +216,7 @@ class UrtextProject:
         self._get_access_history()        
         self._compile()
         self.compiled = True
+        self.store()
         print('"'+self.title+'" compiled from '+self.path )
 
     def _node_id_generator(self):
@@ -544,8 +552,11 @@ class UrtextProject:
         now = datetime.datetime.now()
         contents = '\n\n'
         contents += "@" + self.next_index() + '\n'
-        if self.settings['node_date_keyname']:
-            contents += self.settings['node_date_keyname']+'::' + self.timestamp(date) + '\n'
+        if 'node_date_keyname' in self.settings:
+            contents += self.settings['node_date_keyname']+'::'
+        else:
+            contents += '\n'
+        contents += self.timestamp(date) + '\n'
         contents += 'imported::' + self.timestamp(now) + '\n'
 
         full_file_contents += contents
@@ -663,21 +674,12 @@ class UrtextProject:
         one_line=None
         ):
         
-        if date == None:
-            date = datetime.datetime.now()
-
-        if one_line == None:
-            one_line = self.settings['always_oneline_meta']
-
-        if not node_id:
-            node_id = self.next_index()
-
-        metadata['id'] = node_id
-        if self.settings['node_date_keyname']:
-            metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-        metadata['from'] = platform.node()
-        metadata_block = UrtextNode.build_metadata(metadata, one_line=one_line)
-        contents = '\n\n\n' +metadata_block
+        contents, node_id = self._new_node(
+            date=date,
+            metadata=metadata,
+            node_id=node_id,
+            include_timestamp=self.settings['file_node_timestamp'])
+        
         filename = node_id + '.txt'
 
         self._set_file_contents( filename, contents )  
@@ -686,50 +688,60 @@ class UrtextProject:
                 'filename':filename, 
                 'id':node_id
                 }
- 
-    def add_inline_node(self, 
+
+    def new_inline_node(self, 
+        date=None, 
+        metadata = {}, 
+        node_id=None,
+        contents='',
+        one_line=None,
+        ):
+
+        contents, node_id = self._new_node(
+            date=date,
+            contents=contents,
+            metadata=metadata,
+            node_id=node_id,
+            include_timestamp=self.settings['inline_node_timestamp'])
+
+        return {
+            'contents' : ''.join(['{ ', contents, '}']),
+            'id':node_id
+        }
+    
+    def _new_node(self, 
             date=None, 
-            contents='',
+            contents='\n',
+            node_id=None,
             metadata=None,
             one_line=None,
             include_timestamp=False):
-        
+
         if one_line == None:
             one_line = self.settings['always_oneline_meta']
-            
-        node_id = self.next_index()
+        
+        if not node_id:
+            node_id = self.next_index()
 
         if not metadata:
             metadata = {}
 
+        if 'device_keyname' in self.settings:
+            metadata[self.settings['device_keyname']] = platform.node()
+
         metadata['id']=node_id
         
         if include_timestamp:
-
             if date == None:
-                date = datetime.datetime.now()
- 
-            if 'node_date_keyname' in self.settings:
+                date = datetime.datetime.now() 
+            if self.settings['keyless_timestamp'] == True:
+                new_node_contents += self.timestamp(date)
+            elif 'node_date_keyname' in self.settings:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-        
-        new_node_contents = ''.join([
-            '{ ', 
-            contents,
-            '  ',
-            UrtextNode.build_metadata(metadata, one_line=one_line),
-            ' '])
-        new_node_contents += "}"
-        return (new_node_contents, node_id)
+            
+        new_node_contents = ''.join([contents, UrtextNode.build_metadata(metadata, one_line=one_line)])
 
-    # def insert_interlinks(self, node_id, one_line=True):
-    #     new_node = self.add_inline_node()
-    #     insertion = new_node[0]
-    #     new_node_id = new_node[1]
-    #     dynamic_def =   '[[ id('+ new_node_id +'); '
-    #     dynamic_def +=  'interlinks:'+node_id
-    #     dynamic_def += ' ]]'
-
-    #     return '\n'.join([insertion, dynamic_def])
+        return new_node_contents, node_id
 
     def add_compact_node(self,  
             contents='', 
@@ -850,9 +862,22 @@ class UrtextProject:
         return sorted_indexed_nodes
 
     def all_nodes(self):
-        all_nodes = self.indexed_nodes()
-        all_nodes.extend(self.unindexed_nodes())
-        return all_nodes
+        nodes = list(self.nodes)
+        sorted_nodes = []
+        for k in self.settings['node_browser_sort']:
+            use_timestamp= False
+            if k in self.settings['use_timestamp']:
+                use_timestamp = True
+            addition = [r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)]
+
+            addition = sorted(addition, 
+                key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
+                reverse=use_timestamp)
+            sorted_nodes.extend(addition)
+            nodes = list(set(nodes) - set(sorted_nodes))
+
+        sorted_nodes.extend(nodes)
+        return sorted_nodes
 
     def root_nodes(self, primary=False):
         """
@@ -868,13 +893,13 @@ class UrtextProject:
                 else:
                     root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
-          
+
     def get_node_id_from_position(self, filename, position):
         filename = os.path.basename(filename)
         if filename in self.files:
             for node_id in self.files[filename].nodes:
                 for r in self.files[filename].nodes[node_id].ranges:
-                    if position in range(r[0],r[1]):
+                    if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.
                         return node_id
         return None
 
@@ -997,13 +1022,22 @@ class UrtextProject:
             'google_calendar_id',
             'node_date_keyname',
             'log_id',
-            'timestamp_format'
+            'timestamp_format',
+            'device_keyname',
+            'breadcrumb_key',
+            'title',
+            'id',
         ]
         single_boolean_values = [
             'always_oneline_meta',
             'preformat',
             'console_log',
             'atomic_rename',
+            'popped_node_breadcrumbs',
+            'autoindex',
+            'keyless_timestamps',
+            'file_node_timestamp',
+            'inline_node_timestamp',
         ]
 
         for entry in node.metadata._entries:
@@ -1017,6 +1051,7 @@ class UrtextProject:
 
             if key == 'numerical_keys':
                 self.settings['numerical_keys'].extend(values)
+                self.settings['numerical_keys'] = list(set(self.settings['numerical_keys']))
                 continue
 
             if key == 'tag_other':
@@ -1037,9 +1072,10 @@ class UrtextProject:
                 continue
 
             if key not in self.settings:
-                self.settings[key] = []                                
-
+                self.settings[key] = []
+  
             self.settings[key].extend(values)
+            self.settings[key] = list(set(self.settings[key]))
 
         self.default_timezone = timezone(self.settings['timezone'][0])
 
@@ -1086,7 +1122,9 @@ class UrtextProject:
         popped_node_contents = file_contents[start:end].strip()
         parent_id = self.nodes[node_id].tree_node.parent
 
-        popped_node_contents += '\n_breadcrumb::popped from >'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
+        if self.settings['popped_node_breadcrumbs']:
+            popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
+
         remaining_node_contents = ''.join([
             file_contents[0:start - 2],
             '\n| ',
@@ -1427,7 +1465,7 @@ class UrtextProject:
 
 
         if key == '_contents' and operator == '?': # `=` not currently implemented
-            for node_id in self.nodes:
+            for node_id in list(self.nodes):
                 if self.nodes[node_id].dynamic:
                     continue
                 matches = []
@@ -1470,7 +1508,7 @@ class UrtextProject:
                     value = 99999999
                     continue
            
-            results = results.union(set(n for n in self.nodes if value in self.nodes[n].metadata.get_values(key)))
+            results = results.union(set(n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(key)))
         
         return results
     """

@@ -260,7 +260,7 @@ def _build_group_and(project, groups, include_dynamic=False):
         new_group = new_group.intersection(this_set)
 
     if not include_dynamic:
-        new_group = [f for f in new_group if f in project.nodes and not project.nodes[f].dynamic]
+        new_group = [f for f in new_group if f in project.nodes and not project.nodes[f].dynamic and not project.nodes[f].errors]
 
     return new_group
 

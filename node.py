@@ -78,6 +78,7 @@ class UrtextNode:
         self.title = None
         self.hashed_contents = hash(contents)
         self.keywords = {}
+        self.errors = False
 
         stripped_contents = self.strip_dynamic_definitions(contents)
 
@@ -122,6 +123,7 @@ class UrtextNode:
         self.get_links(contents=self.strip_metadata(contents=stripped_contents))
     
         r = Rake()
+        stripped_contents = self.strip_syntax_elements(stripped_contents)
         self.keywords = [t[0] for t in r.run(stripped_contents)]
 
     def start_position(self):
@@ -189,6 +191,17 @@ class UrtextNode:
             stripped_contents = stripped_contents.replace(e,'')
         stripped_contents = re.sub(short_id,'', stripped_contents)
         return stripped_contents
+
+    @classmethod
+    def strip_syntax_elements(self, contents=None):
+        if contents == None:
+            contents=self.contents()
+        stripped_contents = re.sub(node_link_regex, '', contents)
+        tree_elements = ['├──','└──','│']
+        for el in tree_elements:
+            stripped_contents= stripped_contents.replace(el,'')
+        return stripped_contents
+        
 
     @classmethod
     def strip_inline_nodes(self, contents=''):

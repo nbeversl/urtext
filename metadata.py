@@ -88,16 +88,26 @@ class NodeMetadata:
 
     def get_first_value(self, 
         keyname, 
-        use_timestamp=False):
+        use_timestamp=False,
+        substitute_timestamp=False):
 
         if keyname == '_last_accessed':
             return self.node.last_accessed
 
         entries = self.entries.get(keyname)
-        if use_timestamp:
-            return entries[0].values[0].dt_stamp
-        if not entries or not entries[0].values:
+
+        if not entries:
             return ''
+
+        if use_timestamp:
+            return entries[0].dt_stamp
+
+        if not entries[0].values or entries[0].values[0] == '': 
+            if substitute_timestamp and entries[0].dt_stamp:
+                return entries[0].dt_stamp
+            else:
+                return ''
+
         return entries[0].values[0]
         
     def get_values(self, 

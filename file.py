@@ -368,6 +368,8 @@ class UrtextFile:
         self.parsed_items = {}
         self.messages = []
         self.parse(new_contents, settings)
+        for n in self.nodes:
+            self.nodes[n].errors = True
 
     def log_error(self, message, position):
 
