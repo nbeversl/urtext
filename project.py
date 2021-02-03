@@ -1013,8 +1013,6 @@ class UrtextProject:
         single_values = [
             'home',
             'project_title',
-            'google_auth_token',
-            'google_calendar_id',
             'node_date_keyname',
             'log_id',
             'timestamp_format',
