@@ -306,7 +306,7 @@ class UrtextNode:
     @classmethod
     def build_metadata(self, 
         metadata, 
-        one_line=False, 
+        one_line=None, 
         separator='::'
         ):
 

@@ -105,28 +105,23 @@ class UrtextProject:
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-            'use_timestamp': ['timestamp','inline-timestamp' '_oldest_timestamp', '_newest_timestamp'],
+            'use_timestamp': ['timestamp', 'inline-timestamp' '_oldest_timestamp', '_newest_timestamp'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log': True,
-            'google_auth_token' : 'token.json',
-            'google_calendar_id' : None,
             'timezone' : ['UTC'],
             'always_oneline_meta' : False,
-            'format_string': '$title\n-\n',
             'strict':False,
-            'node_date_keyname' : '_oldest_timestamp',
+            'node_date_keyname' : 'timestamp',
             'log_id': '',
             'numerical_keys': ['_index' ,'index'],
-            'preload': [],
             'atomic_rename' : False,
-            'tag_other': ['tags','done'],
-            'device_keyname' : 'from',
-            'popped_node_breadcrumbs':True,
-            'breadcrumb_key' : 'popped_from',
+            'tag_other': [],
+            'device_keyname' : '',
+            'breadcrumb_key' : '',
             'keyless_timestamp' : True,
-            'inline_node_timestamps' :True,
+            'inline_node_timestamp' :True,
             'file_node_timestamp' : True,
-            'node_browser_sort' : ['index','timestamp','id'],
+            'node_browser_sort' : ['index','_oldest_timestamp'],
             'case_sensitive': [
                 'title',
                 'notes',
@@ -726,20 +721,21 @@ class UrtextProject:
         if not metadata:
             metadata = {}
 
-        if 'device_keyname' in self.settings:
+        if  self.settings['device_keyname']:
             metadata[self.settings['device_keyname']] = platform.node()
 
         metadata['id']=node_id
-        
+
+        new_node_contents = ''
         if include_timestamp:
             if date == None:
                 date = datetime.datetime.now() 
             if self.settings['keyless_timestamp'] == True:
-                new_node_contents += self.timestamp(date)
-            elif 'node_date_keyname' in self.settings:
+                new_node_contents += '  ' + self.timestamp(date) + ' '
+            elif self.settings['node_date_keyname']:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
             
-        new_node_contents = ''.join([contents, UrtextNode.build_metadata(metadata, one_line=one_line)])
+        new_node_contents += ''.join([contents, UrtextNode.build_metadata(metadata, one_line=one_line)])
 
         return new_node_contents, node_id
 
@@ -1015,7 +1011,6 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
         single_values = [
-            'format_string',
             'home',
             'project_title',
             'google_auth_token',
@@ -1033,7 +1028,6 @@ class UrtextProject:
             'preformat',
             'console_log',
             'atomic_rename',
-            'popped_node_breadcrumbs',
             'autoindex',
             'keyless_timestamp',
             'file_node_timestamp',
@@ -1122,7 +1116,7 @@ class UrtextProject:
         popped_node_contents = file_contents[start:end].strip()
         parent_id = self.nodes[node_id].tree_node.parent
 
-        if self.settings['popped_node_breadcrumbs']:
+        if 'breadcrumb_key' in self.settings:
             popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
 
         remaining_node_contents = ''.join([
