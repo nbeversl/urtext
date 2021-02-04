@@ -99,12 +99,10 @@ def _rename_file_nodes(self, filenames, reindex=False):
         else:
             old_prefix = old_filename.split('-')[0].strip()
             new_filename = new_filename.replace('PREFIX', old_prefix)
-        new_filename = new_filename.replace('/', '-')
-        new_filename = new_filename.replace('.', ' ')
         new_filename = new_filename.replace('’', "'")
-        new_filename = new_filename.replace(':', "-")
         new_filename = new_filename.strip('-').strip();
         new_filename += '.txt'
+        new_filename = strip_illegal_characters(new_filename)
 
         if new_filename in used_names:
             new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
@@ -133,5 +131,11 @@ def _rename_file_nodes(self, filenames, reindex=False):
     Returns a list of renamed files with full paths
     """    
     return renamed_files
+
+def strip_illegal_characters(filename):
+    for c in ['<', '>', ':', '"', '/', '\\', '|', '?','*']:
+        filename = filename.replace(c,' ')
+    return filename
+
 
 reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files ]
