@@ -291,7 +291,7 @@ def parse_contents(full_contents, node, settings=None):
 
 
     # parse shorthand meta:
-    if self.settings['hash_key']:
+    if settings['hash_key']:
 
         hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 
