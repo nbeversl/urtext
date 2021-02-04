@@ -121,6 +121,7 @@ class UrtextProject:
             'keyless_timestamp' : True,
             'inline_node_timestamp' :True,
             'file_node_timestamp' : True,
+            'hash_key': '',
             'node_browser_sort' : ['index','_oldest_timestamp'],
             'case_sensitive': [
                 'title',
