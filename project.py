@@ -105,7 +105,7 @@ class UrtextProject:
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-            'use_timestamp': ['timestamp', 'inline-timestamp' '_oldest_timestamp', '_newest_timestamp'],
+            'use_timestamp': ['timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
             'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
             'console_log': True,
             'timezone' : ['UTC'],
@@ -866,13 +866,9 @@ class UrtextProject:
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
             addition = [r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)]
-            try:
-                addition = sorted(addition, 
+            addition = sorted(addition, 
                 key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
-            except:
-                print(k)
-                print(addition)
             sorted_nodes.extend(addition)
             nodes = list(set(nodes) - set(sorted_nodes))
 
@@ -1024,6 +1020,7 @@ class UrtextProject:
             'breadcrumb_key',
             'title',
             'id',
+            'hash_key'
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -1034,6 +1031,11 @@ class UrtextProject:
             'keyless_timestamp',
             'file_node_timestamp',
             'inline_node_timestamp',
+        ]
+        replace = [
+            'node_browser_sort',
+            'filenames',
+            'tag_other'
         ]
 
         for entry in node.metadata._entries:
@@ -1050,28 +1052,21 @@ class UrtextProject:
                 self.settings['numerical_keys'] = list(set(self.settings['numerical_keys']))
                 continue
 
-            if key == 'tag_other':
-                self.settings['tag_other'] = values # replace
-                continue
-
-            if key == 'filenames':
-                # replace.
-                self.settings['filenames'] = values
+            if key in replace:
+                self.settings[key] = values
                 continue
 
             if key in single_boolean_values:
-                # replace
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
 
             if key in single_values:
-                # replace
                 self.settings[key] = values[0]
                 continue
 
             if key not in self.settings:
                 self.settings[key] = []
-  
+                
             self.settings[key].extend(values)
             self.settings[key] = list(set(self.settings[key]))
 

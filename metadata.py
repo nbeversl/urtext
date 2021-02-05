@@ -258,7 +258,7 @@ def parse_contents(full_contents, node, settings=None):
                 try:
                     value = int(value)
                 except ValueError:
-                    value = -1
+                    value = 9999999
             if value:
                 values.append(value)
 
