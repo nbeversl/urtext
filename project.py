@@ -866,10 +866,13 @@ class UrtextProject:
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
             addition = [r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)]
-
-            addition = sorted(addition, 
+            try:
+                addition = sorted(addition, 
                 key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
+            except:
+                print(k)
+                print(addition)
             sorted_nodes.extend(addition)
             nodes = list(set(nodes) - set(sorted_nodes))
 
@@ -1052,15 +1055,17 @@ class UrtextProject:
                 continue
 
             if key == 'filenames':
-                #always a list
+                # replace.
                 self.settings['filenames'] = values
                 continue
 
             if key in single_boolean_values:
+                # replace
                 self.settings[key] = True if values[0].lower() == 'true' else False
                 continue
 
             if key in single_values:
+                # replace
                 self.settings[key] = values[0]
                 continue
 
