@@ -91,6 +91,8 @@ class NodeMetadata:
         use_timestamp=False,
         substitute_timestamp=False):
 
+        keyname = keyname.lower()
+
         if keyname == '_last_accessed':
             return self.node.last_accessed
 
@@ -117,6 +119,7 @@ class NodeMetadata:
         ):
 
         """ returns a list of values for the given key """
+        keyname = keyname.lower()
         values = []
         entries = self.entries.get(keyname)
         if not entries:
