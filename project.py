@@ -881,7 +881,8 @@ class UrtextProject:
                 print(k)
                 print(addition)
                 print(use_timestamp)
-                print(self.nodes[nid].metadata.get_first_value(k))
+                for nid in addition:
+                    print(self.nodes[nid].metadata.get_first_value(k))
             sorted_nodes.extend(addition)
 
             nodes = list(set(nodes) - set(sorted_nodes))
