@@ -877,7 +877,6 @@ class UrtextProject:
             addition = sorted(addition, 
                 key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
-            except:
             sorted_nodes.extend(addition)
 
             nodes = list(set(nodes) - set(sorted_nodes))
