@@ -121,6 +121,7 @@ class UrtextProject:
             'keyless_timestamp' : True,
             'inline_node_timestamp' :True,
             'file_node_timestamp' : True,
+            'file_node_leading_contents': '',
             'hash_key': '',
             'node_browser_sort' : ['index','_oldest_timestamp'],
             'case_sensitive': [
@@ -146,9 +147,6 @@ class UrtextProject:
             self._initialize_project(
                  import_project=import_project, 
                  init_project=init_project)
-
-        if not os.path.exists(os.path.join(self.path, "history")):
-            os.mkdir(os.path.join(self.path, "history"))
 
         # if watchdog:
         #     self._initialize_watchdog()   
@@ -184,6 +182,9 @@ class UrtextProject:
     def _initialize_project(self, 
         import_project=False, 
         init_project=False):
+
+        if not os.path.exists(os.path.join(self.path, "history")):
+            os.mkdir(os.path.join(self.path, "history"))
 
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
@@ -665,13 +666,18 @@ class UrtextProject:
     
     def new_file_node(self, 
         date=None, 
+        contents=None,
         metadata = {}, 
         node_id=None,
         one_line=None
         ):
         
+        if contents == None:
+            contents = bytes(self.settings['file_node_leading_contents'], "utf-8").decode("unicode_escape")
+
         contents, node_id = self._new_node(
             date=date,
+            contents=contents,
             metadata=metadata,
             node_id=node_id,
             include_timestamp=self.settings['file_node_timestamp'])
@@ -727,7 +733,8 @@ class UrtextProject:
 
         metadata['id']=node_id
 
-        new_node_contents = ''
+        new_node_contents = contents
+
         if include_timestamp:
             if date == None:
                 date = datetime.datetime.now() 
@@ -736,7 +743,7 @@ class UrtextProject:
             elif self.settings['node_date_keyname']:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
             
-        new_node_contents += ''.join([contents, UrtextNode.build_metadata(metadata, one_line=one_line)])
+        new_node_contents += UrtextNode.build_metadata(metadata, one_line=one_line)
 
         return new_node_contents, node_id
 
@@ -1020,7 +1027,8 @@ class UrtextProject:
             'breadcrumb_key',
             'title',
             'id',
-            'hash_key'
+            'hash_key',
+            'file_node_leading_contents'
         ]
         single_boolean_values = [
             'always_oneline_meta',
