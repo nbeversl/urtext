@@ -147,6 +147,7 @@ class NodeMetadata:
         value,
         use_timestamp=False):
 
+        keyname = keyname.lower()
         entries = self.get_entries(keyname)
         matching_entries = []
         for e in entries:
@@ -240,7 +241,7 @@ def parse_contents(full_contents, node, settings=None):
     for m in inline_meta.finditer(full_contents):
 
         key, value = m.group().strip(';').split('::', 1)
-
+        key = key.lower()
         """
         For lines containing a timestamp
         """
