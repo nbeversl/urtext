@@ -880,7 +880,10 @@ class UrtextProject:
             except:
                 print(k)
                 print(addition)
+                print(use_timestamp)
+                print(self.nodes[nid].metadata.get_first_value(k))
             sorted_nodes.extend(addition)
+
             nodes = list(set(nodes) - set(sorted_nodes))
 
         sorted_nodes.extend(nodes)
