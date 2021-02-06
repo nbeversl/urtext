@@ -294,10 +294,9 @@ def parse_contents(full_contents, node, settings=None):
     if settings['hash_key']:
 
         hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
-
         for m in hash_meta.finditer(parsed_contents):
             value = m.group().replace('#','').strip()
-            key = settings['hash_key'][0]
+            key = settings['hash_key']
             position = m.start()
             end_position = position + len(m.group())
             entries.append(
