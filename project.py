@@ -873,9 +873,13 @@ class UrtextProject:
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
             addition = [r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)]
-            addition = sorted(addition, 
-                key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
-                reverse=use_timestamp)
+            try:
+                addition = sorted(addition, 
+                    key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
+                    reverse=use_timestamp)
+            except:
+                print(k)
+                print(addition)
             sorted_nodes.extend(addition)
             nodes = list(set(nodes) - set(sorted_nodes))
 
