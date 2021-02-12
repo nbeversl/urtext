@@ -1125,7 +1125,7 @@ class UrtextProject:
         popped_node_contents = file_contents[start:end].strip()
         parent_id = self.nodes[node_id].tree_node.parent
 
-        if 'breadcrumb_key' in self.settings:
+        if self.settings['breadcrumb_key']:
             popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
 
         remaining_node_contents = ''.join([
