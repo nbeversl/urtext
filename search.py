@@ -46,7 +46,7 @@ class UrtextSearch:
 	def _search_for(self, term):
 		term = term.lower()
 		term_length = len(term)
-		for node_id in self.project.nodes:
+		for node_id in list(self.project.nodes):
 			if self.project.nodes[node_id].dynamic:
 				continue
 			matches = []

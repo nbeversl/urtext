@@ -79,6 +79,7 @@ class UrtextNode:
         self.hashed_contents = hash(contents)
         self.keywords = {}
         self.errors = False
+        self.display_meta = ''
 
         stripped_contents = self.strip_dynamic_definitions(contents)
 

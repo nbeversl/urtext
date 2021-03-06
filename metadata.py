@@ -218,7 +218,7 @@ class MetadataEntry:  # container for a single metadata entry
 
         if dt_string:                    
             dt_stamp = date_from_timestamp(dt_string)
-            self.dt_stamp = dt_stamp if dt_stamp else default_date
+            self.dt_stamp = dt_stamp if dt_stamp else None
 
     def log(self):
         print('key: %s' % self.keyname)
@@ -313,22 +313,20 @@ def parse_contents(full_contents, node, settings=None):
                 )
 
     # parse inline timestamps:
-    
     for m in timestamp_match.finditer(parsed_contents):
         stamp = m.group()
         position = m.start()
         end_position = position + len(m.group())
-        entries.append(
-            MetadataEntry(
+        inline_timestamp = MetadataEntry(
                 'inline-timestamp', 
                 '', 
                 stamp[1:-1],     
                 position=position, 
                 end_position=end_position)
-                )   
-
+        if inline_timestamp.dt_stamp != None:
+            entries.append(inline_timestamp)
+ 
     # parse title
-
     s = node_title_regex.search(parsed_contents)
     if s:
        title = s.group(0).strip()

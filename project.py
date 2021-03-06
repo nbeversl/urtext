@@ -873,11 +873,17 @@ class UrtextProject:
             use_timestamp= False
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
-            addition = [r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)]
-            addition = sorted(addition, 
+            node_group =  list([r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            for r in node_group:
+                if use_timestamp:
+                    self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].dt_string+'>'
+                else:
+                    self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
+
+            node_group = sorted(node_group, 
                 key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
-            sorted_nodes.extend(addition)
+            sorted_nodes.extend(node_group)
 
             nodes = list(set(nodes) - set(sorted_nodes))
 
