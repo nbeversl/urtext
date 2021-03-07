@@ -106,7 +106,8 @@ class UrtextProject:
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
             'use_timestamp': ['timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
-            'filenames': ['PREFIX', 'DATE %m-%d-%Y', 'TITLE'],
+            'filenames': ['PREFIX', 'title'],
+            'filename_datestamp_format':'%m-%d-%Y',
             'console_log': True,
             'timezone' : ['UTC'],
             'always_oneline_meta' : False,
@@ -755,16 +756,6 @@ class UrtextProject:
         	metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         	return '•  '+contents + ' ' + metadata_block
 
-    def _prefix_length(self):
-        """ Determines the prefix length for indexing files (requires an already-compiled project) """
-
-        prefix_length = 0
-        num_files = len(self.files)
-        while num_files > 1:
-            prefix_length += 1
-            num_files /= 10
-        return prefix_length
-
     """
     Project Navigation
     """
@@ -820,52 +811,9 @@ class UrtextProject:
         alternative = self.get_home()
         if not alternative:
             alternative = self.random_node()
-
         return alternative
 
-    """ 
-    Cataloguing Nodes
-    """
-
-    def unindexed_nodes(self):
-        """ 
-        returns an array of node IDs of unindexed nodes, 
-        in reverse order (most recent) by date 
-        """
-
-        unindexed_nodes = []
-        for node_id in list(self.nodes):   
-            if not self.nodes[node_id].metadata.get_first_value('index'):
-                unindexed_nodes.append(node_id)
-                
-        sorted_unindexed_nodes = sorted(
-            unindexed_nodes,
-            key=lambda node_id: self.nodes[node_id].metadata.get_date(self.settings['node_date_keyname']),
-            reverse=True)
-        return sorted_unindexed_nodes
-
-    def indexed_nodes(self):
-        """ returns an array of node IDs of indexed nodes, in indexed order """
-
-        indexed_nodes_list = []
-        for node_id in list(self.nodes):
-            index = self.nodes[node_id].metadata.get_first_value('index')
-            if index:
-                try:
-                    index = int(index)
-                except:
-                    index = 99999999
-                indexed_nodes_list.append([
-                    node_id,
-                    index
-                ])
-
-        sorted_indexed_nodes = sorted(indexed_nodes_list, key=lambda item: item[1])
-        for index, node in enumerate(sorted_indexed_nodes):
-            sorted_indexed_nodes[index] = node[0] 
-        return sorted_indexed_nodes
-
-    def all_nodes(self):
+    def all_nodes(self):        
         nodes = list(self.nodes)
         sorted_nodes = []
         for k in self.settings['node_browser_sort']:
@@ -873,22 +821,37 @@ class UrtextProject:
             use_timestamp= False
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
-            node_group =  list([r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            node_group = list([r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             for r in node_group:
                 if use_timestamp:
                     self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].dt_string+'>'
                 else:
                     self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
-
             node_group = sorted(node_group, 
                 key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
             sorted_nodes.extend(node_group)
-
             nodes = list(set(nodes) - set(sorted_nodes))
-
         sorted_nodes.extend(nodes)
         return sorted_nodes
+
+    def all_files(self):
+        files=list(self.files)
+        prefix = 0
+        sorted_files = []
+        for k in self.settings['filenames']:
+            k = k.lower()
+            use_timestamp= False
+            if k in self.settings['use_timestamp']:
+                use_timestamp = True
+            file_group = list([f for f in self.files if self.files[f].root_nodes and self.nodes[self.files[f].root_nodes[0]].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            file_group = sorted(file_group, 
+                key=lambda f:  self.nodes[self.files[f].root_nodes[0]].metadata.get_first_value(k, use_timestamp=use_timestamp),
+                reverse=use_timestamp)
+            sorted_files.extend(file_group)
+            files = list(set(files) - set(sorted_files))
+        sorted_files.extend(files)
+        return sorted_files
 
     def root_nodes(self, primary=False):
         """
@@ -1036,7 +999,8 @@ class UrtextProject:
             'title',
             'id',
             'hash_key',
-            'file_node_leading_contents'
+            'file_node_leading_contents',
+            'filename_datestamp_format'
         ]
         single_boolean_values = [
             'always_oneline_meta',

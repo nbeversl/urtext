@@ -70,6 +70,7 @@ class UrtextFile:
         self.is_parseable = True
         self.strict = strict
         self.messages = []
+        self.prefix = None
         
         contents = self.get_file_contents()        
         self.hash = self.hash_contents(contents)

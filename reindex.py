@@ -8,32 +8,12 @@ def reindex_files(self):
     """ 
     sorts all file-level nodes by their index, then passes
     the result to rename_file_nodes() to rename them.
-    """
-
-    # Calculate zero-padded digit length for the file prefix:
-    prefix = 0
-    
-    # this should actually just be the first root node, not all root nodes.
-    remaining_primary_root_nodes = list(self.root_nodes(primary=True))
-
-    indexed_nodes = list(self.indexed_nodes())
-    for node_id in indexed_nodes:
-        if node_id in remaining_primary_root_nodes:
-            self.nodes[node_id].prefix = prefix
-            remaining_primary_root_nodes.remove(node_id)
-            prefix += 1
-
-    unindexed_root_nodes = [self.nodes[node_id] for node_id in remaining_primary_root_nodes]
-    date_sorted_nodes = sorted(unindexed_root_nodes,
-                               key=lambda r: r.metadata.get_date(self.settings['node_date_keyname']),
-                               reverse=True)
-
-    for node in date_sorted_nodes:
-        node.prefix = prefix
-        prefix += 1
+    """    
+    self._sync_file_list()
+    files = self.all_files() 
     if self.is_async:
-        return self.executor.submit(self._rename_file_nodes, list(self.files), reindex=True)
-    return self._rename_file_nodes(list(self.files), reindex=True)
+        return self.executor.submit(self._rename_file_nodes, files, reindex=True)
+    return self._rename_file_nodes(files, reindex=True)
 
 def rename_file_nodes(self, filename, reindex=False):
     if self.is_async:
@@ -43,29 +23,28 @@ def rename_file_nodes(self, filename, reindex=False):
     else:
         return self._rename_file_nodes(filename, reindex=reindex)
 
+def _prefix_length(self):
+        """ Determines the prefix length for indexing files (requires an already-compiled project) """
+        prefix_length = 1
+        num_files = len(self.files)
+        while num_files > 0:
+            prefix_length += 1
+            num_files -= 10
+        return prefix_length
+
 def _rename_file_nodes(self, filenames, reindex=False):
     """ Rename a file or list of files by metadata """
-
-    self._sync_file_list()
 
     if isinstance(filenames, str):
         filenames = [filenames]
 
     used_names = []
     existing_files = os.listdir()
-
-    indexed_nodes = list(self.indexed_nodes())
-    filename_template = self.settings['filenames']
     renamed_files = {}
-    date_template = None
-
-    for i in range(0, len(filename_template)):
-        if 'DATE' in filename_template[i]:
-            date_template = filename_template[i].replace('DATE', '').strip()
-            filename_template[i] = 'DATE'
-
+    date_template = self.settings['filename_datestamp_format']
+    prefix = 0
+    prefix_length = self._prefix_length()
     for filename in filenames:
-
         old_filename = os.path.basename(filename)
         if old_filename not in self.files:
             return {}
@@ -77,35 +56,30 @@ def _rename_file_nodes(self, filenames, reindex=False):
         ## Name each file from the first root_node
         root_node_id = self.files[old_filename].root_nodes[0]
         root_node = self.nodes[root_node_id]
+        filename_template = list(self.settings['filenames'])
+        for i in range(0,len(filename_template)):
+            
+            if filename_template[i] == 'PREFIX' and reindex == True:
+                padded_prefix = '{number:0{width}d}'.format(
+                    width = prefix_length, 
+                    number = prefix)
+                filename_template[i] = padded_prefix
+            else:                
+                filename_template[i] = ' '.join(root_node.metadata.get_values(filename_template[i]))
+ 
+        prefix += 1
 
         # start with the filename template, replace each element
-        new_filename = ' - '.join(filename_template)
-        if root_node.title:
-            new_filename = new_filename.replace('TITLE', root_node.title)
-        else:
-            new_filename = new_filename.replace('TITLE', '(untitled)')
-        
-        if root_node_id not in indexed_nodes and date_template != None:
-            new_filename = new_filename.replace(
-                'DATE', 
-                root_node.date().strftime(date_template))
-        else:
-            new_filename = new_filename.replace('DATE', '')
-        
-        if reindex == True:
-            padded_prefix = '{number:0{width}d}'.format(
-                width=self._prefix_length(), number=int(root_node.prefix))
-            new_filename = new_filename.replace('PREFIX', padded_prefix)
-        else:
-            old_prefix = old_filename.split('-')[0].strip()
-            new_filename = new_filename.replace('PREFIX', old_prefix)
+        new_filename = ' - '.join(filename_template)      
         new_filename = new_filename.replace('’', "'")
         new_filename = new_filename.strip('-').strip();
         new_filename += '.txt'
         new_filename = strip_illegal_characters(new_filename)
+        new_filename = new_filename[:255]
 
         if new_filename in used_names:
             new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
+
         # renamed_files retains full file paths
         renamed_files[os.path.join(self.path, old_filename)] = os.path.join(self.path, new_filename)
         used_names.append(new_filename)
@@ -138,4 +112,4 @@ def strip_illegal_characters(filename):
     return filename
 
 
-reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files ]
+reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files, _prefix_length ]
