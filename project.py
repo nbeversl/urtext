@@ -124,7 +124,8 @@ class UrtextProject:
             'file_node_timestamp' : True,
             'file_node_leading_contents': '',
             'hash_key': '',
-            'node_browser_sort' : ['index','_oldest_timestamp'],
+            'node_browser_sort' : ['_oldest_timestamp'],
+            'file_index_sort': ['_oldest_timestamp'],
             'case_sensitive': [
                 'title',
                 'notes',
@@ -839,12 +840,12 @@ class UrtextProject:
         files=list(self.files)
         prefix = 0
         sorted_files = []
-        for k in self.settings['filenames']:
+        for k in self.settings['file_index_sort']:
             k = k.lower()
             use_timestamp= False
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
-            file_group = list([f for f in self.files if self.files[f].root_nodes and self.nodes[self.files[f].root_nodes[0]].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            file_group = list([f for f in self.files if self.nodes[self.files[f].root_nodes[0]].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             file_group = sorted(file_group, 
                 key=lambda f:  self.nodes[self.files[f].root_nodes[0]].metadata.get_first_value(k, use_timestamp=use_timestamp),
                 reverse=use_timestamp)
