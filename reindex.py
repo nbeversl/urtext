@@ -45,6 +45,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
     prefix = 0
     prefix_length = self._prefix_length()
     for filename in filenames:
+
         old_filename = os.path.basename(filename)
         if old_filename not in self.files:
             return {}
@@ -60,23 +61,23 @@ def _rename_file_nodes(self, filenames, reindex=False):
         for i in range(0,len(filename_template)):
             
             if filename_template[i] == 'PREFIX' and reindex == True:
+                print(prefix)
                 padded_prefix = '{number:0{width}d}'.format(
                     width = prefix_length, 
                     number = prefix)
                 filename_template[i] = padded_prefix
+                prefix += 1
             else:                
                 filename_template[i] = ' '.join(root_node.metadata.get_values(filename_template[i]))
  
-        prefix += 1
-
         # start with the filename template, replace each element
         new_filename = ' - '.join(filename_template)      
         new_filename = new_filename.replace('’', "'")
-        new_filename = new_filename.strip('-').strip();
-        new_filename += '.txt'
+        new_filename = new_filename.strip().strip('-').strip();
         new_filename = strip_illegal_characters(new_filename)
         new_filename = new_filename[:255]
-
+        new_filename += '.txt'
+        print(new_filename)
         if new_filename in used_names:
             new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
 
@@ -86,24 +87,21 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
         # add history files
         old_history_file = old_filename.replace('.txt','.diff')
-        if os.path.exists(os.path.join(self.path, 'history', old_history_file)  ):
+        if os.path.exists(os.path.join(self.path, 'history', old_history_file) ):
             new_history_file = new_filename.replace('.txt','.diff')
             renamed_files[os.path.join(self.path, 'history', old_history_file)] = os.path.join(self.path, 'history', new_history_file)
-            
+
+    print(renamed_files)
     for filename in renamed_files:
         old_filename = filename
         new_filename = renamed_files[old_filename]
 
         self._log_item('renaming ' + old_filename + ' to ' + new_filename)
-
         os.rename(old_filename, new_filename)
 
         if old_filename[-4:].lower() == '.txt': # skip history files
             self._handle_renamed(old_filename, new_filename)
 
-    """
-    Returns a list of renamed files with full paths
-    """    
     return renamed_files
 
 def strip_illegal_characters(filename):
