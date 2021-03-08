@@ -1,6 +1,7 @@
 import os
 import datetime
 
+
 """ 
 Reindexing (renaming) Files 
 """
@@ -23,15 +24,6 @@ def rename_file_nodes(self, filename, reindex=False):
     else:
         return self._rename_file_nodes(filename, reindex=reindex)
 
-def _prefix_length(self):
-        """ Determines the prefix length for indexing files (requires an already-compiled project) """
-        prefix_length = 1
-        num_files = len(self.files)
-        while num_files > 0:
-            prefix_length += 1
-            num_files -= 10
-        return prefix_length
-
 def _rename_file_nodes(self, filenames, reindex=False):
     """ Rename a file or list of files by metadata """
 
@@ -43,7 +35,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
     renamed_files = {}
     date_template = self.settings['filename_datestamp_format']
     prefix = 0
-    prefix_length = self._prefix_length()
+    prefix_length = len(str(len(self.files)))
     for filename in filenames:
 
         old_filename = os.path.basename(filename)
@@ -61,12 +53,13 @@ def _rename_file_nodes(self, filenames, reindex=False):
         for i in range(0,len(filename_template)):
             
             if filename_template[i] == 'PREFIX' and reindex == True:
-                print(prefix)
                 padded_prefix = '{number:0{width}d}'.format(
                     width = prefix_length, 
                     number = prefix)
                 filename_template[i] = padded_prefix
                 prefix += 1
+            elif filename_template[i].lower() == 'title':
+                filename_template[i] = root_node.title
             else:                
                 filename_template[i] = ' '.join(root_node.metadata.get_values(filename_template[i]))
  
@@ -77,7 +70,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
         new_filename = strip_illegal_characters(new_filename)
         new_filename = new_filename[:255]
         new_filename += '.txt'
-        print(new_filename)
+
         if new_filename in used_names:
             new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
 
@@ -110,4 +103,4 @@ def strip_illegal_characters(filename):
     return filename
 
 
-reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files, _prefix_length ]
+reindex_functions = [ rename_file_nodes, _rename_file_nodes, reindex_files ]

@@ -76,7 +76,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1578,9 +1578,6 @@ class DuplicateIDs(Exception):
 """ 
 Helpers 
 """
-
-
-
 
 def soft_match_compact_node(selection):
     if re.match(r'^[^\S\n]*•.*?@\b[0-9,a-z]{3}\b.*', selection):
