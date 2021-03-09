@@ -57,7 +57,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
                     width = prefix_length, 
                     number = prefix)
                 filename_template[i] = padded_prefix
-                prefix += 1
+                
             elif filename_template[i].lower() == 'title':
                 filename_template[i] = root_node.title
             else:                
@@ -84,7 +84,8 @@ def _rename_file_nodes(self, filenames, reindex=False):
             new_history_file = new_filename.replace('.txt','.diff')
             renamed_files[os.path.join(self.path, 'history', old_history_file)] = os.path.join(self.path, 'history', new_history_file)
 
-    print(renamed_files)
+        prefix += 1
+        
     for filename in renamed_files:
         old_filename = filename
         new_filename = renamed_files[old_filename]
