@@ -221,6 +221,10 @@ class UrtextFile:
                         # newlines are irrelevant if compact node is not open
                         continue
 
+                if self.symbols[position] == 'EOF' and compact_node_open:
+                    compact = True
+                    compact_node_open = False   
+
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 

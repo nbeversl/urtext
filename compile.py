@@ -23,7 +23,6 @@ from urtext.node import UrtextNode
 from urtext.search import UrtextSearch
 from urtext.dynamic_output import DynamicOutput
 import os
-import re
 
 """
 compile method for the UrtextProject class

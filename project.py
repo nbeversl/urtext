@@ -140,12 +140,13 @@ class UrtextProject:
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
         self.keywords = {}
-        self.quick_load(import_project=import_project)
         if self.is_async:
+            future = self.executor.submit(self.quick_load, import_project=import_project)
             future = self.executor.submit(self._initialize_project,
                     import_project=import_project, 
                     init_project=init_project)
         else:
+            self.quick_load(import_project=import_project)
             self._initialize_project(
                  import_project=import_project, 
                  init_project=init_project)
@@ -1232,7 +1233,10 @@ class UrtextProject:
         Returns a FULL PATH to the new filename if the filename changes by atomic rename
         """
         do_not_update = ['history','files']
-        self._sync_file_list()
+        if self.is_async:
+            self.executor.submit(self._sync_file_list)
+        else:
+            self._sync_file_list()
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True, '')
