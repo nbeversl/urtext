@@ -29,7 +29,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
 
     if isinstance(filenames, str):
         filenames = [filenames]
-
+        
     used_names = []
     existing_files = os.listdir()
     renamed_files = {}
@@ -61,7 +61,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
             elif filename_template[i].lower() == 'title':
                 filename_template[i] = root_node.title
             else:                
-                filename_template[i] = ' '.join(root_node.metadata.get_values(filename_template[i]))
+                filename_template[i] = ' '.join([str(s) for s in root_node.metadata.get_values(filename_template[i])])
  
         # start with the filename template, replace each element
         new_filename = ' - '.join(filename_template)      
@@ -90,7 +90,7 @@ def _rename_file_nodes(self, filenames, reindex=False):
         old_filename = filename
         new_filename = renamed_files[old_filename]
 
-        self._log_item('renaming ' + old_filename + ' to ' + new_filename)
+        #self._log_item('renaming ' + old_filename + ' to ' + new_filename)
         os.rename(old_filename, new_filename)
 
         if old_filename[-4:].lower() == '.txt': # skip history files

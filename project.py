@@ -1013,8 +1013,10 @@ class UrtextProject:
         ]
         replace = [
             'node_browser_sort',
+            'file_index_sort',
             'filenames',
-            'tag_other'
+            'tag_other',
+            'filename_datestamp_format'
         ]
 
         for entry in node.metadata._entries:
