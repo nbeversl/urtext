@@ -40,7 +40,6 @@ class ProjectList():
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         if self.projects:
             self.current_project = self.projects[0]
-        #self._propagate_projects(None)
         if first_project:
             self.set_current_project(first_project)
 

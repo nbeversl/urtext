@@ -150,9 +150,6 @@ class UrtextProject:
                  import_project=import_project, 
                  init_project=init_project)
 
-        # if watchdog:
-        #     self._initialize_watchdog()   
-
         # TODO -- node date timezones have to be localizes
         # do this from UrtextNode.date() method
 
@@ -185,9 +182,6 @@ class UrtextProject:
         import_project=False, 
         init_project=False):
 
-        if not os.path.exists(os.path.join(self.path, "history")):
-            os.mkdir(os.path.join(self.path, "history"))
-
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
 
@@ -207,6 +201,9 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
+        if not os.path.exists(os.path.join(self.path, "history")):
+            os.mkdir(os.path.join(self.path, "history"))
+
         # build sub tags
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
@@ -1100,13 +1097,13 @@ class UrtextProject:
             popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
 
         remaining_node_contents = ''.join([
-            file_contents[0:start - 2],
+            file_contents[0:start - 1],
             '\n| ',
             self.nodes[popped_node_id].title,
              ' >>',
             popped_node_id,
             '\n',
-            file_contents[end + 2:]])
+            file_contents[end + 1:]])
        
         with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
@@ -1250,7 +1247,6 @@ class UrtextProject:
             self._set_file_contents(filename, rewritten_contents)
         if self._parse_file(filename) == False:
             return filename
-        self._log_item('CHANGED : ' + filename)
         full_filename = filename
         # if self.settings['atomic_rename']:
         #     renamed = self._rename_file_nodes(filename)
