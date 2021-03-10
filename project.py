@@ -1031,17 +1031,17 @@ class UrtextProject:
                 self.settings['numerical_keys'] = list(set(self.settings['numerical_keys']))
                 continue
 
+            if key in single_values:
+                self.settings[key] = values[0]
+                continue
+
             if key in replace:
                 self.settings[key] = values
                 continue
 
             if key in single_boolean_values:
                 self.settings[key] = True if values[0].lower() == 'true' else False
-                continue
-
-            if key in single_values:
-                self.settings[key] = values[0]
-                continue
+                continue            
 
             if key not in self.settings:
                 self.settings[key] = []
