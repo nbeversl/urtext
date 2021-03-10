@@ -60,7 +60,13 @@ def _rename_file_nodes(self, filenames, reindex=False):
                 
             elif filename_template[i].lower() == 'title':
                 filename_template[i] = root_node.title
-            else:                
+            elif filename_template[i].lower() in self.settings['use_timestamp']:
+                timestamp = root_node.metadata.get_first_value(filename_template[i], use_timestamp=True)
+                if timestamp:
+                    filename_template[i] = timestamp.strftime(date_template)
+                else:
+                    filename_template[i] = ''
+            else:
                 filename_template[i] = ' '.join([str(s) for s in root_node.metadata.get_values(filename_template[i])])
  
         # start with the filename template, replace each element
