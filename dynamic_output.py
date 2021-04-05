@@ -23,7 +23,7 @@ format_key_regex = re.compile('\$_?[A-Za-z0-9_-]+', re.DOTALL)
 
 class DynamicOutput():
 
-    def __init__(self, format_string):
+    def __init__(self, format_string, project_settings):
 
         self.title = ''
         self.date = ''
@@ -34,7 +34,7 @@ class DynamicOutput():
         self.contents = ''
         self.last_accessed = ''
         self.other_format_keys = {}
-
+        self.project_settings = project_settings
         self.needs_title = False
         self.needs_meta = False
         self.needs_link = False
@@ -123,6 +123,10 @@ class DynamicOutput():
 
         if contents_match:
             contents = self.contents
+            if self.project_settings['contents_strip_outer_whitespace']:
+                contents = contents.strip()
+            if self.project_settings['contents_strip_internal_whitespace']:
+                contents =  strip_internal_whitespace(contents)
             while '>>' in contents:
                 contents = contents.replace('>>','(>)>')
             suffix = ''
@@ -141,3 +145,9 @@ class DynamicOutput():
             self.item_format = self.item_format.replace(token, value );    
 
         return self.item_format
+
+def strip_internal_whitespace(contents):
+    contents = '\n'.join([l.strip() for l in contents.split('\n')])
+    while '\n\n\n' in contents:
+        contents = contents.replace('\n\n\n','\n\n')
+    return contents

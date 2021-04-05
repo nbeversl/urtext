@@ -164,7 +164,7 @@ def _collection(self,
 
          item = sorted_stuff[index]
 
-         next_content = DynamicOutput(dynamic_definition.show)
+         next_content = DynamicOutput(dynamic_definition.show, self.settings)
               
          if next_content.needs_title:
              next_content.title = item['title']

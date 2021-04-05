@@ -121,7 +121,7 @@ def show_tree_from(self,
         else:
             urtext_node = self.nodes[this_node.name]
         
-        next_content = DynamicOutput(dynamic_definition.show)
+        next_content = DynamicOutput(dynamic_definition.show, self.settings)
        
         if next_content.needs_title:
             next_content.title = urtext_node.title

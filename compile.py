@@ -131,7 +131,7 @@ def _process_dynamic_def(self, dynamic_definition):
 
     if dynamic_definition.output_type == '-search':
         for term in dynamic_definition.other_params:
-            search = UrtextSearch(self, term, format_string=dynamic_definition.show)
+            search = UrtextSearch(self, term, self.settings, format_string=dynamic_definition.show)
             new_node_contents.extend(search.initiate_search())
 
     if dynamic_definition.output_type == '-list':

@@ -229,39 +229,46 @@ class UrtextFile:
                     nested_levels[nested].append([last_position, position ])
                 
                  # file level nodes are root nodes, with multiples permitted  
-                if nested == 0 or self.symbols[position] == 'EOF':
+                if not compact:
 
-                    if self.strict and nested != 0:
-                        #TODO -- if a compact node closes the file, this error will be thrown.
-                        self.log_error('Missing closing wrapper', position)
-                        return None
+                    if nested == 0 or self.symbols[position] == 'EOF':
+                        if self.strict and nested != 0:
+                            #TODO -- if a compact node closes the file, this error will be thrown.
+                            self.log_error('Missing closing wrapper', position)
+                            return None
 
-                    root = True
+                        root = True
 
-                # Build the node contents and construct the node
-                node_contents = ''.join([  
-                        contents[file_range[0]:file_range[1]] 
-                            for file_range in nested_levels[nested] 
-                        ])
-       
-                new_node = UrtextNode(
-                    self.filename, 
-                    contents=node_contents,
-                    settings=project_settings,
-                    root=root,
+                success = self.add_node(
+                    nested_levels[nested], 
+                    contents, 
+                    position, 
+                    root=root, 
                     compact=compact,
-                    )
-
-                success = self.add_node(new_node, nested_levels[nested], node_contents)
-                if not success:
-                    if root:
-                        self.messages.append('Warning : root Node has no ID.')
-                    elif compact:
-                        self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
-                    else:
-                        self.messages.append('Warning: Node missing ID at position '+str(position))
-
+                    project_settings=project_settings)
+                
                 del nested_levels[nested]
+
+                if compact and not success and self.symbols[position] != 'EOF' :
+                    nested -=1
+                    nested_levels[nested].append([last_position, position])
+                    last_position = position + symbol_length[self.symbols[position]]
+                    continue
+                    
+                if self.symbols[position] == 'EOF' and compact:
+                    # handle closing of both compact node and file
+                    nested -=1
+                    root=True
+                    compact=False
+
+                    success = self.add_node(
+                        nested_levels[nested], 
+                        contents,
+                        position,
+                        root=root,
+                        compact=compact,
+                        project_settings=project_settings)
+
                 last_position = position + symbol_length[self.symbols[position]]
 
                 # reduce the nesting level only for compact, inline nodes
@@ -289,7 +296,25 @@ class UrtextFile:
             else: 
                 self.messages.append(message)
 
-    def add_node(self, new_node, ranges, contents):
+    def add_node(self, 
+        ranges, 
+        contents,
+        position,
+        root=None,
+        compact=None,
+        project_settings=None):
+
+        # Build the node contents and construct the node
+        node_contents = ''.join([contents[r[0]:r[1]]  for r in ranges])
+
+        new_node = UrtextNode(
+            self.filename, 
+            contents=node_contents,
+            settings=project_settings,
+            root=root,
+            compact=compact,
+            )
+
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
@@ -298,7 +323,15 @@ class UrtextFile:
             self.parsed_items[ranges[0][0]] = new_node.id
             return True
         else:
-            self.anonymous_nodes.append(new_node)
+            if root:
+                self.anonymous_nodes.append(new_node) 
+                self.messages.append('Warning : root Node has no ID.')
+            elif compact:
+                pass
+                #self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
+            else:
+                self.anonymous_nodes.append(new_node) 
+                self.messages.append('Warning: Node missing ID at position '+str(position))
             return False
 
     def get_file_contents(self):

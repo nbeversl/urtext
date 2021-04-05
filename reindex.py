@@ -63,7 +63,6 @@ def _rename_file_nodes(self, filenames, reindex=False):
             elif filename_template[i].lower() in self.settings['use_timestamp']:
                 timestamp = root_node.metadata.get_first_value(filename_template[i], use_timestamp=True)
                 if timestamp:
-                    print(date_template)
                     filename_template[i] = timestamp.strftime(date_template)
                 else:
                     filename_template[i] = ''

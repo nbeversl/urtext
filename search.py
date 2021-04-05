@@ -20,13 +20,14 @@ import re
 from urtext.dynamic_output import DynamicOutput
 
 def search_term(self, term):
-	return UrtextSearch(self, term)
+	return UrtextSearch(self, term, self.settings)
 
 class UrtextSearch:
 
 	def __init__(self, 
 		project, 
 		term, 
+		settings,
 		amount=None,
 		format_string=None):
 		

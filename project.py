@@ -102,6 +102,27 @@ class UrtextProject:
         self.messages = {}
         self.corpus = []
         self.title_completions = []
+        self.default_timezone = timezone('UTC')
+        self.title = self.path # default
+        self.keywords = {}
+        self._initialize_settings()
+        if self.is_async:
+            future = self.executor.submit(self.quick_load, import_project=import_project)
+            future = self.executor.submit(self._initialize_project,
+                    import_project=import_project, 
+                    init_project=init_project)
+        else:
+            self.quick_load(import_project=import_project)
+            self._initialize_project(
+                 import_project=import_project, 
+                 init_project=init_project)
+
+
+        # TODO -- node date timezones have to be localizes
+        # do this from UrtextNode.date() method
+
+    def _initialize_settings(self):
+        
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
@@ -109,7 +130,7 @@ class UrtextProject:
             'filenames': ['PREFIX', 'title'],
             'filename_datestamp_format':'%m-%d-%Y',
             'console_log': True,
-            'timezone' : ['UTC'],
+            'timezone' : 'UTC',
             'always_oneline_meta' : False,
             'strict':False,
             'node_date_keyname' : 'timestamp',
@@ -124,6 +145,8 @@ class UrtextProject:
             'file_node_timestamp' : True,
             'file_node_leading_contents': '',
             'hash_key': '',
+            'contents_strip_outer_whitespace' : True,
+            'contents_strip_internal_whitespace' : True,
             'node_browser_sort' : ['_oldest_timestamp'],
             'file_index_sort': ['_oldest_timestamp'],
             'case_sensitive': [
@@ -137,22 +160,6 @@ class UrtextProject:
                 'weblink',
                 'timestamp',]
         }
-        self.default_timezone = timezone('UTC')
-        self.title = self.path # default
-        self.keywords = {}
-        if self.is_async:
-            future = self.executor.submit(self.quick_load, import_project=import_project)
-            future = self.executor.submit(self._initialize_project,
-                    import_project=import_project, 
-                    init_project=init_project)
-        else:
-            self.quick_load(import_project=import_project)
-            self._initialize_project(
-                 import_project=import_project, 
-                 init_project=init_project)
-
-        # TODO -- node date timezones have to be localizes
-        # do this from UrtextNode.date() method
 
     def quick_load(self, import_project=False):
 
@@ -190,7 +197,7 @@ class UrtextProject:
             for file in self.to_import:
                 self.import_file(file)
         
-        self.default_timezone = timezone(self.settings['timezone'][0])
+        self.default_timezone = timezone(self.settings['timezone'])
         if self.nodes == {}:
             if init_project == True:
                 self._log_item('Initalizing a new Urtext project in ' + self.path)
@@ -896,7 +903,7 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-    
+        
         link = None
     
         # start after cursor    
@@ -911,12 +918,14 @@ class UrtextProject:
                     break
                 h -= 1
 
-        
         if not link[0]:
-            self._log_item('No node ID, web link, or file found on this line.')
-            return None
+            if not self.compiled:
+               return self._log_item('Project is still compiling')
+            return self._log_item('No node ID, web link, or file found on this line.')
 
         if link[0] == 'NODE' and link[1] not in self.nodes:
+            if not self.compiled:
+               return self._log_item('Project is still compiling')
             self._log_item('Node ' + link[1] + ' is not in the project')
             return None
 
@@ -948,12 +957,12 @@ class UrtextProject:
             result = re.search(editor_file_link_regex, string)            
             if result:
                 kind='EDITOR_LINK'
-                link = os.path.join(self.path, result.group(2))
+                link = os.path.join(self.path, result.group(2)).strip()
             else:
                 result = re.search(url_scheme, string)                
                 if result:
                     kind ='HTTP'
-                    link = result.group()
+                    link = result.group().strip()
 
         
         return (kind, link, position, link_location)
@@ -997,7 +1006,8 @@ class UrtextProject:
             'id',
             'hash_key',
             'file_node_leading_contents',
-            'filename_datestamp_format'
+            'filename_datestamp_format',
+            'timezone'
         ]
         single_boolean_values = [
             'always_oneline_meta',
@@ -1008,6 +1018,8 @@ class UrtextProject:
             'keyless_timestamp',
             'file_node_timestamp',
             'inline_node_timestamp',
+            'contents_strip_outer_whitespace',
+            'contents_strip_internal_whitespace',
         ]
         replace = [
             'node_browser_sort',
@@ -1016,6 +1028,8 @@ class UrtextProject:
             'tag_other',
             'filename_datestamp_format'
         ]
+
+        self._initialize_settings() # reset defaults
 
         for entry in node.metadata._entries:
             key = entry.keyname
@@ -1049,7 +1063,7 @@ class UrtextProject:
             self.settings[key].extend(values)
             self.settings[key] = list(set(self.settings[key]))
 
-        self.default_timezone = timezone(self.settings['timezone'][0])
+        self.default_timezone = timezone(self.settings['timezone'])
 
     def get_home(self):
         return self.settings['home']
@@ -1190,6 +1204,14 @@ class UrtextProject:
                 meta_string = ''.join([k, '::', str(value) ])            
                 pairs.append(meta_string)
         return list(set(pairs))
+
+    def get_all_for_hash(self):
+        hashes = []
+        if self.settings['hash_key']in self.keynames:
+            for value in list(self.keynames[self.settings['hash_key']]):
+                hashes.append(value)
+        return hashes
+
 
     def random_node(self):
         if self.nodes:
@@ -1527,40 +1549,33 @@ class UrtextProject:
             return filename, position
         return None, None
 
-    """
-    FUTURE : Calendar
-    """
-    def export_to_ics(self):
+    def export_to_ics(self, node_id):
 
-        for node_id in list(self.nodes):
-            urtext_node = self.nodes[node_id]
-            t = urtext_node.metadata.get_entries('timestamp')
+        urtext_node = self.nodes[node_id]
+        t = urtext_node.metadata.get_entries('timestamp')
 
-            if not t:
-                continue
-            ics_start_time = t[0].dt_stamp.strftime('%Y%m%dT%H%M%SZ')
-            t_end = t[0].dt_stamp + datetime.timedelta(hours=2)
-            ics_end_time = t_end.strftime('%Y%m%dT%H%M%SZ')
-            text = urtext_node.content_only().encode('utf-8').decode('utf-8')
-            ics = ['BEGIN:VCALENDAR',
+        if not t:
+            return
+        t = t[0].dt_stamp
+        ics_start_time = t.strftime('%Y%m%dT%H%M%S')
+        t_end = t + datetime.timedelta(hours=2)
+        ics_end_time = t_end.strftime('%Y%m%dT%H%M%S')
+        text = urtext_node.content_only().encode('utf-8').decode('utf-8')
+        ics = ['BEGIN:VCALENDAR',
             'VERSION:2.0',
             'PRODID:-//hacksw/handcal//NONSGML v1.0//EN',
             'BEGIN:VEVENT',
             'METHOD:PUBLISH',
-            'UID:nathanielbeversluis@gmail.com',
             'SUMMARY:'+urtext_node.title,
-            'DTSTART:'+ics_start_time,
-            'DTEND:'+ics_end_time,
+            'DTSTART;TZID='+self.settings['timezone']+':'+ics_start_time,
+            'DTEND;TZID='+self.settings['timezone']+':'+ics_end_time,
             'ORGANIZER;CN=Test User:MAILTO:test.user@tstdomain.com',
-            'DESCRIPTION:'+text,
+            'DESCRIPTION:'+' '.join(text.split('\n')),
             'END:VEVENT',
             'END:VCALENDAR',
-            ]
-            try: 
-                with open(os.path.join(self.path,urtext_node.id+'.ics'), 'w', encoding='utf-8') as f:
-                    f.write('\n'.join(ics))
-            except:
-                pass
+        ]
+        with open(os.path.join(self.path,urtext_node.id+'.ics'), 'w', encoding='utf-8') as f:
+            f.write('\n'.join(ics))
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
