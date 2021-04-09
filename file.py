@@ -50,6 +50,8 @@ symbol_length = {
     r'\n' : 0, # compact node closing
     'EOF': 0,
 }
+preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
+
 
 class UrtextFile:
 
@@ -80,8 +82,7 @@ class UrtextFile:
             return
         contents = self.clear_errors(contents)
         self.file_length = len(contents)        
-        self.lex(contents)
-        self.parse(contents, settings)
+        self.parse(self.lex(contents), settings)
         self.write_errors(settings)
             
     def hash_contents(self, contents):
@@ -91,9 +92,14 @@ class UrtextFile:
         return md5.digest()
 
     def lex(self, contents):
+
         """ populate a dict syntax symbols """
         self.symbols = {}
 
+        unstripped_contents = contents
+        for e in preformat_syntax.findall(contents):
+            contents = contents.replace(e,' '*len(e))
+            
         for compiled_symbol in compiled_symbols:
             locations = compiled_symbol.finditer(contents)
 
@@ -104,16 +110,17 @@ class UrtextFile:
         self.positions = sorted([key for key in self.symbols if key != -1])
 
         ## Filter out Syntax Push and delete wrapper elements between them.
-        
         push_syntax = 0
+        escaped = False
         to_remove = []
         for p in self.positions:
+
             if self.symbols[p] == '%%-[^E][A-Z-]*':
                 to_remove.append(p)
                 push_syntax += 1
                 continue
 
-            if self.symbols[p] ==  '%%-END-[A-Z-]*' :
+            if self.symbols[p] == '%%-END-[A-Z-]*' :
                 to_remove.append(p)
                 push_syntax -= 1
                 continue
@@ -124,6 +131,8 @@ class UrtextFile:
         for s in to_remove:
             del self.symbols[s]
             self.positions.remove(s)
+
+        return unstripped_contents
 
     def parse(self, contents, project_settings):
 
@@ -143,7 +152,6 @@ class UrtextFile:
             while self.positions and self.symbols[self.positions[0]] == r'\n' :
                 self.positions.pop(0)
         
-        ## find the first (possible) wrapper 
         first_wrapper = 0
         while first_wrapper < len(self.positions) - 1 and self.symbols[self.positions[first_wrapper]] == '>>' :
              first_wrapper += 1
@@ -154,7 +162,9 @@ class UrtextFile:
         self.positions.append(len(contents))
         self.symbols[len(contents)] = 'EOF'
 
-        push_syntax = 0
+        unstripped_contents = contents
+        for e in preformat_syntax.findall(contents):
+            contents = contents.replace(e,' '*len(e))
 
         for index in range(0, len(self.positions)):
 
@@ -241,7 +251,7 @@ class UrtextFile:
 
                 success = self.add_node(
                     nested_levels[nested], 
-                    contents, 
+                    unstripped_contents, 
                     position, 
                     root=root, 
                     compact=compact,
@@ -263,7 +273,7 @@ class UrtextFile:
 
                     success = self.add_node(
                         nested_levels[nested], 
-                        contents,
+                        unstripped_contents,
                         position,
                         root=root,
                         compact=compact,

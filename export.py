@@ -27,6 +27,7 @@ node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 file_link_regex = re.compile('f>.*')
+escaped_text = r'\`.*?\`';
 
 class UrtextExport:
 
@@ -129,7 +130,6 @@ class UrtextExport:
         file_contents = self.project._full_file_contents(filename)        
         title = self.project.nodes[root_node_id].title
         meta_title = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
-        title_found = False
 
         if root_node_id in exclude or root_node_id in visited_nodes:
             return added_contents, points, visited_nodes
@@ -156,7 +156,7 @@ class UrtextExport:
             Get and add the range's contents
             """
             range_contents = file_contents[single_range[0]:single_range[1]]
-
+           
             if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('_settings'):
                 range_contents = self._strip_urtext_syntax(range_contents)
             
@@ -167,8 +167,8 @@ class UrtextExport:
     
                 ## Replace and Format Title
                 if 'c' not in self.project.nodes[root_node_id].metadata.get_values('flags'):
-                    if not meta_title: 
-                        range_contents = range_contents.replace(title,'',1)
+                    
+                    range_contents = re.sub(re.escape(title)+'( _)?', '', range_contents, 1)
                     range_contents = self._wrap_title(kind, root_node_id, nested) + range_contents
                 else:
                     nested -=1
@@ -213,6 +213,8 @@ class UrtextExport:
             """
             Add the range contents only after the title, if any.
             """
+           
+            
             if kind in ['-markdown', '-md']:
                 range_contents = strip_leading_space(range_contents)
                     
@@ -222,7 +224,8 @@ class UrtextExport:
                 range_contents = self.replace_node_links(range_contents, kind)
             
             if kind in ['-markdown', '-md']:
-                range_contents = self.replace_file_links(range_contents)
+                escaped_regions = re.finditer(escaped_text, range_contents)
+                range_contents = self.replace_file_links(range_contents, escaped_regions)
 
             if clean_whitespace:
                 range_contents = range_contents.strip()
@@ -322,16 +325,26 @@ class UrtextExport:
         
         return added_contents, points, visited_nodes
 
+    def is_escaped(self, escaped_regions, region):
+        for e in escaped_regions:
+            print(e.group())
+            escaped_range = range(e.start(),e.end())
+            print(escaped_range)
+            print(region)
+            if region[0] in escaped_range or region[1] in escaped_range:
+                return True
+        return False
 
-    def get_node_pointers_with_locations(self, text):
+    def get_node_pointers_with_locations(self, text, escaped_regions=[]):
 
         patterns = [titled_node_pointer_regex, node_pointer_regex]
         matches = []
         locations = []
         for pattern in patterns:
-            matches = re.findall(pattern, text)
-            for match in matches:
-                locations.append((text.find(match), match))
+            matches = re.finditer(pattern, text)
+            for m in matches:
+                if not self.is_escaped(escaped_regions, (m.start(), m.end())):
+                   locations.append((text.find(m.group()), m.group()))
         return locations
 
     def replace_node_pointers(self,     
@@ -443,12 +456,10 @@ class UrtextExport:
 
             for match in node_links:
 
-                node_link = re.search(node_link_regex, match)            
-
+                node_link = re.search(node_link_regex, match)           
                 node_id = node_link.group(0)[-3:]
 
-                if node_id not in self.project.nodes:
-                    
+                if node_id not in self.project.nodes:                    
                     contents = contents.replace(match, '[ MISSING LINK : '+node_id+' ] ')
                     continue
 
@@ -479,15 +490,19 @@ class UrtextExport:
                     link = link.replace(')','')
                     link = link.replace('(','')
 
+                    title = title.replace('`',' ')
                     contents = contents.replace(match, '['+title+']('+link+')') 
                     # TODO - make quote wrapper optional
 
         return contents
 
-    def replace_file_links(self, contents):
-        file_links = re.findall(file_link_regex, contents)
-        for link in file_links:
-            contents = contents.replace(link, '!['+link[2:]+']('+link[2:]+')')
+    def replace_file_links(self, contents, escaped_regions):
+        to_replace = []
+        for link in re.finditer(file_link_regex, contents):
+            if not self.is_escaped(escaped_regions, (link.start(), link.end())):
+                to_replace.append(link)
+        for link in to_replace:
+            contents = contents.replace(link.group(), '['+link.group()[2:]+']('+link.group()[2:]+')')
         return contents
 
     def _strip_urtext_syntax(self, contents):
@@ -497,7 +512,7 @@ class UrtextExport:
         if contents and contents[-1] == '{':
             contents = contents[:-1]
             
-        contents = re.sub(r'^[•\S\n]*\^', '', contents, flags=re.MULTILINE)
+        # contents = re.sub(r'^[•\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents
  
     def _opening_wrapper(self, kind, node_id, nested):

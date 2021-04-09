@@ -42,7 +42,7 @@ inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
 short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
 shorthand_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
-
+preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
 
 class UrtextNode:
     """ Urtext Node object"""
@@ -190,6 +190,7 @@ class UrtextNode:
         stripped_contents = contents
         for e in embedded_syntax.findall(stripped_contents):
             stripped_contents = stripped_contents.replace(e,'')
+
         stripped_contents = re.sub(short_id,'', stripped_contents)
         return stripped_contents
 
@@ -258,10 +259,8 @@ class UrtextNode:
         title_value = self.metadata.get_first_value('title')
         if title_value: 
             return title_value
+       
         contents = re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
-        #
-        # otherwise, title is the first non white-space line
-        #
         stripped_contents_lines = self.strip_metadata(contents=contents).strip().split('\n')
         index = 0
         last_line = len(stripped_contents_lines) - 1

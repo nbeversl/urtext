@@ -153,7 +153,7 @@ class ProjectList():
             link += '>'
         link += node_id
         if include_project or project != self.current_project:
-            link = '{{"' + project.title +'"}}'+link
+            link = '=>"' + project.title +'">'+link
         return link
 
     def nav_current(self):

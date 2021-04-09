@@ -41,6 +41,9 @@ def _set_tree_elements(self, filename):
                 parent = self.get_node_id_from_position(filename, start_of_node - 1)
             else:
                 parent = self.get_node_id_from_position(filename, start_of_node - 2)
+                while parent in self.nodes and self.nodes[parent].compact:
+                    start_of_node = self.nodes[parent].ranges[0][0]
+                    parent = self.get_node_id_from_position(filename, start_of_node - 1)
         if parent:
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
@@ -54,14 +57,9 @@ def _tree_node_is_excluded(self, tree_node, excluded_nodes):
     if node_id not in self.nodes:
         return True
 
-    # BUG.
-    # COMMENTED OUT TEMPORARILY;
-    # this disrupts inclusion of descendants when their parents are excluded in lists.
-    # TODO Determine what the use for this exclusion rule was.
-
-    # for ancestor in self.nodes[node_id].tree_node.ancestors:
-    #     if ancestor.name[-3:] in excluded_nodes:
-    #         return True
+    for ancestor in self.nodes[node_id].tree_node.ancestors:
+        if ancestor.name[-3:] in excluded_nodes:
+            return True
 
     return False
 
@@ -104,12 +102,14 @@ def show_tree_from(self,
         alias_nodes = self.has_aliases(start_point)
  
     tree_render = ''
+
     for pre, _, this_node in RenderTree(
             start_point, 
             style=ContStyle, 
             maxlevel=dynamic_definition.depth):
 
         if self._tree_node_is_excluded(this_node, exclude):
+            this_node.children = []
             continue
 
         if this_node.name[:11] == '! RECURSION':
