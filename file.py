@@ -21,6 +21,7 @@ import re
 from urtext.node import UrtextNode
 import concurrent.futures
 import hashlib
+from urtext.utils import strip_backtick_escape
 
 node_id_regex =         r'\b[0-9,a-z]{3}\b'
 node_link_regex =       r'>[0-9,a-z]{3}\b'
@@ -50,8 +51,6 @@ symbol_length = {
     r'\n' : 0, # compact node closing
     'EOF': 0,
 }
-preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
-
 
 class UrtextFile:
 
@@ -97,9 +96,9 @@ class UrtextFile:
         self.symbols = {}
 
         unstripped_contents = contents
-        for e in preformat_syntax.findall(contents):
-            contents = contents.replace(e,' '*len(e))
-            
+        contents = strip_backtick_escape(contents)
+     
+              
         for compiled_symbol in compiled_symbols:
             locations = compiled_symbol.finditer(contents)
 
@@ -163,8 +162,7 @@ class UrtextFile:
         self.symbols[len(contents)] = 'EOF'
 
         unstripped_contents = contents
-        for e in preformat_syntax.findall(contents):
-            contents = contents.replace(e,' '*len(e))
+        contents = strip_backtick_escape(contents)
 
         for index in range(0, len(self.positions)):
 
@@ -178,14 +176,10 @@ class UrtextFile:
             """
             if self.symbols[position] == r'(?<!\\){':
 
-                # begin tracking the ranges of the next outer one
                 if [last_position, position + 1] not in nested_levels[nested]:
                     nested_levels[nested].append([last_position, position + 1])
 
-                # add another level of depth
                 nested += 1 
-
-                # move the parsing pointer forward 2
                 last_position = position + 1
                 continue
 
@@ -194,10 +188,8 @@ class UrtextFile:
             """
             if self.symbols[position] == '>>':
                 
-                # Find the contents of the pointer 
                 node_pointer = contents[position:position + 5]
                 
-                # If it matches a node regex, add it to the parsed items
                 if re.match(node_pointer_regex, node_pointer):
                     self.parsed_items[position] = node_pointer
 

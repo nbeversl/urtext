@@ -98,7 +98,7 @@ def _collection(self,
                          # get context and position
                          # lines = 1 # FUTURE
 
-                         full_contents = node.contents()
+                         full_contents = node.strip_contents(node.contents(), preserve_length=True)
                         
                          context = []
                          length = 0

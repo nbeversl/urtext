@@ -42,6 +42,7 @@ from urtext.search import search_functions
 from urtext.collection import collection_functions
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.metadata import date_from_timestamp, default_date
+from urtext.utils import strip_backtick_escape
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'

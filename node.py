@@ -30,7 +30,7 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
-
+preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
@@ -93,7 +93,7 @@ class UrtextNode:
 
         stripped_contents = self.strip_metadata(contents=stripped_contents)
         stripped_contents = self.strip_embedded_syntaxes(contents=stripped_contents)
-        
+
         if stripped_contents.strip() == '':
             self.blank = True
             
@@ -165,21 +165,23 @@ class UrtextNode:
             contents = contents.replace('}','')
         if self.compact: # don't include the compact marker
              contents = contents.lstrip().replace('•','',1)        
+
         return contents
 
     def date(self):
         return self.metadata.get_date(self.project.settings['node_date_keyname'])
 
     @classmethod
-    def strip_metadata(self, contents=''):
+    def strip_metadata(self, contents='', preserve_length=False):
+        r = ' ' if preserve_length else ''
         if contents == '':
             return contents
 
-        stripped_contents = inline_meta.sub('', contents )
-        stripped_contents = timestamp_match.sub('',  stripped_contents)
-        stripped_contents = short_id.sub('', stripped_contents)
-        stripped_contents = shorthand_meta.sub('', stripped_contents)
-        stripped_contents = stripped_contents.replace('• ','')
+        stripped_contents = inline_meta.sub(r*len(contents), contents )
+        stripped_contents = timestamp_match.sub(r*len(contents),  stripped_contents)
+        stripped_contents = short_id.sub(r*len(contents), stripped_contents)
+        stripped_contents = shorthand_meta.sub(r*len(contents), stripped_contents)
+        stripped_contents = stripped_contents.replace('• ',r*2)
 
         return stripped_contents
 
@@ -218,16 +220,17 @@ class UrtextNode:
         return stripped_contents
 
     @classmethod
-    def strip_dynamic_definitions(self, contents=''):
+    def strip_dynamic_definitions(self, contents='', preserve_length=False):
+        r = ' ' if preserve_length else ''
         if not contents:
             return contents
-             
+
         stripped_contents = contents
         while dynamic_def_regexp.search(stripped_contents):
             for dynamic_definition in dynamic_def_regexp.findall(
                     stripped_contents):
                 stripped_contents = stripped_contents.replace(
-                    dynamic_definition, '')
+                    dynamic_definition, r*len(dynamic_definition))
         return stripped_contents
 
     def content_only(self, contents=None):
@@ -246,9 +249,9 @@ class UrtextNode:
             self.links_from.append(node[-3:])
 
     @classmethod
-    def strip_contents(self, contents):
-        contents = self.strip_metadata(contents=contents)
-        contents = self.strip_dynamic_definitions(contents=contents)
+    def strip_contents(self, contents, preserve_length=False):
+        contents = self.strip_metadata(contents=contents, preserve_length=preserve_length)
+        contents = self.strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
         return contents
 
     def set_index(self, new_index):
@@ -259,7 +262,6 @@ class UrtextNode:
         title_value = self.metadata.get_first_value('title')
         if title_value: 
             return title_value
-       
         contents = re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
         stripped_contents_lines = self.strip_metadata(contents=contents).strip().split('\n')
         index = 0
@@ -269,14 +271,36 @@ class UrtextNode:
                 return '(untitled)'
             index += 1
 
-        first_line = stripped_contents_lines[index][:100].replace('{','').replace('}', '')
-        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
+
+        contents = stripped_contents_lines[index]
+        
+        escapes = re.finditer(preformat_syntax, contents)
+        offset = 0
+        for r in re.finditer('\{',contents):
+            for e in escapes:
+                if r.start() in range(e.start(),e.end()):
+                    break
+                contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
+                offset -= 1
+        
+        offset = 0
+        for r in re.finditer('\}',contents):
+            for e in escapes:
+                if r.start() in range(e.start(),e.end()):
+                    break
+                contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
+                offset -= 1
+        
+        first_line = contents[:100]
+
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', contents, re.DOTALL)
     
         first_line = first_line.replace('┌──','')
         first_line = first_line.replace('|','') # pipe character cannot be in node names
-               
+
+        # TODO : WHY DOES THIS HAPPEN?
+        first_line = first_line.strip().strip('{').strip()
         if '•' in first_line:
-            # compact node opening wrapper
             first_line = re.sub(r'^[\s]*\•','',first_line)           
         return first_line.strip().strip('\n').strip()
 

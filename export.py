@@ -327,10 +327,7 @@ class UrtextExport:
 
     def is_escaped(self, escaped_regions, region):
         for e in escaped_regions:
-            print(e.group())
             escaped_range = range(e.start(),e.end())
-            print(escaped_range)
-            print(region)
             if region[0] in escaped_range or region[1] in escaped_range:
                 return True
         return False
@@ -464,7 +461,7 @@ class UrtextExport:
                     continue
 
                 title = self.project.nodes[node_id].title
-
+                
                 if kind == '-html':
 
                     filename = self.project.nodes[node_id].filename
@@ -490,7 +487,7 @@ class UrtextExport:
                     link = link.replace(')','')
                     link = link.replace('(','')
 
-                    title = title.replace('`',' ')
+                    #title = title.replace('`',' ')
                     contents = contents.replace(match, '['+title+']('+link+')') 
                     # TODO - make quote wrapper optional
 
@@ -506,6 +503,7 @@ class UrtextExport:
         return contents
 
     def _strip_urtext_syntax(self, contents):
+        
         contents = UrtextNode.strip_contents(contents)
         if contents and contents[0] in ['}','{']:
             contents = contents[1:]
@@ -523,6 +521,7 @@ class UrtextExport:
             '-md': ''
             }
         return wrappers[kind]
+
     def _closing_wrapper(self, kind):
         wrappers = { 
             '-html': '</div>',
