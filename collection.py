@@ -94,11 +94,8 @@ def _collection(self,
                              found_item['sort_value'] = sort_value
 
                          found_item['keyname'] = k
-                         
-                         # get context and position
-                         # lines = 1 # FUTURE
-
-                         full_contents = node.strip_contents(node.contents(), preserve_length=True)
+                       
+                         full_contents = node.content_only(preserve_length=True)
                         
                          context = []
                          length = 0
@@ -139,7 +136,6 @@ def _collection(self,
                                     break
 
                          found_item['context'] = '\n'.join(context)
-                         found_item['context'] = UrtextNode.strip_metadata(contents=found_item['context'])
                          while '>>' in found_item['context']:
                             found_item['context'] = found_item['context'].replace('>>','>')
 

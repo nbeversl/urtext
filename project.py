@@ -24,11 +24,13 @@ import json
 import os
 import random
 import time
+import sys
 from time import strftime
 import concurrent.futures
 import diff_match_patch as dmp_module
 from pytz import timezone
 import pprint
+from anytree import Node, PreOrderIter, RenderTree
 
 from urtext.rake import Rake
 from urtext.file import UrtextFile
@@ -223,6 +225,7 @@ class UrtextProject:
         self.compiled = True
         self.store()
         print('"'+self.title+'" compiled from '+self.path )
+        print(sys.getsizeof(self.keynames))
 
     def _node_id_generator(self):
         chars = [
@@ -1515,7 +1518,7 @@ class UrtextProject:
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)
         r = Rake()
-        string = UrtextNode.strip_contents(string)
+        string = UrtextNode.content_only(string)
         keywords = [t[0] for t in r.run(string)]
         assoc_nodes = []
         for k in keywords:
@@ -1528,6 +1531,26 @@ class UrtextProject:
             if self.nodes[node_id].dynamic:
                 assoc_nodes.remove(node_id)
         return assoc_nodes
+    
+    def metadata_list(self):
+
+        root = Node('ROOT')
+        
+        for key in sorted(self.keynames.keys()):
+            s = Node(key)
+            s.parent = root
+            for value in sorted(self.keynames[key]):
+                t = Node(value)
+                t.parent = s
+                if value in self.keynames[key]:
+                    for node_id in self.get_by_meta(key, [value], '='):
+                        if node_id in self.nodes:
+                            n = Node(self.nodes[node_id].title + ' >' + node_id)
+                            n.parent = t                
+        contents = ''           
+        for pre, _, node in RenderTree(root):
+            contents += "%s%s\n" % (pre, node.name)
+        
 
     """
     Export

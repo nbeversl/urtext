@@ -223,7 +223,6 @@ class UrtextDynamicDefinition:
             if func == 'FOOTER':
                 self.footer += inside_parentheses
 
-        
 
 class Export:
     def __init__(self):

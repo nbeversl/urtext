@@ -126,6 +126,8 @@ def _process_dynamic_def(self, dynamic_definition):
     if dynamic_definition.limit and dynamic_definition.output_type not in ['-collection', '-search']:
         included_nodes = included_nodes[0:dynamic_definition.limit]
     
+
+    
     if dynamic_definition.output_type == '-collection':
         new_node_contents.append(self._collection(included_nodes, self, dynamic_definition))
 

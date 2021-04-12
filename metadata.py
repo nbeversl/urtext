@@ -22,6 +22,7 @@ import datetime
 import pytz
 from dateutil.parser import *
 from pytz import timezone
+from urtext.dynamic import UrtextDynamicDefinition
 
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
@@ -31,16 +32,15 @@ node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 class NodeMetadata:
 
     def __init__(self, 
-        node, 
-        full_contents, 
+        node,
+        entries,
+        dynamic_entries,
         node_id=None, 
         settings=None):
 
         self.node = node
-        self._entries, self.dynamic_entries = parse_contents(
-            full_contents,
-            node,
-            settings=settings)
+        self._entries = entries
+        self.dynamic_entries = dynamic_entries
         self._sort()       
         self.add_system_keys()
         self._last_accessed = 0
@@ -229,16 +229,25 @@ class MetadataEntry:  # container for a single metadata entry
         print('children: %s' % self.children)
         print('recursive: %s' % self.recursive)
 
-def parse_contents(full_contents, node, settings=None):
-
-    project = node.project
+def parse_contents(full_contents, settings=None):
 
     parsed_contents = full_contents
+
+    dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
+    dynamic_definitions = []
+    
+    for d in dynamic_def_regexp.finditer(full_contents):
+        parsed_contents = parsed_contents.replace(d.group(),'', 1)
+        dynamic_definition = UrtextDynamicDefinition(d.group(0)[2:-2])
+        dynamic_definition.source_id = 'ZZZ' #self.id
+        dynamic_definitions.append(dynamic_definition)
 
     # parse inline metadata:
     entries = []
     dynamic_entries = []
     for m in inline_meta.finditer(full_contents):
+
+        parsed_contents = parsed_contents.replace(m.group(),'', 1)
 
         key, value = m.group().strip(';').split('::', 1)
         key = key.lower()
@@ -293,7 +302,6 @@ def parse_contents(full_contents, node, settings=None):
 
         parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 
-
     # parse shorthand meta:
     if settings and settings['hash_key']:
 
@@ -339,7 +347,7 @@ def parse_contents(full_contents, node, settings=None):
                 end_position=s.end())
             )
 
-    return entries, dynamic_entries
+    return entries, dynamic_entries, dynamic_definitions, parsed_contents
 
 """ Helpers """
 

@@ -504,13 +504,12 @@ class UrtextExport:
 
     def _strip_urtext_syntax(self, contents):
         
-        contents = UrtextNode.strip_contents(contents)
+        contents = UrtextNode.content_only(contents)
         if contents and contents[0] in ['}','{']:
             contents = contents[1:]
         if contents and contents[-1] == '{':
             contents = contents[:-1]
             
-        # contents = re.sub(r'^[•\S\n]*\^', '', contents, flags=re.MULTILINE)
         return contents
  
     def _opening_wrapper(self, kind, node_id, nested):
