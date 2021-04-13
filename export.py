@@ -19,7 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
-from urtext.node import strip_contents
+from urtext.node import UrtextNode
 
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
 OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123</span>'
@@ -504,7 +504,7 @@ class UrtextExport:
 
     def _strip_urtext_syntax(self, contents):
         
-        contents = strip_contents(contents)
+        contents = UrtextNode.content_only(contents)
         if contents and contents[0] in ['}','{']:
             contents = contents[1:]
         if contents and contents[-1] == '{':

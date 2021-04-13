@@ -311,10 +311,10 @@ class UrtextFile:
 
         new_node = UrtextNode(
             self.filename, 
-            contents=node_contents,            
+            contents=node_contents,
+            settings=project_settings,
             root=root,
             compact=compact,
-            settings=project_settings,
             )
 
         if new_node.id != None and re.match(node_id_regex, new_node.id):

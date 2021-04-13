@@ -35,7 +35,7 @@ from anytree import Node, PreOrderIter, RenderTree
 from urtext.rake import Rake
 from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
-from urtext.node import UrtextNode, strip_contents
+from urtext.node import UrtextNode 
 from urtext.compile import compile_functions
 from urtext.trees import trees_functions
 from urtext.meta_handling import metadata_functions
@@ -79,7 +79,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -327,7 +327,11 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
-            
+            for word in new_file.nodes[node_id].keywords:
+                self.keywords.setdefault(word, [])
+                if node_id not in self.keywords[word]:
+                    self.keywords[word].append(node_id)
+        
         self._set_tree_elements(new_file.basename)
         
         for node_id in new_file.nodes:
@@ -1511,27 +1515,15 @@ class UrtextProject:
     Free Association
     """
 
-    def get_keywords(self):
-        keywords = []
-        for i in self.nodes:
-            keywords.extend(self.nodes[i].keywords)
-        return list(set(keywords))
-
-    def get_by_keyword(self, keyword):
-        nodes = []
-        for i in self.nodes:
-            if self.nodes[i].has_keyword(keyword):
-                nodes.append(i)
-        return nodes
-
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)
         r = Rake()
-        string = strip_contents(string)
+        string = UrtextNode.content_only(string)
         keywords = [t[0] for t in r.run(string)]
         assoc_nodes = []
         for k in keywords:
-            assoc_nodes.extend(self.get_by_keyword(k))
+            if k in self.keywords:
+                assoc_nodes.extend(self.keywords[k])
         assoc_nodes = list(set(assoc_nodes))
         if node_id in assoc_nodes:
             assoc_nodes.remove(node_id)
