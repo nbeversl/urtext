@@ -94,11 +94,11 @@ def _collection(self,
                              found_item['sort_value'] = sort_value
 
                          found_item['keyname'] = k
-                       
+
                          full_contents = node.content_only(preserve_length=True)
-                        
                          context = []
                          length = 0
+                    
                          """
                          Here we want to get, in this order:
                             The text after the entry on the same line but before the next entry
@@ -107,35 +107,33 @@ def _collection(self,
                          """
                          stop = len(full_contents)
                          start = entry.end_position
-                         if entry.index + 1 < len(self.nodes[entry.node].metadata._entries):
-                            stop = self.nodes[entry.node].metadata._entries[entry.index+1].position
+                         # if entry.index + 1 < len(self.nodes[entry.node].metadata._entries):
+                         #    stop = self.nodes[entry.node].metadata._entries[entry.index+1].position
 
-                         poss_context = full_contents[start:stop].split('\n')
-                         for i in range(len(poss_context)):
+                         # poss_context = full_contents[start:stop].split('\n')
+                         # for i in range(len(poss_context)):
+                         #    line = poss_context[i]
+                         #    if line.strip():
+                         #        context.append(line.strip())
+                         #    if len('\n'.join(context)) > 300:
+                         #        break
 
-                            line = poss_context[i]
+                         # if not context:
+                         #    start = 0
+                         #    stop = entry.position
+                         #    # if entry.index > 0:
+                         #    #     start = self.nodes[entry.node].metadata._entries[entry.index-1].end_position
 
-                            if line.strip():
-                                context.append(line.strip())
+                         #    poss_context = full_contents[start:stop].split('\n')
+                         #    for i in range(len(poss_context)):
+                         #        line = poss_context[i]
+                         #        if line.strip():
+                         #            context.append(line.strip())
+                         #        if len('\n'.join(context)) > 300:
+                         #            break
 
-                            if len('\n'.join(context)) > 300:
-                                break
-
-                         if not context:
-                            start = 0
-                            stop = entry.position
-                            if entry.index > 0:
-                                start = self.nodes[entry.node].metadata._entries[entry.index-1].end_position
-
-                            poss_context = full_contents[start:stop].split('\n')
-                            for i in range(len(poss_context)):
-                                line = poss_context[i]
-                                if line.strip():
-                                    context.append(line.strip())
-                                if len('\n'.join(context)) > 300:
-                                    break
-
-                         found_item['context'] = '\n'.join(context)
+                         #found_item['context'] = '\n'.join(context)
+                         found_item['context'] = 'test'
                          while '>>' in found_item['context']:
                             found_item['context'] = found_item['context'].replace('>>','>')
 

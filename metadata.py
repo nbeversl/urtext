@@ -239,7 +239,6 @@ def parse_contents(full_contents, settings=None):
     for d in dynamic_def_regexp.finditer(full_contents):
         parsed_contents = parsed_contents.replace(d.group(),'', 1)
         dynamic_definition = UrtextDynamicDefinition(d.group(0)[2:-2])
-        dynamic_definition.source_id = 'ZZZ' #self.id
         dynamic_definitions.append(dynamic_definition)
 
     # parse inline metadata:

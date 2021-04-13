@@ -161,14 +161,16 @@ def _process_dynamic_def(self, dynamic_definition):
     
     if dynamic_definition.target_id:
 
-        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
-  
-        self.nodes[dynamic_definition.target_id].dynamic = True
+        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                            
+        if dynamic_definition.target_id in self.nodes:
+            self.nodes[dynamic_definition.target_id].dynamic = True
 
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
-        if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
-            self.nodes[dynamic_definition.target_id].title = ''
-
+            if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title') and not dynamic_definition.header:
+                self.nodes[dynamic_definition.target_id].title = ''
+        else:
+            print("LOST")
+            print(dynamic_definition.target_id)
         messages_file = self._populate_messages()
   
     if dynamic_definition.exports:
