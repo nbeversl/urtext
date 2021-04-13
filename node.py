@@ -70,7 +70,6 @@ class UrtextNode:
         self.project_settings = False
         self.dynamic_definitions = {}
         self.compact = compact
-        self.index = 10
         self.parent_project = None
         self.last_accessed = 0
         self.dynamic_definitions = []
@@ -104,9 +103,6 @@ class UrtextNode:
             self.project_settings = True
 
         self.parent = None
-        self.index = self.assign_as_int(
-                self.metadata.get_first_value('index'),
-                self.index)
 
         # create tree node
         self.reset_node()
@@ -176,14 +172,17 @@ class UrtextNode:
         r = ' ' if preserve_length else ''
         if contents == '':
             return contents
+        replacements = re.compile("|".join([
+            '(?:<)([^-/<\s`][^=<]*?)(?:>)', # timestamp
+            '\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', # inline_meta
+            r'(?:\s?)@[0-9,a-z]{3}\b', # short_id
+            r'(?:^|\s)#[A-Z,a-z].*?\b', # shorthand_meta
+            ]))
 
-        stripped_contents = inline_meta.sub(r*len(contents), contents )
-        stripped_contents = timestamp_match.sub(r*len(contents),  stripped_contents)
-        stripped_contents = short_id.sub(r*len(contents), stripped_contents)
-        stripped_contents = shorthand_meta.sub(r*len(contents), stripped_contents)
-        stripped_contents = stripped_contents.replace('• ',r*2)
-
-        return stripped_contents
+        for e in replacements.finditer(contents):
+            contents = contents.replace(e.group(), r*len(e.group()))       
+        contents = contents.replace('• ',r*2)
+        return contents
 
     @classmethod
     def strip_embedded_syntaxes(self, contents=None):
@@ -208,15 +207,15 @@ class UrtextNode:
         
 
     @classmethod
-    def strip_inline_nodes(self, contents=''):
+    def strip_inline_nodes(self, contents='', preserve_length=False):
+        r = ' ' if preserve_length else ''
         if contents == '':
             #contents = self.contents
             contents = self.contents()
         
         stripped_contents = contents
-        while subnode_regexp.search(stripped_contents):
-            for inline_node in subnode_regexp.findall(stripped_contents):
-                stripped_contents = stripped_contents.replace(inline_node, '')
+        for inline_node in subnode_regexp.finditer(stripped_contents):
+            stripped_contents = stripped_contents.replace(inline_node.group(), r*len(inline_node.group()))
         return stripped_contents
 
     @classmethod
@@ -224,13 +223,9 @@ class UrtextNode:
         r = ' ' if preserve_length else ''
         if not contents:
             return contents
-
         stripped_contents = contents
-        while dynamic_def_regexp.search(stripped_contents):
-            for dynamic_definition in dynamic_def_regexp.findall(
-                    stripped_contents):
-                stripped_contents = stripped_contents.replace(
-                    dynamic_definition, r*len(dynamic_definition))
+        for dynamic_definition in dynamic_def_regexp.finditer(stripped_contents):
+            stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
         return stripped_contents
 
     def content_only(self, contents=None):
@@ -254,48 +249,47 @@ class UrtextNode:
         contents = self.strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
         return contents
 
-    def set_index(self, new_index):
-        self.index = new_index
-
     def set_title(self, contents):
 
-        title_value = self.metadata.get_first_value('title')
-        if title_value: 
-            return title_value
-        contents = re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
-        stripped_contents_lines = self.strip_metadata(contents=contents).strip().split('\n')
-        index = 0
-        last_line = len(stripped_contents_lines) - 1
-        while stripped_contents_lines[index].strip() in ['','%']:
-            if index == last_line:
-                return '(untitled)'
-            index += 1
+        t = self.metadata.get_first_value('title')
+        if t: 
+            return t
+        
+        stripped_contents_lines = self.strip_metadata(contents).strip().split('\n')
+        line = None
+        for line in stripped_contents_lines:
+            line = line.strip()
+            if line:
+                break
+            
+        if not line:
+            return '(untitled)'
 
 
-        contents = stripped_contents_lines[index]
+        #contents = stripped_contents_lines[index]
         
-        escapes = re.finditer(preformat_syntax, contents)
-        offset = 0
-        for r in re.finditer('\{',contents):
-            for e in escapes:
-                if r.start() in range(e.start(),e.end()):
-                    break
-                contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
-                offset -= 1
+        # escapes = re.finditer(preformat_syntax, contents)
+        # offset = 0
+        # for r in re.finditer('\{',contents):
+        #     for e in escapes:
+        #         if r.start() in range(e.start(),e.end()):
+        #             break
+        #         contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
+        #         offset -= 1
         
-        offset = 0
-        for r in re.finditer('\}',contents):
-            for e in escapes:
-                if r.start() in range(e.start(),e.end()):
-                    break
-                contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
-                offset -= 1
+        # offset = 0
+        # for r in re.finditer('\}',contents):
+        #     for e in escapes:
+        #         if r.start() in range(e.start(),e.end()):
+        #             break
+        #         contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
+        #         offset -= 1
         
-        first_line = contents[:100]
-
-        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', contents, re.DOTALL)
+        first_line = line
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
     
         first_line = first_line.replace('┌──','')
+        #illegal_title_characters = [ ]
         first_line = first_line.replace('|','') # pipe character cannot be in node names
 
         # TODO : WHY DOES THIS HAPPEN?
@@ -304,10 +298,21 @@ class UrtextNode:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
         return first_line.strip().strip('\n').strip()
 
+
+        first_line = contents[:100]
+
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', contents, re.DOTALL)
+    
+        first_line = first_line.replace('┌──','')
+        first_line = first_line.replace('|','') # pipe character cannot be in node names
+
+        if '•' in first_line:
+            first_line = re.sub(r'^[\s]*\•','',first_line)           
+        return first_line.strip().strip('\n').strip()
+
    
     def log(self):
         logging.info(self.id)
-        logging.info(self.index)
         logging.info(self.filename)
         logging.info(self.metadata.log())
 
@@ -360,33 +365,6 @@ class UrtextNode:
 
         return new_metadata.strip()
 
-    def get_all_meta_keynames(self):
-        return self.metadata._entries.keys()
-
-    def get_region(self, region):
-        region = self.ranges[region]
-        with open(os.path.join(self.project_path, self.filename),
-                  'r',
-                  encoding='utf-8') as theFile:
-            file_contents = theFile.read()
-        region_contents = file_contents[region[0]: region[1]]
-        return region_contents
-
-    def set_region(self, region, contents):
-        with open(os.path.join(self.project_path, self.filename),
-                  'r',
-                  encoding='utf-8') as theFile:
-            file_contents = theFile.read()
-
-        region = self.ranges[region]
-        new_contents = file_contents[:region[0]] + contents +  file_contents[region[1]:]
-        if new_contents == file_contents:
-            return None
-        with open(os.path.join(self.project_path, self.filename),
-                  'w',
-                  encoding='utf-8') as theFile:
-            theFile.write(new_contents)
-
     def set_content(self, contents, preserve_metadata=False, bypass_check=False):
 
         with open(os.path.join(self.project_path, self.filename),
@@ -411,13 +389,4 @@ class UrtextNode:
             theFile.write(new_file_contents)
 
         return True
-
-    def assign_as_int(self, value, default):
-        try:
-            number = int(value)
-            return number
-        except ValueError:
-            return default
-
-
 

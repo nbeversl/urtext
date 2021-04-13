@@ -30,6 +30,7 @@ import diff_match_patch as dmp_module
 from pytz import timezone
 import pprint
 
+from anytree import Node, PreOrderIter, RenderTree
 from urtext.rake import Rake
 from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
@@ -77,7 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -828,7 +829,7 @@ class UrtextProject:
             use_timestamp= False
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
-            node_group = list([r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            node_group = list([r for r in list(self.nodes) if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             for r in node_group:
                 if use_timestamp:
                     self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].dt_string+'>'
@@ -1439,6 +1440,26 @@ class UrtextProject:
             except ValueError:
                 return 0
         return value
+
+    def metadata_list(self):
+
+        root = Node('ROOT')
+        
+        for key in sorted(self.keynames.keys()):
+            s = Node(key)
+            s.parent = root
+            for value in sorted(self.keynames[key]):
+                t = Node(value)
+                t.parent = s
+                if value in self.keynames[key]:
+                    for node_id in self.get_by_meta(key, [value], '='):
+                        if node_id in self.nodes:
+                            n = Node(self.nodes[node_id].title + ' >' + node_id)
+                            n.parent = t                
+        contents = ''           
+        for pre, _, node in RenderTree(root):
+            contents += "%s%s\n" % (pre, node.name)
+
 
     def get_by_meta(self, key, values, operator):
         
