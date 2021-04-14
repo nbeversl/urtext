@@ -85,7 +85,7 @@ class UrtextNode:
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
 
-        entries, dynamic_entries, dynamic_definitions, parsed_contents = parse_contents(contents, settings=settings)
+        entries, dynamic_entries, self.dynamic_definitions, parsed_contents = parse_contents(contents, settings=settings)
         self.metadata = NodeMetadata(self, entries, dynamic_entries, settings=settings)        
         
         r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', parsed_contents)
@@ -93,16 +93,17 @@ class UrtextNode:
             self.id = r.group(0).strip()[1:]
             self.tree_node = Node(self.id)
             parsed_contents = parsed_contents.replace(r.group(0),'',1)
+            for d in self.dynamic_definitions:
+                d.source_id = self.id
 
         if not parsed_contents:
             self.blank = True
     
-        parsed_contents = strip_syntax_elements(parsed_contents)
-        self.title = self.set_title(parsed_contents)
-    
-        title_value = self.metadata.get_first_value('title')
-        if title_value and title_value == 'project_settings':
+        self.title = self.set_title(parsed_contents)    
+        if self.title == 'project_settings':
             self.project_settings = True
+
+        self.parent = None
 
         # parse back and forward links
         self.get_links(contents=parsed_contents)
@@ -131,15 +132,43 @@ class UrtextNode:
                 this_range = this_range[:-1]
             node_contents.append(this_range)
         node_contents = ''.join(node_contents)
-        node_contents = self.strip_wrappers(node_contents)
-        node_contents = self.strip_embedded_syntaxes(contents=node_contents)
+        node_contents = strip_wrappers(node_contents)
+        node_contents = strip_embedded_syntaxes(contents=node_contents)
         return node_contents
-
-   
 
     def date(self):
         return self.metadata.get_date(self.project.settings['node_date_keyname'])
-    
+
+    def strip_syntax_elements(self, contents=None):
+        if contents == None:
+            contents=self.contents()
+        stripped_contents = re.sub(node_link_regex, '', contents)
+        tree_elements = ['├──','└──','│']
+        for el in tree_elements:
+            stripped_contents= stripped_contents.replace(el,'')
+        return stripped_contents
+        
+
+    def strip_inline_nodes(self, contents='', preserve_length=False):
+        r = ' ' if preserve_length else ''
+        if contents == '':
+            #contents = self.contents
+            contents = self.contents()
+        
+        stripped_contents = contents
+        for inline_node in subnode_regexp.finditer(stripped_contents):
+            stripped_contents = stripped_contents.replace(inline_node.group(), r*len(inline_node.group()))
+        return stripped_contents
+
+    @classmethod
+    def strip_dynamic_definitions(self, contents='', preserve_length=False):
+        r = ' ' if preserve_length else ''
+        if not contents:
+            return contents
+        stripped_contents = contents
+        for dynamic_definition in dynamic_definition_regex.finditer(stripped_contents):
+            stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
+        return stripped_contents
 
     def get_links(self, contents=None):
         if contents == None:
@@ -148,13 +177,12 @@ class UrtextNode:
         for node in nodes:
             self.links_from.append(node[-3:])
 
-    @classmethod
     def content_only(self, contents=None, preserve_length=False):
         if contents == None:
             contents = self.contents()
-        contents = self.strip_metadata(contents=contents, preserve_length=preserve_length)
-        contents = self.strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
-        contents = self.strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
+        contents = strip_metadata(contents=contents, preserve_length=preserve_length)
+        contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
+        contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
         return contents
 
     def set_title(self, contents):
@@ -172,8 +200,6 @@ class UrtextNode:
             
         if not line:
             return '(untitled)'
-        
-        # escapes = re.finditer(preformat_syntax, line)
         # offset = 0
         # for r in re.finditer('\{',contents):
         #     for e in escapes:
@@ -190,6 +216,20 @@ class UrtextNode:
         #         contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
         #         offset -= 1
         
+        first_line = line
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
+    
+        first_line = first_line.replace('┌──','')
+        #illegal_title_characters = [ ]
+        first_line = first_line.replace('|','') # pipe character cannot be in node names
+
+        # TODO : WHY DOES THIS HAPPEN?
+        first_line = first_line.strip().strip('{').strip()
+        if '•' in first_line:
+            first_line = re.sub(r'^[\s]*\•','',first_line)           
+        return first_line.strip().strip('\n').strip()
+
+
         first_line = contents[:100]
         #illegal_title_characters = [ ]
         first_line = first_line.replace('|','') # pipe character cannot be in node names
@@ -278,6 +318,7 @@ class UrtextNode:
 
         return True
 
+
 def strip_syntax_elements(contents):
     stripped_contents = re.sub(node_link_regex, '', contents)
     
@@ -301,12 +342,18 @@ def strip_wrappers(contents, compact=False, outside_only=False):
 def strip_metadata(contents, preserve_length=False):
 
         r = ' ' if preserve_length else ''
-        stripped_contents = inline_meta.sub(r*len(contents), contents )
-        stripped_contents = timestamp_match.sub(r*len(contents),  stripped_contents)
-        stripped_contents = short_id.sub(r*len(contents), stripped_contents)
-        stripped_contents = shorthand_meta.sub(r*len(contents), stripped_contents)
-        stripped_contents = stripped_contents.replace('• ',r*2)
-        return stripped_contents.strip()
+        
+        replacements = re.compile("|".join([
+            '(?:<)([^-/<\s`][^=<]*?)(?:>)', # timestamp
+            '\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', # inline_meta
+            r'(?:\s?)@[0-9,a-z]{3}\b', # short_id
+            r'(?:^|\s)#[A-Z,a-z].*?\b', # shorthand_meta
+            ]))
+
+        for e in replacements.finditer(contents):
+            contents = contents.replace(e.group(), r*len(e.group()))       
+        contents = contents.replace('• ',r*2)
+        return contents.strip()
 
 def strip_dynamic_definitions(contents, preserve_length=False):
 
@@ -314,11 +361,9 @@ def strip_dynamic_definitions(contents, preserve_length=False):
         if not contents:
             return contents
         stripped_contents = contents
-        while dynamic_def_regexp.search(stripped_contents):
-            for dynamic_definition in dynamic_def_regexp.findall(
-                    stripped_contents):
-                stripped_contents = stripped_contents.replace(
-                    dynamic_definition, r*len(dynamic_definition))
+      
+        for dynamic_definition in dynamic_definition_regex.finditer(stripped_contents):
+            stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
         return stripped_contents.strip()
 
 def strip_embedded_syntaxes(contents, preserve_length=False):
@@ -331,3 +376,4 @@ def strip_embedded_syntaxes(contents, preserve_length=False):
 
 def strip_errors(contents):
     return re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
+

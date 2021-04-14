@@ -32,6 +32,7 @@ from pytz import timezone
 import pprint
 from anytree import Node, PreOrderIter, RenderTree
 
+from anytree import Node, PreOrderIter, RenderTree
 from urtext.rake import Rake
 from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
@@ -235,6 +236,17 @@ class UrtextProject:
         ]
         return itertools.product(chars, repeat=3)
 
+
+    def get_file_position(self, node_id, position):
+        if node_id in self.nodes:
+            last_position = 0
+            for r in self.nodes[node_id].ranges:
+                position += r[0] - last_position
+                if position in range(r[0],r[1]):
+                    return position
+                last_position = r[1]
+        return None
+
     def formulate_links_to(self):       
         for node_id in self.links_from:
             self.update_links_in(node_id)
@@ -327,10 +339,6 @@ class UrtextProject:
 
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
-            for word in new_file.nodes[node_id].keywords:
-                self.keywords.setdefault(word, [])
-                if node_id not in self.keywords[word]:
-                    self.keywords[word].append(node_id)
         
         self._set_tree_elements(new_file.basename)
         
@@ -831,7 +839,7 @@ class UrtextProject:
             use_timestamp= False
             if k in self.settings['use_timestamp']:
                 use_timestamp = True
-            node_group = list([r for r in self.nodes if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            node_group = list([r for r in list(self.nodes) if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             for r in node_group:
                 if use_timestamp:
                     self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].dt_string+'>'
@@ -957,6 +965,7 @@ class UrtextProject:
                     position = int(position[1:])
                 else:
                     position = 0
+                position = self.get_file_position(link, position)
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -1443,6 +1452,26 @@ class UrtextProject:
                 return 0
         return value
 
+    def metadata_list(self):
+
+        root = Node('ROOT')
+        
+        for key in sorted(self.keynames.keys()):
+            s = Node(key)
+            s.parent = root
+            for value in sorted(self.keynames[key]):
+                t = Node(value)
+                t.parent = s
+                if value in self.keynames[key]:
+                    for node_id in self.get_by_meta(key, [value], '='):
+                        if node_id in self.nodes:
+                            n = Node(self.nodes[node_id].title + ' >' + node_id)
+                            n.parent = t                
+        contents = ''           
+        for pre, _, node in RenderTree(root):
+            contents += "%s%s\n" % (pre, node.name)
+
+
     def get_by_meta(self, key, values, operator):
         
         if isinstance(values,str):
@@ -1514,7 +1543,19 @@ class UrtextProject:
     """
     Free Association
     """
+    def get_keywords(self):
+        keywords = []
+        for i in self.nodes:
+            keywords.extend(self.nodes[i].keywords)
+        return list(set(keywords))
 
+    def get_by_keyword(self, keyword):
+        nodes = []
+        for i in self.nodes:
+            if self.nodes[i].has_keyword(keyword):
+                nodes.append(i)
+        return nodes
+        
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)
         r = Rake()
@@ -1522,8 +1563,7 @@ class UrtextProject:
         keywords = [t[0] for t in r.run(string)]
         assoc_nodes = []
         for k in keywords:
-            if k in self.keywords:
-                assoc_nodes.extend(self.keywords[k])
+             assoc_nodes.extend(self.get_by_keyword(k))
         assoc_nodes = list(set(assoc_nodes))
         if node_id in assoc_nodes:
             assoc_nodes.remove(node_id)
