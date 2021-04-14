@@ -36,6 +36,7 @@ class UrtextDynamicDefinition:
         # ID()
         self.target_id = None
         self.output_type = '-list' # default
+        self.output_format = '-list'
          
         # inclusions / exclusions
         self.include_groups = []
@@ -97,7 +98,6 @@ class UrtextDynamicDefinition:
 
             if func in ['DEPTH']:
                 if has_flags(['*'], flags):
-
                     self.depth = 999
                     continue
                 try:
@@ -130,14 +130,13 @@ class UrtextDynamicDefinition:
                 self.output_type = '-collection'
                 self.default_show = "$entry $link \n $contents\n\n"
 
-                # other_params = [] ## standalone tags no operators.
+                if has_flags(['-tree'], flags):
+                    self.output_format = '-tree'
+
                 parse_group(self,
                     self.collect, 
                     [], #other_params,
                     inside_parentheses)
-                # for p in other_params:
-                #     if p:
-                #         self.collect.append((p,'*','=')) # default
 
                 continue
 
@@ -310,6 +309,7 @@ valid_flags = [re.compile(r'(^|\s)'+f+r'\s?') for f in [
         '-include-dynamic',
         '-markdown',
         '-md',
+        '-tree',
         '-html',
         '-blank',
         '-plaintext',

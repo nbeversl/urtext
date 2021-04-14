@@ -132,7 +132,10 @@ class NodeMetadata:
                 if e.dt_stamp != default_date:
                     values.append(e.dt_string)            
         return values
-  
+    
+    def get_keys(self):
+        return list(set([e.keyname for e in self._entries]))
+
     def get_entries(self, 
         keyname, 
         value=None):

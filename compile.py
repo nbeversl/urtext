@@ -136,7 +136,6 @@ def _process_dynamic_def(self, dynamic_definition):
             new_node_contents.extend(search.initiate_search())
 
     if dynamic_definition.output_type == '-list':
-        
         for targeted_node in included_nodes:
             new_node_contents.append(
                 self.show_tree_from(

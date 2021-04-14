@@ -36,7 +36,7 @@ from anytree import Node, PreOrderIter, RenderTree
 from urtext.rake import Rake
 from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
-from urtext.node import UrtextNode 
+from urtext.node import UrtextNode, strip_contents
 from urtext.compile import compile_functions
 from urtext.trees import trees_functions
 from urtext.meta_handling import metadata_functions
@@ -80,7 +80,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -1452,25 +1452,17 @@ class UrtextProject:
                 return 0
         return value
 
-    def metadata_list(self):
+    def get_all_keys(self):
+        keys = []
+        for nid in self.nodes:
+            keys.extend(self.nodes[nid].metadata.get_keys())
+        return list(set(keys))
 
-        root = Node('ROOT')
-        
-        for key in sorted(self.keynames.keys()):
-            s = Node(key)
-            s.parent = root
-            for value in sorted(self.keynames[key]):
-                t = Node(value)
-                t.parent = s
-                if value in self.keynames[key]:
-                    for node_id in self.get_by_meta(key, [value], '='):
-                        if node_id in self.nodes:
-                            n = Node(self.nodes[node_id].title + ' >' + node_id)
-                            n.parent = t                
-        contents = ''           
-        for pre, _, node in RenderTree(root):
-            contents += "%s%s\n" % (pre, node.name)
-
+    def get_all_values_for_key(self, key):
+        values = []
+        for nid in self.nodes:
+            values.extend(self.nodes[nid].metadata.get_values(key))
+        return list(set(values))
 
     def get_by_meta(self, key, values, operator):
         
@@ -1521,23 +1513,30 @@ class UrtextProject:
             return results
 
         results = set([])
+        print(key)
+        if key == '*':
+            keys = self.get_all_keys()
+        else:
+            keys = [key]
+        print(keys)
+        for k in keys:
 
-        for value in values:
-            if value in ['*']:
-                results = results.union(set(n for n in self.nodes if self.nodes[n].metadata.get_values(key))) 
-                continue
-            
-            if isinstance(value, str) and key not in self.settings['case_sensitive']:
-                value = value.lower() # all comparisons case insensitive
-
-            if key in self.settings['numerical_keys']:
-                try:
-                    value = float(value)
-                except ValueError:
-                    value = 99999999
+            for value in values:
+                if value in ['*']:
+                    results = results.union(set(n for n in self.nodes if self.nodes[n].metadata.get_values(k))) 
                     continue
-           
-            results = results.union(set(n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(key)))
+                
+                if isinstance(value, str) and k not in self.settings['case_sensitive']:
+                    value = value.lower() # all comparisons case insensitive
+
+                if k in self.settings['numerical_keys']:
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        value = 99999999
+                        continue
+               
+                results = results.union(set(n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(k)))
         
         return results
     """
@@ -1559,7 +1558,7 @@ class UrtextProject:
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)
         r = Rake()
-        string = UrtextNode.content_only(string)
+        string = strip_contents(string)
         keywords = [t[0] for t in r.run(string)]
         assoc_nodes = []
         for k in keywords:
@@ -1571,25 +1570,6 @@ class UrtextProject:
             if self.nodes[node_id].dynamic:
                 assoc_nodes.remove(node_id)
         return assoc_nodes
-    
-    def metadata_list(self):
-
-        root = Node('ROOT')
-        
-        for key in sorted(self.keynames.keys()):
-            s = Node(key)
-            s.parent = root
-            for value in sorted(self.keynames[key]):
-                t = Node(value)
-                t.parent = s
-                if value in self.keynames[key]:
-                    for node_id in self.get_by_meta(key, [value], '='):
-                        if node_id in self.nodes:
-                            n = Node(self.nodes[node_id].title + ' >' + node_id)
-                            n.parent = t                
-        contents = ''           
-        for pre, _, node in RenderTree(root):
-            contents += "%s%s\n" % (pre, node.name)
         
 
     """

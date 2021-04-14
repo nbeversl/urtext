@@ -23,23 +23,43 @@ from pytz import timezone
 from urtext.node import UrtextNode 
 import pprint
 from .dynamic_output import DynamicOutput
+from anytree import Node, PreOrderIter, RenderTree
 
 def _collection(self, 
     nodes, 
     project, 
     dynamic_definition):
-    """ generates a collection of context-aware metadata anchors """
+    """ generates a collection of context-aware metadata anchors in list or tree format """
 
     keys = {}
+    
     for group in dynamic_definition.collect:
         for entry in group:
             k, v, operator = entry
-            keys.setdefault(k, [])            
-            if v not in keys[k]:
-                keys[k].append(v)
+    
+            if k == '*':
+                keynames = self.get_all_keys()
+
+            else:
+                keynames = [k]
+
+            for k in keynames:
+
+                keys.setdefault(k, [])            
+
+                if v == '*':
+                    keys[k].extend(self.get_all_values_for_key(k))
+
+                else:
+                    if v not in keys[k]:
+                        keys[k].append(v)
+
+                keys[k] = list(set(keys[k]))
 
     found_stuff = []
+    
     for node in nodes:
+
         for k in keys:
 
             use_timestamp = k in self.settings['use_timestamp']
@@ -146,58 +166,87 @@ def _collection(self,
 
     if not found_stuff:
          return ''
+  
+    if dynamic_definition.output_format == '-list':
 
-    sorted_stuff = sorted(found_stuff, 
+        collection = []
+    
+        sorted_stuff = sorted(found_stuff, 
          key=lambda x: ( x['sort_value'] ),
          reverse=dynamic_definition.sort_reverse) 
            
-    if dynamic_definition.limit:
-         sorted_stuff = sorted_stuff[0:dynamic_definition.limit]
+        if dynamic_definition.limit:
+             sorted_stuff = sorted_stuff[0:dynamic_definition.limit]
 
-    collection = []
 
-    for index in range(0, len(sorted_stuff)):
+        for index in range(0, len(sorted_stuff)):
 
-         item = sorted_stuff[index]
+             item = sorted_stuff[index]
 
-         next_content = DynamicOutput(dynamic_definition.show, self.settings)
-              
-         if next_content.needs_title:
-             next_content.title = item['title']
+             next_content = DynamicOutput(dynamic_definition.show, self.settings)
+                  
+             if next_content.needs_title:
+                 next_content.title = item['title']
 
-         if next_content.needs_entry:
-            next_content.entry = item['keyname'] + ' :: ' +  str(item['value'])
+             if next_content.needs_entry:
+                next_content.entry = item['keyname'] + ' :: ' +  str(item['value'])
 
-         if next_content.needs_key:
-            next_content.key = item['keyname']
+             if next_content.needs_key:
+                next_content.key = item['keyname']
 
-         if next_content.needs_values:
-            next_content.values = item['value']
+             if next_content.needs_values:
+                next_content.values = item['value']
 
-         if next_content.needs_link:            
-             next_content.link = '>'+item['node_id']+':'+item['position']
+             if next_content.needs_link:            
+                 next_content.link = '>'+item['node_id']+':'+item['position']
 
-         if next_content.needs_date:
-             next_content.date = item['dt_string']
+             if next_content.needs_date:
+                 next_content.date = item['dt_string']
 
-         if next_content.needs_meta:
-              next_content.meta = project.nodes[item['node_id']].consolidate_metadata()
+             if next_content.needs_meta:
+                  next_content.meta = project.nodes[item['node_id']].consolidate_metadata()
 
-         if next_content.needs_contents: 
-             contents = item['context']
-             while '\n\n' in contents:
-                 contents = contents.replace('\n\n', '\n')
-             next_content.contents = contents
+             if next_content.needs_contents: 
+                 contents = item['context']
+                 while '\n\n' in contents:
+                     contents = contents.replace('\n\n', '\n')
+                 next_content.contents = contents
 
-         for meta_key in next_content.needs_other_format_keys:
-             values = project.nodes[item['node_id']].metadata.get_values(meta_key, substitute_timestamp=True)
-             replacement = ''
-             if values:
-                 replacement = ' '.join(values)
-             next_content.other_format_keys[meta_key] = values
+             for meta_key in next_content.needs_other_format_keys:
+                 values = project.nodes[item['node_id']].metadata.get_values(meta_key, substitute_timestamp=True)
+                 replacement = ''
+                 if values:
+                     replacement = ' '.join(values)
+                 next_content.other_format_keys[meta_key] = values
 
-         collection.extend([next_content.output()])
+             collection.extend([next_content.output()])
 
-    return ''.join(collection)
+        return ''.join(collection)
+
+    elif dynamic_definition.output_format == '-tree':
+
+
+        # exclusions:
+        # title, _newest_timestamp, _oldest_timestamp, _breadcrumb
+        # all project_settings keys
+        # timstamps will need to be stringifed
+
+        root = Node('ROOT')
+        
+        for k in sorted(keys.keys()):
+            s = Node(k)
+            s.parent = root
+            for v in sorted(keys[k]):
+                t = Node(v)
+                t.parent = s
+                for node_id in self.get_by_meta(k, [v], '='):
+                    if node_id in self.nodes:
+                        n = Node(self.nodes[node_id].title + ' >' + node_id)
+                        n.parent = t                
+        contents = ''           
+        for pre, _, node in RenderTree(root):
+            contents += "%s%s\n" % (pre, node.name)
+
+        return contents
 
 collection_functions = [ _collection]

@@ -178,12 +178,10 @@ class UrtextNode:
             self.links_from.append(node[-3:])
 
     def content_only(self, contents=None, preserve_length=False):
+
         if contents == None:
             contents = self.contents()
-        contents = strip_metadata(contents=contents, preserve_length=preserve_length)
-        contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
-        contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
-        return contents
+        return strip_contents(contents)
 
     def set_title(self, contents):
 
@@ -318,6 +316,12 @@ class UrtextNode:
 
         return True
 
+
+def strip_contents(contents, preserve_length=False):
+    contents = strip_metadata(contents=contents, preserve_length=preserve_length)
+    contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
+    contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
+    return contents
 
 def strip_syntax_elements(contents):
     stripped_contents = re.sub(node_link_regex, '', contents)
