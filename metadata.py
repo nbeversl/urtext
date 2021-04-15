@@ -75,15 +75,13 @@ class NodeMetadata:
 
         t = self.get_entries('inline-timestamp')
         if t:
-            t = sorted(t, key=lambda i: i.dt_stamp)    
+            t = sorted(t, key=lambda i: i.timestamp.datetime)    
             self.add_meta_entry(
                 '_oldest_timestamp',
-                [t[0].dt_string],
-                t[0].dt_string)
+                [t[0].timestamp.string])
             self.add_meta_entry(
                 '_newest_timestamp',
-                [t[-1].dt_string],
-                t[-1].dt_string)
+                [t[-1].timestamp.string])
             self._sort() 
 
     def get_first_value(self, 
@@ -102,11 +100,11 @@ class NodeMetadata:
             return ''
 
         if use_timestamp:
-            return entries[0].dt_stamp
+            return entries[0].timestamp.datetime
 
         if not entries[0].values or entries[0].values[0] == '': 
-            if substitute_timestamp and entries[0].dt_stamp:
-                return entries[0].dt_stamp
+            if substitute_timestamp and entries[0].timestamp.datetime:
+                return entries[0].timestamp.datetime
             else:
                 return ''
 
@@ -114,27 +112,37 @@ class NodeMetadata:
         
     def get_values(self, 
         keyname,
-        # use_timestamp=False, # use timestamp as value (FUTURE)
-        substitute_timestamp=False  # substitutes the timestamp as a string if no value
+        use_timestamp=False,
+        substitute_timestamp=False,
+        lower=False
         ):
 
-        """ returns a list of values for the given key """
+
         keyname = keyname.lower()
         values = []
-        entries = self.entries.get(keyname)
+        entries = []
+        if keyname in self.entries:
+            entries = self.entries[keyname]
         if not entries:
             return values
         for e in entries:
-            values.extend(e.values)
-            
-        if not values and substitute_timestamp:
+            if use_timestamp:
+                values.append(e.timestamp)
+            else:
+                values.extend(e.values)        
+        if not values and substitute_timestamp == True:
             for e in entries:
-                if e.dt_stamp != default_date:
-                    values.append(e.dt_string)            
+                if e.timestamp.datetime != default_date:
+                    values.append(e.timestamp)            
+
+        if lower:
+            return strings_to_lower(values)
         return values
     
-    def get_keys(self):
-        return list(set([e.keyname for e in self._entries]))
+    def get_keys(self, exclude=[]):
+        if self._entries:
+            return list(set([e.keyname for e in self._entries if e.keyname not in exclude]))
+        return []
 
     def get_entries(self, 
         keyname, 
@@ -147,9 +155,12 @@ class NodeMetadata:
 
     def get_matching_entries(self, 
         keyname, 
-        value,
-        use_timestamp=False):
+        value):
 
+        use_timestamp=False
+        if isinstance(value, UrtextTimestamp):
+            use_timestamp = True
+        
         keyname = keyname.lower()
         entries = self.get_entries(keyname)
         matching_entries = []
@@ -158,7 +169,7 @@ class NodeMetadata:
                 if value in e.values:
                     matching_entries.append(e)
             else:
-                if value == e.dt_stamp:
+                if value == e.timestamp.string:
                     matching_entries.append(e)
 
         return matching_entries
@@ -169,7 +180,7 @@ class NodeMetadata:
         """
         entries = self.get_entries(keyname)
         if entries:
-            return entries[0].dt_stamp
+            return entries[0].timestamp.datetime
 
         return default_date
 
@@ -182,7 +193,13 @@ class NodeMetadata:
         from_node=None,
         position=0):
 
-        new_entry = MetadataEntry(key, values, dt_string, from_node=from_node, position=position)
+        new_entry = MetadataEntry(
+            key, 
+            values, 
+            UrtextTimestamp(dt_string), 
+            from_node=from_node, 
+            position=position)
+
         self._entries.append(new_entry)
         self._sort()
 
@@ -202,7 +219,7 @@ class MetadataEntry:  # container for a single metadata entry
     def __init__(self, 
         keyname, 
         value, 
-        dt_string,
+        timestamp,
         children=False,
         recursive=False,
         position=None,
@@ -211,23 +228,18 @@ class MetadataEntry:  # container for a single metadata entry
 
         self.keyname = keyname.strip().lower() # string
         self.values = value         # always a list
-        self.dt_string = dt_string
+        self.timestamp = timestamp
         self.from_node = from_node
         self.position = position
-        self.dt_stamp = default_date
         self.end_position = end_position
         self.children = children
         self.recursive = recursive
 
-        if dt_string:                    
-            dt_stamp = date_from_timestamp(dt_string)
-            self.dt_stamp = dt_stamp if dt_stamp else None
-
     def log(self):
         print('key: %s' % self.keyname)
         print('value: %s' % self.values)
-        print('datetimestring: %s' % self.dt_string)
-        print('datetimestamp: %s' % self.dt_stamp)
+        print('datetimestring: %s' % self.timestamp.string)
+        print('datetimestamp: %s' % self.timestamp.datetime)
         print('from_node: %s' % self.from_node)
         print('children: %s' % self.children)
         print('recursive: %s' % self.recursive)
@@ -265,8 +277,8 @@ def parse_contents(full_contents, settings=None):
         value_list = value.split('|')
 
         for value in value_list:
-            if key not in settings['case_sensitive']:
-                value = value.lower()
+            # if key not in settings['case_sensitive']:
+            #     value = value.lower()
             value = value.strip()
             if key in settings['numerical_keys']:
                 try:
@@ -290,7 +302,7 @@ def parse_contents(full_contents, settings=None):
         entry = MetadataEntry(
                 key, 
                 values, 
-                dt_string, 
+                UrtextTimestamp(dt_string), 
                 children=children,
                 recursive=recursive,       
                 position=m.start(), 
@@ -316,7 +328,7 @@ def parse_contents(full_contents, settings=None):
             MetadataEntry(
                 key, 
                 [value], 
-                '',     
+                UrtextTimestamp(''),     
                 position=position, 
                 end_position=end_position)
                 )
@@ -329,10 +341,10 @@ def parse_contents(full_contents, settings=None):
         inline_timestamp = MetadataEntry(
                 'inline-timestamp', 
                 '', 
-                stamp[1:-1],     
+                UrtextTimestamp(stamp[1:-1]),     
                 position=position, 
                 end_position=end_position)
-        if inline_timestamp.dt_stamp != None:
+        if inline_timestamp.timestamp and inline_timestamp.timestamp.datetime != None:
             entries.append(inline_timestamp)
  
     # parse title
@@ -343,17 +355,35 @@ def parse_contents(full_contents, settings=None):
             MetadataEntry(
                 'title',
                 [title],
-                '',
+                UrtextTimestamp(''),
                 position=s.start(),
                 end_position=s.end())
             )
 
     return entries, dynamic_entries, dynamic_definitions, parsed_contents
 
+
+
+
+class UrtextTimestamp:
+    def __init__(self, dt_string):
+        if not dt_string:
+            dt_string = ''
+        self.datetime = date_from_timestamp(dt_string)
+        self.string = dt_string
+        if self.datetime == None:
+            self.datetime = default_date
+
 """ Helpers """
 
+
+def strings_to_lower(list):
+    for i in range(len(list)):
+        if isinstance(list[i], str):
+            list[i] = list[i].lower()
+    return list 
+
 def date_from_timestamp(datestamp_string):
-    dt_stamp = None
     d = None
     try:
         d = parse(datestamp_string)

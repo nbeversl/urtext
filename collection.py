@@ -24,7 +24,7 @@ from urtext.node import UrtextNode
 import pprint
 from .dynamic_output import DynamicOutput
 from anytree import Node, PreOrderIter, RenderTree
-
+from urtext.metadata import UrtextTimestamp
 def _collection(self, 
     nodes, 
     project, 
@@ -34,14 +34,12 @@ def _collection(self,
     keys = {}
     
     for group in dynamic_definition.collect:
+
         for entry in group:
+
             k, v, operator = entry
     
-            if k == '*':
-                keynames = self.get_all_keys()
-
-            else:
-                keynames = [k]
+            keynames = self.get_all_keys() if k =='*' else [k]
 
             for k in keynames:
 
@@ -56,6 +54,12 @@ def _collection(self,
 
                 keys[k] = list(set(keys[k]))
 
+        for entry in group:
+            k, v, operator = entry
+            keynames = self.get_all_keys() if k =='*' else [k]
+            if operator == '!=' and k in keys:
+                keys[k].remove(v)
+
     found_stuff = []
     
     for node in nodes:
@@ -68,36 +72,35 @@ def _collection(self,
 
                 if v == '*':
                     entries = node.metadata.get_entries(k)
-
+                    
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
 
                 for p in range(len(entries)):
 
                      entry = entries[p]
-
                      found_item = {}
                      
                      if v == '*':
                         if use_timestamp:
-                            values = [entry.dt_stamp]
+                            values = [entry.timestamp.datetime]
                         else:
                             values = [ve for ve in entry.values]
 
                      else:
-                        if use_timestamp and entry.dt_stamp == v:
-                            values = [entry.dt_stamp]
+                        if use_timestamp and entry.timestamp.datetime == v:
+                            values = [entry.timestamp.datetime]
                         else:
                             values = [ve for ve in entry.values if ve == v]
 
                      for value in values:
                          found_item['node_id'] = node.id
                          found_item['title'] = node.title
-                         found_item['dt_string'] = entry.dt_string
+                         found_item['dt_string'] = entry.timestamp.string
 
                          if use_timestamp:
-                             found_item['value'] = entry.dt_string
-                             found_item['sort_value'] = entry.dt_stamp
+                             found_item['value'] = entry.timestamp.string
+                             found_item['sort_value'] = entry.timestamp.datetime
                        
                          else:
                              found_item['value'] = value
@@ -225,28 +228,41 @@ def _collection(self,
 
     elif dynamic_definition.output_format == '-tree':
 
-
-        # exclusions:
-        # title, _newest_timestamp, _oldest_timestamp, _breadcrumb
-        # all project_settings keys
         # timstamps will need to be stringifed
 
-        root = Node('ROOT')
-        
+        contents = ''                  
         for k in sorted(keys.keys()):
-            s = Node(k)
-            s.parent = root
-            for v in sorted(keys[k]):
-                t = Node(v)
-                t.parent = s
+            root = Node(k)
+            if not contains_different_types(keys[k]):
+               keys[k] = sorted(keys[k], key=meta_value_sort_criteria)
+            for v in keys[k]:
+                if isinstance(v, UrtextTimestamp):
+                    t=Node(v.string)
+                else:
+                    t = Node(v) 
+                t.parent = root
                 for node_id in self.get_by_meta(k, [v], '='):
                     if node_id in self.nodes:
                         n = Node(self.nodes[node_id].title + ' >' + node_id)
-                        n.parent = t                
-        contents = ''           
-        for pre, _, node in RenderTree(root):
-            contents += "%s%s\n" % (pre, node.name)
+                        n.parent = t       
+            for pre, _, node in RenderTree(root):
+                contents += "%s%s\n" % (pre, node.name)
 
         return contents
 
+
+def meta_value_sort_criteria(v):
+    if isinstance(v,UrtextTimestamp):
+        return v.datetime
+    return v
+
+def contains_different_types(list):
+    if len(list) < 2:
+        return False
+    i = type(list[0])
+    for y in list:
+        if type(y) != i:
+            return True
+    return False
+    
 collection_functions = [ _collection]

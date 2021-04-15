@@ -244,7 +244,7 @@ def parse_group(definition, group, other_params, inside_parentheses, flags=[]):
 
     for param in separate(inside_parentheses):
 
-        key, value, delimiter = key_value(param, ['before','after','=','?','~'])
+        key, value, delimiter = key_value(param, ['before','after','=','?','~', '!='])
         if value:
             for v in value:
                 new_group.append((key,v,delimiter))

@@ -44,7 +44,7 @@ from urtext.reindex import reindex_functions
 from urtext.search import search_functions
 from urtext.collection import collection_functions
 from urtext.dynamic import UrtextDynamicDefinition
-from urtext.metadata import date_from_timestamp, default_date
+from urtext.metadata import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
@@ -152,6 +152,12 @@ class UrtextProject:
             'contents_strip_outer_whitespace' : True,
             'contents_strip_internal_whitespace' : True,
             'node_browser_sort' : ['_oldest_timestamp'],
+            'exclude_from_star': [
+                'title', 
+                '_newest_timestamp', 
+                '_oldest_timestamp', 
+                '_breadcrumb',
+                 'def'],
             'file_index_sort': ['_oldest_timestamp'],
             'case_sensitive': [
                 'title',
@@ -842,7 +848,7 @@ class UrtextProject:
             node_group = list([r for r in list(self.nodes) if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             for r in node_group:
                 if use_timestamp:
-                    self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].dt_string+'>'
+                    self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].timestamp.string+'>'
                 else:
                     self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
             node_group = sorted(node_group, 
@@ -1287,12 +1293,7 @@ class UrtextProject:
         if self._parse_file(filename) == False:
             return filename
         full_filename = filename
-        # if self.settings['atomic_rename']:
-        #     renamed = self._rename_file_nodes(filename)
-        #     if os.path.join(self.path, filename) in renamed:
-        #         full_filename = renamed[os.path.join(self.path, filename)]
         self._compile()
-        """ returns filename with full path"""
         return full_filename
 
     def _sync_file_list(self):
@@ -1454,14 +1455,17 @@ class UrtextProject:
 
     def get_all_keys(self):
         keys = []
+        exclude = self.settings['exclude_from_star']
+        exclude.extend(self.settings.keys())
         for nid in self.nodes:
-            keys.extend(self.nodes[nid].metadata.get_keys())
+            keys.extend(self.nodes[nid].metadata.get_keys(exclude=exclude)
+            )
         return list(set(keys))
 
     def get_all_values_for_key(self, key):
         values = []
         for nid in self.nodes:
-            values.extend(self.nodes[nid].metadata.get_values(key))
+            values.extend(self.nodes[nid].metadata.get_values(key, substitute_timestamp=True))
         return list(set(values))
 
     def get_by_meta(self, key, values, operator):
@@ -1513,30 +1517,38 @@ class UrtextProject:
             return results
 
         results = set([])
-        print(key)
+
         if key == '*':
             keys = self.get_all_keys()
         else:
             keys = [key]
-        print(keys)
-        for k in keys:
 
+        for k in keys:
             for value in values:
                 if value in ['*']:
                     results = results.union(set(n for n in self.nodes if self.nodes[n].metadata.get_values(k))) 
                     continue
-                
-                if isinstance(value, str) and k not in self.settings['case_sensitive']:
-                    value = value.lower() # all comparisons case insensitive
+
+                use_timestamp = False
+                if isinstance(value, UrtextTimestamp):
+                    use_timestamp = True
 
                 if k in self.settings['numerical_keys']:
                     try:
                         value = float(value)
                     except ValueError:
                         value = 99999999
-                        continue
-               
-                results = results.union(set(n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(k)))
+                
+                if k in self.settings['case_sensitive']:
+                    results = results.union(set(
+                        n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(
+                            k, use_timestamp=use_timestamp)))
+                else:
+                    if isinstance(value, str):
+                        value=value.lower()
+                    results = results.union(set(
+                        n for n in list(self.nodes) if value in self.nodes[n].metadata.get_values(
+                            k, use_timestamp=use_timestamp, lower=True)))
         
         return results
     """
@@ -1600,7 +1612,7 @@ class UrtextProject:
 
         if not t:
             return
-        t = t[0].dt_stamp
+        t = t[0].timestamp.datetime
         ics_start_time = t.strftime('%Y%m%dT%H%M%S')
         t_end = t + datetime.timedelta(hours=2)
         ics_end_time = t_end.strftime('%Y%m%dT%H%M%S')

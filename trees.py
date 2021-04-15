@@ -1,6 +1,7 @@
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
 from urtext.dynamic_output import DynamicOutput
+from urtext.metadata import UrtextTimestamp
 import datetime
 
 """
@@ -152,7 +153,7 @@ def show_tree_from(self,
             values = urtext_node.metadata.get_values(meta_key, substitute_timestamp=True)
             replacement = ''
             if values and isinstance(values,list):
-                replacement = ' | '.join(values)
+                replacement = ' | '.join(all_to_string(values))
             next_content.other_format_keys[meta_key] = replacement
 
         tree_render += "%s%s" % (pre, next_content.output())
@@ -194,11 +195,17 @@ def duplicate_tree(self, original_node, leaf):
 
     return new_root
 
+
+def all_to_string(list):
+    for i in range(len(list)):
+        if isinstance(list[i], UrtextTimestamp):
+            list[i] = list[i].string
+    return list
+
 trees_functions=[
     show_tree_from, 
     _tree_node_is_excluded, 
     _set_tree_elements,
     duplicate_tree,
     has_aliases,
-
     ]

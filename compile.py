@@ -27,7 +27,7 @@ import os
 """
 compile method for the UrtextProject class
 """
-def _compile(self, first=[]):
+def _compile(self):
 
     self.formulate_links_to()
 
@@ -35,16 +35,7 @@ def _compile(self, first=[]):
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
 
-    compile_first = []
-
-    if first:
-        for file in first:
-            compile_first = list(set([d for d in self.dynamic_nodes if d.target_id in self.files[file].nodes]))
-
-        for dynamic_definition in compile_first:
-            self._process_dynamic_def(dynamic_definition)
-
-    for dynamic_definition in list([d for d in self.dynamic_nodes if d not in compile_first]): 
+    for dynamic_definition in list(self.dynamic_nodes): 
         self._process_dynamic_def(dynamic_definition)
 
     self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
@@ -103,7 +94,7 @@ def _process_dynamic_def(self, dynamic_definition):
     if self.settings['log_id'] in self.nodes:
         included_nodes.discard(self.settings['log_id'])
     
-    included_nodes = set([self.nodes[i] for i in included_nodes])
+    included_nodes = set([self.nodes[i] for i in included_nodes if i in self.nodes])
     
     # Sort
     if dynamic_definition.sort_keyname and dynamic_definition.use_timestamp:
