@@ -275,11 +275,11 @@ class UrtextExport:
                 
                 if next_node and next_node not in visited_nodes:
 
-                    """ for HTML, if this is a dynamic node and contains a tree, add the tree"""
-                    if kind == '-html' and next_node in self.project.dynamic_nodes and self.project.dynamic_nodes[next_node].tree:
-                        exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
+                        """ for HTML, if this is a dynamic node and contains a tree, add the tree"""
+                        # if kind == '-html' and next_node in [d.target_id for d in self.project.dynamic_defs()] and self.project.dynamic_nodes[next_node].tree:
+                        #     exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
 
-                    else:
+                        # else:
 
                         next_nested = nested + 1
 

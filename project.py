@@ -80,7 +80,9 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
+        self.continuous_update = False
+        #self.continuous_update = True
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -90,21 +92,17 @@ class UrtextProject:
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.settings_initialized = False
-        self.dynamic_nodes = []  # { target : definition, etc.}
         self.dynamic_memo = {}
         self.watchdog = watchdog
         # dict of nodes tagged recursively from parent/ancestors
         self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
         self.quick_loaded = False
         self.compiled = False
-        self.links_to = {}
-        self.links_from = {}
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.access_history = {}
         self.messages = {}
-        self.corpus = []
         self.title_completions = []
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -122,7 +120,7 @@ class UrtextProject:
                  init_project=init_project)
 
 
-        # TODO -- node date timezones have to be localizes
+        # TODO -- node date timezones have to be localized
         # do this from UrtextNode.date() method
 
     def _initialize_settings(self):
@@ -232,8 +230,7 @@ class UrtextProject:
         self.compiled = True
         self.store()
         print('"'+self.title+'" compiled from '+self.path )
-        print(sys.getsizeof(self.keynames))
-
+    
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -252,22 +249,6 @@ class UrtextProject:
                     return position
                 last_position = r[1]
         return None
-
-    def formulate_links_to(self):       
-        for node_id in self.links_from:
-            self.update_links_in(node_id)
-
-    def update_links_in(self, node_id):
-        for link_from in self.links_from[node_id]:
-            if link_from not in self.links_to:
-                self.links_to[link_from] = []
-            if node_id not in self.links_to[link_from]:
-                self.links_to[link_from].append(node_id) 
-
-    def remove_links_in(self, node_id):
-
-        for destination in self.links_to:
-            self.links_to[destination] = [ r for r in self.links_to[destination] if r != node_id ]
 
     def _assign_node_parent_title(self):
         """
@@ -418,17 +399,17 @@ class UrtextProject:
         return False
 
     def _target_id_defined(self, check_id):
-        for definition in self.dynamic_nodes:
-            if definition.target_id and definition.target_id == check_id:
-                return definition.source_id
+        for nid in self.nodes:
+            if check_id in [t.target_id for t in self.nodes[nid].dynamic_definitions]:
+                return nid
         return
 
     def _target_file_defined(self, file):
-        for definition in self.dynamic_nodes:
-            for e in  definition.exports:
-                for f in e.to_files:
-                    if f == file:
-                        return definition.source_id
+        for nid in self.nodes:
+            for e in self.nodes[nid].dynamic_definitions:
+                for r in e.exports:
+                    if file in r.to_files:
+                        return nid
         return
 
     """
@@ -453,8 +434,8 @@ class UrtextProject:
 
                     self.messages[new_node.filename].append(message)
                     self._log_item(message)
-                else:
-                    self.dynamic_nodes.append(definition)
+
+                    definition = None
 
             if definition.exports:
                 for e in definition.exports:
@@ -468,9 +449,8 @@ class UrtextProject:
                                           ])
                             self.message[new_node.filename].append(message)
                             self._log_item(message)
-                        else:
-                            self.dynamic_nodes.append(definition)
-
+                            definition = None
+                       
         if len(new_node.metadata.get_first_value('ID')) > 1:
             message = ''.join([ 
                     'Multiple ID tags in >' , new_node.id ,': ',
@@ -488,9 +468,7 @@ class UrtextProject:
         new_node.project = self
         # TODO : it's not necessary to keep a copy of this
         # inside the node. do it at the project level only. 
-        self.links_from[new_node.id] = new_node.links_from
         self.nodes[new_node.id] = new_node
-        self.update_links_in(new_node.id)
 
         if new_node.project_settings:
             self._get_settings_from(new_node)            
@@ -623,17 +601,10 @@ class UrtextProject:
        
         if filename in self.files:
             
-            for node_id in self.files[filename].nodes: 
-                # remove this node's dynamic definitions
-                for index, definition in enumerate(self.dynamic_nodes):
-                    if definition.source_id == node_id:
-                        del self.dynamic_nodes[index]
-                
+            for node_id in self.files[filename].nodes:                 
                 self.nodes[node_id].tree_node.parent = None
                 self.nodes[node_id].tree_node = None
                 self._remove_sub_tags(node_id)                
-                del self.links_from[node_id]
-                self.remove_links_in(node_id)
                 del self.nodes[node_id]
                 del self.h_content[node_id]
 
@@ -644,6 +615,12 @@ class UrtextProject:
             del self.files[filename]
 
     def delete_file(self, filename):
+        if self.is_async:
+            self.executor.submit(self._delete_file, filename)
+        else:
+            self._delete_file(filename)
+
+    def _delete_file(self, filename):
         """
         Deletes a file, removes it from the project,
         and returns a future of modified files.
@@ -780,6 +757,15 @@ class UrtextProject:
         	metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
         	return '•  '+contents + ' ' + metadata_block
 
+    def dynamic_defs(self, target=None):
+        dynamic_defs = []
+        for nid in self.nodes:
+            if not target:
+                dynamic_defs.extend([d for d in self.nodes[nid].dynamic_definitions if d])
+            else:
+                dynamic_defs.extend([d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target])
+        return dynamic_defs
+
     """
     Project Navigation
     """
@@ -900,19 +886,11 @@ class UrtextProject:
         return None
 
     def get_links_to(self, to_id):
-        """
-        Returns the list of all nodes linking to the passed id
-        """
-        if to_id in self.links_to:
-            return [i for i in self.links_to[to_id] if i in self.nodes]
-        return []
-
+        return [i for i in self.nodes if to_id in self.nodes[i].links]
+       
     def get_links_from(self, from_id):
-        """
-        Returns the list of all nodes linking to the passed id
-        """
-        if from_id in self.links_from:
-            return [i for i in self.links_from[from_id] if i in self.nodes]
+        if from_id in self.nodes:
+            return self.nodes[from_id].links
         return []
 
     def get_link(self, string, position=0):
@@ -972,6 +950,8 @@ class UrtextProject:
                 else:
                     position = 0
                 position = self.get_file_position(link, position)
+                if not self.continuous_update and link in self.nodes:
+                     self.executor.submit(self._compile_file, self.nodes[link].filename)
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -1265,26 +1245,20 @@ class UrtextProject:
                 else:
                     self._file_update(filename)
                     
-    ## file modification 
-
     def on_modified(self, filename):
-        """ 
-        Main method to keep the project updated. 
-        Should be called whenever file or directory content changes
-        Returns a FULL PATH to the new filename if the filename changes by atomic rename
-        """
-        do_not_update = ['history','files']
         if self.is_async:
-            self.executor.submit(self._sync_file_list)
-        else:
-            self._sync_file_list()
+            return self.executor.submit(self._on_modified, filename)
+        return self._on_modified(filename)
+
+    def _on_modified(self, filename):
+
+        do_not_update = ['history','files']
+        self._sync_file_list()
         filename = os.path.basename(filename)
         if filename in do_not_update or '.git' in filename:
             return (True, '')
-        if self.is_async:
-            return self.executor.submit(self._file_update, filename)
         return self._file_update(filename)
-    
+
     def _file_update(self, filename):
         
         rewritten_contents = self._rewrite_titles(filename)
@@ -1292,9 +1266,9 @@ class UrtextProject:
             self._set_file_contents(filename, rewritten_contents)
         if self._parse_file(filename) == False:
             return filename
-        full_filename = filename
-        self._compile()
-        return full_filename
+        #self._compile()
+        self._compile_file(filename)
+        return filename
 
     def _sync_file_list(self):
         filelist = os.listdir(self.path)
@@ -1398,6 +1372,9 @@ class UrtextProject:
     def most_recent_history(self, history):
         times = sorted(history.keys())
         return times[-1]
+
+    def title_completions(self):
+        return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
 
     """
     Access History
@@ -1504,16 +1481,13 @@ class UrtextProject:
             return results
 
         if key == '_links_to':
-
             for v in values:
-                if v in self.links_to:
-                    results.extend(self.links_to[v])
+                results.extend(self.get_links_to(v))
             return results
 
         if key == '_links_from':
             for v in values:
-                if v in self.links_from:
-                    results.extend(self.links_from[v])
+                results.extend(self.get_links_from(v))
             return results
 
         results = set([])

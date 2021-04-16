@@ -42,18 +42,9 @@ class Interlinks():
         self.tree = Node(oldest_node)
         self.add_children(self.tree)
 
-    def get_links_in_node(self, node_id):
-        contents = self.project.nodes[node_id].content_only()
-        nodes = re.findall('>' + node_id_regex,
-                           contents)  # link RegEx
-        links = []
-        for node in nodes:
-            links.append(node[1:])
-        return links
-
     def add_children(self, parent):
         """ recursively add children """
-        links = self.get_links_in_node(parent.name)
+        links = self.project.nodes[parent.name].links
 
         for link in links:
             if link in self.exclude:
@@ -76,19 +67,8 @@ class Interlinks():
         self.backward_tree = Node(oldest_node)
         self.add_backward_children(self.backward_tree)
 
-    def get_links_to_node(self, node_id):
-        links_to_node = []
-        for node in self.project.nodes:
-            if node in self.exclude:
-                continue
-            contents = self.project.nodes[node].content_only()
-            links = re.findall('>' + node_id, contents)  # link RegEx
-            if len(links) > 0:
-                links_to_node.append(node)
-        return links_to_node
-
     def add_backward_children(self, parent):
-        links = self.get_links_to_node(parent.name)
+        links = [i for i in self.project.get_links_to_node(node_id) if i not in self.exclude]
         for link in links:
            
             if link in self.exclude:

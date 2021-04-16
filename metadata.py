@@ -61,16 +61,6 @@ class NodeMetadata:
                 self._entries[i].index = i
                 self._entries[i].node = node_id
 
-    def get_links_to(self): 
-        return sorted(
-            [r for r in self.node.project.links_to[node_id] if not self.node.project.nodes[r].dynamic],
-            key = lambda n: n.index )
-
-    def get_links_from(self):
-        return sorted(
-            [r for r in self.node.project.links_from[node_id] if not self.node.project.nodes[r].dynamic],
-            key = lambda n: n.index )
-
     def add_system_keys(self):
 
         t = self.get_entries('inline-timestamp')
@@ -144,34 +134,22 @@ class NodeMetadata:
             return list(set([e.keyname for e in self._entries if e.keyname not in exclude]))
         return []
 
-    def get_entries(self, 
-        keyname, 
-        value=None):
-
+    def get_entries(self, keyname):
         keyname = keyname.lower()
-        if keyname in self.entries:
-            return self.entries[keyname]
-        return []
+        return self.entries[keyname] if keyname in self.entries else []
 
     def get_matching_entries(self, 
         keyname, 
         value):
-
-        use_timestamp=False
-        if isinstance(value, UrtextTimestamp):
-            use_timestamp = True
-        
-        keyname = keyname.lower()
         entries = self.get_entries(keyname)
         matching_entries = []
-        for e in entries:
-            if not use_timestamp:
-                if value in e.values:
+        if entries:
+            use_timestamp = True if isinstance(value, UrtextTimestamp) else False
+            for e in entries:
+                if not use_timestamp and value in e.values:
                     matching_entries.append(e)
-            else:
-                if value == e.timestamp.string:
+                elif value == e.timestamp.string:
                     matching_entries.append(e)
-
         return matching_entries
 
     def get_date(self, keyname):

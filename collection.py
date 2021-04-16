@@ -61,7 +61,7 @@ def _collection(self,
                 keys[k].remove(v)
 
     found_stuff = []
-    
+
     for node in nodes:
 
         for k in keys:
@@ -72,7 +72,6 @@ def _collection(self,
 
                 if v == '*':
                     entries = node.metadata.get_entries(k)
-                    
                 else:
                     entries = node.metadata.get_matching_entries(k, v)
 

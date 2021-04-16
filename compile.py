@@ -28,18 +28,23 @@ import os
 compile method for the UrtextProject class
 """
 def _compile(self):
-
-    self.formulate_links_to()
-
-    for dynamic_definition in self.dynamic_nodes:
+    
+    for dynamic_definition in self.dynamic_defs():
         if dynamic_definition.target_id in self.nodes:
             self.nodes[dynamic_definition.target_id].dynamic = True
 
-    for dynamic_definition in list(self.dynamic_nodes): 
+    for dynamic_definition in self.dynamic_defs(): 
         self._process_dynamic_def(dynamic_definition)
 
-    self.title_completions = [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-        
+def _compile_file(self, filename):
+    print('compiling '+filename)
+    filename = os.path.basename(filename)
+    for node_id in self.files[filename].nodes:
+        for dd in self.nodes[node_id].dynamic_definitions:
+            self._process_dynamic_def(dd)
+        for dd in self.dynamic_defs(target=node_id):
+            self._process_dynamic_def(dd)
+
 def _process_dynamic_def(self, dynamic_definition):
 
     points = {}
@@ -263,4 +268,4 @@ def indent(contents, spaces=4):
             content_lines[index] = '\t' * spaces + line
     return '\n'+'\n'.join(content_lines)
 
-compile_functions = [_compile,_process_dynamic_def ]
+compile_functions = [_compile,_process_dynamic_def, _compile_file ]

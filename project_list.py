@@ -220,13 +220,10 @@ class ProjectList():
             print('File '+ filename +' not included in the current project.')
             return None
 
-        # all all nodes in this file in the current (source) project
         affected_nodes = self.current_project.files[filename].nodes.keys()
         
-        # remove the file from the current (source) project
         self.current_project.remove_file(filename) # also updates the source project
 
-        # move it to the new project)        
         os.rename(
             os.path.join( self.current_project.path, filename),
             os.path.join( destination_project.path, filename)

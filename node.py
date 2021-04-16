@@ -24,7 +24,7 @@ from urtext.metadata import NodeMetadata
 from urtext.metadata import parse_contents
 from urtext.rake import Rake
 from anytree.exporter import JsonExporter
-
+import concurrent.futures
 import re
 import datetime
 import logging
@@ -62,7 +62,7 @@ class UrtextNode:
         self.export_points = {}
         self.dynamic = False
         self.id = None
-        self.links_from = []
+        self.links = []
         self.root_node = root
         self.tz = pytz.timezone('UTC')
         self.prefix = None
@@ -105,11 +105,17 @@ class UrtextNode:
 
         self.parent = None
 
-        # parse back and forward links
-        self.get_links(contents=parsed_contents)
+        self.get_links(contents=parsed_contents)    
+
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        executor.submit(self.parse_keywords, parsed_contents)
     
+    def parse_keywords(self, parsed_contents):
         r = Rake()
         self.keywords = [t[0] for t in r.run(parsed_contents)]
+
+    def has_keyword(self, keyword):
+        return True if keyword in self.keywords else False
 
     def start_position(self):
         return self.ranges[0][0]
@@ -160,22 +166,22 @@ class UrtextNode:
             stripped_contents = stripped_contents.replace(inline_node.group(), r*len(inline_node.group()))
         return stripped_contents
 
-    @classmethod
-    def strip_dynamic_definitions(self, contents='', preserve_length=False):
-        r = ' ' if preserve_length else ''
-        if not contents:
-            return contents
-        stripped_contents = contents
-        for dynamic_definition in dynamic_definition_regex.finditer(stripped_contents):
-            stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
-        return stripped_contents
+    # @classmethod
+    # def strip_dynamic_definitions(self, contents='', preserve_length=False):
+    #     r = ' ' if preserve_length else ''
+    #     if not contents:
+    #         return contents
+    #     stripped_contents = contents
+    #     for dynamic_definition in dynamic_definition_regex.finditer(stripped_contents):
+    #         stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
+    #     return stripped_contents
 
     def get_links(self, contents=None):
         if contents == None:
             contents = self.content_only()
         nodes = re.findall(node_link_regex, contents)  # link RegEx
         for node in nodes:
-            self.links_from.append(node[-3:])
+            self.links.append(node[-3:])
 
     def content_only(self, contents=None, preserve_length=False):
 
