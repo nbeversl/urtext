@@ -141,6 +141,7 @@ class NodeMetadata:
     def get_matching_entries(self, 
         keyname, 
         value):
+    
         entries = self.get_entries(keyname)
         matching_entries = []
         if entries:

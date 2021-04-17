@@ -228,6 +228,7 @@ def _collection(self,
     elif dynamic_definition.output_format == '-tree':
 
         # timstamps will need to be stringifed
+        ## TODO -- this is using all nodes, not just ones passed in.
 
         contents = ''                  
         for k in sorted(keys.keys()):

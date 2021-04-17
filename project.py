@@ -368,7 +368,7 @@ class UrtextProject:
         return False
 
     def _rewrite_titles(self, filename):
-        
+        print(filename)
         original_contents = self._full_file_contents(filename=filename)
         new_contents = original_contents
         offset = 0        
@@ -527,8 +527,8 @@ class UrtextProject:
     def _full_file_contents(self, filename='', node_id=''):
         if node_id:
             filename = self.nodes[node_id].filename
-        if not filename:
-            return
+        if not filename or not os.path.exists(os.path.join(self.path, filename)):
+            return None
         with open(os.path.join(self.path, filename), 'r', encoding='utf-8') as theFile:
             file_contents = theFile.read()
             theFile.close()
@@ -616,9 +616,9 @@ class UrtextProject:
 
     def delete_file(self, filename):
         if self.is_async:
-            self.executor.submit(self._delete_file, filename)
+            return self.executor.submit(self._delete_file, filename)
         else:
-            self._delete_file(filename)
+            return self._delete_file(filename)
 
     def _delete_file(self, filename):
         """
@@ -1264,10 +1264,11 @@ class UrtextProject:
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
             self._set_file_contents(filename, rewritten_contents)
-        if self._parse_file(filename) == False:
-            return filename
-        #self._compile()
-        self._compile_file(filename)
+        self._parse_file(filename)
+        if self.continuous_update:
+            self._compile()
+        else: # incremental update
+            self._compile_file(filename)
         return filename
 
     def _sync_file_list(self):
