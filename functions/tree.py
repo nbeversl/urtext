@@ -1,12 +1,110 @@
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
 from urtext.dynamic_output import DynamicOutput
-from urtext.metadata import UrtextTimestamp
+from urtext.timestamp import UrtextTimestamp
 import datetime
+from .function import UrtextFunctionWithParamsFlags, UrtextFunctionWithInteger
 
 """
-Tree building
+Tree
 """
+
+class Tree(UrtextFunctionWithParamsFlags):
+
+    name = ["TREE"]
+    phase = 200
+
+    def __init__(self, argument_string):
+        super().__init__(argument_string)
+        self.depth = 1
+        if self.have_flags('-infinite'):
+            self.depth = 999999
+        elif self.flags:
+            try:
+                self.depth = float(flags[0])
+            except:
+                self.depth = 1
+                
+    def execute(self, previous_output, project, m_format,
+                   exclude=None,
+                   from_root_of=False
+                   ):
+
+        node_id = previous_output
+        start_point = previous_output.tree_node
+        if from_root_of == True:
+            start_point = project.nodes[node_id].tree_node.root
+
+        alias_nodes = project.has_aliases(start_point)
+
+        while alias_nodes:  
+            for leaf in alias_nodes:
+                if leaf.name[:5] == 'ALIAS':
+                    node_id = leaf.name[-3:]
+                    new_tree = project.duplicate_tree(project.nodes[node_id].tree_node, leaf)            
+                    leaf.children = new_tree.children
+            alias_nodes = project.has_aliases(start_point)
+     
+        tree_render = ''
+
+        for pre, _, this_node in RenderTree(
+                start_point, 
+                style=ContStyle, 
+                maxlevel=self.depth):
+
+            if project._tree_node_is_excluded(this_node, exclude):
+                this_node.children = []
+                continue
+
+            if this_node.name[:11] == '! RECURSION':
+                tree_render += "%s%s" % (pre, this_node.name + '\n')    
+                continue
+
+            if this_node.name[:5] == 'ALIAS':
+                urtext_node = project.nodes[this_node.name[-3:]]
+            else:
+                urtext_node = project.nodes[this_node.name]
+            
+            # need to pass SHOW here somehow.
+            next_content = DynamicOutput(  m_format, project.settings)
+           
+            if next_content.needs_title:
+                next_content.title = urtext_node.title
+           
+            if next_content.needs_link:
+                link = []
+                if urtext_node.parent_project not in [project.title, project.path]:
+                    link.extend(['{"',this_node.parent_project,'"}'])
+                else:
+                    link.append('>')
+                link.append(str(urtext_node.id))
+                next_content.link = ''.join(link)
+
+            if next_content.needs_date:
+                next_content.date = urtext_node.get_date(project.settings['node_date_keyname']).strftime(project.settings['timestamp_format'])
+
+            if next_content.needs_meta:
+                next_content.meta = urtext_node.consolidate_metadata(separator=':')
+
+            if next_content.needs_contents: 
+                next_content.contents = urtext_node.content_only().strip('\n').strip()
+
+            if next_content.needs_last_accessed: 
+                t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
+                next_content.last_accessed = t.strftime(project.settings['timestamp_format'])
+
+            for meta_key in next_content.needs_other_format_keys:
+                values = urtext_node.metadata.get_values(meta_key, substitute_timestamp=True)
+                replacement = ''
+                if values and isinstance(values,list):
+                    replacement = ' | '.join(all_to_string(values))
+                next_content.other_format_keys[meta_key] = replacement
+
+            tree_render += "%s%s" % (pre, next_content.output())
+
+        return tree_render
+
+
 def _set_tree_elements(self, filename):
     """ Builds tree elements within the file's nodes, after the file is parsed."""
 
@@ -49,7 +147,9 @@ def _set_tree_elements(self, filename):
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
 def _tree_node_is_excluded(self, tree_node, excluded_nodes):
-
+    if not excluded_nodes:
+        return False
+        
     node_id = tree_node.name[-3:]
 
     if node_id in excluded_nodes:
@@ -77,88 +177,6 @@ def has_aliases(self, start_point):
                 leaf.name = '! RECURSION - (from alias) : '+ self.nodes[leaf.name[-3:]].title + ' >'+leaf.name[-3:]
 
     return alias_nodes
-
-def show_tree_from(self, 
-                   node_id,
-                   dynamic_definition,
-                   exclude=None,
-                   from_root_of=False):
-
-    if node_id not in self.nodes:
-        self._log_item(root_node_id + ' is not in the project')
-        return None
-   
-    start_point = self.nodes[node_id].tree_node
-    if from_root_of == True:
-        start_point = self.nodes[node_id].tree_node.root
-
-    alias_nodes = self.has_aliases(start_point)
-
-    while alias_nodes:  
-        for leaf in alias_nodes:
-            if leaf.name[:5] == 'ALIAS':
-                node_id = leaf.name[-3:]
-                new_tree = self.duplicate_tree(self.nodes[node_id].tree_node, leaf)            
-                leaf.children = new_tree.children
-        alias_nodes = self.has_aliases(start_point)
- 
-    tree_render = ''
-
-    for pre, _, this_node in RenderTree(
-            start_point, 
-            style=ContStyle, 
-            maxlevel=dynamic_definition.depth):
-
-        if self._tree_node_is_excluded(this_node, exclude):
-            this_node.children = []
-            continue
-
-        if this_node.name[:11] == '! RECURSION':
-            tree_render += "%s%s" % (pre, this_node.name + '\n')    
-            continue
-
-        if this_node.name[:5] == 'ALIAS':
-            urtext_node = self.nodes[this_node.name[-3:]]
-        else:
-            urtext_node = self.nodes[this_node.name]
-        
-        next_content = DynamicOutput(dynamic_definition.show, self.settings)
-       
-        if next_content.needs_title:
-            next_content.title = urtext_node.title
-       
-        if next_content.needs_link:
-            link = []
-            if urtext_node.parent_project not in [self.title, self.path]:
-                link.extend(['{"',this_node.parent_project,'"}'])
-            else:
-                link.append('>')
-            link.append(str(urtext_node.id))
-            next_content.link = ''.join(link)
-
-        if next_content.needs_date:
-            next_content.date = urtext_node.get_date(self.settings['node_date_keyname']).strftime(self.settings['timestamp_format'])
-
-        if next_content.needs_meta:
-            next_content.meta = urtext_node.consolidate_metadata(separator=':')
-
-        if next_content.needs_contents: 
-            next_content.contents = urtext_node.content_only().strip('\n').strip()
-
-        if next_content.needs_last_accessed: 
-            t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
-            next_content.last_accessed = t.strftime(self.settings['timestamp_format'])
-
-        for meta_key in next_content.needs_other_format_keys:
-            values = urtext_node.metadata.get_values(meta_key, substitute_timestamp=True)
-            replacement = ''
-            if values and isinstance(values,list):
-                replacement = ' | '.join(all_to_string(values))
-            next_content.other_format_keys[meta_key] = replacement
-
-        tree_render += "%s%s" % (pre, next_content.output())
-
-    return tree_render
 
 def duplicate_tree(self, original_node, leaf):
 
@@ -203,7 +221,6 @@ def all_to_string(list):
     return list
 
 trees_functions=[
-    show_tree_from, 
     _tree_node_is_excluded, 
     _set_tree_elements,
     duplicate_tree,

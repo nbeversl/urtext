@@ -38,13 +38,12 @@ from urtext.file import UrtextFile
 from urtext.interlinks import Interlinks
 from urtext.node import UrtextNode, strip_contents
 from urtext.compile import compile_functions
-from urtext.trees import trees_functions
+from urtext.functions.tree import trees_functions
 from urtext.meta_handling import metadata_functions
 from urtext.reindex import reindex_functions
 from urtext.search import search_functions
-from urtext.collection import collection_functions
 from urtext.dynamic import UrtextDynamicDefinition
-from urtext.metadata import date_from_timestamp, default_date, UrtextTimestamp
+from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
@@ -57,7 +56,6 @@ functions.extend(compile_functions)
 functions.extend(metadata_functions)
 functions.extend(reindex_functions)
 functions.extend(search_functions)
-functions.extend(collection_functions)
 
 
 def add_functions_as_methods(functions):
@@ -80,7 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.continuous_update = False
         #self.continuous_update = True
         self.path = path
@@ -421,7 +419,7 @@ class UrtextProject:
         for definition in new_node.dynamic_definitions:
             
             if definition.target_id:
-                
+                definition.add_projects(self)
                 defined = self._target_id_defined(definition.target_id)
                 
                 if defined and defined != new_node.id:
@@ -437,19 +435,19 @@ class UrtextProject:
 
                     definition = None
 
-            if definition.exports:
-                for e in definition.exports:
-                    for f in e.to_files:
-                        defined = self._target_file_defined(f)
-                        if defined and defined != new_node.id:
-                            message = ''.join([ 
-                                          'File >f' , f ,
-                                          ' has duplicate definition in >' , new_node.id ,
-                                          '. Keeping the definition in >' , defined , '.'
-                                          ])
-                            self.message[new_node.filename].append(message)
-                            self._log_item(message)
-                            definition = None
+            # if definition.exports:
+            #     for e in definition.exports:
+            #         for f in e.to_files:
+            #             defined = self._target_file_defined(f)
+            #             if defined and defined != new_node.id:
+            #                 message = ''.join([ 
+            #                               'File >f' , f ,
+            #                               ' has duplicate definition in >' , new_node.id ,
+            #                               '. Keeping the definition in >' , defined , '.'
+            #                               ])
+            #                 self.message[new_node.filename].append(message)
+            #                 self._log_item(message)
+            #                 definition = None
                        
         if len(new_node.metadata.get_first_value('ID')) > 1:
             message = ''.join([ 

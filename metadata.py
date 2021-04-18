@@ -21,13 +21,54 @@ import re
 import datetime
 import pytz
 from dateutil.parser import *
-from pytz import timezone
 from urtext.dynamic import UrtextDynamicDefinition
+from urtext.timestamp import UrtextTimestamp, default_date
 
-default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,1,1))
 timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
 inline_meta = re.compile('\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
+
+
+
+"""
+Here we want to get, in this order:
+The text after the entry on the same line but before the next entry
+The text before the entry on the same line
+The next non-blank line(s), up to a certain length
+"""
+# context code originally from COLLECT()
+# if entry.index + 1 < len(self.nodes[entry.node].metadata._entries):
+#    stop = self.nodes[entry.node].metadata._entries[entry.index+1].position
+
+# poss_context = full_contents[start:stop].split('\n')
+# for i in range(len(poss_context)):
+
+#    line = poss_context[i]
+
+#    if line.strip():
+#        context.append(line.strip())
+
+#    if len('\n'.join(context)) > 300:
+#        break
+
+# if not context:
+#    start = 0
+#    stop = entry.position
+#    if entry.index > 0:
+#        start = self.nodes[entry.node].metadata._entries[entry.index-1].end_position
+
+#    poss_context = full_contents[start:stop].split('\n')
+#    for i in range(len(poss_context)):
+#        line = poss_context[i]
+#        if line.strip():
+#            context.append(line.strip())
+#        if len('\n'.join(context)) > 300:
+#            break
+
+#found_item['context'] = '\n'.join(context)
+
+
+
 
 class NodeMetadata:
 
@@ -342,17 +383,6 @@ def parse_contents(full_contents, settings=None):
     return entries, dynamic_entries, dynamic_definitions, parsed_contents
 
 
-
-
-class UrtextTimestamp:
-    def __init__(self, dt_string):
-        if not dt_string:
-            dt_string = ''
-        self.datetime = date_from_timestamp(dt_string)
-        self.string = dt_string
-        if self.datetime == None:
-            self.datetime = default_date
-
 """ Helpers """
 
 
@@ -361,14 +391,3 @@ def strings_to_lower(list):
         if isinstance(list[i], str):
             list[i] = list[i].lower()
     return list 
-
-def date_from_timestamp(datestamp_string):
-    d = None
-    try:
-        d = parse(datestamp_string)
-    except:
-        pass
-        #print('No date for '+datestamp_string)
-    if d and d.tzinfo == None:
-         d = timezone('UTC').localize(d) 
-    return d

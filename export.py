@@ -22,6 +22,36 @@ import re
 from urtext.node import UrtextNode, strip_contents
 
 
+# # from old dynamic defcinition code -- needs to be re-added
+# if func in ['EXPORT','X']:
+    
+#     this_export = Export()
+
+#     if flags and flags[0] in [
+#             '-interlinks',
+#             '-plaintext',
+#             '-markdown',
+#             '-md',
+#             '-html']:
+        
+#         this_export.output_type = flags[0]
+    
+#     if flags and '-preformat' in flags:
+#             this_export.preformat = True
+
+#     node_id_match = re.findall(node_id_regex, inside_parentheses)
+#     for n in node_id_match:
+#          this_export.to_nodes.append(n[1:])
+
+#     filename_match = re.findall(filename_regex, inside_parentheses)
+#     for f in filename_match:
+#         this_export.to_files.append(f[2:])
+
+#     self.exports.append(this_export)
+#     continue
+
+
+
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
 OPENING_BRACKETS = '<span class="urtext-open-brackets">&#123</span>'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'

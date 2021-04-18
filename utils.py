@@ -7,3 +7,8 @@ def strip_backtick_escape(contents):
         contents = contents.replace(e,' '*len(e))
     return contents
 
+
+def force_list(thing):
+	if not isinstance(thing, list):
+		thing = [thing]
+	return thing
