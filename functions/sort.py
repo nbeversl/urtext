@@ -4,12 +4,12 @@ class Sort(UrtextFunctionWithParamsFlags):
 
 	name = ["SORT","S"]
 	phase = 120
+	#self.sort_type = 'alpha'
 
 	def __init__(self, string):
 		super().__init__(string)
 		self.sort_numeric = self.have_flags(['-n','-num'])
 		self.use_timestamp = self.have_flags(['-timestamp','-t'])
-		self.sort_reverse = self.have_flags(['-reverse','-r'])
 		
 	def execute(self, nodes, project, format):
 
@@ -27,4 +27,4 @@ class Sort(UrtextFunctionWithParamsFlags):
 		return sorted(
 			nodes,
 			key=sort_order,
-			reverse=self.sort_reverse)
+			reverse=self.have_flags(['-reverse','-r']))

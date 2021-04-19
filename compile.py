@@ -48,29 +48,22 @@ def _process_dynamic_def(self, dynamic_definition):
     points = {}
     new_node_contents = []
 
+    if not dynamic_definition.target_id:
+        return
     if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
+    #print(dynamic_definition.target_id)
     outcome = []
     operations = sorted(dynamic_definition.operations, key = lambda op: op.phase) 
     for operation in operations:
-        print(operation)
+        #print(operation)
         outcome = operation.execute(outcome, [self], dynamic_definition.show)
       
     # if dynamic_definition.target_id:
     #     outcome.discard(dynamic_definition.target_id)           
-
-    # discard 
-    # if self.settings['log_id'] in self.nodes:
-    #     outcome.discard(self.settings['log_id'])
-        
-    # if dynamic_definition.output_type == '-search':
-    #     for term in dynamic_definition.other_params:
-    #         search = UrtextSearch(self, term, self.settings, format_string=dynamic_definition.show)
-    #         new_node_contents.extend(search.initiate_search())
-
-    
+            
     final_output = build_final_output(dynamic_definition, outcome) 
     
     # if dynamic_definition.target_id and dynamic_definition.target_id in self.h_content:

@@ -31,11 +31,12 @@ from urtext.utils import force_list
 from urtext.functions.list import NodeList
 
 ## temporary - these should get imported like plugins
-# import urtext.functions.queries
-from  urtext.functions import *
-# import urtext.functions.sort
-# import urtext.collect
-
+import urtext.functions.queries
+import urtext.functions.sort
+import urtext.functions.collect
+import urtext.functions.function
+import urtext.functions.tree
+import urtext.functions.list
 
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
@@ -60,8 +61,8 @@ class UrtextDynamicDefinition:
 		self.multiline_meta = True
 
 		self.init_self(contents)
-		if 	not self.show:
-			self.show = '$title $link\n'
+		if not self.show:
+			self.show = '$title $link'
 			
 	def add_projects(self, projects):
 		self.projects.extend(force_list(projects))
@@ -73,7 +74,7 @@ class UrtextDynamicDefinition:
 			func = match[0]
 			argument_string = match[1]
 			for function in all_subclasses(UrtextFunction):
-				if func in function.name:				
+				if function.name and func in function.name:		
 					self.used_functions.append(func)	
 					self.operations.append(function(argument_string))
 			
@@ -96,7 +97,7 @@ class UrtextDynamicDefinition:
 				self.show = argument_string
 			
 		if 'LIST' not in self.used_functions and 'COLLECT' not in self.used_functions:
-			self.operations.append(NodeList(''))
+			self.operations.append(NodeList('1'))
 
 class Export:
 	def __init__(self):

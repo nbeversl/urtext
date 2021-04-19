@@ -26,14 +26,8 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 	name = "QUERY"
 	phase = 100
 	
-	def __init__(self, argument_string):
-		super().__init__(argument_string)
-		self.sort_type = 'alpha'
-		self.include_dynamic = self.have_flags('-include_dynamic')
-		self.include_blank = self.have_flags('-blank')
-		
 	def build_list(self, nodes, projects):
-
+		
 		for project in projects:
 
 			if '-all' in self.flags:
@@ -41,16 +35,17 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 			
 			else: 
 				added_nodes = set([])
-				if self.include_blank:
+				if self.have_flags('-blank'):
 					added_nodes = set([node_id for node_id in project.nodes if project.nodes[node_id].blank])
 
 				for project in projects:
+					print('PARAMS ARE')
 					for param in self.params:
 						added_nodes = added_nodes.union(
 							_build_group_and(
 								project, 
 								param, 
-								include_dynamic=self.include_dynamic)
+								include_dynamic=self.have_flags('-include_dynamic'))
 							)
 			passed_nodes = set(nodes)
 			included_nodes = list(passed_nodes.union(set(project.nodes[node_id] for node_id in added_nodes)))

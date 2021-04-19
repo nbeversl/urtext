@@ -13,22 +13,23 @@ class Tree(UrtextFunctionWithParamsFlags):
 
     name = ["TREE"]
     phase = 200
-
-    def __init__(self, argument_string):
-        super().__init__(argument_string)
-        self.depth = 1
-        if self.have_flags('-infinite'):
-            self.depth = 999999
-        elif self.flags:
-            try:
-                self.depth = float(flags[0])
-            except:
-                self.depth = 1
                 
     def execute(self, previous_output, project, m_format,
                    exclude=None,
                    from_root_of=False
                    ):
+        
+        self.depth = 1
+        if self.have_flags('-infinite'):
+            self.depth = 999999
+        # elif self.flags:
+        #     try:
+        #         self.depth = float(flags[0])
+        #     except:
+        #         self.depth = 1
+        for s in self.params:
+            if s[0] == 'depth':
+                self.depth = int(s[1])
 
         node_id = previous_output
         start_point = previous_output.tree_node
@@ -54,6 +55,10 @@ class Tree(UrtextFunctionWithParamsFlags):
 
             if project._tree_node_is_excluded(this_node, exclude):
                 this_node.children = []
+                continue
+
+            if not this_node.name[-3:] in project.nodes:
+                tree_render += "%s%s" % (pre, this_node.name + ' NOT IN PROJECT (DEBUGGING)\n')    
                 continue
 
             if this_node.name[:11] == '! RECURSION':

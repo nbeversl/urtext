@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-from .dynamic_output import DynamicOutput
+from urtext.dynamic_output import DynamicOutput
 from anytree import Node, PreOrderIter, RenderTree
 from urtext.timestamp import UrtextTimestamp, default_date
 from .function import UrtextFunctionWithParamsFlags

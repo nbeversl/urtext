@@ -9,17 +9,16 @@ from urtext.utils import force_list
 ## Base function class
 class UrtextFunction():
 
-    name = ["FUNCTION"]
+    name = None
 
     def __init__(self, argument_string):
         self.argument_string = argument_string
-        
+
     def execute(self):
         return ''
 
 class UrtextFunctionWithParamsFlags(UrtextFunction):
 
-    name = ["FUNCTION_WITH_PARAMS_FLAGS"]
     phase = 100
 
     def __init__(self, argument_string):
@@ -28,10 +27,11 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
         self.flags = []
         no_flags = self._parse_flags(argument_string)
         self._parse_params(no_flags)
-        
+
+    
     def _parse_params(self, argument_string):
 
-        def separate(string, delimiter='\;'):
+        def separate(string, delimiter=';'):
             return [r.strip() for r in re.split(delimiter+'|\n', string)]
 
         def key_value(param, delimiters=[':']):
@@ -47,7 +47,7 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
 
         if argument_string:
             for param in separate(argument_string):
-                key, value, delimiter = key_value(argument_string, ['before','after','=','?','~', '!='])
+                key, value, delimiter = key_value(param, ['before','after','=','?','~', '!='])
                 if value:
                     for v in value:
                         self.params.append((key,v,delimiter))
@@ -80,9 +80,10 @@ class UrtextHeader(UrtextFunction):
     name = ["HEADER"]
     phase = 500
     def execute(self, contents, project, format):
-    
+        if not self.argument_string:
+            self.argument_string = ''
         header = bytes(self.argument_string, "utf-8").decode("unicode_escape")
-        if header[-1] != '\n':
+        if header and header[-1] != '\n':
             header += '\n'
         return ''.join([header, contents])
 
