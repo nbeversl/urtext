@@ -39,14 +39,12 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 					added_nodes = set([node_id for node_id in project.nodes if project.nodes[node_id].blank])
 
 				for project in projects:
-					print('PARAMS ARE')
-					for param in self.params:
-						added_nodes = added_nodes.union(
-							_build_group_and(
-								project, 
-								param, 
-								include_dynamic=self.have_flags('-include_dynamic'))
-							)
+					added_nodes = added_nodes.union(
+						_build_group_and(
+							project, 
+							self.params, 
+							include_dynamic=self.have_flags('-include_dynamic'))
+						)
 			passed_nodes = set(nodes)
 			included_nodes = list(passed_nodes.union(set(project.nodes[node_id] for node_id in added_nodes)))
 		return list(included_nodes)
@@ -83,13 +81,13 @@ def _build_group_and(project, params, include_dynamic=False):
 	
 	found_sets = []
 	new_group = set([])
-	
-	key, value, operator = params
-	if key.lower() == 'id' and operator == '=':
-		new_group = set([value])
-	else:
-		new_group = set(project.get_by_meta(key, value, operator))
-	found_sets.append(new_group)
+	for group in params:
+		key, value, operator = group
+		if key.lower() == 'id' and operator == '=':
+			new_group = set([value])
+		else:
+			new_group = set(project.get_by_meta(key, value, operator))
+		found_sets.append(new_group)
 
 	for this_set in found_sets:
 		new_group = new_group.intersection(this_set)
