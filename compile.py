@@ -38,8 +38,8 @@ def _compile(self):
 def _compile_file(self, filename):
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
-        for dd in self.nodes[node_id].dynamic_definitions:
-            self._process_dynamic_def(dd)
+        # for dd in self.nodes[node_id].dynamic_definitions:
+        #     self._process_dynamic_def(dd)
         for dd in self.dynamic_defs(target=node_id):
             self._process_dynamic_def(dd)
 
@@ -50,11 +50,10 @@ def _process_dynamic_def(self, dynamic_definition):
 
     if not dynamic_definition.target_id:
         return
-    if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
+    if dynamic_definition.target_id not in self.nodes:
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
-    #print(dynamic_definition.target_id)
     outcome = []
     operations = sorted(dynamic_definition.operations, key = lambda op: op.phase) 
     for operation in operations:
@@ -78,7 +77,7 @@ def _process_dynamic_def(self, dynamic_definition):
     #     self.dynamic_memo[dynamic_definition.exports[0]] = {}
     #     self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = hash(final_output)
     
-    if dynamic_definition.target_id and dynamic_definition.target_id in self.nodes:
+    if dynamic_definition.target_id in self.nodes:
        
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
   
@@ -140,8 +139,6 @@ def build_final_output(dynamic_definition, contents):
         metadata_values, 
         #one_line = True )
         one_line = not dynamic_definition.multiline_meta)
-
-   
 
     final_contents = ''.join([
         ' ', ## TODO: Make leading space an option.

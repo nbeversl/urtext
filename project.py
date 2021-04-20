@@ -78,7 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.continuous_update = False
         #self.continuous_update = True
         self.path = path
@@ -98,7 +98,7 @@ class UrtextProject:
         self.compiled = False
         self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
         self.access_history = {}
         self.messages = {}
         self.title_completions = []
@@ -367,7 +367,7 @@ class UrtextProject:
 
     def _rewrite_titles(self, filename):
 
-        original_contents = self.files[filename].get_file_contents().result()
+        original_contents = self.files[filename]._get_file_contents()
         new_contents = original_contents
         offset = 0        
         for match in re.finditer(title_marker_regex, new_contents):
@@ -671,8 +671,8 @@ class UrtextProject:
             include_timestamp=self.settings['file_node_timestamp'])
         
         filename = node_id + '.txt'
-
-        self.files[filename].set_file_contents( contents )  
+        with open(os.path.join(self.path, filename), "w") as f:
+            f.write(contents )  
         self._parse_file(filename)
         return { 
                 'filename':filename, 
@@ -744,13 +744,11 @@ class UrtextProject:
         	return '•  '+contents + ' ' + metadata_block
 
     def dynamic_defs(self, target=None):
-        dynamic_defs = []
         for nid in self.nodes:
             if not target:
-                dynamic_defs.extend([d for d in self.nodes[nid].dynamic_definitions if d])
+                return  [d for d in self.nodes[nid].dynamic_definitions if d]
             else:
-                dynamic_defs.extend([d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target])
-        return dynamic_defs
+                return [d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target]
 
     """
     Project Navigation
@@ -1084,7 +1082,7 @@ class UrtextProject:
 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
-        file_contents = self.nodes[node_id].filename.get_file_contents().result()
+        file_contents = self.nodes[node_id].filename._get_file_contents()
         
 
         popped_node_id = node_id
@@ -1145,7 +1143,7 @@ class UrtextProject:
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         
-        contents =self.nodes[node_id].filename.get_file_contents().result()
+        contents =self.nodes[node_id].filename._get_file_contents()
 
         replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
 
@@ -1155,7 +1153,7 @@ class UrtextProject:
             self.nodes[node_id].filename.set_file_contents(replaced_file_contents)
             self._parse_file(self.nodes[node_id].filename)
         pulled_contents = contents[start:end]
-        full_current_contents = self.files[current_file].get_file_contents().result()
+        full_current_contents = self.files[current_file]._get_file_contents()
 
         # here we need to know the exact location of the returned link within the file
         span = link[3]
@@ -1219,7 +1217,7 @@ class UrtextProject:
             r'[^\}]>' ]         # finally node links
 
         for filename in list(self.files):
-            contents = self.files[filename].get_file_contents().result()
+            contents = self.files[filename]._get_file_contents()
             new_contents = contents
             for pattern in patterns_to_replace:
                 links = re.findall(pattern + original_id, new_contents)
@@ -1250,7 +1248,7 @@ class UrtextProject:
         
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
-            self.files[filename].set_file_contents(rewritten_contents)
+            self.files[filename]._set_file_contents(rewritten_contents)
         self._parse_file(filename)
         if self.continuous_update:
             self._compile()
