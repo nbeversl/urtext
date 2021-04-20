@@ -53,7 +53,7 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
                         self.params.append((key,v,delimiter))
 
     def _parse_flags(self, argument_string):
-        flag_regx = re.compile(r'[\s|\b]*-[\w|_]+(?=\s|$)')
+        flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
         for f in flag_regx.finditer(argument_string):
             self.flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')

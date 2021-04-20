@@ -25,7 +25,7 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 
 	name = "QUERY"
 	phase = 100
-	
+
 	def build_list(self, nodes, projects):
 		
 		for project in projects:
@@ -56,6 +56,8 @@ class Exclude(NodeQuery):
 	
 	name = ["EXCLUDE","-"]
 	phase = 105
+
+
 	def execute(self, nodes, projects, m_format):
 
 		excluded_nodes = set(self.build_list([], projects))
@@ -67,10 +69,13 @@ class Include(NodeQuery):
 	name = ["INCLUDE","+"] 	
 	phase = 100
 
+
 class Limit(UrtextFunctionWithInteger):
 
 	name = "LIMIT"
 	phase = 110
+
+
 	def execute(self, nodes, project, m_format):
 		if self.number:
 			return nodes[:self.number]

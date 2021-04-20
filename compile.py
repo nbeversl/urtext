@@ -78,9 +78,9 @@ def _process_dynamic_def(self, dynamic_definition):
     #     self.dynamic_memo[dynamic_definition.exports[0]] = {}
     #     self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = hash(final_output)
     
-    if dynamic_definition.target_id:
+    if dynamic_definition.target_id and dynamic_definition.target_id in self.nodes:
        
-        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)                    
+        changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
   
         self.nodes[dynamic_definition.target_id].dynamic = True
 
@@ -138,8 +138,8 @@ def build_final_output(dynamic_definition, contents):
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
-        one_line = True )
-        #one_line = not dynamic_definition.multiline_meta)
+        #one_line = True )
+        one_line = not dynamic_definition.multiline_meta)
 
    
 
@@ -153,8 +153,6 @@ def build_final_output(dynamic_definition, contents):
         final_contents = indent(final_contents, dynamic_definition.spaces)
 
     return final_contents
-
-
 
 def indent(contents, spaces=4):
   

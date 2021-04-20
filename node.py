@@ -298,15 +298,14 @@ class UrtextNode:
         return new_metadata.strip()
 
     def set_content(self, contents, preserve_metadata=False, bypass_check=False):
+        return self.executor.submit(self._set_content, 
+            contents, 
+            preserve_metadata=False, 
+            bypass_check=False)
 
-        with open(os.path.join(self.project_path, self.filename),
-                  'r',
-                  encoding='utf-8') as theFile:
-            file_contents = theFile.read()
-            
-        # if preserve_metadata:
-        #     contents += self.consolidate_metadata()
-
+    def _set_content(self, contents, preserve_metadata=False, bypass_check=False):
+        
+        file_contents = self.get_file_contents().result()
         start_range = self.ranges[0][0]
         end_range = self.ranges[-1][1]
 
@@ -314,11 +313,7 @@ class UrtextNode:
             file_contents[0:start_range],
             contents,
             file_contents[end_range:]]) 
-        
-        with open(os.path.join(self.project_path, self.filename),
-                  'w',
-                  encoding='utf-8') as theFile:
-            theFile.write(new_file_contents)
+        self.set_file(new_file_contents).result()
 
         return True
 

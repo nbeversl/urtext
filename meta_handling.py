@@ -44,7 +44,7 @@ def _tag_other_node(self, node_id, metadata={}):
     territory = self.nodes[node_id].ranges
     metadata_contents = UrtextNode.build_metadata(metadata)
    
-    full_file_contents = self._full_file_contents(node_id=node_id)
+    full_file_contents = self.nodes[node_id].filename.get_contents()
     tag_position = territory[-1][1]
 
     separator = '\n'
@@ -58,7 +58,7 @@ def _tag_other_node(self, node_id, metadata={}):
         separator,
         full_file_contents[tag_position:]])
 
-    self._set_file_contents(self.nodes[node_id].filename, new_contents)
+    self.nodes[node_id].filename.set_file_contents(new_contents)
     return self.on_modified(self.nodes[node_id].filename)
 
 def consolidate_metadata(self, node_id, one_line=False):
@@ -70,7 +70,7 @@ def consolidate_metadata(self, node_id, one_line=False):
     consolidated_metadata = self.nodes[node_id].consolidate_metadata(
         one_line=one_line)
 
-    file_contents = self._full_file_contents(node_id=node_id) 
+    file_contents = self.nodes[node_id].filename.get_contents()
     filename = self.nodes[node_id].filename
     length = len(file_contents)
     ranges = self.nodes[node_id].ranges
@@ -88,7 +88,7 @@ def consolidate_metadata(self, node_id, one_line=False):
     new_file_contents = file_contents[0:ranges[-1][1] - 2]
     new_file_contents += consolidated_metadata
     new_file_contents += file_contents[ranges[-1][1]:]
-    self._set_file_contents(filename, new_file_contents)
+    self.files[filename].set_file_contents(new_file_contents)
     self._parse_file(filename)
 
 def _rebuild_node_meta(self, node_id):

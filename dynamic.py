@@ -28,19 +28,25 @@ string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
 from urtext.functions.function import UrtextFunction
 from urtext.utils import force_list
-from urtext.functions.list import NodeList
-
-## temporary - these should get imported like plugins
-import urtext.functions.queries
-import urtext.functions.sort
 import urtext.functions.collect
-import urtext.functions.function
-import urtext.functions.tree
+import urtext.functions.include
 import urtext.functions.list
+import urtext.functions.sort
+import urtext.functions.tree
+from urtext.functions.list import NodeList
+from importlib import import_module
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'functions')):
+	if '.py' in i:
+		i = os.path.basename(os.path.splitext(i)[0])
+		import_module('urtext.functions.'+i)
 
 def all_subclasses(cls):
-    return set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+	return set(cls.__subclasses__()).union(
+		[s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
+print("FUNCTIONS LOADED")
+print (all_subclasses(UrtextFunction));
 
 class UrtextDynamicDefinition:
 	""" Urtext Dynamic Definition """
@@ -62,7 +68,7 @@ class UrtextDynamicDefinition:
 
 		self.init_self(contents)
 		if not self.show:
-			self.show = '$title $link'
+			self.show = '$title $link\n'
 			
 	def add_projects(self, projects):
 		self.projects.extend(force_list(projects))

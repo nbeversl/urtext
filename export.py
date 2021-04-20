@@ -158,7 +158,7 @@ class UrtextExport:
 
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
-        file_contents = self.project._full_file_contents(filename)        
+        file_contents = self.project.files[filename].get_full_contents()
         title = self.project.nodes[root_node_id].title
         meta_title = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
 

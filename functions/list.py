@@ -11,4 +11,4 @@ class NodeList(UrtextFunction):
 		for n in node_list:
 			added_contents = Tree('depth='+self.argument_string).execute(n, projects[0], m_format)
 			contents.append(added_contents)
-		return '\n'.join(contents)
+		return ''.join(contents)

@@ -72,8 +72,9 @@ class UrtextFile:
         self.strict = strict
         self.messages = []
         self.prefix = None
-        
-        contents = self.get_file_contents()        
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
+        contents = self.get_file_contents().result()       
         self.hash = self.hash_contents(contents)
         if self.hash == previous_hash:
             self.changed = False
@@ -316,7 +317,11 @@ class UrtextFile:
             root=root,
             compact=compact,
             )
-
+        
+        new_node.executor = self.executor
+        new_node.get_file_contents = self.get_file_contents
+        new_node.set_file_contents = self.set_file_contents
+        
         if new_node.id != None and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
@@ -337,6 +342,9 @@ class UrtextFile:
             return False
 
     def get_file_contents(self):
+        return self.executor.submit(self._get_file_contents)
+
+    def _get_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
             with open(
@@ -352,10 +360,16 @@ class UrtextFile:
             self.log_error('UnicodeDecode Error: f>' + self.filename)
             return None
         full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
-
-            
         return full_file_contents
     
+    
+    def set_file_contents(self, contents):
+        self.executor.submit(self._set_file_contents)
+
+    def _set_file_contents(self, contents):
+        with open(self.filename, 'w', encoding='utf-8') as theFile:
+            theFile.write(contents)
+
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
         if cleared_contents != contents:
@@ -373,7 +387,7 @@ class UrtextFile:
         if messages:
             self.messages = messages
             
-        contents = self.get_file_contents()  
+        contents = self.get_file_contents().result()
 
         messages = ''.join([ 
             '<!!\n',
@@ -396,12 +410,7 @@ class UrtextFile:
             contents,
             ])
 
-        with open(
-                self.filename,
-                'w',
-                encoding='utf-8',
-            ) as theFile:
-            theFile.write(new_contents)
+        self._set_file_contents(new_contents)
         self.nodes = {}
         self.root_nodes = []
         self.anonymous_nodes = []

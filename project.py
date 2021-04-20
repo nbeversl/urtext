@@ -366,8 +366,8 @@ class UrtextProject:
         return False
 
     def _rewrite_titles(self, filename):
-        print(filename)
-        original_contents = self._full_file_contents(filename=filename)
+
+        original_contents = self.files[filename].get_file_contents().result()
         new_contents = original_contents
         offset = 0        
         for match in re.finditer(title_marker_regex, new_contents):
@@ -522,19 +522,7 @@ class UrtextProject:
                     self.nodes[node_id].ranges[index][0] -= amount
                     self.nodes[node_id].ranges[index][1] -= amount
 
-    def _full_file_contents(self, filename='', node_id=''):
-        if node_id:
-            filename = self.nodes[node_id].filename
-        if not filename or not os.path.exists(os.path.join(self.path, filename)):
-            return None
-        with open(os.path.join(self.path, filename), 'r', encoding='utf-8') as theFile:
-            file_contents = theFile.read()
-            theFile.close()
-        return file_contents
-
-    def _set_file_contents(self, filename, contents):
-        with open(os.path.join(self.path, filename), 'w', encoding='utf-8') as theFile:
-            theFile.write(contents)
+ 
 
     def import_file(self, filename):
 
@@ -559,7 +547,7 @@ class UrtextProject:
 
         full_file_contents += contents
 
-        self._set_file_contents(filename,full_file_contents)
+        self.files[filename].set_file_contents(full_file_contents)
 
         return self._parse_file(filename)
 
@@ -684,7 +672,7 @@ class UrtextProject:
         
         filename = node_id + '.txt'
 
-        self._set_file_contents( filename, contents )  
+        self.files[filename].set_file_contents( contents )  
         self._parse_file(filename)
         return { 
                 'filename':filename, 
@@ -1096,7 +1084,8 @@ class UrtextProject:
 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
-        file_contents = self._full_file_contents(node_id=node_id)
+        file_contents = self.nodes[node_id].filename.get_file_contents().result()
+        
 
         popped_node_id = node_id
 
@@ -1156,24 +1145,24 @@ class UrtextProject:
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         
-        contents =self._full_file_contents(filename=self.nodes[node_id].filename)
-        
+        contents =self.nodes[node_id].filename.get_file_contents().result()
+
         replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
 
         if self.nodes[node_id].root_node:
             self.delete_file(self.nodes[node_id].filename)  
         else:
-            self._set_file_contents(self.nodes[node_id].filename, replaced_file_contents)
+            self.nodes[node_id].filename.set_file_contents(replaced_file_contents)
             self._parse_file(self.nodes[node_id].filename)
         pulled_contents = contents[start:end]
-        full_current_contents = self._full_file_contents(current_file)
+        full_current_contents = self.files[current_file].get_file_contents().result()
 
         # here we need to know the exact location of the returned link within the file
         span = link[3]
         replacement = string[span[0]:span[1]]
         wrapped_contents = ''.join(['{',pulled_contents,'}'])
         replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
-        self._set_file_contents(current_file, replacement_contents)
+        self.files[current_file].set_file_contents(replacement_contents)
         self._parse_file(current_file)
         
         return self._compile()  
@@ -1230,14 +1219,14 @@ class UrtextProject:
             r'[^\}]>' ]         # finally node links
 
         for filename in list(self.files):
-            contents = self._full_file_contents(filename)
+            contents = self.files[filename].get_file_contents().result()
             new_contents = contents
             for pattern in patterns_to_replace:
                 links = re.findall(pattern + original_id, new_contents)
                 for link in links:
                     new_contents = new_contents.replace(link, replacement, 1)
             if contents != new_contents:
-                self._set_file_contents(filename, new_contents)
+                self.files[filename].set_file_contents( new_contents)
                 if self.is_async:
                     self.executor.submit(self._file_update, filename)
                 else:
@@ -1261,7 +1250,7 @@ class UrtextProject:
         
         rewritten_contents = self._rewrite_titles(filename)
         if rewritten_contents:
-            self._set_file_contents(filename, rewritten_contents)
+            self.files[filename].set_file_contents(rewritten_contents)
         self._parse_file(filename)
         if self.continuous_update:
             self._compile()
