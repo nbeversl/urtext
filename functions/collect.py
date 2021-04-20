@@ -150,7 +150,7 @@ class Collect (UrtextFunctionWithParamsFlags):
             for index in range(0, len(sorted_stuff)):
 
                  item = sorted_stuff[index]
-                 print(m_format)
+
                  next_content = DynamicOutput( m_format, project.settings)
                       
                  if next_content.needs_title:

@@ -94,14 +94,16 @@ class ProjectList():
         link = self.current_project.get_link(string, position=position)
         return link
 
-    def on_modified(self, filename):
-        if self.set_current_project(os.path.dirname(filename)):
+    def on_modified(self, filenames):
+        if not isinstance(filenames, list):
+            filenames = [filenames]
+        if self.set_current_project(os.path.dirname(filenames[0])):
             if self.current_project.is_async:
-                future = self.current_project.on_modified(filename)
+                future = self.current_project.on_modified(filenames)
                 result = future.result()
                 self.executor.submit(self._propagate_projects, future)
             else:
-                new_filename = self.current_project.on_modified(filename)            
+                new_filename = self.current_project.on_modified(filenames)            
                 return new_filename
         
     def _propagate_projects(self, future):

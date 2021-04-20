@@ -36,12 +36,13 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename):
+    modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
-        # for dd in self.nodes[node_id].dynamic_definitions:
-        #     self._process_dynamic_def(dd)
         for dd in self.dynamic_defs(target=node_id):
-            self._process_dynamic_def(dd)
+            if self._process_dynamic_def(dd) and not modified:
+                modified = filename
+    return modified
 
 def _process_dynamic_def(self, dynamic_definition):
 
@@ -76,11 +77,13 @@ def _process_dynamic_def(self, dynamic_definition):
     # if dynamic_definition.exports:
     #     self.dynamic_memo[dynamic_definition.exports[0]] = {}
     #     self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = hash(final_output)
-    
+   
     if dynamic_definition.target_id in self.nodes:
        
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
-  
+        if changed_file:
+            self._parse_file(changed_file)
+      
         self.nodes[dynamic_definition.target_id].dynamic = True
 
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
@@ -88,45 +91,10 @@ def _process_dynamic_def(self, dynamic_definition):
             self.nodes[dynamic_definition.target_id].title = ''
 
         messages_file = self._populate_messages()
+    
+        return changed_file
 
-    # if dynamic_definition.exports:
-
-    #     for e in dynamic_definition.exports:
-
-    #         exported = UrtextExport(self) 
-    #         exported_content = ''
-    #         for node in included_nodes:
-    #             node_export, points = exported.export_from(
-    #                  node.id,
-    #                  kind=e.output_type,
-    #                  exclude=list(excluded_nodes),
-    #                  as_single_file=True, # TODO should be option 
-    #                  #clean_whitespace=True,
-    #                  preformat=e.preformat)
-                
-    #             exported_content += '\n'+node_export
-
-    #         for n in e.to_nodes:
-                
-    #             if n in self.nodes:
-                    
-    #                 metadata_values = { 
-    #                     'ID': [ n ],
-    #                     'def' : [ '>'+dynamic_definition.source_id ] }
-
-    #                 built_metadata = UrtextNode.build_metadata(
-    #                     metadata_values, 
-    #                     one_line = True)
-    #                     #not dynamic_definition.multiline_meta)
-
-    #                 changed_file = self._set_node_contents(n, exported_content + built_metadata)                       
-    #                 self.nodes[n].export_points = points           
-    #                 self.nodes[n].dynamic = True
-
-    #         for f in e.to_files:
-    #             with open(os.path.join(self.path, f), 'w',encoding='utf-8') as f:
-    #                 f.write(exported_content)
-
+    return None
 
 def build_final_output(dynamic_definition, contents):
 

@@ -367,8 +367,12 @@ class UrtextFile:
     #     self.executor.submit(self._set_file_contents)
 
     def _set_file_contents(self, contents):
-        with open(self.filename, 'w', encoding='utf-8') as theFile:
-            theFile.write(contents)
+        existing_contents = self._get_file_contents()
+        if contents != existing_contents:
+            with open(self.filename, 'w', encoding='utf-8') as theFile:
+                theFile.write(contents)
+            return True
+        return False
 
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)

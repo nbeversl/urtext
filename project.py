@@ -78,9 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
-        self.continuous_update = False
-        #self.continuous_update = True
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -497,16 +495,18 @@ class UrtextProject:
                 return node, target_position+offset
 
     def _set_node_contents(self, node_id, contents):
-        """ project-aware alias for the Node set_content() method """
+        """ 
+        project-aware alias for the Node set_content() method 
+        returns filename if contents has changed.
 
-        self._parse_file(self.nodes[node_id].filename)
-        if node_id not in self.nodes:
-            print('NODE LOST')
-            print(contents)
-        self.nodes[node_id].set_content(contents, preserve_metadata=True)
+        """
         self._parse_file(self.nodes[node_id].filename)
         if node_id in self.nodes:
-            return self.nodes[node_id].filename
+            file_changed = self.nodes[node_id].set_content(contents, preserve_metadata=True)       
+            if file_changed:
+                self._parse_file(self.nodes[node_id].filename)
+                if node_id in self.nodes:
+                    return self.nodes[node_id].filename
         return False
 
     def _adjust_ranges(self, filename, from_position, amount):
@@ -937,7 +937,7 @@ class UrtextProject:
                 else:
                     position = 0
                 position = self.get_file_position(link, position)
-                if not self.continuous_update and link in self.nodes:
+                if link in self.nodes:
                      self.executor.submit(self._compile_file, self.nodes[link].filename)
         else:
             result = re.search(editor_file_link_regex, string)            
@@ -1116,8 +1116,6 @@ class UrtextProject:
             f.write(popped_node_contents)
         self._parse_file(popped_node_id+'.txt') 
         
-        #self._compile()  
-
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
         if self.is_async:
@@ -1166,8 +1164,6 @@ class UrtextProject:
         replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
         self.files[current_file].set_file_contents(replacement_contents)
         self._parse_file(current_file)
-        
-        return self._compile()  
 
     def titles(self):
         title_list = {}
@@ -1234,48 +1230,43 @@ class UrtextProject:
                 else:
                     self._file_update(filename)
                     
-    def on_modified(self, filename):
+    def on_modified(self, filenames):
+        if not isinstance(filenames, list):
+            filenames = [filenames]
         if self.is_async:
-            return self.executor.submit(self._on_modified, filename)
-        return self._on_modified(filename)
+            return self.executor.submit(self._on_modified, filenames)
+        return self._on_modified(filenames)
 
-    def _on_modified(self, filename):
-
+    def _on_modified(self, filenames):
+        #self._sync_file_list() #?
         do_not_update = ['history','files']
-        self._sync_file_list()
-        filename = os.path.basename(filename)
-        if filename in do_not_update or '.git' in filename:
-            return (True, '')
-        return self._file_update(filename)
+        return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
 
-    def _file_update(self, filename):
-        
-        rewritten_contents = self._rewrite_titles(filename)
-        if rewritten_contents:
-            self.files[filename]._set_file_contents(rewritten_contents)
-        self._parse_file(filename)
-        if self.continuous_update:
-            self._compile()
-        else: # incremental update
-            self._compile_file(filename)
-        return filename
+    def _file_update(self, filenames):
+        modified_files = []
+        for f in filenames:
+            rewritten_contents = self._rewrite_titles(f)
+            if rewritten_contents:
+                self.files[f]._set_file_contents(rewritten_contents)
+            self._parse_file(f)
+            modified_file = self._compile_file(f)
+            if modified_file:
+                modified_files.append(modified_file)
+        return modified_files
 
     def _sync_file_list(self):
-        filelist = os.listdir(self.path)
         new_files = []
-        for file in filelist:
+        for file in [f for f in os.listdir(self.path) if os.path.basename(f) not in self.files]:
             if self._filter_filenames(file) == None:
                 continue
-            if os.path.basename(file) not in self.files:
-                duplicate_node_ids = self._parse_file(file)
-                if not duplicate_node_ids:
-                    self._log_item(file+' found. Adding to "'+self.title+'"')    
-                    new_files.append(os.path.basename(file))
-        for filename in list(self.files):
-            if filename not in filelist:
-                self._log_item(filename+' no longer seen in project path. Dropping it from the project.')
-                self.remove_file(filename)
-        return new_files
+            duplicate_node_ids = self._parse_file(file)
+            if not duplicate_node_ids:
+                self._log_item(file+' found. Adding to "'+self.title+'"')    
+                new_files.append(os.path.basename(file))
+        lost_files = [f for f in self.files if f not in os.listdir(self.path)]
+        for f in lost_files:
+            self._log_item(f+' no longer seen in project path. Dropping it from the project.')
+            self.remove_file(f)
 
     def add_file(self, filename):
         """ 
@@ -1293,15 +1284,11 @@ class UrtextProject:
             else:
                 self._compile()
 
-
     def remove_file(self, filename, is_async=True):
         if self.is_async and is_async:
             self.executor.submit(self._remove_file, os.path.basename(filename))
-            #return self.executor.submit(self._compile)
         else:
-            self._remove_file(os.path.basename(filename))
-            
-            #self._compile()
+            self._remove_file(os.path.basename(filename)) 
     
     def get_file_name(self, node_id, absolute=False):
         filename = None
@@ -1324,8 +1311,7 @@ class UrtextProject:
         history_file = os.path.join(self.path, 'history',filename.replace('.txt','.diff'))
         file_history = self.get_history(filename)
         if not file_history:
-            file_history = {}
-            file_history[int(time.time())] = contents
+            file_history = { int(time.time()) : contents}
             with open( history_file, "w") as f:
             	f.write(json.dumps(file_history))
         else:

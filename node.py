@@ -313,9 +313,7 @@ class UrtextNode:
             file_contents[0:start_range],
             contents,
             file_contents[end_range:]]) 
-        self.set_file_contents(new_file_contents)
-
-        return True
+        return self.set_file_contents(new_file_contents)
 
 
 def strip_contents(contents, preserve_length=False):
