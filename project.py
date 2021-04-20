@@ -78,7 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.continuous_update = False
         #self.continuous_update = True
         self.path = path
@@ -744,11 +744,14 @@ class UrtextProject:
         	return '•  '+contents + ' ' + metadata_block
 
     def dynamic_defs(self, target=None):
+        dd = []
         for nid in self.nodes:
+
             if not target:
-                return  [d for d in self.nodes[nid].dynamic_definitions if d]
+                dd.extend([d for d in self.nodes[nid].dynamic_definitions if d])
             else:
-                return [d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target]
+                dd.extend([d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target])
+        return dd
 
     """
     Project Navigation
@@ -1112,7 +1115,8 @@ class UrtextProject:
         with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
         self._parse_file(popped_node_id+'.txt') 
-        self._compile()  
+        
+        #self._compile()  
 
     def pull_node(self, string, current_file, current_position):
         """ File must be saved in the editor first for this to work """
@@ -1293,10 +1297,11 @@ class UrtextProject:
     def remove_file(self, filename, is_async=True):
         if self.is_async and is_async:
             self.executor.submit(self._remove_file, os.path.basename(filename))
-            return self.executor.submit(self._compile)
+            #return self.executor.submit(self._compile)
         else:
             self._remove_file(os.path.basename(filename))
-            self._compile()
+            
+            #self._compile()
     
     def get_file_name(self, node_id, absolute=False):
         filename = None
