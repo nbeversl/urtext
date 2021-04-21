@@ -97,41 +97,25 @@ def _add_sub_tags(self,
     target_id,
     entry):
 
-    to_tag = self.nodes[target_id].tree_node.children
+    children = self.nodes[target_id].tree_node.children
     
     for child in children:
 
-        """
-        This is currently necessary because of how node pointers
-        are handled in tree-building.
-        FUTURE: there may be a better way to handle this.
-        """
         node_to_tag = child.name.strip('ALIAS') 
-
-        if source_id not in self.dynamic_meta:
-            self.dynamic_meta[source_id] = { 'entries' : [] , 'targets' : []}
 
         if node_to_tag in self.nodes: # and node_to_tag not in self.dynamic_meta[source_id]['targets']: # bug fix.
             self.nodes[node_to_tag].metadata.add_meta_entry(
                 entry.keyname, 
                 entry.values,
                 from_node=source_id)
-            self.dynamic_meta[source_id]['targets'].append(node_to_tag)
-            if entry not in self.dynamic_meta[source_id]['entries']:
-                self.dynamic_meta[source_id]['entries'].append(entry)
-            self.dynamic_meta[source_id]['entries'].append(entry)
-            if entry.recursive:
+            self.nodes[source_id].target_nodes.append(node_to_tag)
+             if entry.recursive:
                 self._add_sub_tags(source_id, node_to_tag, entry)
 
 def _remove_sub_tags(self, source_id):
 
-    if source_id not in self.dynamic_meta:
-        return
-
-    for target_id in self.dynamic_meta[source_id]['targets']:
-        if target_id in self.nodes:
-            self.nodes[target_id].metadata.clear_from_source(source_id)                           
-
-    del self.dynamic_meta[source_id]
+    for target_id in self.nodes[source_id].target_nodes:
+         if target_id in self.nodes:
+             self.nodes[target_id].metadata.clear_from_source(source_id)                           
 
 metadata_functions = [ _add_sub_tags,  _tag_other_node, _remove_sub_tags, consolidate_metadata, tag_other_node]

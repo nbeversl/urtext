@@ -67,11 +67,11 @@ class UrtextNode:
         self.tz = pytz.timezone('UTC')
         self.prefix = None
         self.project_settings = False
-        self.dynamic_definitions = {}
         self.compact = compact
         self.parent_project = None
         self.last_accessed = 0
         self.dynamic_definitions = []
+        self.target_nodes = []
         self.blank = False
         self.title = None
         self.hashed_contents = hash(contents)
