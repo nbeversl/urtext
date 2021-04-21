@@ -78,7 +78,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.h_content = {}
@@ -323,16 +323,15 @@ class UrtextProject:
             self._add_node(new_file.nodes[node_id])
         
         self._set_tree_elements(new_file.basename)
-        
-        for node_id in new_file.nodes:
-            self._rebuild_node_meta(node_id)
 
         """
         If this is not the initial load of the project rebuild sub-tags
         """        
         if self.compiled:
+            print('ADDING SUB TAGS')
             for node_id in new_file.nodes:
-                for e in self.nodes[node_id].metadata.dynamic_entries:                
+                for e in self.nodes[node_id].metadata.dynamic_entries:
+                    e.log()
                     self._add_sub_tags( node_id, node_id, e)
     
         """ returns None if successful """

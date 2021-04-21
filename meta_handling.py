@@ -91,37 +91,13 @@ def consolidate_metadata(self, node_id, one_line=False):
     self.files[filename].set_file_contents(new_file_contents)
     self._parse_file(filename)
 
-def _rebuild_node_meta(self, node_id):
-    """ Rebuild metadata for a single node """
-
-    for entry in self.nodes[node_id].metadata._entries:
-
-        # title becomes a node property elsewhere, skip
-        if entry.keyname == 'title':
-           continue 
-
-        keyname = entry.keyname.lower()
- 
-        for value in entry.values:
-                     
-            if isinstance(value, str) and keyname not in self.settings['case_sensitive']:
-                value = value.lower() # all comparisons case insensitive
-  
-            if keyname in self.settings['numerical_keys']:
-                try:
-                    value = float(value)
-                except ValueError:
-                    print('cannot parse '+value+' as a numerical key')
-                    continue
-
             
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata
     target_id,
     entry):
 
-    nodes_to_rebuild = []   
-    children = self.nodes[target_id].tree_node.children
+    to_tag = self.nodes[target_id].tree_node.children
     
     for child in children:
 
@@ -135,7 +111,7 @@ def _add_sub_tags(self,
         if source_id not in self.dynamic_meta:
             self.dynamic_meta[source_id] = { 'entries' : [] , 'targets' : []}
 
-        if node_to_tag in self.nodes and node_to_tag not in self.dynamic_meta[source_id]['targets']:
+        if node_to_tag in self.nodes: # and node_to_tag not in self.dynamic_meta[source_id]['targets']: # bug fix.
             self.nodes[node_to_tag].metadata.add_meta_entry(
                 entry.keyname, 
                 entry.values,
@@ -144,31 +120,18 @@ def _add_sub_tags(self,
             if entry not in self.dynamic_meta[source_id]['entries']:
                 self.dynamic_meta[source_id]['entries'].append(entry)
             self.dynamic_meta[source_id]['entries'].append(entry)
-            if node_to_tag not in nodes_to_rebuild:
-                nodes_to_rebuild.append(node_to_tag)
             if entry.recursive:
                 self._add_sub_tags(source_id, node_to_tag, entry)
-
-    for node_id in nodes_to_rebuild:
-        self._rebuild_node_meta(node_id)
 
 def _remove_sub_tags(self, source_id):
 
     if source_id not in self.dynamic_meta:
         return
 
-    nodes_to_rebuild = []
-    
     for target_id in self.dynamic_meta[source_id]['targets']:
         if target_id in self.nodes:
             self.nodes[target_id].metadata.clear_from_source(source_id)                           
-            if target_id not in nodes_to_rebuild:
-                nodes_to_rebuild.append(target_id)
 
     del self.dynamic_meta[source_id]
 
-    # rebuild meta for all the target nodes
-    for node_id in nodes_to_rebuild:
-        self._rebuild_node_meta(node_id)
-
-metadata_functions = [ _add_sub_tags,  _tag_other_node, _remove_sub_tags, _rebuild_node_meta, consolidate_metadata, tag_other_node]
+metadata_functions = [ _add_sub_tags,  _tag_other_node, _remove_sub_tags, consolidate_metadata, tag_other_node]

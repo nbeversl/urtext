@@ -85,7 +85,7 @@ class NodeMetadata:
         self._sort()       
         self.add_system_keys()
         self._last_accessed = 0
-        
+
     def _sort(self):
         """ from extant entries, populate a dict by key"""
         
@@ -99,7 +99,7 @@ class NodeMetadata:
             self._entries = sorted(self._entries, key = lambda entry: entry.position)
             for i in range(len(self._entries)):
                 self._entries[i].index = i
-                self._entries[i].node = self.node_id
+                self._entries[i].node = self.node.id
 
     def add_system_keys(self):
 
