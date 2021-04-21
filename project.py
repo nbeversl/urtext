@@ -83,7 +83,6 @@ class UrtextProject:
         self.nodes = {}
         self.h_content = {}
         self.files = {}
-        self.keynames = {}
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []

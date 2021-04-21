@@ -27,7 +27,7 @@ from urtext.timestamp import UrtextTimestamp, default_date
 timestamp_match = re.compile('(?:<)([^-/<\s][^=<]*?)(?:>)')
 inline_meta = re.compile('\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
-
+dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 
 
 """
@@ -95,12 +95,11 @@ class NodeMetadata:
             if e not in self.entries[e.keyname]:
                self.entries[e.keyname].append(e)
 
-        node_id = self.node.id
-        if node_id:
+        if self.node.id:
             self._entries = sorted(self._entries, key = lambda entry: entry.position)
             for i in range(len(self._entries)):
                 self._entries[i].index = i
-                self._entries[i].node = node_id
+                self._entries[i].node = self.node_id
 
     def add_system_keys(self):
 
@@ -267,8 +266,6 @@ class MetadataEntry:  # container for a single metadata entry
 def parse_contents(full_contents, settings=None):
 
     parsed_contents = full_contents
-
-    dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
     dynamic_definitions = []
     
     for d in dynamic_def_regexp.finditer(full_contents):
@@ -297,8 +294,6 @@ def parse_contents(full_contents, settings=None):
         value_list = value.split('|')
 
         for value in value_list:
-            # if key not in settings['case_sensitive']:
-            #     value = value.lower()
             value = value.strip()
             if key in settings['numerical_keys']:
                 try:
@@ -312,10 +307,10 @@ def parse_contents(full_contents, settings=None):
         children = False
         if key[0] == '*' :
             children = True
-            key = key[1:]
+            key = key[1:] #cdr
             if key[0] == '*' :
                 recursive = True
-                key = key[1:]
+                key = key[1:] #cdr
 
         end_position = m.start() + len(m.group())
 
@@ -330,8 +325,7 @@ def parse_contents(full_contents, settings=None):
 
         if children or recursive:
             dynamic_entries.append(entry)
-        else:
-            entries.append(entry)
+        entries.append(entry)
 
         parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 

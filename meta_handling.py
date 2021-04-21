@@ -101,7 +101,6 @@ def _rebuild_node_meta(self, node_id):
            continue 
 
         keyname = entry.keyname.lower()
-        self.keynames.setdefault(keyname, [])
  
         for value in entry.values:
                      
@@ -115,8 +114,6 @@ def _rebuild_node_meta(self, node_id):
                     print('cannot parse '+value+' as a numerical key')
                     continue
 
-            if value not in self.keynames[keyname]:
-                self.keynames[keyname].append(value)
             
 def _add_sub_tags(self, 
     source_id, # ID containing the metadata
