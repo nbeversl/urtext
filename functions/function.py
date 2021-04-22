@@ -24,11 +24,11 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
     def __init__(self, argument_string):
         super().__init__(argument_string)
         self.params = []
+        self.params_dict = {}
         self.flags = []
         no_flags = self._parse_flags(argument_string)
         self._parse_params(no_flags)
-
-    
+        
     def _parse_params(self, argument_string):
 
         def separate(string, delimiter=';'):
@@ -51,6 +51,9 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
                 if value:
                     for v in value:
                         self.params.append((key,v,delimiter))
+
+        for param in self.params:
+            self.params_dict[param[0]] = param[1:]
 
     def _parse_flags(self, argument_string):
         flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')

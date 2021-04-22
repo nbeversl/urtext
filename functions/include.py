@@ -31,8 +31,11 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 		for project in projects:
 
 			if '-all' in self.flags:
-				added_nodes = set([node_id for node_id in project.nodes])
-			
+				if self.have_flags('-include_dynamic'):
+					added_nodes = set([node_id for node_id in project.nodes])
+				else:
+					added_nodes = set([node_id for node_id in project.nodes if not project.nodes[node_id].dynamic])
+		
 			else: 
 				added_nodes = set([])
 				if self.have_flags('-blank'):
