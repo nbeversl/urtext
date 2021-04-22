@@ -322,14 +322,13 @@ class ProjectList():
         return next_node
     
 
-    def delete_file(self, file_name, project=None):
-        self.executor.submit(self._delete_file, file_name, project=project)
+    def delete_file(self, file_name, project=None, open_files=[]):
+        self.executor.submit(self._delete_file, file_name, project=project, open_files=open_files)
 
-    def _delete_file(self, file_name, project=None):
+    def _delete_file(self, file_name, project=None, open_files=[]):
         if not project:
             project = self.current_project
-        file_name = os.path.basename(file_name)
-        removed_node_ids = project.delete_file(file_name).future()
+        removed_node_ids = project.delete_file(os.path.basename(file_name), open_files=open_files).future()
         for node_id in removed_node_ids:
             navigation_entry = (project.title, node_id)
             while navigation_entry in self.navigation:

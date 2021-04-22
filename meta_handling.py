@@ -103,13 +103,13 @@ def _add_sub_tags(self,
 
         node_to_tag = child.name.strip('ALIAS') 
 
-        if node_to_tag in self.nodes: # and node_to_tag not in self.dynamic_meta[source_id]['targets']: # bug fix.
+        if node_to_tag in self.nodes:
             self.nodes[node_to_tag].metadata.add_meta_entry(
                 entry.keyname, 
                 entry.values,
                 from_node=source_id)
             self.nodes[source_id].target_nodes.append(node_to_tag)
-             if entry.recursive:
+            if entry.recursive:
                 self._add_sub_tags(source_id, node_to_tag, entry)
 
 def _remove_sub_tags(self, source_id):

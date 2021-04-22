@@ -4,10 +4,45 @@
 # Automatic keyword extraction from indi-vidual documents. 
 # In M. W. Berry and J. Kogan (Eds.), Text Mining: Applications and Theory.unknown: John Wiley and Sons, Ltd.
 
+
 import re
 import operator
-from urtext.stopwords import stop_words as stop_word_list
-debug = False
+from urtext.hooks.nodehook import NodeHook
+from urtext.hooks.stopwords import stop_words as stop_word_list
+import concurrent.futures
+
+class AddRakeKeywords(NodeHook):
+
+    def __init__(self, node):
+        self.node = node 
+
+    def run(self):
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        executor.submit(self.parse_node)
+
+    def parse_node(self):
+        self.node.rake = Rake(self.node.content_only())
+
+class Rake():
+
+    def __init__(self, contents):
+        self.__stop_words_pattern = build_stop_word_regex()
+        self.run(contents)
+
+    def run(self, text):
+        sentence_list = split_sentences(text)
+        phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern)
+        word_scores = calculate_word_scores(phrase_list)
+        keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores)
+        sorted_keywords = sorted(keyword_candidates.items(), key=operator.itemgetter(1), reverse=True)
+        
+
+    def parse_keywords(self, parsed_contents):
+        self.keywords = [t[0] for t in r.run(parsed_contents)]
+
+    def has_keyword(self, keyword):
+        return True if keyword in self.keywords else False
+
 
 def is_number(s):
     try:
@@ -99,23 +134,6 @@ def generate_candidate_keyword_scores(phrase_list, word_score):
             candidate_score += word_score[word]
         keyword_candidates[phrase] = candidate_score
     return keyword_candidates
-
-
-class Rake(object):
-    def __init__(self):
-        self.__stop_words_pattern = build_stop_word_regex()
-
-    def run(self, text):
-        sentence_list = split_sentences(text)
-
-        phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern)
-
-        word_scores = calculate_word_scores(phrase_list)
-
-        keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores)
-
-        sorted_keywords = sorted(keyword_candidates.items(), key=operator.itemgetter(1), reverse=True)
-        return sorted_keywords
 
 
 

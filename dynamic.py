@@ -46,7 +46,8 @@ def all_subclasses(cls):
 		[s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
 print("FUNCTIONS LOADED")
-print (all_subclasses(UrtextFunction));
+all_functions = all_subclasses(UrtextFunction)
+print(all_functions)
 
 class UrtextDynamicDefinition:
 	""" Urtext Dynamic Definition """

@@ -19,9 +19,50 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
-from urtext.node import UrtextNode, strip_contents
+
+# formerly in project.py:
 
 
+# """
+# Export
+# """
+# def is_in_export(self, filename, position):
+
+#     node_id = self.get_node_id_from_position(filename, position)
+#     if not node_id:
+#         return False
+#     for export_range in self.nodes[node_id].export_points:
+#         if position in range(export_range[0],export_range[1]):
+#             # returns tuple (id, starting_position)
+#             return self.nodes[node_id].export_points[export_range]
+#     return False
+
+        
+# def export_from_root_node(self, root_node_id):
+#         export = UrtextExport(self)
+#         contents = export.export_from(
+#             root_node_id, 
+#             kind='plaintext',
+#             as_single_file=True)
+#         return contents[0]
+
+# if definition.exports:
+#     for e in definition.exports:
+#         for f in e.to_files:
+#             defined = self._target_file_defined(f)
+#             if defined and defined != new_node.id:
+#                 message = ''.join([ 
+#                               'File >f' , f ,
+#                               ' has duplicate definition in >' , new_node.id ,
+#                               '. Keeping the definition in >' , defined , '.'
+#                               ])
+#                 self.message[new_node.filename].append(message)
+#                 self._log_item(message)
+#                 definition = None
+
+
+
+            
 # # from old dynamic defcinition code -- needs to be re-added
 # if func in ['EXPORT','X']:
     

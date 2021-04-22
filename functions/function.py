@@ -1,9 +1,4 @@
 import re
-node_id_regex = r'>[0-9,a-z]{3}\b'
-filename_regex = r'f>[^;]*'
-key_value_regex = re.compile('([^\s]+?):([^\s"]+)')
-string_meta_regex = re.compile('([^\s]+?):("[^"]+?")')
-entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?')
 from urtext.utils import force_list
 
 ## Base function class

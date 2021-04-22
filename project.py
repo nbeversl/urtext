@@ -33,18 +33,18 @@ import pprint
 from anytree import Node, PreOrderIter, RenderTree
 
 from anytree import Node, PreOrderIter, RenderTree
-from urtext.rake import Rake
 from urtext.file import UrtextFile
-from urtext.interlinks import Interlinks
 from urtext.node import UrtextNode, strip_contents
 from urtext.compile import compile_functions
 from urtext.functions.tree import trees_functions
 from urtext.meta_handling import metadata_functions
-from urtext.reindex import reindex_functions
-from urtext.search import search_functions
+
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
+from urtext.hooks.nodehook import NodeHook
+from urtext.triggers.trigger import UrtextTrigger
+from importlib import import_module
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 node_link_regex = r'>[0-9,a-z]{3}\b'
@@ -54,8 +54,28 @@ node_id_regex = r'\b[0-9,a-z]{3}\b'
 functions = trees_functions
 functions.extend(compile_functions)
 functions.extend(metadata_functions)
-functions.extend(reindex_functions)
-functions.extend(search_functions)
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'hooks')):
+    if '.py' in i:
+        i = os.path.basename(os.path.splitext(i)[0])
+        import_module('urtext.hooks.'+i)
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'triggers')):
+    if '.py' in i:
+        i = os.path.basename(os.path.splitext(i)[0])
+        import_module('urtext.triggers.'+i)
+
+def all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
+print("HOOKS LOADED")
+all_node_hooks = all_subclasses(NodeHook);
+print(all_node_hooks)
+
+print("TRIGGERS LOADED")
+all_triggers = all_subclasses(UrtextTrigger);
+print(all_triggers)
 
 
 def add_functions_as_methods(functions):
@@ -89,8 +109,6 @@ class UrtextProject:
         self.settings_initialized = False
         self.dynamic_memo = {}
         self.watchdog = watchdog
-        # dict of nodes tagged recursively from parent/ancestors
-        self.dynamic_meta = { } # { source_id :  { 'entries' : [] , 'targets' : [] } }
         self.quick_loaded = False
         self.compiled = False
         self.loaded = False
@@ -98,10 +116,8 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
         self.access_history = {}
         self.messages = {}
-        self.title_completions = []
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
-        self.keywords = {}
         self._initialize_settings()
         if self.is_async:
             future = self.executor.submit(self.quick_load, import_project=import_project)
@@ -328,10 +344,8 @@ class UrtextProject:
         If this is not the initial load of the project rebuild sub-tags
         """        
         if self.compiled:
-            print('ADDING SUB TAGS')
-            for node_id in new_file.nodes:
+             for node_id in new_file.nodes:
                 for e in self.nodes[node_id].metadata.dynamic_entries:
-                    e.log()
                     self._add_sub_tags( node_id, node_id, e)
     
         """ returns None if successful """
@@ -430,20 +444,6 @@ class UrtextProject:
                     self._log_item(message)
 
                     definition = None
-
-            # if definition.exports:
-            #     for e in definition.exports:
-            #         for f in e.to_files:
-            #             defined = self._target_file_defined(f)
-            #             if defined and defined != new_node.id:
-            #                 message = ''.join([ 
-            #                               'File >f' , f ,
-            #                               ' has duplicate definition in >' , new_node.id ,
-            #                               '. Keeping the definition in >' , defined , '.'
-            #                               ])
-            #                 self.message[new_node.filename].append(message)
-            #                 self._log_item(message)
-            #                 definition = None
                        
         if len(new_node.metadata.get_first_value('ID')) > 1:
             message = ''.join([ 
@@ -467,14 +467,12 @@ class UrtextProject:
         if new_node.project_settings:
             self._get_settings_from(new_node)            
 
-    def export_from_root_node(self, root_node_id):
-        export = UrtextExport(self)
-        contents = export.export_from(
-            root_node_id, 
-            kind='plaintext',
-            as_single_file=True)
-        return contents[0]
-    
+        self._run_node_hooks(new_node)
+
+    def _run_node_hooks(self, node):
+        for c in all_node_hooks:
+            hook = c(node)
+            hook.run()
 
     def get_source_node(self, filename, position):
         if filename not in self.files:
@@ -520,7 +518,6 @@ class UrtextProject:
                     self.nodes[node_id].ranges[index][0] -= amount
                     self.nodes[node_id].ranges[index][1] -= amount
 
- 
 
     def import_file(self, filename):
 
@@ -548,14 +545,6 @@ class UrtextProject:
         self.files[filename].set_file_contents(full_file_contents)
 
         return self._parse_file(filename)
-
-    def get_node_relationships(self, 
-        node_id, 
-        omit=[]):
-
-        return Interlinks(self, 
-            node_id, 
-            omit=omit).render_tree()
 
     def _list_messages(self):
         pass
@@ -598,21 +587,20 @@ class UrtextProject:
 
             del self.files[filename]
 
-    def delete_file(self, filename):
+    def delete_file(self, filename, open_files=[]):
         if self.is_async:
-            return self.executor.submit(self._delete_file, filename)
+            return self.executor.submit(self._delete_file, filename, open_files=open_files)
         else:
-            return self._delete_file(filename)
+            return self._delete_file(filename, open_files=open_files)
 
-    def _delete_file(self, filename):
+    def _delete_file(self, filename, open_files=[]):
         """
         Deletes a file, removes it from the project,
         and returns a future of modified files.
         """
         filename = os.path.basename(filename)
         if filename in self.files:
-            node_ids = list(self.files[filename].nodes)
-            for node_id in node_ids:
+            for node_id in list(self.files[filename].nodes):
                 while node_id in self.navigation:
                     index = self.navigation.index(node_id)
                     del self.navigation[index]
@@ -620,7 +608,9 @@ class UrtextProject:
                         self.nav_index -= 1            
             self.remove_file(filename, is_async=False)
             os.remove(os.path.join(self.path, filename))
-            return node_ids
+        
+        if open_files:
+            return self.on_modified(open_files)
         return []
     
     def _handle_renamed(self, old_filename, new_filename):
@@ -884,11 +874,13 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        
-        link = None
+       
     
         # start after cursor    
         link = self.find_link(string[position:])
+
+        if not link:
+            return
 
         # then work backwards along the whole line
         if not link[0]:
@@ -914,14 +906,25 @@ class UrtextProject:
 
     def find_link(self, string):
 
-        node_link_regex = re.compile('(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+        node_link_regex = re.compile(r'(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+        trigger_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
         editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
-        url_scheme = re.compile('http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+        url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
         kind = ''
         result = None
         link = ''
         position = 0
+        result = trigger_regex.search(string)
+        if result:
+            trigger = result.group(1)
+            print(trigger)
+            for t in all_triggers:
+                if t.name == trigger:
+                    r = t(result.group(2))
+                    r.execute(self)
+                    return None
+
         result = re.search(node_link_regex, string)        
         link_location = None
         if result:
@@ -948,13 +951,7 @@ class UrtextProject:
                     kind ='HTTP'
                     link = result.group().strip()
 
-        
         return (kind, link, position, link_location)
-             
-    def build_collection(self):
-        """ Returns a collection of context-aware metadata anchors """ 
-        s = UrtextDynamicDefinition('')
-        return self._collection([self.nodes[j] for j in self.nodes], s)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1194,7 +1191,6 @@ class UrtextProject:
                 hashes.append(value)
         return hashes
 
-
     def random_node(self):
         if self.nodes:
             node_id = random.choice(list(self.nodes))
@@ -1236,11 +1232,14 @@ class UrtextProject:
         return self._on_modified(filenames)
 
     def _on_modified(self, filenames):
+
         #self._sync_file_list() #?
         do_not_update = ['history','files']
+        filenames = [o for o in filenames if os.path.basename(o) in self.files]
         return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
 
     def _file_update(self, filenames):
+
         modified_files = []
         for f in filenames:
             rewritten_contents = self._rewrite_titles(f)
@@ -1531,21 +1530,6 @@ class UrtextProject:
             if self.nodes[node_id].dynamic:
                 assoc_nodes.remove(node_id)
         return assoc_nodes
-        
-
-    """
-    Export
-    """
-    def is_in_export(self, filename, position):
-
-        node_id = self.get_node_id_from_position(filename, position)
-        if not node_id:
-            return False
-        for export_range in self.nodes[node_id].export_points:
-            if position in range(export_range[0],export_range[1]):
-                # returns tuple (id, starting_position)
-                return self.nodes[node_id].export_points[export_range]
-        return False
 
     def get_file_and_position(self, node_id):
         if node_id in self.nodes:
@@ -1553,34 +1537,6 @@ class UrtextProject:
             position = self.nodes[node_id].start_position()
             return filename, position
         return None, None
-
-    def export_to_ics(self, node_id):
-
-        urtext_node = self.nodes[node_id]
-        t = urtext_node.metadata.get_entries('timestamp')
-
-        if not t:
-            return
-        t = t[0].timestamp.datetime
-        ics_start_time = t.strftime('%Y%m%dT%H%M%S')
-        t_end = t + datetime.timedelta(hours=2)
-        ics_end_time = t_end.strftime('%Y%m%dT%H%M%S')
-        text = urtext_node.content_only().encode('utf-8').decode('utf-8')
-        ics = ['BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//hacksw/handcal//NONSGML v1.0//EN',
-            'BEGIN:VEVENT',
-            'METHOD:PUBLISH',
-            'SUMMARY:'+urtext_node.title,
-            'DTSTART;TZID='+self.settings['timezone']+':'+ics_start_time,
-            'DTEND;TZID='+self.settings['timezone']+':'+ics_end_time,
-            'ORGANIZER;CN=Test User:MAILTO:test.user@tstdomain.com',
-            'DESCRIPTION:'+' '.join(text.split('\n')),
-            'END:VEVENT',
-            'END:VCALENDAR',
-        ]
-        with open(os.path.join(self.path,urtext_node.id+'.ics'), 'w', encoding='utf-8') as f:
-            f.write('\n'.join(ics))
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

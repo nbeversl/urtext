@@ -22,9 +22,7 @@ import os
 import json
 from urtext.metadata import NodeMetadata
 from urtext.metadata import parse_contents
-from urtext.rake import Rake
 from anytree.exporter import JsonExporter
-import concurrent.futures
 import re
 import datetime
 import logging
@@ -78,7 +76,6 @@ class UrtextNode:
         self.keywords = {}
         self.errors = False
         self.display_meta = ''
-        
         self.parent = None
 
         contents = strip_wrappers(contents, compact=compact)
@@ -105,17 +102,7 @@ class UrtextNode:
 
         self.parent = None
 
-        self.get_links(contents=parsed_contents)    
-
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
-        executor.submit(self.parse_keywords, parsed_contents)
-    
-    def parse_keywords(self, parsed_contents):
-        r = Rake()
-        self.keywords = [t[0] for t in r.run(parsed_contents)]
-
-    def has_keyword(self, keyword):
-        return True if keyword in self.keywords else False
+        self.get_links(contents=parsed_contents)
 
     def start_position(self):
         return self.ranges[0][0]
@@ -165,16 +152,6 @@ class UrtextNode:
         for inline_node in subnode_regexp.finditer(stripped_contents):
             stripped_contents = stripped_contents.replace(inline_node.group(), r*len(inline_node.group()))
         return stripped_contents
-
-    # @classmethod
-    # def strip_dynamic_definitions(self, contents='', preserve_length=False):
-    #     r = ' ' if preserve_length else ''
-    #     if not contents:
-    #         return contents
-    #     stripped_contents = contents
-    #     for dynamic_definition in dynamic_definition_regex.finditer(stripped_contents):
-    #         stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
-    #     return stripped_contents
 
     def get_links(self, contents=None):
         if contents == None:
