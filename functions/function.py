@@ -12,6 +12,43 @@ class UrtextFunction():
     def execute(self):
         return ''
 
+class UrtextFunctionWithKeysFlags(UrtextFunction):
+    
+    phase = 100
+
+    def __init__(self, argument_string):
+        super().__init__(argument_string)
+        self.keys = []
+        self.flags = []
+        no_keys = self._parse_flags(argument_string)
+        self._parse_keys(no_keys)
+        
+    def _parse_keys(self, argument_string):
+        for word in argument_string.split(' '):
+            if word and word[0] != '-':
+                self.keys.append(word)
+
+    def _parse_flags(self, argument_string):
+        flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
+        for f in flag_regx.finditer(argument_string):
+            self.flags.append(f.group().strip())
+            argument_string = argument_string.replace(f.group(),' ')
+        return argument_string
+    
+    def have_flags(self, flags):
+        for f in force_list(flags):
+            if f in self.flags:
+                return True
+        return False
+
+    def have_keys(self, keys):
+        for f in force_list(keys):
+            if f in self.keys:
+                return True
+        return False
+
+
+
 class UrtextFunctionWithParamsFlags(UrtextFunction):
 
     phase = 100
@@ -28,7 +65,7 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
 
         def separate(string, delimiter=';'):
             return [r.strip() for r in re.split(delimiter+'|\n', string)]
-
+        
         def key_value(param, delimiters=[':']):
             if isinstance(delimiters, str):
                 delimiters = [delimiters]
@@ -46,7 +83,7 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
                 if value:
                     for v in value:
                         self.params.append((key,v,delimiter))
-
+                        
         for param in self.params:
             self.params_dict[param[0]] = param[1:]
 
@@ -72,27 +109,4 @@ class UrtextFunctionWithInteger(UrtextFunction):
             self.number = int(argument_string)
         except:
             self.number = None        
-
-class UrtextHeader(UrtextFunction):
-
-    name = ["HEADER"]
-    phase = 500
-    def execute(self, contents, project, format):
-        if not self.argument_string:
-            self.argument_string = ''
-        header = bytes(self.argument_string, "utf-8").decode("unicode_escape")
-        if header and header[-1] != '\n':
-            header += '\n'
-        return ''.join([header, contents])
-
-class UrtextFooter(UrtextFunction):
-
-    name = ["FOOTER"]
-    phase = 500
-
-    def execute(self, contents, project, format):
-        
-        footer = bytes(self.argument_string, "utf-8").decode("unicode_escape") + '\n'
-
-        return ''.join([contents, footer])
 

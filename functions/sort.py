@@ -1,30 +1,19 @@
-from .function import UrtextFunctionWithParamsFlags
+from .function import  UrtextFunctionWithKeysFlags
 
-class Sort(UrtextFunctionWithParamsFlags):
+class Sort(UrtextFunctionWithKeysFlags):
 
 	name = ["SORT","S"]
 	phase = 120
-	#self.sort_type = 'alpha'
-
-	def __init__(self, string):
-		super().__init__(string)
-		self.sort_numeric = self.have_flags(['-n','-num'])
-		self.use_timestamp = self.have_flags(['-timestamp','-t'])
 		
-	def execute(self, nodes, project, format):
-
-		if self.params and self.use_timestamp:
-			sort_order = lambda node: ( node.metadata.get_date(self.params[0]), node.id)
-
-		elif self.params:        
-			if self.params[0] in ['_newest_timestamp', '_oldest_timestamp']:
-				sort_order = lambda node: ( node.metadata.get_date(self.params), node.id)            
-			else:
-				sort_order = lambda node: ( node.metadata.get_first_value(self.params[0]), node.id)            
-		else:
-			sort_order = lambda node: node.id
-
+	def execute(self, nodes, projects, format):
+		self.project=projects[0]
+			
 		return sorted(
 			nodes,
-			key=sort_order,
-			reverse=self.have_flags(['-reverse','-r']))
+			key= lambda node: self.sort_by_multi(node, self.keys),
+			reverse=self.have_flags(['-reverse','-r'])
+			)
+
+	def sort_by_multi(self, node, keys):
+		return tuple([node.metadata.get_first_value(k) for k in keys])
+

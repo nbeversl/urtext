@@ -82,7 +82,9 @@ class NodeMetadata:
         self.node = node
         self._entries = entries
         self.dynamic_entries = dynamic_entries
-        self._sort()       
+        self._sort() 
+        self.settings = settings
+       
         self.add_system_keys()
         self._last_accessed = 0
 
@@ -119,6 +121,11 @@ class NodeMetadata:
         use_timestamp=False,
         substitute_timestamp=False):
 
+        def empty(keyname):
+            if keyname in self.settings['numerical_keys']:
+                return 999999
+            return ''
+
         keyname = keyname.lower()
 
         if keyname == '_last_accessed':
@@ -127,7 +134,7 @@ class NodeMetadata:
         entries = self.entries.get(keyname)
 
         if not entries:
-            return ''
+            return empty(keyname)
 
         if use_timestamp:
             return entries[0].timestamp.datetime
@@ -135,18 +142,18 @@ class NodeMetadata:
         if not entries[0].values or entries[0].values[0] == '': 
             if substitute_timestamp and entries[0].timestamp.datetime:
                 return entries[0].timestamp.datetime
-            else:
-                return ''
+            return empty(keyname)
 
         return entries[0].values[0]
         
+
+
     def get_values(self, 
         keyname,
         use_timestamp=False,
         substitute_timestamp=False,
         lower=False
         ):
-
 
         keyname = keyname.lower()
         values = []
@@ -160,6 +167,7 @@ class NodeMetadata:
                 values.append(e.timestamp)
             else:
                 values.extend(e.values)        
+
         if not values and substitute_timestamp == True:
             for e in entries:
                 if e.timestamp.datetime != default_date:

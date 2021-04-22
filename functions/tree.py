@@ -223,6 +223,9 @@ def all_to_string(list):
     for i in range(len(list)):
         if isinstance(list[i], UrtextTimestamp):
             list[i] = list[i].string
+        if isinstance(list[i], int):
+            list[i] = str(list[i])
+
     return list
 
 trees_functions=[
