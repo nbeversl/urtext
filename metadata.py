@@ -134,6 +134,8 @@ class NodeMetadata:
         entries = self.entries.get(keyname)
 
         if not entries:
+            if keyname =='title':
+                return self.node.title
             return empty(keyname)
 
         if use_timestamp:
@@ -142,10 +144,10 @@ class NodeMetadata:
         if not entries[0].values or entries[0].values[0] == '': 
             if substitute_timestamp and entries[0].timestamp.datetime:
                 return entries[0].timestamp.datetime
+
             return empty(keyname)
 
         return entries[0].values[0]
-        
 
 
     def get_values(self, 

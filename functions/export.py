@@ -34,10 +34,10 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
     def execute(self, nodes, projects, m_format):
         self.project = projects[0]
         if 'root' in self.params_dict:
-
             return self.export_from(
                self.params_dict['root'][0],
                 )
+        return ''
 
 
     def export_from(self, 
