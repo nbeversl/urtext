@@ -1,5 +1,6 @@
 import re
 from urtext.utils import force_list
+flag_regx = re.compile(r'((^|\s)(-[\w|_]+)|((^|\s)\*))(?=\s|$)')
 
 ## Base function class
 class UrtextFunction():
@@ -48,7 +49,6 @@ class UrtextFunctionWithKeysFlags(UrtextFunction):
         return False
 
 
-
 class UrtextFunctionWithParamsFlags(UrtextFunction):
 
     phase = 100
@@ -88,7 +88,7 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
             self.params_dict[param[0]] = param[1:]
 
     def _parse_flags(self, argument_string):
-        flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
+
         for f in flag_regx.finditer(argument_string):
             self.flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')

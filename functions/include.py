@@ -30,7 +30,7 @@ class NodeQuery(UrtextFunctionWithParamsFlags):
 		
 		for project in projects:
 
-			if '-all' in self.flags:
+			if '-all' in self.flags or '*' in self.flags:
 				if self.have_flags('-include_dynamic'):
 					added_nodes = set([node_id for node_id in project.nodes])
 				else:
