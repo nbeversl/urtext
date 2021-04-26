@@ -22,11 +22,6 @@ class Tree(UrtextFunctionWithParamsFlags):
         self.depth = 1
         if self.have_flags('-infinite'):
             self.depth = 999999
-        # elif self.flags:
-        #     try:
-        #         self.depth = float(flags[0])
-        #     except:
-        #         self.depth = 1
         for s in self.params:
             if s[0] == 'depth':
                 self.depth = int(s[1])
@@ -94,15 +89,25 @@ class Tree(UrtextFunctionWithParamsFlags):
             if next_content.needs_contents: 
                 next_content.contents = urtext_node.content_only().strip('\n').strip()
 
-            if next_content.needs_last_accessed: 
-                t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
-                next_content.last_accessed = t.strftime(project.settings['timestamp_format'])
+            # if next_content.needs_last_accessed: 
+            #     t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed').as)
+            #     next_content.last_accessed = t.strftime(project.settings['timestamp_format'])
 
             for meta_key in next_content.needs_other_format_keys:
-                values = urtext_node.metadata.get_values(meta_key, substitute_timestamp=True)
+                
+                k, ext = meta_key, ''
+                if '.' in meta_key:
+                    k, ext = meta_key.split('.')
                 replacement = ''
-                if values and isinstance(values,list):
-                    replacement = ' | '.join(all_to_string(values))
+                if ext in ['timestamp','timestamps']:  
+                    timestamps = urtext_node.metadata.get_values(k, use_timestamp=True)
+                    if timestamps:
+                        if ext == 'timestamp':
+                            replacement = timestamps[0].string
+                        else:
+                            replacement = ' | '.join([t.string for t in e.timestamps])
+                else:
+                    replacement = ' | '.join(urtext_node.metadata.get_values(k))
                 next_content.other_format_keys[meta_key] = replacement
 
             tree_render += "%s%s" % (pre, next_content.output())
@@ -217,16 +222,6 @@ def duplicate_tree(self, original_node, leaf):
             new_node.parent = new_root
 
     return new_root
-
-
-def all_to_string(list):
-    for i in range(len(list)):
-        if isinstance(list[i], UrtextTimestamp):
-            list[i] = list[i].string
-        if isinstance(list[i], int):
-            list[i] = str(list[i])
-
-    return list
 
 trees_functions=[
     _tree_node_is_excluded, 

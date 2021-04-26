@@ -1,5 +1,6 @@
 import datetime
 from pytz import timezone
+from dateutil.parser import *
 
 default_date = timezone('UTC').localize(datetime.datetime(1970,1,1))
 
@@ -14,12 +15,13 @@ class UrtextTimestamp:
 
 
 def date_from_timestamp(datestamp_string):
+    if not datestamp_string:
+        return default_date
     d = None
     try:
         d = parse(datestamp_string)
     except:
-        pass
-        #print('No date for '+datestamp_string)
+        print('No date for '+datestamp_string)
     if d and d.tzinfo == None:
          d = timezone('UTC').localize(d) 
     return d

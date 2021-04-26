@@ -19,7 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
-format_key_regex = re.compile('\$_?[A-Za-z0-9_-]+', re.DOTALL)
+format_key_regex = re.compile('\$_?[\.A-Za-z0-9_-]*', re.DOTALL)
 
 class DynamicOutput():
 
@@ -58,7 +58,7 @@ class DynamicOutput():
 
         item_format = self.format_string
         item_format = bytes(item_format, "utf-8").decode("unicode_escape")
-                    
+        
         # tokenize all $ format keys
         format_keys = re.findall(format_key_regex, item_format)
         for token in format_keys:
@@ -101,7 +101,7 @@ class DynamicOutput():
         if contents_match:
             self.needs_contents = True
 
-        all_format_keys = re.findall( self.shah+'\$[A-Za-z0-9_-]+', self.item_format, re.DOTALL)                   
+        all_format_keys = re.findall( self.shah+'\$[\.A-Za-z0-9_-]*', self.item_format, re.DOTALL)                   
         for match in all_format_keys:
             meta_key = match.strip(self.shah+'$') 
             if meta_key not in defined_list:
@@ -139,7 +139,7 @@ class DynamicOutput():
             self.item_format = self.item_format.replace(self.shah + '$contents' + suffix, contents + '\n')
                     
         # all other meta keys
-        for meta_key in self.other_format_keys:            
+        for meta_key in self.other_format_keys:
             token = self.shah+'$'+meta_key
             value = ''.join(self.other_format_keys[meta_key])
             self.item_format = self.item_format.replace(token, value );    

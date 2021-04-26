@@ -21,8 +21,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import json
 from urtext.metadata import NodeMetadata
-from urtext.metadata import parse_contents
 from anytree.exporter import JsonExporter
+from urtext.dynamic import UrtextDynamicDefinition
+
 import re
 import datetime
 import logging
@@ -30,10 +31,11 @@ import pytz
 from anytree import Node, PreOrderIter
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
+dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
 subnode_regexp = re.compile(r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}', re.DOTALL)
 default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
-timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]*?)(?:>)', flags=re.DOTALL)
+timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]+?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
 short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
@@ -82,27 +84,29 @@ class UrtextNode:
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
 
-        entries, dynamic_entries, self.dynamic_definitions, parsed_contents = parse_contents(contents, settings=settings)
-        self.metadata = NodeMetadata(self, entries, dynamic_entries, settings=settings)        
+        contents = parse_dynamic_definitions(contents, self.dynamic_definitions)
+        contents = strip_dynamic_definitions(contents)
+        #contents = parse_metadata(contents, self.metadata)
+        self.metadata = NodeMetadata(self, contents, settings=settings)        
         
-        r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', parsed_contents)
+        r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', contents)
         if r:
             self.id = r.group(0).strip()[1:]
             self.tree_node = Node(self.id)
-            parsed_contents = parsed_contents.replace(r.group(0),'',1)
+            contents = contents.replace(r.group(0),'',1)
             for d in self.dynamic_definitions:
                 d.source_id = self.id
 
-        if not parsed_contents:
+        if not contents:
             self.blank = True
     
-        self.title = self.set_title(parsed_contents)    
+        self.title = self.set_title(contents)    
         if self.title == 'project_settings':
             self.project_settings = True
 
         self.parent = None
 
-        self.get_links(contents=parsed_contents)
+        self.get_links(contents=contents)
 
     def start_position(self):
         return self.ranges[0][0]
@@ -171,7 +175,6 @@ class UrtextNode:
         t = self.metadata.get_first_value('title')
         if t: 
             return t
-        
         stripped_contents_lines = strip_metadata(contents).strip().split('\n')
         line = None
         for line in stripped_contents_lines:
@@ -293,6 +296,12 @@ class UrtextNode:
         return self.set_file_contents(new_file_contents)
 
 
+def parse_dynamic_definitions(contents, dynamic_definitions): 
+    for d in dynamic_def_regexp.finditer(contents):
+        dynamic_definitions.append(UrtextDynamicDefinition(d.group(0)[2:-2]))
+    return contents
+
+
 def strip_contents(contents, preserve_length=False):
     contents = strip_metadata(contents=contents, preserve_length=preserve_length)
     contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
@@ -324,7 +333,7 @@ def strip_metadata(contents, preserve_length=False):
         r = ' ' if preserve_length else ''
         
         replacements = re.compile("|".join([
-            '(?:<)([^-/<\s`][^=<]*?)(?:>)', # timestamp
+            '(?:<)([^-/<\s`][^=<]+?)(?:>)', # timestamp
             '\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', # inline_meta
             r'(?:\s?)@[0-9,a-z]{3}\b', # short_id
             r'(?:^|\s)#[A-Z,a-z].*?\b', # shorthand_meta

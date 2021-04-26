@@ -85,20 +85,20 @@ class Collect (UrtextFunctionWithParamsFlags):
                                 values = [ve for ve in entry.values]
 
                          else:
-                            if use_timestamp and entry.timestamp.datetime == v:
-                                values = [entry.timestamp.datetime]
+                            if use_timestamp and entry.timestamps[0].datetime == v:
+                                values = [entry.timestamps[0].datetime]
                             else:
-                                values = [ve for ve in entry.values if ve == v]
+                                values = [e.value for e in entries]
                          
                          for value in values:
 
                              found_item['node_id'] = node.id
                              found_item['title'] = node.title
-                             found_item['dt_string'] = entry.timestamp.string
+                             found_item['dt_string'] = entry.timestamps[0].string if entry.timestamps else ''
 
                              if use_timestamp:
-                                 found_item['value'] = entry.timestamp.string
-                                 found_item['sort_value'] = entry.timestamp.datetime
+                                 found_item['value'] = entry.timestamps[0].string
+                                 found_item['sort_value'] = entry.timestamps[0].datetime
                            
                              else:
                                  found_item['value'] = value

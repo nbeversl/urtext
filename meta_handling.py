@@ -104,10 +104,7 @@ def _add_sub_tags(self,
         node_to_tag = child.name.strip('ALIAS') 
 
         if node_to_tag in self.nodes:
-            self.nodes[node_to_tag].metadata.add_meta_entry(
-                entry.keyname, 
-                entry.values,
-                from_node=source_id)
+            self.nodes[node_to_tag].metadata.add_meta_entry(entry, from_node=source_id)
             self.nodes[source_id].target_nodes.append(node_to_tag)
             if entry.recursive:
                 self._add_sub_tags(source_id, node_to_tag, entry)

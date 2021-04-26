@@ -139,7 +139,7 @@ class UrtextProject:
         self.settings = {  # defaults
             'home': None,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-            'use_timestamp': ['timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
+            'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
             'filenames': ['PREFIX', 'title'],
             'filename_datestamp_format':'%m-%d-%Y',
             'console_log': True,
@@ -445,7 +445,7 @@ class UrtextProject:
 
                     definition = None
                        
-        if len(new_node.metadata.get_first_value('ID')) > 1:
+        if len(new_node.metadata.get_values('ID')) > 1:
             message = ''.join([ 
                     'Multiple ID tags in >' , new_node.id ,': ',
                     ', '.join(new_node.metadata.get_first_value('ID')),' - using the first one found.'])
@@ -809,7 +809,7 @@ class UrtextProject:
             node_group = list([r for r in list(self.nodes) if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
             for r in node_group:
                 if use_timestamp:
-                    self.nodes[r].display_meta = k + ': <'+  self.nodes[r].metadata.get_entries(k)[0].timestamp.string+'>'
+                    self.nodes[r].display_meta = k + ': <'+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))+'>'
                 else:
                     self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
             node_group = sorted(node_group, 
@@ -1012,36 +1012,36 @@ class UrtextProject:
 
         self._initialize_settings() # reset defaults
 
-        for entry in node.metadata._entries:
+        for entry in node.metadata.entries:
             key = entry.keyname
-            values = entry.values
+            value = entry.value
            
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
-                self.title = values[0]
+                self.title = value
                 continue
 
             if key == 'numerical_keys':
-                self.settings['numerical_keys'].extend(values)
+                self.settings['numerical_keys'].append(value)
                 self.settings['numerical_keys'] = list(set(self.settings['numerical_keys']))
                 continue
 
             if key in single_values:
-                self.settings[key] = values[0]
+                self.settings[key] = value
                 continue
 
             if key in replace:
-                self.settings[key] = values
+                self.settings[key] = value
                 continue
 
             if key in single_boolean_values:
-                self.settings[key] = True if values[0].lower() == 'true' else False
+                self.settings[key] = True if value.lower() == 'true' else False
                 continue            
 
             if key not in self.settings:
                 self.settings[key] = []
                 
-            self.settings[key].extend(values)
+            self.settings[key].append(value)
             self.settings[key] = list(set(self.settings[key]))
 
         self.default_timezone = timezone(self.settings['timezone'])
