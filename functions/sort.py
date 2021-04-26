@@ -30,5 +30,4 @@ class Sort(UrtextFunctionWithKeysFlags):
 				if ext =='timestamp' and e.timestamps:  
 					v = e.timestamps[0].datetime
 				t.append(value)
-		print(t)
 		return tuple(t)				
