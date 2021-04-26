@@ -181,7 +181,7 @@ class Collect (UrtextFunctionWithParamsFlags):
                      next_content.contents = contents
 
                  for meta_key in next_content.needs_other_format_keys:
-                     values = project.nodes[item['node_id']].metadata.get_values(meta_key, substitute_timestamp=True)
+                     values = project.nodes[item['node_id']].metadata.get_values(meta_key) #, substitute_timestamp=True)
                      replacement = ''
                      if values:
                          replacement = ' '.join(values)

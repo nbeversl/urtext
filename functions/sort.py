@@ -14,7 +14,7 @@ class Sort(UrtextFunctionWithKeysFlags):
 		if self.keys:
 			return sorted(
 				nodes,
-				key= lambda node: node.metadata.get_first_value(self.keys[0], use_timestamp=self.have_flags('-t')),
+				key= lambda node: self.sort_values(node, self.keys),
 				reverse=self.have_flags(['-reverse','-r'])
 				)
 		return nodes
@@ -25,13 +25,10 @@ class Sort(UrtextFunctionWithKeysFlags):
 			k, ext = k, ''
 			if '.' in k:
 				k, ext = k.split('.')
-			values = node.metadata.get_values(k, substitute_timestamp=True)
-			print(value)
-			replacement = ''
-			if ext =='timestamp' and e.timestamps:  
-				v = e.timestamps[0].datetime
-			else:
-				v = node.metadata.get_first_value(k)
-			t.append(v)
+			value = node.metadata.get_first_value(k, return_type=True)
+			if value:
+				if ext =='timestamp' and e.timestamps:  
+					v = e.timestamps[0].datetime
+				t.append(value)
 		print(t)
 		return tuple(t)				

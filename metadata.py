@@ -26,6 +26,7 @@ from urtext.timestamp import UrtextTimestamp, default_date
 timestamp_match = re.compile('<([^-/<\s][^=<]+?)>')
 meta_entry = re.compile('\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
+hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 
 class NodeMetadata:
 
@@ -80,32 +81,27 @@ class NodeMetadata:
             parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
 
         # parse shorthand meta:
-        if settings and settings['hash_key']:
-
-            hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
+        if settings and settings['hash_key']:     
             for m in hash_meta.finditer(parsed_contents):
                 value = m.group().replace('#','').strip()
-                key = settings['hash_key']
-                position = m.start()
-                end_position = position + len(m.group())
                 self.entries.append(
-                MetadataEntry(
-                    key, 
-                    value,    
-                    position=position, 
-                    end_position=end_position)
+                    MetadataEntry(
+                        settings['hash_key'], 
+                        value,    
+                        position=m.start(), 
+                        end_position=m.start()+ len(m.group()) 
                     )
+                )
+
 
         # parse inline timestamps:
         for m in timestamp_match.finditer(parsed_contents):
-            stamp = m.group()
-            position = m.start()
-            end_position = position + len(m.group())
             e = MetadataEntry(
                     'inline-timestamp', 
-                    stamp,
-                    position=position, 
-                    end_position=end_position)
+                    m.group(),
+                    position=m.start(), 
+                    end_position=m.start() + len(m.group())
+                    )
             if e.timestamps:
                 self.entries.append(e)
      
@@ -113,66 +109,64 @@ class NodeMetadata:
         s = node_title_regex.search(parsed_contents)
         if s:
            title = s.group(0).strip()
-           self.add_meta_entry(
-            MetadataEntry('title', 
-                title,
+           self.entries.append(MetadataEntry(
+                'title', title,
                 position=s.start(),
                 end_position=s.end()
-                )
-            )
+                ))
+           
 
         return parsed_contents
 
     def add_system_keys(self):
 
         t = self.get_entries('inline-timestamp')
-        # if t:
-        #     t = sorted(t, key=lambda i: i.timestamps[0].datetime) 
-        #     print (t[0].timestamps[0].string)
-        #     print (t[-1].timestamps[0].string)
-        #     self.add_meta_entry(MetadataEntry('_oldest_timestamp', '<'+t[0].timestamps[0].string+'>'))
-        #     self.add_meta_entry(MetadataEntry('_newest_timestamp', '<'+t[-1].timestamps[0].string+'>'))
+        if t:
+            t = sorted(t, key=lambda i: i.timestamps[0].datetime) 
+            self.entries.append(MetadataEntry('_oldest_timestamp', '<'+t[0].timestamps[0].string+'>'))
+            self.entries.append(MetadataEntry('_newest_timestamp', '<'+t[-1].timestamps[0].string+'>'))
 
     def get_first_value(self, 
         keyname, 
+        as_int=False,
         use_timestamp=False,
-        substitute_timestamp=False):
-
-        def empty(keyname):
-            if keyname =='title':
-                return self.node.title
-            if keyname in self.settings['numerical_keys']:
-                return '999999'
-            if use_timestamp or keyname in self.settings['use_timestamp']:
-                return default_date
-            return ''
-
-        keyname = keyname.lower()
+        return_type=False):
 
         # if keyname == '_last_accessed':
         #     m = MetadataValue('_last_accessed', '')
         #     m.timestamps=[UrtextTimestamp(self._last_accessed)]
         #     return m
 
-        entries = self.get_entries(keyname)
 
+        entries = self.get_entries(keyname.lower())
         if not entries:
-            return empty(keyname)        
+            return None 
 
-        if use_timestamp or keyname in self.settings['use_timestamp'] : 
+        if use_timestamp or keyname in self.settings['use_timestamp']:
             if entries[0].timestamps:
                 return entries[0].timestamps[0].datetime
-            return default_date
-
+            if return_type:
+                return default_date
+            return None
+                    
         if not entries[0].value:
-            return empty(keyname)
+            if return_type:
+                return ''
+            return None
+
+        if as_int or keyname in self.settings['numerical_keys']:
+            try:
+                return int(entries[0].value)
+            except:
+                if return_type:
+                    return 9999999
+                return None
 
         return entries[0].value
 
     def get_values(self, 
         keyname,
         use_timestamp=False,
-        substitute_timestamp=False,
         lower=False
         ):
 
@@ -186,7 +180,7 @@ class NodeMetadata:
             else:
                 values.append(e.value)        
 
-        if not values and substitute_timestamp == True:
+        if not values and use_timestamp:
             for e in entries:
                 # if e.timestamps[0] != default_date:
                 values.append(e.timestamps)            
@@ -227,14 +221,6 @@ class NodeMetadata:
             return entries[0].timestamps[0].datetime
         return default_date
 
-    # Set
-    
-    def add_meta_entry(self, entry,
-        dt_string=None,
-        from_node=None,
-        position=0):
-        entry.from_node=from_node
-        self.entries.append(entry)
       
     def clear_from_source(self, source_node_id):
         for entry in list(self.entries):

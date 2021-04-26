@@ -798,26 +798,30 @@ class UrtextProject:
             alternative = self.random_node()
         return alternative
 
-    def all_nodes(self):        
-        nodes = list(self.nodes)
+    def all_nodes(self):
+
+        def sort(nid, return_type=False):
+            return self.nodes[nid].metadata.get_first_value(
+                k, 
+                use_timestamp=use_timestamp,
+                return_type=return_type)
+
+        remaining_nodes = list(self.nodes)
         sorted_nodes = []
         for k in self.settings['node_browser_sort']:
+            use_timestamp= k in self.settings['use_timestamp']
+            as_int = k in self.settings['numerical_keys']
             k = k.lower()
-            use_timestamp= False
-            if k in self.settings['use_timestamp']:
-                use_timestamp = True
-            node_group = list([r for r in list(self.nodes) if self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp)])
+            node_group = [r for r in remaining_nodes if self.nodes[r].metadata.get_first_value(k)]
             for r in node_group:
                 if use_timestamp:
                     self.nodes[r].display_meta = k + ': <'+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))+'>'
                 else:
-                    self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
-            node_group = sorted(node_group, 
-                key=lambda nid: self.nodes[nid].metadata.get_first_value(k, use_timestamp=use_timestamp),
-                reverse=use_timestamp)
+                    self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k))
+            node_group = sorted(node_group, key=lambda nid: sort(nid, return_type=True))
             sorted_nodes.extend(node_group)
-            nodes = list(set(nodes) - set(sorted_nodes))
-        sorted_nodes.extend(nodes)
+            remaining_nodes = list(set(remaining_nodes) - set(node_group))
+        sorted_nodes.extend(remaining_nodes)
         return sorted_nodes
 
     def all_files(self):
@@ -918,7 +922,6 @@ class UrtextProject:
         result = trigger_regex.search(string)
         if result:
             trigger = result.group(1)
-            print(trigger)
             for t in all_triggers:
                 if t.name == trigger:
                     r = t(result.group(2))
@@ -975,6 +978,8 @@ class UrtextProject:
         return self.settings['log_id']
 
     def _get_settings_from(self, node):
+
+
         single_values = [
             'home',
             'project_title',
@@ -1003,19 +1008,25 @@ class UrtextProject:
             'contents_strip_internal_whitespace',
         ]
         replace = [
-            'node_browser_sort',
             'file_index_sort',
             'filenames',
+            'node_browser_sort',
             'tag_other',
             'filename_datestamp_format'
         ]
 
         self._initialize_settings() # reset defaults
-
+        replacements = {}
         for entry in node.metadata.entries:
             key = entry.keyname
             value = entry.value
-           
+   
+            if key in replace:
+                if key not in replacements:
+                    replacements[key] = []
+                replacements[key].append(value)
+                continue
+
             if key == 'project_title':
                 # this one sets a project object property, not the settings dict
                 self.title = value
@@ -1027,10 +1038,6 @@ class UrtextProject:
                 continue
 
             if key in single_values:
-                self.settings[key] = value
-                continue
-
-            if key in replace:
                 self.settings[key] = value
                 continue
 
@@ -1046,6 +1053,12 @@ class UrtextProject:
 
         self.default_timezone = timezone(self.settings['timezone'])
 
+        for k in replacements.keys():
+            if k in single_values:
+                self.settings[k] = replacements[k][0]
+            else:   
+                self.settings[k] = replacements[k]
+ 
     def get_home(self):
         return self.settings['home']
 
@@ -1416,7 +1429,7 @@ class UrtextProject:
     def get_all_values_for_key(self, key):
         values = []
         for nid in self.nodes:
-            values.extend(self.nodes[nid].metadata.get_values(key, substitute_timestamp=True))
+            values.extend(self.nodes[nid].metadata.get_values(key))
         return list(set(values))
 
     def get_by_meta(self, key, values, operator):

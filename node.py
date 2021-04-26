@@ -184,22 +184,7 @@ class UrtextNode:
             
         if not line:
             return '(untitled)'
-        # offset = 0
-        # for r in re.finditer('\{',contents):
-        #     for e in escapes:
-        #         if r.start() in range(e.start(),e.end()):
-        #             break
-        #         contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
-        #         offset -= 1
-        
-        # offset = 0
-        # for r in re.finditer('\}',contents):
-        #     for e in escapes:
-        #         if r.start() in range(e.start(),e.end()):
-        #             break
-        #         contents = contents[0:e.start()+offset] + contents[e.start()+1:len(contents)]
-        #         offset -= 1
-        
+
         first_line = line
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
     
@@ -213,13 +198,12 @@ class UrtextNode:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
         return first_line.strip().strip('\n').strip()
 
-
         first_line = contents[:100]
-        #illegal_title_characters = [ ]
-        first_line = first_line.replace('|','') # pipe character cannot be in node names
 
         if '•' in first_line:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
+
+        self.metadata.add_entry('title',first_line)
         return first_line.strip().strip('\n').strip()
 
    
