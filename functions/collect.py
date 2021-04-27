@@ -36,27 +36,26 @@ class Collect (UrtextFunctionWithParamsFlags):
         for entry in self.params:
 
             k, v, operator = entry
-    
+
             keynames = project.get_all_keys() if k =='*' else [k]
 
             for k in keynames:
 
+                k = k.lower()
+
                 keys.setdefault(k, [])            
 
                 if v == '*':
-                    keys[k].extend(project.get_all_values_for_key(k))
+                    keys[k].extend(project.get_all_values_for_key(k, lower=True))
 
                 else:
                     if v not in keys[k]:
-                        keys[k].append(v)
+                        keys[k].append(v.lower())
 
                 keys[k] = list(set(keys[k]))
 
-        for entry in self.params:
-            k, v, operator = entry
-            keynames = project.get_all_keys() if k =='*' else [k]
-            if operator == '!=' and k in keys:
-                keys[k].remove(v)
+                if operator == '!=' and k in keys:
+                    keys[k].remove(v)
 
         found_stuff = []
        
@@ -142,10 +141,6 @@ class Collect (UrtextFunctionWithParamsFlags):
             sorted_stuff = sorted(found_stuff, 
              key=lambda x: ( x['sort_value'] ),
              reverse=self.have_flags('-sort_reverse'))
-               
-            # if dynamic_definition.limit:
-            #      sorted_stuff = sorted_stuff[0:dynamic_definition.limit]
-
 
             for index in range(0, len(sorted_stuff)):
 
@@ -193,8 +188,10 @@ class Collect (UrtextFunctionWithParamsFlags):
 
         if '-tree' in self.flags:
             # TODO be able to pass an m_format for Dynamic Output here.
-            contents = ''             
+
+            contents = ''
             for k in sorted(keys.keys()):
+
                 root = Node(k)
                 if not contains_different_types(keys[k]):
                    keys[k] = sorted(keys[k], key=meta_value_sort_criteria)

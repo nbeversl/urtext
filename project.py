@@ -1426,10 +1426,12 @@ class UrtextProject:
             )
         return list(set(keys))
 
-    def get_all_values_for_key(self, key):
+    def get_all_values_for_key(self, key, lower=False):
         values = []
         for nid in self.nodes:
             values.extend(self.nodes[nid].metadata.get_values(key))
+        if lower:
+            return list(set([v.lower() for v in values]))
         return list(set(values))
 
     def get_by_meta(self, key, values, operator):

@@ -76,7 +76,7 @@ class Include(NodeQuery):
 class Limit(UrtextFunctionWithInteger):
 
 	name = "LIMIT"
-	phase = 110
+	phase = 150
 
 
 	def execute(self, nodes, project, m_format):

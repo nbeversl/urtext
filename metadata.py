@@ -175,8 +175,7 @@ class NodeMetadata:
     def get_values(self, 
         keyname,
         use_timestamp=False,
-        lower=False
-        ):
+        lower=False):
 
         keyname = keyname.lower()
         values = []
@@ -190,9 +189,7 @@ class NodeMetadata:
 
         if not values and use_timestamp:
             for e in entries:
-                # if e.timestamps[0] != default_date:
                 values.append(e.timestamps)            
-
         if lower:
             return strings_to_lower(values)
         return values
