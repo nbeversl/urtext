@@ -32,26 +32,25 @@ class NodeMetadata:
 
     def __init__(self, 
         node,
-        contents,
         node_id=None, 
         settings=None):
 
         self.node = node
         self.entries = []
         self.dynamic_entries = []
-        self.parse_contents(contents, settings=settings)
-        self.settings = settings
-        self.add_system_keys()
+        
         self._last_accessed = 0
        
     def parse_contents(self, full_contents, settings=None):
+
+        self.settings=settings
 
         parsed_contents = full_contents
     
         for m in meta_entry.finditer(full_contents):
 
             parsed_contents = parsed_contents.replace(m.group(),'', 1)
-
+        
             keyname, contents = m.group().strip(';').split('::', 1)
             keyname = keyname.lower()
             value_list = contents.split('|')
@@ -78,7 +77,7 @@ class NodeMetadata:
                     self.dynamic_entries.append(entry)
                 self.entries.append(entry)
 
-            parsed_contents = parsed_contents.replace(m.group(),'X'*len(m.group()))
+                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
 
         # parse shorthand meta:
         if settings and settings['hash_key']:     
@@ -92,6 +91,7 @@ class NodeMetadata:
                         end_position=m.start()+ len(m.group()) 
                     )
                 )
+                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
 
 
         # parse inline timestamps:
@@ -104,6 +104,8 @@ class NodeMetadata:
                     )
             if e.timestamps:
                 self.entries.append(e)
+            parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
+
      
         # parse title
         s = node_title_regex.search(parsed_contents)
@@ -114,7 +116,9 @@ class NodeMetadata:
                 position=s.start(),
                 end_position=s.end()
                 ))
-           
+           parsed_contents = parsed_contents.replace(s.group(),' '*len(s.group()))
+
+        self.add_system_keys()
 
         return parsed_contents
 
@@ -268,7 +272,9 @@ class MetadataEntry:  # container for a single metadata entry
         for timestamp in timestamp_match.finditer(contents):
             dt_string = timestamp.group(0).strip()
             contents = contents.replace(dt_string, '').strip()
-            self.timestamps.append(UrtextTimestamp(dt_string[1:-1]))        
+            t = UrtextTimestamp(dt_string[1:-1])
+            if t.datetime:
+                self.timestamps.append(t)        
         self.value = contents 
    
     def ints(self):

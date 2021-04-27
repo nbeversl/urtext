@@ -818,7 +818,7 @@ class UrtextProject:
                     self.nodes[r].display_meta = k + ': <'+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))+'>'
                 else:
                     self.nodes[r].display_meta = k + ': '+  str(self.nodes[r].metadata.get_first_value(k))
-            node_group = sorted(node_group, key=lambda nid: sort(nid, return_type=True))
+            node_group = sorted(node_group, key=lambda nid: sort(nid, return_type=True), reverse=k in self.settings['use_timestamp'] )
             sorted_nodes.extend(node_group)
             remaining_nodes = list(set(remaining_nodes) - set(node_group))
         sorted_nodes.extend(remaining_nodes)
@@ -1442,8 +1442,9 @@ class UrtextProject:
         results = []
 
         if operator in ['before','after']:
+            
             compare_date = date_from_timestamp(values[0][1:-1])
-
+            
             if compare_date:
                 if operator == 'before':
                     results = [n for n in self.nodes if default_date != self.nodes[n].metadata.get_date(key) < compare_date]

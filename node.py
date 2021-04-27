@@ -23,7 +23,7 @@ import json
 from urtext.metadata import NodeMetadata
 from anytree.exporter import JsonExporter
 from urtext.dynamic import UrtextDynamicDefinition
-
+from urtext.utils import strip_backtick_escape
 import re
 import datetime
 import logging
@@ -83,12 +83,13 @@ class UrtextNode:
         contents = strip_wrappers(contents, compact=compact)
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
-
         contents = parse_dynamic_definitions(contents, self.dynamic_definitions)
         contents = strip_dynamic_definitions(contents)
-        #contents = parse_metadata(contents, self.metadata)
-        self.metadata = NodeMetadata(self, contents, settings=settings)        
-        
+        contents = strip_backtick_escape(contents)
+    
+        self.metadata = NodeMetadata(self)        
+        contents = self.metadata.parse_contents(contents, settings=settings)
+
         r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', contents)
         if r:
             self.id = r.group(0).strip()[1:]
@@ -175,7 +176,9 @@ class UrtextNode:
         t = self.metadata.get_first_value('title')
         if t: 
             return t
+  
         stripped_contents_lines = strip_metadata(contents).strip().split('\n')
+       
         line = None
         for line in stripped_contents_lines:
             line = line.strip()
