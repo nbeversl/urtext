@@ -407,13 +407,13 @@ class UrtextProject:
         return False
 
     def _target_id_defined(self, check_id):
-        for nid in self.nodes:
+        for nid in list(self.nodes):
             if check_id in [t.target_id for t in self.nodes[nid].dynamic_definitions]:
                 return nid
         return
 
     def _target_file_defined(self, file):
-        for nid in self.nodes:
+        for nid in list(self.nodes):
             for e in self.nodes[nid].dynamic_definitions:
                 for r in e.exports:
                     if file in r.to_files:
