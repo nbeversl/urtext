@@ -190,9 +190,11 @@ class UrtextNode:
             return '(untitled)'
 
         first_line = line
+         # TODO : WHY DOES THIS HAPPEN?
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)    
         first_line = first_line.replace('┌──','')
         first_line = first_line.replace('|','') # pipe character cannot be in node names
+        # TODO : WHY DOES THIS HAPPEN?
         first_line = first_line.strip().strip('{').strip()
         if '•' in first_line:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
@@ -284,6 +286,8 @@ def strip_contents(contents, preserve_length=False):
     contents = strip_metadata(contents=contents, preserve_length=preserve_length)
     contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
     contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
+    contents = contents.strip().strip('{').strip()
+
     return contents
 
 def strip_syntax_elements(contents):
@@ -313,8 +317,8 @@ def strip_metadata(contents, preserve_length=False):
         replacements = re.compile("|".join([
             '(?:<)([^-/<\s`][^=<]+?)(?:>)', # timestamp
             '\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', # inline_meta
-            r'(?:\s?)@[0-9,a-z]{3}\b', # short_id
-            r'(?:^|\s)#[A-Z,a-z].*?\b', # shorthand_meta
+            r'(?:\s?)@[0-9,a-z]{3}(\b|$)', # short_id
+            r'(?:^|\s)#[A-Z,a-z].*?(\b|$)', # shorthand_meta
             ]))
 
         for e in replacements.finditer(contents):

@@ -134,6 +134,7 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
            
             if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('_settings'):
                 range_contents = self._strip_urtext_syntax(range_contents)
+                
             
             """
             If this is the node's first range:
