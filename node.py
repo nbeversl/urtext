@@ -203,9 +203,8 @@ class UrtextNode:
         if '•' in first_line:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
 
-        self.metadata.add_entry('title',first_line)
+        self.metadata.entries.append(MetadataEntry('title', first_line))
         return first_line.strip().strip('\n').strip()
-
    
     def log(self):
         logging.info(self.id)

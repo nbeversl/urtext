@@ -21,7 +21,7 @@ def date_from_timestamp(datestamp_string):
     try:
         d = parse(datestamp_string)
     except:
-        print('No date for '+datestamp_string)
+        pass
     if d and d.tzinfo == None:
          d = timezone('UTC').localize(d) 
     return d

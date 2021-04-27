@@ -140,6 +140,14 @@ class NodeMetadata:
 
         entries = self.get_entries(keyname.lower())
         if not entries:
+            if keyname == 'title':
+                return self.node.title
+            if return_type:
+                if keyname in self.settings['use_timestamp']:
+                    return default_date
+                if keyname in self.settings['numerical_keys']:
+                    return 999999
+                return ''
             return None 
 
         if use_timestamp or keyname in self.settings['use_timestamp']:
@@ -190,7 +198,7 @@ class NodeMetadata:
         return values
     
     def get_keys(self, exclude=[]):
-        if self._entries:
+        if self.entries:
             return list(set([e.keyname for e in self.entries if e.keyname not in exclude]))
         return []
 
