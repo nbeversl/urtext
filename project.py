@@ -47,9 +47,12 @@ from urtext.triggers.trigger import UrtextTrigger
 from importlib import import_module
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
-node_link_regex = r'>[0-9,a-z]{3}\b'
 title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
+node_link_regex = re.compile(r'(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+trigger_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
+editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
+url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
 functions = trees_functions
 functions.extend(compile_functions)
@@ -161,6 +164,7 @@ class UrtextProject:
             'contents_strip_outer_whitespace' : True,
             'contents_strip_internal_whitespace' : True,
             'node_browser_sort' : ['_oldest_timestamp'],
+            'open_with_system' : ['pdf'],
             'exclude_from_star': [
                 'title', 
                 '_newest_timestamp', 
@@ -878,22 +882,18 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-       
-    
-        # start after cursor    
         link = self.find_link(string[position:])
 
         if not link:
             return
 
-        # then work backwards along the whole line
+        # work backwards along the line
         if not link[0]:
-            h = position
-            while h > -1:
-                link = self.find_link(string[h:])
+            while position > -1:
+                link = self.find_link(string[position:])
                 if link[0]:
                     break
-                h -= 1
+                position -= 1
 
         if not link[0]:
             if not self.compiled:
@@ -910,15 +910,7 @@ class UrtextProject:
 
     def find_link(self, string):
 
-        node_link_regex = re.compile(r'(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
-        trigger_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
-        editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
-        url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
-
-        kind = ''
-        result = None
-        link = ''
-        position = 0
+        kind, result, link, position = '', None, '', 0
         result = trigger_regex.search(string)
         if result:
             trigger = result.group(1)
@@ -946,8 +938,10 @@ class UrtextProject:
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
-                kind='EDITOR_LINK'
                 link = os.path.join(self.path, result.group(2)).strip()
+                kind = 'EDITOR_LINK'              
+                if os.path.splitext(link)[1][1:] in self.settings['open_with_system']:
+                    kind = 'SYSTEM'              
             else:
                 result = re.search(url_scheme, string)                
                 if result:

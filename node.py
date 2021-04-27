@@ -29,6 +29,7 @@ import datetime
 import logging
 import pytz
 from anytree import Node, PreOrderIter
+from urtext.metadata import MetadataEntry
 
 dynamic_definition_regex = re.compile('(?:\[\[)([^\]]*?)(?:\]\])', re.DOTALL)
 dynamic_def_regexp = re.compile(r'\[\[[^\]]*?\]\]', re.DOTALL)
@@ -189,25 +190,16 @@ class UrtextNode:
             return '(untitled)'
 
         first_line = line
-        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)
-    
+        first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)    
         first_line = first_line.replace('┌──','')
-        #illegal_title_characters = [ ]
         first_line = first_line.replace('|','') # pipe character cannot be in node names
-
-        # TODO : WHY DOES THIS HAPPEN?
         first_line = first_line.strip().strip('{').strip()
         if '•' in first_line:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
-        return first_line.strip().strip('\n').strip()
-
-        first_line = contents[:100]
-
-        if '•' in first_line:
-            first_line = re.sub(r'^[\s]*\•','',first_line)           
-
+        
+        first_line=first_line.strip().strip('\n').strip()
         self.metadata.entries.append(MetadataEntry('title', first_line))
-        return first_line.strip().strip('\n').strip()
+        return first_line
    
     def log(self):
         logging.info(self.id)
