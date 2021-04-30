@@ -33,7 +33,7 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename):
-    self._parse_file(filename)
+    #self._parse_file(filename)
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
@@ -69,7 +69,6 @@ def _process_dynamic_def(self, dynamic_definition):
     
     if dynamic_definition.target_id in self.nodes:
 
-   
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
         if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'): #and not dynamic_definition.header:
             self.nodes[dynamic_definition.target_id].title = ''

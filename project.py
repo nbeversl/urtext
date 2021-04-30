@@ -101,7 +101,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -383,7 +383,7 @@ class UrtextProject:
                 offset += len(replaced_contents) - len(new_contents)
                 new_contents = replaced_contents
         if new_contents != original_contents:
-            self.files[f]._set_file_contents(rewritten_contents)
+            self.files[filename]._set_file_contents(new_contents)
             self._parse_file(filename)
         return False
 
@@ -1060,9 +1060,9 @@ class UrtextProject:
 
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
-        file_contents = self.nodes[node_id].filename._get_file_contents()
+        filename = self.nodes[node_id].filename
+        file_contents = self.files[filename]._get_file_contents()
         
-
         popped_node_id = node_id
 
         filename = self.nodes[node_id].filename
@@ -1120,14 +1120,15 @@ class UrtextProject:
         start = self.nodes[node_id].ranges[0][0]
         end = self.nodes[node_id].ranges[-1][1]
         
-        contents =self.nodes[node_id].filename._get_file_contents()
+        filename = self.nodes[node_id].filename
+        contents =self.files[filename]._get_file_contents()
 
         replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
 
         if self.nodes[node_id].root_node:
             self.delete_file(self.nodes[node_id].filename)  
         else:
-            self.nodes[node_id].filename.set_file_contents(replaced_file_contents)
+            self.nodes[node_id].filename._set_file_contents(replaced_file_contents)
             self._parse_file(self.nodes[node_id].filename)
         pulled_contents = contents[start:end]
         full_current_contents = self.files[current_file]._get_file_contents()
@@ -1137,7 +1138,7 @@ class UrtextProject:
         replacement = string[span[0]:span[1]]
         wrapped_contents = ''.join(['{',pulled_contents,'}'])
         replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
-        self.files[current_file].set_file_contents(replacement_contents)
+        self.files[current_file]._set_file_contents(replacement_contents)
         self._parse_file(current_file)
 
     def titles(self):
@@ -1222,6 +1223,7 @@ class UrtextProject:
         modified_files = []
         for f in filenames:
             self._rewrite_titles(f)
+            self._parse_file(f)
             modified_file = self._compile_file(f)   
             if modified_file:
                 modified_files.append(modified_file)
