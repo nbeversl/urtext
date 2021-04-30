@@ -46,11 +46,10 @@ class NodeMetadata:
         self.settings=settings
 
         parsed_contents = full_contents
-    
+        remaining_contents = full_contents
+
         for m in meta_entry.finditer(full_contents):
 
-            parsed_contents = parsed_contents.replace(m.group(),'', 1)
-        
             keyname, contents = m.group().strip(';').split('::', 1)
             keyname = keyname.lower()
             value_list = contents.split('|')
@@ -77,7 +76,8 @@ class NodeMetadata:
                     self.dynamic_entries.append(entry)
                 self.entries.append(entry)
 
-                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
+            parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
+            remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
         # parse shorthand meta:
         if settings and settings['hash_key']:     
@@ -86,13 +86,13 @@ class NodeMetadata:
                 self.entries.append(
                     MetadataEntry(
                         settings['hash_key'], 
-                        value,    
+                        value, 
                         position=m.start(), 
                         end_position=m.start()+ len(m.group()) 
                     )
                 )
-                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
-
+                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
+                remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
         # parse inline timestamps:
         for m in timestamp_match.finditer(parsed_contents):
@@ -104,8 +104,8 @@ class NodeMetadata:
                     )
             if e.timestamps:
                 self.entries.append(e)
-            parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()))
-
+            parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
+            remaining_contents = remaining_contents.replace(m.group(),'', 1 )
      
         # parse title
         s = node_title_regex.search(parsed_contents)
@@ -116,11 +116,12 @@ class NodeMetadata:
                 position=s.start(),
                 end_position=s.end()
                 ))
-           parsed_contents = parsed_contents.replace(s.group(),' '*len(s.group()))
+           parsed_contents = parsed_contents.replace(s.group(),' '*len(s.group()), 1)
+           remaining_contents = remaining_contents.replace(s.group(),'', 1 )
 
         self.add_system_keys()
 
-        return parsed_contents
+        return remaining_contents
 
     def add_system_keys(self):
 

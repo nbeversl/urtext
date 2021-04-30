@@ -381,10 +381,10 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
 
     def _strip_urtext_syntax(self, contents):
         
-        contents = urtext.node.strip_contents(contents)
-        if contents and contents[0] in ['}','{']:
+        contents = urtext.node.strip_contents(contents).strip()
+        if contents and contents[0] == '{':
             contents = contents[1:]
-        if contents and contents[-1] == '{':
+        if contents and contents[-1] == '}':
             contents = contents[:-1]
             
         return contents

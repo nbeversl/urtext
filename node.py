@@ -66,7 +66,6 @@ class UrtextNode:
         self.links = []
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.prefix = None
         self.project_settings = False
         self.compact = compact
         self.parent_project = None
@@ -75,7 +74,6 @@ class UrtextNode:
         self.target_nodes = []
         self.blank = False
         self.title = None
-        self.hashed_contents = hash(contents)
         self.keywords = {}
         self.errors = False
         self.display_meta = ''
@@ -190,16 +188,19 @@ class UrtextNode:
             return '(untitled)'
 
         first_line = line
-         # TODO : WHY DOES THIS HAPPEN?
         first_line = re.sub('>{1,2}[0-9,-z]{3}', '', first_line, re.DOTALL)    
         first_line = first_line.replace('┌──','')
         first_line = first_line.replace('|','') # pipe character cannot be in node names
+
         # TODO : WHY DOES THIS HAPPEN?
         first_line = first_line.strip().strip('{').strip()
+
         if '•' in first_line:
             first_line = re.sub(r'^[\s]*\•','',first_line)           
         
         first_line=first_line.strip().strip('\n').strip()
+
+        first_line = sanitize_escape(first_line)
         self.metadata.entries.append(MetadataEntry('title', first_line))
         return first_line
    
@@ -257,12 +258,6 @@ class UrtextNode:
 
         return new_metadata.strip()
 
-    # def _set_content(self, contents, preserve_metadata=False, bypass_check=False):
-    #     return self.executor.submit(self._set_content, 
-    #         contents, 
-    #         preserve_metadata=False, 
-    #         bypass_check=False)
-
     def set_content(self, contents, preserve_metadata=False, bypass_check=False):
         
         file_contents = self.get_file_contents()
@@ -273,8 +268,8 @@ class UrtextNode:
             file_contents[0:start_range],
             contents,
             file_contents[end_range:]]) 
+        
         return self.set_file_contents(new_file_contents)
-
 
 def parse_dynamic_definitions(contents, dynamic_definitions): 
     for d in dynamic_def_regexp.finditer(contents):
@@ -347,4 +342,9 @@ def strip_embedded_syntaxes(contents, preserve_length=False):
 
 def strip_errors(contents):
     return re.sub('<!!.*?!!>', '', contents, flags=re.DOTALL)
+
+def sanitize_escape(string):
+    if string.count('`') == 1:
+        return string.replace('`','')
+    return string
 

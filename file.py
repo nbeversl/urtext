@@ -20,7 +20,6 @@ import os
 import re
 from urtext.node import UrtextNode
 import concurrent.futures
-import hashlib
 from urtext.utils import strip_backtick_escape
 
 node_id_regex =         r'\b[0-9,a-z]{3}\b'
@@ -57,7 +56,6 @@ class UrtextFile:
     def __init__(self, 
         filename, 
         settings=None,
-        previous_hash=None,
         strict=False):
         
         self.nodes = {}
@@ -67,30 +65,19 @@ class UrtextFile:
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
-        self.changed = True
         self.is_parseable = True
         self.strict = strict
         self.messages = []
-        self.prefix = None
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
         contents = self._get_file_contents() 
-        self.hash = self.hash_contents(contents)
-        if self.hash == previous_hash:
-            self.changed = False
-        elif not contents:
+        if not contents:
             return
         contents = self.clear_errors(contents)
         self.file_length = len(contents)        
         self.parse(self.lex(contents), settings)
         self.write_errors(settings)
-            
-    def hash_contents(self, contents):
-        r = bytearray(contents,'utf-8')
-        md5 = hashlib.md5()
-        md5.update(r)
-        return md5.digest()
-
+        
     def lex(self, contents):
 
         """ populate a dict syntax symbols """
@@ -341,9 +328,6 @@ class UrtextFile:
                 self.messages.append('Warning: Node missing ID at position '+str(position))
             return False
 
-    # def get_file_contents(self):
-    #     return self.executor.submit(self._get_file_contents)
-
     def _get_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
@@ -353,7 +337,6 @@ class UrtextFile:
                     encoding='utf-8',
             ) as theFile:
                 full_file_contents = theFile.read()
-                theFile.close()
         except IsADirectoryError:
             return None
         except UnicodeDecodeError:
@@ -361,18 +344,10 @@ class UrtextFile:
             return None
         full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
         return full_file_contents
-    
-    
-    # def set_file_contents(self, contents):
-    #     self.executor.submit(self._set_file_contents)
 
     def _set_file_contents(self, contents):
-        existing_contents = self._get_file_contents()
-        if contents != existing_contents:
-            with open(self.filename, 'w', encoding='utf-8') as theFile:
-                theFile.write(contents)
-            return True
-        return False
+        with open(self.filename, 'w', encoding='utf-8') as theFile:
+            theFile.write(contents)
 
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)

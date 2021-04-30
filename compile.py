@@ -33,12 +33,14 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename):
+    self._parse_file(filename)
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
         for dd in self.dynamic_defs(target=node_id):
             if self._process_dynamic_def(dd) and not modified:
                 modified = filename
+   
     return modified
 
 def _process_dynamic_def(self, dynamic_definition):
@@ -55,36 +57,19 @@ def _process_dynamic_def(self, dynamic_definition):
     outcome = []
     operations = sorted(dynamic_definition.operations, key = lambda op: op.phase) 
     for operation in operations:
-        #print(operation)
         outcome = operation.execute(outcome, [self], dynamic_definition.show)
       
     # if dynamic_definition.target_id:
     #     outcome.discard(dynamic_definition.target_id)           
             
     final_output = build_final_output(dynamic_definition, outcome) 
-    
-    # if dynamic_definition.target_id and dynamic_definition.target_id in self.h_content:
-    #     if self.h_content[dynamic_definition.target_id] == hash(final_output):
-    #         return
-
-    # if dynamic_definition.exports and dynamic_definition.exports[0] in self.dynamic_memo:
-    #     if self.dynamic_memo[dynamic_definition.exports[0]]['contents'] == hash(final_output):
-    #         return
-
-    # if dynamic_definition.exports:
-    #     self.dynamic_memo[dynamic_definition.exports[0]] = {}
-    #     self.dynamic_memo[dynamic_definition.exports[0]]['contents'] = hash(final_output)
-   
-    if dynamic_definition.target_id in self.nodes:
        
+    if dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
-        if changed_file:
-            self._parse_file(changed_file)
     
     if dynamic_definition.target_id in self.nodes:
 
-        self.nodes[dynamic_definition.target_id].dynamic = True
-
+   
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
         if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'): #and not dynamic_definition.header:
             self.nodes[dynamic_definition.target_id].title = ''

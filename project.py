@@ -101,16 +101,14 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
-        self.h_content = {}
         self.files = {}
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.settings_initialized = False
-        self.dynamic_memo = {}
         self.watchdog = watchdog
         self.quick_loaded = False
         self.compiled = False
@@ -274,27 +272,6 @@ class UrtextProject:
             self.nodes[node_id].parent_project = self.title
 
 
-    def _file_changed(self, filename, strict=False):
-        
-        old_hash = None
-        if filename in self.files:
-            already_in_project = True
-            old_hash = self.files[filename].hash
-
-        """
-        Parse the file
-        """
-        new_file = UrtextFile(
-            os.path.join(self.path, filename), 
-            settings=self.settings,
-            previous_hash=old_hash,
-            strict=strict
-            )
-        
-        if new_file.changed == False:
-            return False
-
-        return new_file
 
     def _parse_file(self, 
             filename, 
@@ -308,21 +285,17 @@ class UrtextProject:
         filename = os.path.basename(filename)
         if self._filter_filenames(filename) == None:
             return
-        
-        already_in_project = False
 
-        new_file = self._file_changed(filename)
-        if not new_file:
-            return False
-
+        new_file = UrtextFile(
+            os.path.join(self.path, filename), 
+            settings=self.settings
+            )
+                
         self.messages[filename] = []
         if new_file.messages:
             self.messages[filename] = new_file.messages 
         
         if not new_file.is_parseable:
-            if already_in_project:
-                self._log_item('Unable to re-parse >f'+filename+ ', dropping it from the project.')
-                return False
             self.to_import.append(filename)
             return
 
@@ -348,7 +321,10 @@ class UrtextProject:
         If this is not the initial load of the project rebuild sub-tags
         """        
         if self.compiled:
-             for node_id in new_file.nodes:
+            
+            for node_id in new_file.nodes:
+                for dd in self.dynamic_defs(target=node_id):
+                    self.nodes[dd.target_id].dynamic = True
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
     
@@ -407,7 +383,8 @@ class UrtextProject:
                 offset += len(replaced_contents) - len(new_contents)
                 new_contents = replaced_contents
         if new_contents != original_contents:
-            return new_contents 
+            self.files[f]._set_file_contents(rewritten_contents)
+            self._parse_file(filename)
         return False
 
     def _target_id_defined(self, check_id):
@@ -462,7 +439,6 @@ class UrtextProject:
         if new_node.id in self.access_history:
             new_node.last_accessed = self.access_history[new_node.id]
 
-        self.h_content[new_node.id] = new_node.hashed_contents
         new_node.project = self
         # TODO : it's not necessary to keep a copy of this
         # inside the node. do it at the project level only. 
@@ -494,19 +470,18 @@ class UrtextProject:
                 offset = position - indexes[index]
                 return node, target_position+offset
 
-    def _set_node_contents(self, node_id, contents):
+    def _set_node_contents(self, node_id, contents, parse=True):
         """ 
         project-aware alias for the Node set_content() method 
         returns filename if contents has changed.
-
         """
-        self._parse_file(self.nodes[node_id].filename)
+        if parse:
+            self._parse_file(self.nodes[node_id].filename)
         if node_id in self.nodes:
-            file_changed = self.nodes[node_id].set_content(contents, preserve_metadata=True)       
-            if file_changed:
-                self._parse_file(self.nodes[node_id].filename)
-                if node_id in self.nodes:
-                    return self.nodes[node_id].filename
+            self.nodes[node_id].set_content(contents, preserve_metadata=True)       
+            self._parse_file(self.nodes[node_id].filename)
+            if node_id in self.nodes:
+                return self.nodes[node_id].filename
         return False
 
     def _adjust_ranges(self, filename, from_position, amount):
@@ -583,8 +558,7 @@ class UrtextProject:
                 self.nodes[node_id].tree_node = None
                 self._remove_sub_tags(node_id)                
                 del self.nodes[node_id]
-                del self.h_content[node_id]
-
+  
             for a in self.files[filename].alias_nodes:
                 a.parent = None
                 a.children = []
@@ -738,7 +712,6 @@ class UrtextProject:
     def dynamic_defs(self, target=None):
         dd = []
         for nid in self.nodes:
-
             if not target:
                 dd.extend([d for d in self.nodes[nid].dynamic_definitions if d])
             else:
@@ -1240,8 +1213,7 @@ class UrtextProject:
 
     def _on_modified(self, filenames):
 
-        #self._sync_file_list() #?
-        do_not_update = ['history','files']
+        do_not_update = ['history','files','.git']
         filenames = [o for o in filenames if os.path.basename(o) in self.files]
         return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
 
@@ -1249,11 +1221,8 @@ class UrtextProject:
 
         modified_files = []
         for f in filenames:
-            rewritten_contents = self._rewrite_titles(f)
-            if rewritten_contents:
-                self.files[f]._set_file_contents(rewritten_contents)
-            self._parse_file(f)
-            modified_file = self._compile_file(f)
+            self._rewrite_titles(f)
+            modified_file = self._compile_file(f)   
             if modified_file:
                 modified_files.append(modified_file)
         return modified_files

@@ -195,16 +195,20 @@ class Collect (UrtextFunctionWithParamsFlags):
                 root = Node(k)
                 if not contains_different_types(keys[k]):
                    keys[k] = sorted(keys[k], key=meta_value_sort_criteria)
-                for v in keys[k]:                  
+                
+                for v in keys[k]:
+                    f = None
                     if isinstance(v, UrtextTimestamp):
                         t=Node(v.string)
                     else:
                         t = Node(v) 
-                    t.parent = root 
                     for node in nodes:
                         for n in node.metadata.get_matching_entries(k,v):
                             f = Node(node.title + ' >' + node.id)
-                            f.parent = t       
+                            f.parent = t
+                    if f:                        
+                        t.parent = root
+
                 for pre, _, node in RenderTree(root):
                     contents += "%s%s\n" % (pre, node.name)
 
