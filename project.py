@@ -101,7 +101,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -273,6 +273,8 @@ class UrtextProject:
 
 
 
+
+
     def _parse_file(self, 
             filename, 
             import_project=False):
@@ -389,9 +391,8 @@ class UrtextProject:
 
     def _target_id_defined(self, check_id):
         for nid in list(self.nodes):
-            if check_id in [t.target_id for t in self.nodes[nid].dynamic_definitions]:
+            if nid in self.nodes and check_id in [t.target_id for t in self.nodes[nid].dynamic_definitions]:
                 return nid
-        return
 
     def _target_file_defined(self, file):
         for nid in list(self.nodes):
@@ -399,7 +400,6 @@ class UrtextProject:
                 for r in e.exports:
                     if file in r.to_files:
                         return nid
-        return
 
     """
     Parsing helpers
@@ -711,7 +711,7 @@ class UrtextProject:
 
     def dynamic_defs(self, target=None):
         dd = []
-        for nid in self.nodes:
+        for nid in list(self.nodes):
             if not target:
                 dd.extend([d for d in self.nodes[nid].dynamic_definitions if d])
             else:
@@ -922,6 +922,12 @@ class UrtextProject:
                     link = result.group().strip()
 
         return (kind, link, position, link_location)
+
+    def trigger(self, trigger):
+        for t in all_triggers:
+            if t.name == trigger:
+                r = t('')
+                return r.execute(self)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1455,7 +1461,7 @@ class UrtextProject:
         for k in keys:
             for value in values:
                 if value in ['*']:
-                    results = results.union(set(n for n in self.nodes if self.nodes[n].metadata.get_values(k))) 
+                    results = results.union(set(n for n in list(self.nodes) if self.nodes[n].metadata.get_values(k))) 
                     continue
 
                 use_timestamp = False

@@ -12,8 +12,7 @@ class ReindexFiles(UrtextTrigger):
     def execute(self, project):
         project._sync_file_list()
         files = project.all_files() 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
-        executor.submit(self.rename_file_nodes, project, files, reindex=True)
+        return self.rename_file_nodes(project, files, reindex=True)
      
     def rename_file_nodes(self, project, filenames, reindex=False):
         """ Rename a file or list of files by metadata """

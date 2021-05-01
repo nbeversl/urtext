@@ -143,16 +143,16 @@ def _set_tree_elements(self, filename):
             continue
         
         start_of_node = self.nodes[node].ranges[0][0]
-        if start_of_node == 0 and self.nodes[node].compact:
-            parent = self.files[filename].root_nodes[0]
+        # if start_of_node == 0 and self.nodes[node].compact:
+        #     parent = self.files[filename].root_nodes[0]
+        # else:
+        if not self.nodes[node].compact:
+            parent = self.get_node_id_from_position(filename, start_of_node - 1)
         else:
-            if not self.nodes[node].compact:
+            parent = self.get_node_id_from_position(filename, start_of_node - 2)
+            while parent in self.nodes and self.nodes[parent].compact:
+                start_of_node = self.nodes[parent].ranges[0][0]
                 parent = self.get_node_id_from_position(filename, start_of_node - 1)
-            else:
-                parent = self.get_node_id_from_position(filename, start_of_node - 2)
-                while parent in self.nodes and self.nodes[parent].compact:
-                    start_of_node = self.nodes[parent].ranges[0][0]
-                    parent = self.get_node_id_from_position(filename, start_of_node - 1)
         if parent:
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 
