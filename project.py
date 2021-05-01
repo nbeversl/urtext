@@ -101,7 +101,7 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -879,6 +879,9 @@ class UrtextProject:
             self._log_item('Node ' + link[1] + ' is not in the project')
             return None
 
+        if link[0] == 'NODE':
+            self.nodes[link[1]].metadata.access()
+            self.access_history[link[1]] = time.time()
         return link
 
     def find_link(self, string):
@@ -907,7 +910,7 @@ class UrtextProject:
                     position = 0
                 position = self.get_file_position(link, position)
                 if link in self.nodes:
-                     self.executor.submit(self._compile_file, self.nodes[link].filename)
+                    self.refresh_file(self.nodes[link].filename)
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -923,6 +926,9 @@ class UrtextProject:
 
         return (kind, link, position, link_location)
 
+    def refresh_file(self, filename):
+        self.executor.submit(self._compile_file, filename)
+        
     def trigger(self, trigger):
         for t in all_triggers:
             if t.name == trigger:
@@ -1361,7 +1367,7 @@ class UrtextProject:
 
         for node_id, access_time in self.access_history.items():
             if node_id in self.nodes:
-                self.nodes[node_id].last_accessed = access_time
+                self.nodes[node_id].metadata._last_accessed = access_time
 
     def _save_access_history(self):
 

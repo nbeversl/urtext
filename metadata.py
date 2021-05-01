@@ -20,6 +20,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import datetime
 import pytz
+import time
 from urtext.utils import force_list
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import UrtextTimestamp, default_date
@@ -38,9 +39,11 @@ class NodeMetadata:
         self.node = node
         self.entries = []
         self.dynamic_entries = []
-        
         self._last_accessed = 0
-       
+    
+    def access(self):
+        self._last_accessed = time.time()
+
     def parse_contents(self, full_contents, settings=None):
 
         self.settings=settings
@@ -137,11 +140,8 @@ class NodeMetadata:
         use_timestamp=False,
         return_type=False):
 
-        # if keyname == '_last_accessed':
-        #     m = MetadataValue('_last_accessed', '')
-        #     m.timestamps=[UrtextTimestamp(self._last_accessed)]
-        #     return m
-
+        if keyname == '_last_accessed':           
+            return self._last_accessed
 
         entries = self.get_entries(keyname.lower())
         if not entries:
