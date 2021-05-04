@@ -89,9 +89,9 @@ class Tree(UrtextFunctionWithParamsFlags):
             if next_content.needs_contents: 
                 next_content.contents = urtext_node.content_only().strip('\n').strip()
 
-            # if next_content.needs_last_accessed: 
-            #     t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed').as)
-            #     next_content.last_accessed = t.strftime(project.settings['timestamp_format'])
+            if next_content.needs_last_accessed: 
+                t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
+                next_content.last_accessed = t.strftime(project.settings['timestamp_format'])
 
             for meta_key in next_content.needs_other_format_keys:
                 
@@ -134,25 +134,16 @@ def _set_tree_elements(self, filename):
             self.files[filename].alias_nodes.append(alias_node)
             continue
 
-        """
-        in case this node begins the file and is an an inline node,
-        set the inline node's parent as the root node manually.
-        """
         if position == 0 and parsed_items[0] == '{':
             self.nodes[node].tree_node.parent = self.nodes[root_node_id].tree_node
             continue
         
         start_of_node = self.nodes[node].ranges[0][0]
-        # if start_of_node == 0 and self.nodes[node].compact:
-        #     parent = self.files[filename].root_nodes[0]
-        # else:
-        if not self.nodes[node].compact:
+        
+        parent = self.get_node_id_from_position(filename, start_of_node - 1)
+        while parent in self.nodes and self.nodes[parent].compact:
+            start_of_node = self.nodes[parent].ranges[0][0]
             parent = self.get_node_id_from_position(filename, start_of_node - 1)
-        else:
-            parent = self.get_node_id_from_position(filename, start_of_node - 2)
-            while parent in self.nodes and self.nodes[parent].compact:
-                start_of_node = self.nodes[parent].ranges[0][0]
-                parent = self.get_node_id_from_position(filename, start_of_node - 1)
         if parent:
             self.nodes[node].tree_node.parent = self.nodes[parent].tree_node
 

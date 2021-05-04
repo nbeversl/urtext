@@ -27,9 +27,7 @@ import time
 import sys
 from time import strftime
 import concurrent.futures
-import diff_match_patch as dmp_module
 from pytz import timezone
-import pprint
 from anytree import Node, PreOrderIter, RenderTree
 
 from anytree import Node, PreOrderIter, RenderTree
@@ -42,7 +40,7 @@ from urtext.meta_handling import metadata_functions
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
-from urtext.hooks.nodehook import NodeHook
+from urtext.hooks.nodehook import UrtextHook
 from urtext.triggers.trigger import UrtextTrigger
 from importlib import import_module
 
@@ -72,14 +70,8 @@ def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
-print("HOOKS LOADED")
-all_node_hooks = all_subclasses(NodeHook);
-print(all_node_hooks)
-
-print("TRIGGERS LOADED")
+all_hooks = all_subclasses(UrtextHook);
 all_triggers = all_subclasses(UrtextTrigger);
-print(all_triggers)
-
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -87,6 +79,41 @@ def add_functions_as_methods(functions):
             setattr(Class, function.__name__, function)
         return Class
     return decorator
+
+
+single_values = [
+    'home',
+    'project_title',
+    'node_date_keyname',
+    'log_id',
+    'timestamp_format',
+    'device_keyname',
+    'breadcrumb_key',
+    'title',
+    'id',
+    'hash_key',
+    'file_node_leading_contents',
+    'filename_datestamp_format',
+    'timezone' ]
+
+single_boolean_values = [
+    'always_oneline_meta',
+    'preformat',
+    'console_log',
+    'atomic_rename',
+    'autoindex',
+    'keyless_timestamp',
+    'file_node_timestamp',
+    'inline_node_timestamp',
+    'contents_strip_outer_whitespace',
+    'contents_strip_internal_whitespace',]
+
+replace = [
+    'file_index_sort',
+    'filenames',
+    'node_browser_sort',
+    'tag_other',
+    'filename_datestamp_format' ]
 
 @add_functions_as_methods(functions)
 class UrtextProject:
@@ -101,13 +128,15 @@ class UrtextProject:
                  watchdog=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
+        self.hooks = []
+        self.plugins = object()
         self.settings_initialized = False
         self.watchdog = watchdog
         self.quick_loaded = False
@@ -211,6 +240,11 @@ class UrtextProject:
         import_project=False, 
         init_project=False):
 
+        for c in all_hooks:
+            plugin = c(self)
+            plugin.setup()
+            self.hooks.append(plugin)
+
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
 
@@ -271,10 +305,6 @@ class UrtextProject:
         for node_id in self.nodes:
             self.nodes[node_id].parent_project = self.title
 
-
-
-
-
     def _parse_file(self, 
             filename, 
             import_project=False):
@@ -302,25 +332,19 @@ class UrtextProject:
             return
 
         self._remove_file(filename)
-        """
-        Check the file for duplicate nodes
-        """
+ 
         duplicate_nodes = self._check_file_for_duplicates(new_file)
         if duplicate_nodes:
             return duplicate_nodes
  
-        """
-        re-add the filename and all its nodes to the project
-        """
         self.files[new_file.basename] = new_file  
-
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
         
         self._set_tree_elements(new_file.basename)
 
         """
-        If this is not the initial load of the project rebuild sub-tags
+        If not the initial load of the project rebuild sub-tags
         """        
         if self.compiled:
             
@@ -329,9 +353,6 @@ class UrtextProject:
                     self.nodes[dd.target_id].dynamic = True
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
-    
-        """ returns None if successful """
-        return None
 
     def _check_file_for_duplicates(self, file_obj):
         duplicate_nodes = {}
@@ -366,7 +387,7 @@ class UrtextProject:
             start = match.start() + offset
             end = match.end() + offset
             location_node_id = self.get_node_id_from_position(filename, start)
-            if not location_node_id:
+            if not location_node_id or location_node_id not in self.nodes:
                 continue
             if not self.nodes[location_node_id].dynamic:          
                 match_contents = new_contents[start:end]
@@ -436,23 +457,14 @@ class UrtextProject:
             self._log_item(message)
 
         new_node.parent_project = self.title
-        if new_node.id in self.access_history:
-            new_node.last_accessed = self.access_history[new_node.id]
-
         new_node.project = self
-        # TODO : it's not necessary to keep a copy of this
-        # inside the node. do it at the project level only. 
         self.nodes[new_node.id] = new_node
 
         if new_node.project_settings:
             self._get_settings_from(new_node)            
 
-        self._run_node_hooks(new_node)
-
-    def _run_node_hooks(self, node):
-        for c in all_node_hooks:
-            hook = c(node)
-            hook.run()
+        for c in self.hooks:
+            c.on_node_modified(new_node)
 
     def get_source_node(self, filename, position):
         if filename not in self.files:
@@ -553,7 +565,9 @@ class UrtextProject:
        
         if filename in self.files:
             
-            for node_id in self.files[filename].nodes:                 
+            for node_id in self.files[filename].nodes:    
+                if node_id not in self.nodes:
+                    continue             
                 self.nodes[node_id].tree_node.parent = None
                 self.nodes[node_id].tree_node = None
                 self._remove_sub_tags(node_id)                
@@ -959,41 +973,7 @@ class UrtextProject:
     def _get_settings_from(self, node):
 
 
-        single_values = [
-            'home',
-            'project_title',
-            'node_date_keyname',
-            'log_id',
-            'timestamp_format',
-            'device_keyname',
-            'breadcrumb_key',
-            'title',
-            'id',
-            'hash_key',
-            'file_node_leading_contents',
-            'filename_datestamp_format',
-            'timezone'
-        ]
-        single_boolean_values = [
-            'always_oneline_meta',
-            'preformat',
-            'console_log',
-            'atomic_rename',
-            'autoindex',
-            'keyless_timestamp',
-            'file_node_timestamp',
-            'inline_node_timestamp',
-            'contents_strip_outer_whitespace',
-            'contents_strip_internal_whitespace',
-        ]
-        replace = [
-            'file_index_sort',
-            'filenames',
-            'node_browser_sort',
-            'tag_other',
-            'filename_datestamp_format'
-        ]
-
+      
         self._initialize_settings() # reset defaults
         replacements = {}
         for entry in node.metadata.entries:
@@ -1231,9 +1211,10 @@ class UrtextProject:
         return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
 
     def _file_update(self, filenames):
-
         modified_files = []
         for f in filenames:
+            for h in self.hooks:
+                h.on_file_modified(f)
             self._rewrite_titles(f)
             self._parse_file(f)
             modified_file = self._compile_file(f)   
@@ -1287,56 +1268,6 @@ class UrtextProject:
             filename = os.path.join(self.path, filename)
         return filename
 
-    """
-    File History
-    """
-    def snapshot_diff(self, filename, contents):
-        dmp = dmp_module.diff_match_patch()
-        filename = os.path.basename(filename)
-        if filename not in self.files:
-            return None
-        history_file = os.path.join(self.path, 'history',filename.replace('.txt','.diff'))
-        file_history = self.get_history(filename)
-        if not file_history:
-            file_history = { int(time.time()) : contents}
-            with open( history_file, "w") as f:
-            	f.write(json.dumps(file_history))
-        else:
-            latest_history = self.apply_patches(file_history)
-            if contents != latest_history:
-                file_history[int(time.time())] = dmp.patch_toText(dmp.patch_make(latest_history, contents))
-                # prevent duplicate files on cloud storage
-                os.remove(history_file)
-                with open( history_file, "w") as f:
-                    f.write(json.dumps(file_history))
-
-    def apply_patches(self, history, distance_back=0):
-        dmp = dmp_module.diff_match_patch()
-        timestamps = sorted(history.keys())
-        original = history[timestamps[0]]
-        for index in range(1,len(timestamps)-distance_back):
-            next_patch = history[timestamps[index]]
-            original = dmp.patch_apply(dmp.patch_fromText(next_patch), original)[0]
-        return original
-
-    def get_version(self, filename, distance_back=0):
-        history = self.get_history(filename)
-        return self.apply_patches(history, distance_back)       
-
-    def get_history(self, filename):
-        dmp = dmp_module.diff_match_patch()
-        filename = os.path.basename(filename)
-        history_file = os.path.join(self.path, 'history', filename.replace('.txt','.diff'))
-        if os.path.exists(history_file):
-            with open(history_file, "r") as f:
-                file_history = f.read()
-            return json.loads(file_history)
-        return None
-
-    def most_recent_history(self, history):
-        times = sorted(history.keys())
-        return times[-1]
-
     def title_completions(self):
         return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
 
@@ -1379,7 +1310,8 @@ class UrtextProject:
             f.write(json.dumps(self.access_history))
     
     def _push_access_history(self, node_id, duplicate=False):
-        if node_id not in self.nodes: return
+        if node_id not in self.nodes: 
+            return
         access_time = int(time.time()) # UNIX timestamp
         self.nodes[node_id].last_accessed = access_time
         self.access_history[node_id] = access_time
@@ -1492,21 +1424,7 @@ class UrtextProject:
                             k, use_timestamp=use_timestamp, lower=True)))
         
         return results
-    """
-    Free Association
-    """
-    def get_keywords(self):
-        keywords = []
-        for i in self.nodes:
-            keywords.extend(self.nodes[i].keywords)
-        return list(set(keywords))
-
-    def get_by_keyword(self, keyword):
-        nodes = []
-        for i in self.nodes:
-            if self.nodes[i].has_keyword(keyword):
-                nodes.append(i)
-        return nodes
+    
         
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)
