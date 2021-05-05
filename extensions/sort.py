@@ -8,7 +8,8 @@ class Sort(UrtextExtensionWithKeysFlags):
 	phase = 120
 		
 	def dynamic_output(self, nodes):
-		
+
+		self.dynamic_definition.included_nodes = nodes
 		nodes = [self.project.nodes[nid] for nid in nodes]
 
 		if self.keys:
@@ -17,6 +18,7 @@ class Sort(UrtextExtensionWithKeysFlags):
 				key= lambda node: self.sort_values(node, self.keys),
 				reverse=self.have_flags(['-reverse','-r'])
 				)
+		
 		return nodes
 
 	def sort_values(self, node, keys):

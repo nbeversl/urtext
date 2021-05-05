@@ -118,7 +118,7 @@ class Tree(UrtextExtensionWithParamsFlags):
         return tree_render
 
 
-    def on_file_modified(self, filename):
+    def _on_file_modified(self, filename):
         """ Builds tree elements within the file's nodes, after the file is parsed."""
 
         parsed_items = self.project.files[filename].parsed_items

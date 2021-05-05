@@ -11,16 +11,13 @@ class UrtextExtension():
     
         self.project = project
         self.argument_string = None
-    
-    def set_dynamic_definition(self, dynamic_definition):
-        self.dynamic_definition = dynamic_definition
 
-    def parse_argument_string(self, argument_string):
-        self.argument_string = argument_string
-        return
+    """ command """
 
     def execute(self):
         return
+
+    """ hook """
 
     def on_node_modified(self, node):
         return
@@ -28,17 +25,20 @@ class UrtextExtension():
     def on_node_visited(self, node):
         return
 
-    def on_file_modified(self,file_name):
+    def on_file_modified(self, file_name):
         return
+
+    """ dynamic output """
 
     def dynamic_output(self, input_contents):
         return ''
+    
+    def set_dynamic_definition(self, dynamic_definition):
+        self.dynamic_definition = dynamic_definition
 
-    def is_named(self, name):
-        if name in self.name:
-            return True
-        return False
-
+    def parse_argument_string(self, argument_string):
+        self.argument_string = argument_string
+        return
 
 class UrtextExtensionWithKeysFlags(UrtextExtension):
     

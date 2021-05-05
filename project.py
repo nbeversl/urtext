@@ -73,6 +73,7 @@ def add_functions_as_methods(functions):
     
 all_extensions = all_subclasses(UrtextExtension);
 
+
 single_values = [
     'home',
     'project_title',
@@ -130,8 +131,6 @@ class UrtextProject:
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.extensions = {}
-        self.ext_instances = []
-        self.quick_loaded = False
         self.compiled = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
@@ -140,12 +139,10 @@ class UrtextProject:
         self.title = self.path # default
         self._initialize_settings()
         if self.is_async:
-            future = self.executor.submit(self.quick_load, import_project=import_project)
             future = self.executor.submit(self._initialize_project,
                     import_project=import_project, 
                     init_project=init_project)
-        else:
-            self.quick_load(import_project=import_project)
+        else:    
             self._initialize_project(
                  import_project=import_project, 
                  init_project=init_project)
@@ -200,41 +197,18 @@ class UrtextProject:
                 'timestamp',]
         }
 
-    def quick_load(self, import_project=False):
-
-        self.retrieve()
-        
-        if self.ql and 'last_accessed' in self.ql:
-            for file in [t for t in self.ql['last_accessed'] if t in os.listdir(self.path)]:
-                self._parse_file(file)
-        self.quick_loaded = True
-        
-    def retrieve(self):
-        if os.path.exists(os.path.join(self.path,'_store.json')):
-            with open(os.path.join(self.path, '_store.json'), 'r') as f:
-                self.ql = json.loads(f.read())
-                self.settings=self.ql['project_settings']
-                self.title = self.ql['title']
-        else:
-            self.ql = { 'last_accessed': [], 'title': '', 'path': self.path}
-
-    def store(self):
-        if self.compiled:
-            self.ql['title'] = self.title
-            self.ql['project_settings'] = self.settings       
-            with open(os.path.join(self.path,'_store.json'), "w", encoding='utf-8') as f:
-                f.write(json.dumps(self.ql))
-
     def _initialize_project(self, 
         import_project=False, 
         init_project=False):
 
         for c in all_extensions:
+            print(c)
+           
             for n in c.name:
                 self.extensions[n] = c
 
 
-        for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
+        for file in os.listdir(self.path):
             self._parse_file(file, import_project=import_project)
 
         if import_project:
@@ -261,7 +235,7 @@ class UrtextProject:
 
         self._compile()
         self.compiled = True
-        self.store()
+
         print('"'+self.title+'" compiled from '+self.path )
     
     def _node_id_generator(self):
@@ -335,9 +309,9 @@ class UrtextProject:
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
 
-        for c in self.extensions:
-            plugin_action = self.extensions[c](self)
-            plugin_action.on_file_modified(filename)
+        for dd in self.dynamic_defs():
+            for op in dd.operations:
+                op.on_file_modified(filename)
 
     def _check_file_for_duplicates(self, file_obj):
 
@@ -448,10 +422,12 @@ class UrtextProject:
         if new_node.contains_project_settings:
             self._get_settings_from(new_node)            
 
-        #if self.compiled:
-        # for c in self.extensions:
-        #     self.extensions[c].on_node_modified(new_node)
-                #self.extensions[c](self).on_node_visited(new_node)
+        if self.compiled:
+
+            for dd in self.dynamic_defs():
+                for op in dd.operations:
+                    op.on_node_modified(new_node)
+                    #op.on_node_visited(new_node)
             
     def get_source_node(self, filename, position):
         if filename not in self.files:
@@ -747,7 +723,6 @@ class UrtextProject:
             self.ql.setdefault('last_accessed',[])
             self.ql['last_accessed'].insert(0, self.nodes[node_id].filename)
             self.ql['last_accessed'] = self.ql['last_accessed'][:20]
-            self.store()
             
         # add the newly opened file as the new "HEAD"
         self.nav_index += 1
@@ -882,10 +857,10 @@ class UrtextProject:
 
         if link[0] == 'NODE':
             self.nodes[link[1]].metadata.access()
-            # for c in self.extensions:
-            #     self.extensions[c].on_node_visited(self.nodes[link[1]])
 
-            #self.access_history[link[1]] = time.time()
+            for dd in self.dynamic_defs():
+                for op in dd.operations:
+                    op.on_node_visited(link[1])
         return link
 
     def find_link(self, string):
@@ -1203,8 +1178,10 @@ class UrtextProject:
     def _file_update(self, filenames):
         modified_files = []
         for f in filenames:
-            # for c in self.extensions:
-            #     self.extensions[c](self).on_node_visited(new_node)
+            
+            for dd in self.dynamic_defs():
+                for op in dd.operations:
+                    op.on_file_modified(f)
 
             self._rewrite_titles(f)
             self._parse_file(f)
@@ -1371,7 +1348,6 @@ class UrtextProject:
                             k, use_timestamp=use_timestamp, lower=True)))
         
         return results
-    
         
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.get_node_id_from_position(filename, position)

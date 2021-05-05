@@ -5,16 +5,30 @@ class AccessHistory(UrtextExtensionWithKeysFlags):
 
     name = ["ACCESS_HISTORY"]
     phase = 250
-    
-    def on_node_visited(self, node):
-        return
-        print(node)
-        if self.dynamic_definition.target_id in self.project.nodes:
-            contents = self.project.nodes[self.dynamic_definition.target_id].contents()
-            contents = ''.join([
-                    self.project.datestamp(datetime.datetime.now()) + ' ' + node.title + ' >'+node.id
-                ])
-            self.project._set_node_contents(contents)
+
+    def on_node_visited(self, node_id):
+        print(self.dynamic_definition.included_nodes )
+        if node_id in self.dynamic_definition.included_nodes:
+            
+            if self.dynamic_definition.target_id in self.project.nodes:
+                contents = self.project.nodes[self.dynamic_definition.target_id].contents()
+                contents = ''.join([ 
+                        '\n',
+                        self.project.timestamp(datetime.datetime.now()), 
+                        ' ', 
+                        self.project.nodes[node_id].title, 
+                        ' >', 
+                        node_id,
+                        '\n',
+                        contents
+                    ])
+                print(contents)
+                self.project.executor.submit(self.project._set_node_contents, 
+                    self.dynamic_definition.target_id, 
+                    contents)
+
+    def dynamic_output(self, input):
+        return False
 
 
 

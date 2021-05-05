@@ -12,16 +12,26 @@ import concurrent.futures
 
 class AddRakeKeywords(UrtextExtension):
 
-    def setup(self):
-        self.project.get_keywords = get_keywords
-        self.project.get_by_keyword = get_by_keyword
-
     def on_node_modified(self, node):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
         executor.submit(self.parse_node, node)
 
     def parse_node(self, nodes):
         self.node.rake_keywords = Rake(self.node.content_only())
+
+    def get_keywords(self):
+        keywords = []
+        for i in self.project.nodes:
+            keywords.extend(self.project.nodes[i].keywords)
+        return list(set(keywords))
+
+    def get_by_keyword(self, keyword):
+        nodes = []
+        for i in self.project.nodes:
+            if self.project.nodes[i].has_keyword(keyword):
+                nodes.append(i)
+        return nodes
+
 
 class Rake():
 
@@ -47,18 +57,7 @@ class Rake():
 """
 Free Association
 """
-def get_keywords(self):
-    keywords = []
-    for i in self.nodes:
-        keywords.extend(self.nodes[i].keywords)
-    return list(set(keywords))
 
-def get_by_keyword(self, keyword):
-    nodes = []
-    for i in self.nodes:
-        if self.nodes[i].has_keyword(keyword):
-            nodes.append(i)
-    return nodes
 
 
 

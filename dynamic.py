@@ -37,8 +37,9 @@ class UrtextDynamicDefinition:
 		self.preformat = False
 		self.show = None
 		self.multiline_meta = True
-
+		self.included_nodes = []
 		self.init_self(contents)
+		
 		if not self.show:
 			self.show = '$title $link\n'
 			
@@ -71,12 +72,13 @@ class UrtextDynamicDefinition:
 			if func == "SHOW":
 				self.show = argument_string
 		all_ops = [t for op in self.operations for t in op.name]
-
-		if 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
+		
+		if 'ACCESS_HISTORY' not in  all_ops and 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
 			op = self.project.extensions['LIST'](self.project)
 			op.parse_argument_string('1')		
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
+		
 		if 'SORT' not in all_ops:
 			op = self.project.extensions['SORT'](self.project)
 			op.set_dynamic_definition(self)
@@ -86,5 +88,9 @@ class UrtextDynamicDefinition:
 	def process_output(self):
 		outcome = []
 		for operation in sorted(self.operations, key = lambda op: op.phase) :		
-			outcome = operation.dynamic_output(outcome)
+			print(operation)
+			new_outcome = operation.dynamic_output(outcome)
+			if new_outcome != False:
+				outcome = new_outcome
+		print('--------------------')
 		return outcome

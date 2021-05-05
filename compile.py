@@ -21,7 +21,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from urtext.node import UrtextNode
 import os
 
-
 def _compile(self):
     
     for dynamic_definition in self.dynamic_defs():
@@ -53,7 +52,9 @@ def _process_dynamic_def(self, dynamic_definition):
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
-    output = dynamic_definition.process_output()            
+    output = dynamic_definition.process_output()    
+    if not isinstance(output, str):
+        return None
     final_output = build_final_output(dynamic_definition, output) 
        
     if dynamic_definition.target_id in self.nodes:
