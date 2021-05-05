@@ -7,7 +7,7 @@ class AccessHistory(UrtextExtensionWithKeysFlags):
     phase = 250
 
     def on_node_visited(self, node_id):
-        print(self.dynamic_definition.included_nodes )
+
         if node_id in self.dynamic_definition.included_nodes:
             
             if self.dynamic_definition.target_id in self.project.nodes:
@@ -22,7 +22,6 @@ class AccessHistory(UrtextExtensionWithKeysFlags):
                         '\n',
                         contents
                     ])
-                print(contents)
                 self.project.executor.submit(self.project._set_node_contents, 
                     self.dynamic_definition.target_id, 
                     contents)

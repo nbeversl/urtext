@@ -73,9 +73,9 @@ class UrtextDynamicDefinition:
 				self.show = argument_string
 		all_ops = [t for op in self.operations for t in op.name]
 		
-		if 'ACCESS_HISTORY' not in  all_ops and 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
+		if 'ACCESS_HISTORY' not in all_ops and 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
 			op = self.project.extensions['LIST'](self.project)
-			op.parse_argument_string('1')		
+			op.parse_argument_string('*')		
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
 		

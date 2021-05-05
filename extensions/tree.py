@@ -25,10 +25,6 @@ class Tree(UrtextExtensionWithParamsFlags):
                 
         if self.have_flags('*'):
             self.depth = 999999
-
-        for s in self.params:
-            if s[0] == 'depth':
-                self.depth = int(s[1])
         
         start_point = start_point.tree_node
         if from_root_of == True:
@@ -117,10 +113,12 @@ class Tree(UrtextExtensionWithParamsFlags):
 
         return tree_render
 
-
-    def _on_file_modified(self, filename):
+    def on_project_init(self):
+        return
+        
+    def on_file_modified(self, filename):
         """ Builds tree elements within the file's nodes, after the file is parsed."""
-
+    
         parsed_items = self.project.files[filename].parsed_items
         positions = sorted(parsed_items)
 
@@ -149,6 +147,15 @@ class Tree(UrtextExtensionWithParamsFlags):
                 parent = self.project.get_node_id_from_position(filename, start_of_node - 1)
             if parent:
                 self.project.nodes[node].tree_node.parent = self.project.nodes[parent].tree_node
+
+    def on_file_removed(self, filename):
+        
+        self.project.nodes[node_id].tree_node.parent = None
+        self.project.nodes[node_id].tree_node = None
+
+        for a in self.project.files[filename].alias_nodes:
+            a.parent = None
+            a.children = []
 
     def _tree_node_is_excluded(self, tree_node, excluded_nodes):
 

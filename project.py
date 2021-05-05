@@ -30,7 +30,6 @@ import concurrent.futures
 from pytz import timezone
 from anytree import Node, PreOrderIter, RenderTree
 
-from anytree import Node, PreOrderIter, RenderTree
 from urtext.file import UrtextFile
 from urtext.node import UrtextNode, strip_contents
 from urtext.compile import compile_functions
@@ -311,6 +310,7 @@ class UrtextProject:
 
         for dd in self.dynamic_defs():
             for op in dd.operations:
+                print('MODIFYING')
                 op.on_file_modified(filename)
 
     def _check_file_for_duplicates(self, file_obj):
@@ -528,17 +528,17 @@ class UrtextProject:
        
         if filename in self.files:
             
+            for dd in self.dynamic_defs():
+                for op in dd.operations:
+                    op.on_file_removed(filename)
+
             for node_id in self.files[filename].nodes:    
                 if node_id not in self.nodes:
                     continue             
-                self.nodes[node_id].tree_node.parent = None
-                self.nodes[node_id].tree_node = None
                 self._remove_sub_tags(node_id)                
                 del self.nodes[node_id]
-  
-            for a in self.files[filename].alias_nodes:
-                a.parent = None
-                a.children = []
+
+            
 
             del self.files[filename]
 

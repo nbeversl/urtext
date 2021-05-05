@@ -28,6 +28,12 @@ class UrtextExtension():
     def on_file_modified(self, file_name):
         return
 
+    def on_file_removed(self, file_name):
+        return
+
+    def on_project_init(self):
+        return
+
     """ dynamic output """
 
     def dynamic_output(self, input_contents):
