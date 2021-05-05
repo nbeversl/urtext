@@ -53,10 +53,9 @@ symbol_length = {
 
 class UrtextFile:
 
-    def __init__(self, 
-        filename, 
-        settings=None,
-        strict=False):
+    urtext_node = UrtextNode
+
+    def __init__(self, filename, project):
         
         self.nodes = {}
         self.root_nodes = []
@@ -65,9 +64,10 @@ class UrtextFile:
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
+        self.strict = False
         self.is_parseable = True
-        self.strict = strict
         self.messages = []
+        self.project = project
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
         contents = self._get_file_contents() 
@@ -75,8 +75,8 @@ class UrtextFile:
             return
         contents = self.clear_errors(contents)
         self.file_length = len(contents)        
-        self.parse(self.lex(contents), settings)
-        self.write_errors(settings)
+        self.parse(self.lex(contents))
+        self.write_errors(project.settings)
         
     def lex(self, contents):
 
@@ -121,7 +121,7 @@ class UrtextFile:
 
         return unstripped_contents
 
-    def parse(self, contents, project_settings):
+    def parse(self, contents):
 
         """
         Counters and trackers
@@ -234,8 +234,7 @@ class UrtextFile:
                     unstripped_contents, 
                     position, 
                     root=root, 
-                    compact=compact,
-                    project_settings=project_settings)
+                    compact=compact)
                 
                 del nested_levels[nested]
 
@@ -256,8 +255,7 @@ class UrtextFile:
                         unstripped_contents,
                         position,
                         root=root,
-                        compact=compact,
-                        project_settings=project_settings)
+                        compact=compact)
 
                 last_position = position + symbol_length[self.symbols[position]]
 
@@ -291,19 +289,17 @@ class UrtextFile:
         contents,
         position,
         root=None,
-        compact=None,
-        project_settings=None):
+        compact=None):
 
         # Build the node contents and construct the node
         node_contents = ''.join([contents[r[0]:r[1]]  for r in ranges])
 
-        new_node = UrtextNode(
+        new_node = self.urtext_node(
             self.filename, 
-            contents=node_contents,
-            settings=project_settings,
+            node_contents,
+            self.project,
             root=root,
-            compact=compact,
-            )
+            compact=compact)
         
         new_node.executor = self.executor
         new_node.get_file_contents = self._get_file_contents
@@ -395,7 +391,7 @@ class UrtextFile:
         self.anonymous_nodes = []
         self.parsed_items = {}
         self.messages = []
-        self.parse(new_contents, settings)
+        self.parse(new_contents)
         for n in self.nodes:
             self.nodes[n].errors = True
 

@@ -34,14 +34,12 @@ from anytree import Node, PreOrderIter, RenderTree
 from urtext.file import UrtextFile
 from urtext.node import UrtextNode, strip_contents
 from urtext.compile import compile_functions
-from urtext.functions.tree import trees_functions
 from urtext.meta_handling import metadata_functions
 
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
-from urtext.hooks.nodehook import UrtextHook
-from urtext.triggers.trigger import UrtextTrigger
+from urtext.extensions.extension import UrtextExtension
 from importlib import import_module
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
@@ -52,26 +50,19 @@ trigger_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
 editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
 url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
-functions = trees_functions
-functions.extend(compile_functions)
+functions = compile_functions
 functions.extend(metadata_functions)
 
-for i in os.listdir(os.path.join(os.path.dirname(__file__),'hooks')):
-    if '.py' in i:
-        i = os.path.basename(os.path.splitext(i)[0])
-        import_module('urtext.hooks.'+i)
-
-for i in os.listdir(os.path.join(os.path.dirname(__file__),'triggers')):
-    if '.py' in i:
-        i = os.path.basename(os.path.splitext(i)[0])
-        import_module('urtext.triggers.'+i)
 
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
-all_hooks = all_subclasses(UrtextHook);
-all_triggers = all_subclasses(UrtextTrigger);
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'extensions')):
+    if '.py' in i:
+        i = os.path.basename(os.path.splitext(i)[0])
+        import_module('urtext.extensions.'+i)
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -79,7 +70,8 @@ def add_functions_as_methods(functions):
             setattr(Class, function.__name__, function)
         return Class
     return decorator
-
+    
+all_extensions = all_subclasses(UrtextExtension);
 
 single_values = [
     'home',
@@ -119,13 +111,15 @@ replace = [
 class UrtextProject:
     """ Urtext project object """
 
+    urtext_file = UrtextFile
+    urtext_node = UrtextNode
+
     def __init__(self,
                  path,
                  rename=False,
                  recursive=False,
                  import_project=False,
-                 init_project=False,
-                 watchdog=False):
+                 init_project=False):
         
         self.is_async = True 
         self.is_async = False # development only
@@ -135,16 +129,12 @@ class UrtextProject:
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
-        self.hooks = []
-        self.plugins = object()
+        self.extensions = {}
         self.settings_initialized = False
-        self.watchdog = watchdog
         self.quick_loaded = False
         self.compiled = False
-        self.loaded = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
-        self.access_history = {}
         self.messages = {}
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -159,7 +149,6 @@ class UrtextProject:
             self._initialize_project(
                  import_project=import_project, 
                  init_project=init_project)
-
 
         # TODO -- node date timezones have to be localized
         # do this from UrtextNode.date() method
@@ -240,10 +229,9 @@ class UrtextProject:
         import_project=False, 
         init_project=False):
 
-        for c in all_hooks:
-            plugin = c(self)
-            plugin.setup()
-            self.hooks.append(plugin)
+        for c in all_extensions:
+            for n in c.name:
+                self.extensions[n] = c(self)
 
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
@@ -264,15 +252,11 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
-        if not os.path.exists(os.path.join(self.path, "history")):
-            os.mkdir(os.path.join(self.path, "history"))
-
         # build sub tags
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( node_id, node_id, e)
 
-        self._get_access_history()        
         self._compile()
         self.compiled = True
         self.store()
@@ -318,10 +302,7 @@ class UrtextProject:
         if self._filter_filenames(filename) == None:
             return
 
-        new_file = UrtextFile(
-            os.path.join(self.path, filename), 
-            settings=self.settings
-            )
+        new_file = self.urtext_file(os.path.join(self.path, filename), self)
                 
         self.messages[filename] = []
         if new_file.messages:
@@ -341,8 +322,6 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
         
-        self._set_tree_elements(new_file.basename)
-
         """
         If not the initial load of the project rebuild sub-tags
         """        
@@ -353,6 +332,9 @@ class UrtextProject:
                     self.nodes[dd.target_id].dynamic = True
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
+
+        for c in self.extensions:
+            self.extensions[c].on_file_modified(filename)
 
     def _check_file_for_duplicates(self, file_obj):
         duplicate_nodes = {}
@@ -460,12 +442,14 @@ class UrtextProject:
         new_node.project = self
         self.nodes[new_node.id] = new_node
 
-        if new_node.project_settings:
+        if new_node.contains_project_settings:
             self._get_settings_from(new_node)            
 
-        for c in self.hooks:
-            c.on_node_modified(new_node)
-
+        if self.compiled:
+            for c in self.extensions:
+                self.extensions[c].on_node_modified(new_node)
+                #self.extensions[c](self).on_node_visited(new_node)
+            
     def get_source_node(self, filename, position):
         if filename not in self.files:
             return None, None
@@ -549,7 +533,7 @@ class UrtextProject:
     def _populate_messages(self):
         if self.settings['log_id'] and self.settings['log_id'] in self.nodes:
             output = self._list_messages()
-            output += '\n'+UrtextNode.build_metadata(
+            output += '\n'+self.urtext_node.build_metadata(
                 {   'id':self.settings['log_id'],
                     'title':'Log',
                     'timestamp' : self.timestamp(datetime.datetime.now())
@@ -711,7 +695,7 @@ class UrtextProject:
             elif self.settings['node_date_keyname']:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
             
-        new_node_contents += UrtextNode.build_metadata(metadata, one_line=one_line)
+        new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
 
         return new_node_contents, node_id
 
@@ -720,7 +704,7 @@ class UrtextProject:
             metadata={},
         ):
         	metadata['id']=self.next_index()
-        	metadata_block = UrtextNode.build_metadata(metadata, one_line=True)
+        	metadata_block = self.urtext_node.build_metadata(metadata, one_line=True)
         	return '•  '+contents + ' ' + metadata_block
 
     def dynamic_defs(self, target=None):
@@ -766,7 +750,7 @@ class UrtextProject:
         self.nav_index += 1
         del self.navigation[self.nav_index:]
         self.navigation.append(node_id)
-        self.executor.submit(self._push_access_history, node_id)
+      
          
     def nav_reverse(self):
         if not self.navigation:
@@ -895,7 +879,10 @@ class UrtextProject:
 
         if link[0] == 'NODE':
             self.nodes[link[1]].metadata.access()
-            self.access_history[link[1]] = time.time()
+            # for c in self.extensions:
+            #     self.extensions[c].on_node_visited(self.nodes[link[1]])
+
+            #self.access_history[link[1]] = time.time()
         return link
 
     def find_link(self, string):
@@ -1213,8 +1200,9 @@ class UrtextProject:
     def _file_update(self, filenames):
         modified_files = []
         for f in filenames:
-            for h in self.hooks:
-                h.on_file_modified(f)
+            # for c in self.extensions:
+            #     self.extensions[c](self).on_node_visited(new_node)
+
             self._rewrite_titles(f)
             self._parse_file(f)
             modified_file = self._compile_file(f)   
@@ -1271,51 +1259,7 @@ class UrtextProject:
     def title_completions(self):
         return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
 
-    """
-    Access History
-    """
-
-    def _get_access_history(self):
-
-        accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
-        if os.path.exists(accessed_file):
-            with open(accessed_file,"r") as f:
-                try:
-                    contents = f.read()
-                    if contents:
-                        try:
-                            access_history = json.loads(contents)
-                            self.access_history = convert_dict_values_to_int(access_history)
-                        except:
-                            print('Could not parse access history for '+accessed_file)
-                            print(contents)
-                except EOFError as error:
-                    print(error)
-         
-        self._propagate_access_history()    
-
-    def _propagate_access_history(self):
-
-        for node_id, access_time in self.access_history.items():
-            if node_id in self.nodes:
-                self.nodes[node_id].metadata._last_accessed = access_time
-
-    def _save_access_history(self):
-
-        accessed_file = os.path.join(self.path, "history", "URTEXT_accessed.json")
-        # prevent duplicate files on cloud storage
-        if os.path.exists(accessed_file):
-            os.remove(accessed_file)
-        with open(accessed_file,"w") as f:
-            f.write(json.dumps(self.access_history))
     
-    def _push_access_history(self, node_id, duplicate=False):
-        if node_id not in self.nodes: 
-            return
-        access_time = int(time.time()) # UNIX timestamp
-        self.nodes[node_id].last_accessed = access_time
-        self.access_history[node_id] = access_time
-        self._save_access_history()
 
     def get_first_value(self, node, keyname):
         value = node.metadata.get_first_value(keyname)
@@ -1461,6 +1405,7 @@ class DuplicateIDs(Exception):
 """ 
 Helpers 
 """
+
 
 def soft_match_compact_node(selection):
     if re.match(r'^[^\S\n]*•.*?@\b[0-9,a-z]{3}\b.*', selection):

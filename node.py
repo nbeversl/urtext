@@ -17,7 +17,6 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
-#/Users/n_beversluis/Library/Mobile Documents/iCloud~com~omz-software~Pythonista3/Documents/archive_new_ID_style/nate-big-project
 import os
 import json
 from urtext.metadata import NodeMetadata
@@ -45,17 +44,18 @@ preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
 tree_elements = ['├──','└──','│','┌──',]
 
 class UrtextNode:
-    """ Urtext Node object"""
+
+    urtext_metadata = NodeMetadata
+
     def __init__(self, 
         filename, 
         contents,
-        settings=None,
+        project,
         root=False, 
         compact=False):
 
         self.filename = os.path.basename(filename)
-        self.project_path = os.path.dirname(filename)
-        self.project = None
+        self.project = project
         self.position = 0
         self.ranges = [[0, 0]]
         self.tree = None
@@ -66,14 +66,13 @@ class UrtextNode:
         self.links = []
         self.root_node = root
         self.tz = pytz.timezone('UTC')
-        self.project_settings = False
+        self.contains_project_settings = False
         self.compact = compact
         self.parent_project = None
         self.dynamic_definitions = []
         self.target_nodes = []
         self.blank = False
         self.title = None
-        self.keywords = {}
         self.errors = False
         self.display_meta = ''
         self.parent = None
@@ -81,12 +80,12 @@ class UrtextNode:
         contents = strip_wrappers(contents, compact=compact)
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
-        contents = parse_dynamic_definitions(contents, self.dynamic_definitions)
+        contents = self.parse_dynamic_definitions(contents, self.dynamic_definitions)
         contents = strip_dynamic_definitions(contents)
         contents = strip_backtick_escape(contents)
     
-        self.metadata = NodeMetadata(self)        
-        contents = self.metadata.parse_contents(contents, settings=settings)
+        self.metadata = self.urtext_metadata(self)        
+        contents = self.metadata.parse_contents(contents, settings=self.project.settings)
 
         r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', contents)
         if r:
@@ -97,13 +96,11 @@ class UrtextNode:
                 d.source_id = self.id
 
         if not contents:
-            self.blank = True
+            self.blank = True 
     
         self.title = self.set_title(contents)    
         if self.title == 'project_settings':
-            self.project_settings = True
-
-        self.parent = None
+            self.contains_project_settings = True
 
         self.get_links(contents=contents)
 
@@ -115,7 +112,7 @@ class UrtextNode:
 
     def contents(self):
    
-        with open(os.path.join(self.project_path, self.filename),
+        with open(os.path.join(self.project.path, self.filename),
                   'r',
                   encoding='utf-8') as theFile:
             file_contents = theFile.read()
@@ -270,10 +267,10 @@ class UrtextNode:
         
         return self.set_file_contents(new_file_contents)
 
-def parse_dynamic_definitions(contents, dynamic_definitions): 
-    for d in dynamic_def_regexp.finditer(contents):
-        dynamic_definitions.append(UrtextDynamicDefinition(d.group(0)[2:-2]))
-    return contents
+    def parse_dynamic_definitions(self, contents, dynamic_definitions): 
+        for d in dynamic_def_regexp.finditer(contents):
+            dynamic_definitions.append(UrtextDynamicDefinition(d.group(0)[2:-2], self.project))
+        return contents
 
 
 def strip_contents(contents, preserve_length=False):

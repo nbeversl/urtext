@@ -1,8 +1,8 @@
 import os
 import concurrent.futures
-from urtext.triggers.trigger import UrtextTrigger
+from urtext.extensions.extension import UrtextExtension
 
-class ReindexFiles(UrtextTrigger):
+class ReindexFiles(UrtextExtension):
     """ 
     sorts all file-level nodes by their index, then passes
     the result to rename_file_nodes() to rename them.

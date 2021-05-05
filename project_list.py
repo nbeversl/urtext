@@ -27,10 +27,8 @@ class ProjectList():
     def __init__(self, 
         base_path, 
         import_project=False,
-        watchdog=False,
         first_project=None):
 
-        self.watchdog = watchdog # development option
         self.projects = []
         self.base_path = base_path
         self._add_folder(base_path, import_project=import_project)
@@ -48,8 +46,7 @@ class ProjectList():
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
                 project = UrtextProject(folder, 
-                    import_project=import_project, 
-                    watchdog=self.watchdog)
+                    import_project=import_project)
                 self.projects.append(project)
         except NoProject:
             if import_project:
@@ -174,9 +171,7 @@ class ProjectList():
         if project:
             self.projects.remove(project)
             
-        project = UrtextProject(path, 
-            import_project=True, 
-            watchdog=self.watchdog)
+        project = UrtextProject(path, import_project=True)
         print('Imported project '+project.title)
         self.projects.append(project)
         self.set_current_project(path)
@@ -194,8 +189,7 @@ class ProjectList():
         if not os.path.exists(path):
             os.makedirs(path)
         project = UrtextProject(path, 
-            init_project=True, 
-            watchdog=self.watchdog)
+            init_project=True)
         if project:
             self.projects.append(project)
             self.set_current_project(path)

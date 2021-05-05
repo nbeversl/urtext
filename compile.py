@@ -20,9 +20,8 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 from urtext.node import UrtextNode
 import os
-"""
-compile method for the UrtextProject class
-"""
+
+
 def _compile(self):
     
     for dynamic_definition in self.dynamic_defs():
@@ -33,7 +32,7 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename):
-    #self._parse_file(filename)
+   
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
@@ -45,7 +44,7 @@ def _compile_file(self, filename):
 
 def _process_dynamic_def(self, dynamic_definition):
 
-    points = {}
+    # points = {} # Future
     new_node_contents = []
 
     if not dynamic_definition.target_id:
@@ -54,15 +53,9 @@ def _process_dynamic_def(self, dynamic_definition):
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
-    outcome = []
-    operations = sorted(dynamic_definition.operations, key = lambda op: op.phase) 
-    for operation in operations:
-        outcome = operation.execute(outcome, [self], dynamic_definition.show)
-      
-    # if dynamic_definition.target_id:
-    #     outcome.discard(dynamic_definition.target_id)           
-            
-    final_output = build_final_output(dynamic_definition, outcome) 
+    print('RUNNING')
+    output = dynamic_definition.process_output()            
+    final_output = build_final_output(dynamic_definition, output) 
        
     if dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
@@ -88,7 +81,6 @@ def build_final_output(dynamic_definition, contents):
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
-        #one_line = True )
         one_line = not dynamic_definition.multiline_meta)
 
     final_contents = ''.join([

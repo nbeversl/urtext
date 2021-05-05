@@ -16,73 +16,60 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import re
-import os
-from .function import UrtextFunctionWithParamsFlags, UrtextFunctionWithInteger
-from urtext.utils import force_list
+from .extension import UrtextExtensionWithParamsFlags, UrtextExtensionWithInteger
 
-class NodeQuery(UrtextFunctionWithParamsFlags):
+
+class NodeQuery(UrtextExtensionWithParamsFlags):
 
 	name = "QUERY"
 	phase = 100
 
-	def build_list(self, nodes, projects):
+	def build_list(self, passed_nodes):
 		
-		for project in projects:
-
-			if '-all' in self.flags or '*' in self.flags:
-				if self.have_flags('-include_dynamic'):
-					added_nodes = set([node_id for node_id in project.nodes])
-				else:
-					added_nodes = set([node_id for node_id in project.nodes if not project.nodes[node_id].dynamic])
+		if '*' in self.flags:
+			if self.have_flags('-include_dynamic'):
+				added_nodes = set([node_id for node_id in self.project.nodes])
+			else:
+				added_nodes = set([node_id for node_id in self.project.nodes if not self.project.nodes[node_id].dynamic])
+	
+		else: 
+			added_nodes = set([])
+			if self.have_flags('-blank'):
+				added_nodes = set([node_id for node_id in self.project.nodes if self.project.nodes[node_id].blank])
+			
+			added_nodes = added_nodes.union(
+				_build_group_and(
+					self.project, 
+					self.params, 
+					include_dynamic=self.have_flags('-include_dynamic'))
+				)
 		
-			else: 
-				added_nodes = set([])
-				if self.have_flags('-blank'):
-					added_nodes = set([node_id for node_id in project.nodes if project.nodes[node_id].blank])
+		passed_nodes = set(passed_nodes)
+		passed_nodes.discard(self.dynamic_definition.target_id)           
 
-				for project in projects:
-					added_nodes = added_nodes.union(
-						_build_group_and(
-							project, 
-							self.params, 
-							include_dynamic=self.have_flags('-include_dynamic'))
-						)
-			passed_nodes = set(nodes)
-			included_nodes = list(passed_nodes.union(set(project.nodes[node_id] for node_id in added_nodes)))
+
+		included_nodes = list(passed_nodes.union(set(added_nodes)))
+			
+		#TODO provide exclusions here for target ID
+
 		return list(included_nodes)
 
-	def execute(self, nodes, projects, m_format):
-		return self.build_list(nodes ,projects)
+	def dynamic_output(self, nodes):
+		return self.build_list(nodes)
 
 class Exclude(NodeQuery):
 	
 	name = ["EXCLUDE","-"]
 	phase = 105
 
-
-	def execute(self, nodes, projects, m_format):
-
-		excluded_nodes = set(self.build_list([], projects))
-
+	def dynamic_output(self, nodes):
+		excluded_nodes = set(self.build_list([]))
 		return list(set(nodes) - excluded_nodes)
 
 class Include(NodeQuery):
 
 	name = ["INCLUDE","+"] 	
 	phase = 100
-
-
-class Limit(UrtextFunctionWithInteger):
-
-	name = "LIMIT"
-	phase = 150
-
-
-	def execute(self, nodes, project, m_format):
-		if self.number:
-			return nodes[:self.number]
-		return nodes
 
 
 def _build_group_and(project, params, include_dynamic=False):
@@ -96,12 +83,12 @@ def _build_group_and(project, params, include_dynamic=False):
 		else:
 			new_group = set(project.get_by_meta(key, value, operator))
 		found_sets.append(new_group)
-
+	
 	for this_set in found_sets:
 		new_group = new_group.intersection(this_set)
 
 	if not include_dynamic:
 		new_group = [f for f in new_group if f in project.nodes and not project.nodes[f].dynamic and not project.nodes[f].errors]
-
+	
 	return new_group
 

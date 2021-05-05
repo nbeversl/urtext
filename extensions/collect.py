@@ -19,17 +19,19 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from urtext.dynamic_output import DynamicOutput
 from anytree import Node, PreOrderIter, RenderTree
 from urtext.timestamp import UrtextTimestamp, default_date
-from .function import UrtextFunctionWithParamsFlags
+from .extension import UrtextExtensionWithParamsFlags
 
-class Collect (UrtextFunctionWithParamsFlags):
+class Collect (UrtextExtensionWithParamsFlags):
 
     name = "COLLECT"
     phase = 400
 
     """ generates a collection of context-aware metadata anchors in list or tree format """
 
-    def execute(self, nodes, project, m_format):
+    def dynamic_output(self, nodes):
         
+        m_format = self.dynamic_definition.show
+
         project = project[0]
         keys = {}
    

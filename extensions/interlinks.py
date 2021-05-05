@@ -19,30 +19,27 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from anytree import Node
 from anytree import RenderTree
-from urtext.functions.function import UrtextFunctionWithParamsFlags
+from urtext.extensions.extension import UrtextExtensionWithParamsFlags
 
 node_id_regex = '[0-9,a-z]{3}'
 node_link_regex =       r'>[0-9,a-z]{3}\b'
 
-class Interlinks(UrtextFunctionWithParamsFlags):
+class Interlinks(UrtextExtensionWithParamsFlags):
 
     name = ["INTERLINKS"]
     phase = 250
     
-    def execute(self, nodes, projects, m_format):
+    def dynamic_output(self, nodes):
 
-        project = projects[0]
         self.visited_nodes = []
         self.backward_visited_nodes = []
         self.project = project
         self.exclude = []
-        #self.exclude = self.params (omit)
-        print(self.params_dict)
         if 'from' in self.params_dict:
 
             root_node_id = self.params_dict['from'][0]
-            root_node = project.nodes[root_node_id]
-            root_meta = project.nodes[root_node_id].metadata
+            root_node = self.project.nodes[root_node_id]
+            root_meta = self.project.nodes[root_node_id].metadata
             self.build_node_tree(root_node.id)
             self.build_backward_node_tree(root_node.id)
             return self.render_tree()

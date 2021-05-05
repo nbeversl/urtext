@@ -2,39 +2,64 @@ import re
 from urtext.utils import force_list
 flag_regx = re.compile(r'((^|\s)(-[\w|_]+)|((^|\s)\*))(?=\s|$)')
 
-## Base function class
-class UrtextFunction():
 
-    name = None
+class UrtextExtension():
 
-    def __init__(self, argument_string):
+    name = ["EXTENSION"]
+    phase = 0
+    def __init__(self, project):
+    
+        self.project = project
+        self.argument_string = None
+    
+    def set_dynamic_definition(self, dynamic_definition):
+        self.dynamic_definition = dynamic_definition
+
+    def parse_argument_string(self, argument_string):
         self.argument_string = argument_string
+        return
 
     def execute(self):
+        return
+
+    def on_node_modified(self, node):
+        return
+
+    def on_node_visited(self, node):
+        return
+
+    def on_file_modified(self,file_name):
+        return
+
+    def dynamic_output(self, input_contents):
         return ''
 
-class UrtextFunctionWithKeysFlags(UrtextFunction):
-    
-    phase = 100
 
-    def __init__(self, argument_string):
-        super().__init__(argument_string)
+class UrtextExtensionWithKeysFlags(UrtextExtension):
+    
+    name = ["EXT_WITH_KEYS_FLAGS"]
+    phase = 0
+
+    def __init__(self, projects):
+        super().__init__(projects)
         self.keys = []
         self.flags = []
+
+    def parse_argument_string(self, argument_string):
         no_keys = self._parse_flags(argument_string)
         self._parse_keys(no_keys)
         
     def _parse_keys(self, argument_string):
-        for word in argument_string.split(' '):
-            if word and word[0] != '-':
-                self.keys.append(word)
+        if argument_string:
+            for word in argument_string.split(' '):
+                if word and word[0] != '-':
+                    self.keys.append(word)
 
     def _parse_flags(self, argument_string):
         flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
         for f in flag_regx.finditer(argument_string):
             self.flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')
-        return argument_string
     
     def have_flags(self, flags):
         for f in force_list(flags):
@@ -49,20 +74,23 @@ class UrtextFunctionWithKeysFlags(UrtextFunction):
         return False
 
 
-class UrtextFunctionWithParamsFlags(UrtextFunction):
+class UrtextExtensionWithParamsFlags(UrtextExtension):
 
-    phase = 100
-
-    def __init__(self, argument_string):
-        super().__init__(argument_string)
+    name = ["EXT_WITH_PARAMS_FLAGS"]
+    phase = 0
+    
+    def __init__(self, projects):
+        super().__init__(projects)
+        self.keys = []
+        self.flags = []
         self.params = []
         self.params_dict = {}
-        self.flags = []
-        no_flags = self._parse_flags(argument_string)
-        self._parse_params(no_flags)
-        
-    def _parse_params(self, argument_string):
 
+    def parse_argument_string(self, argument_string):
+
+        no_flags = self._parse_flags(argument_string)
+        params = []
+        params_dict = {}
         def separate(string, delimiter=';'):
             return [r.strip() for r in re.split(delimiter+'|\n', string)]
         
@@ -82,31 +110,35 @@ class UrtextFunctionWithParamsFlags(UrtextFunction):
                 key, value, delimiter = key_value(param, ['before','after','=','?','~', '!='])
                 if value:
                     for v in value:
-                        self.params.append((key,v,delimiter))
+                        params.append((key,v,delimiter))
                         
-        for param in self.params:
-            self.params_dict[param[0]] = param[1:]
+        for param in params:
+            params_dict[param[0]] = param[1:]
+        self.params = params
+        self.params_dict = params_dict
 
+      
     def _parse_flags(self, argument_string):
-
+        flags = []
+        flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
         for f in flag_regx.finditer(argument_string):
-            self.flags.append(f.group().strip())
+            flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')
+        self.flags = flags
         return argument_string
-    
     def have_flags(self, flags):
         for f in force_list(flags):
             if f in self.flags:
                 return True
         return False
 
-class UrtextFunctionWithInteger(UrtextFunction):
+class UrtextExtensionWithInteger(UrtextExtension):
 
-    name = ["FUNCTION_WITH_INT"]
-    phase = 100
-    def __init__(self, argument_string):
+    name = ["EXT_WITH_INT"]
+    phase = 0
+
+    def parse_params(self, argument_string):
         try:
             self.number = int(argument_string)
         except:
             self.number = None        
-

@@ -19,20 +19,21 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
+from urtext.extensions.extension import UrtextExtensionWithParamsFlags
+import urtext.node
+
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 file_link_regex = re.compile('f>.*')
-from urtext.functions.function import UrtextFunctionWithParamsFlags
-import urtext.node
 
-class UrtextExport(UrtextFunctionWithParamsFlags):
+class UrtextExport(UrtextExtensionWithParamsFlags):
 
     name = ["EXPORT"]
     phase = 500
-    def execute(self, nodes, projects, m_format):
-        self.project = projects[0]
+    
+    def dynamic_output(self, input):
         if 'root' in self.params_dict:
             return self.export_from(
                self.params_dict['root'][0],
@@ -54,10 +55,9 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
         exported_content, points, visited_nodes = self._add_node_content(
             root_node_id,
             exclude=exclude,
-            visited_nodes=visited_nodes, # why won't this get set as default?
+            visited_nodes=visited_nodes,
             points=points,
             )
-        #exported_content = preformat_embedded_syntaxes(exported_content)
         return exported_content #, points
 
     def _add_node_content(self, 
@@ -79,11 +79,6 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
         if root_node_id not in self.project.nodes:
             self.project._log_item('EXPORT: Root node ID ' + root_node_id +' not in the project.')
             return '','',''    
-
-        """
-        Recursively add nodes, its inline nodes and node pointers, in order
-        from a given starting node, keeping track of nesting level, and wrapping in markup.        
-        """    
        
         """
         Get and set up initial values
@@ -108,6 +103,11 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
         if root_node_id in exclude or root_node_id in visited_nodes:
             return added_contents, points, visited_nodes
         
+        """
+        Recursively add nodes, its inline nodes and node pointers, in order
+        from a given starting node, keeping track of nesting level, and wrapping in markup.        
+        """    
+
         visited_nodes.append(root_node_id)
         
         """ get all the node pointers and their locations"""
@@ -116,9 +116,8 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
             locations.extend(self.get_node_pointers_with_locations(file_contents[single_range[0]:single_range[1]]))
             """ locations contain tuple of (location, matched_text)"""
 
-        """sort the node pointers in order of occurrence and remember the node_ids"""
+        """ sort node pointers in order of occurrence and remember the node_ids"""
         node_pointer_locations = {}
-
         for location in locations:
             node_pointer_locations[location[0]] = location[1]
             if location[1] not in visited_nodes:
@@ -127,23 +126,17 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
         range_number = 0
         for single_range in ranges:
 
-            """
-            Get and add the range's contents
-            """
+            """ Get and add the range's contents """
             range_contents = file_contents[single_range[0]:single_range[1]]
            
             if 'keep_syntax' not in self.project.nodes[root_node_id].metadata.get_values('_settings'):
-                range_contents = self._strip_urtext_syntax(range_contents)
-                
+                range_contents = self._strip_urtext_syntax(range_contents)                
             
-            """
-            If this is the node's first range:
-            """
+            """ If  first range: """
             if single_range == ranges[0]:
     
                 ## Replace and Format Title
-                if 'c' not in self.project.nodes[root_node_id].metadata.get_values('flags'):
-                    
+                if 'c' not in self.project.nodes[root_node_id].metadata.get_values('flags'):  
                     range_contents = re.sub(re.escape(title)+'( _)?', '', range_contents, 1)
                     range_contents = self.wrap_title(root_node_id, nested) + range_contents
                 else:
@@ -169,7 +162,8 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
                 range_contents += self.closing_wrapper()
 
             """
-            map the exported content to the source content.
+            #TODO
+            FUTURE: map the exported content to the source content.
             (returns node ID and exact FILE location)
             Note each point will be relative to the beginning of the 
             containing node, not the beginning of the file containing the export.
@@ -180,47 +174,36 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
             added_contents += range_contents
             
             """
-            If we are adding subnodes, find the node_id of the node immediately following this range
+            If adding subnodes, find the id of the node immediately following this range
             and add it, assuming we are including all sub-nodes.
             TODO: Add checking in here for excluded nodes
             """
         
             if not self.have_flags('-single_node_only') and single_range[1] < ranges[-1][1]:
 
-                # get the node in the space immediately following this RANGE
                 next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
                 
                 if next_node and next_node not in visited_nodes:
 
-                        """ for HTML, if this is a dynamic node and contains a tree, add the tree"""
-                        # if kind == '-html' and next_node in [d.target_id for d in self.project.dynamic_defs()] and self.project.dynamic_nodes[next_node].tree:
-                        #     exported_contents += self._render_tree_as_html(self.project.dynamic_nodes[next_node].tree)
+                    next_nested = nested + 1
 
-                        # else:
-
-                        next_nested = nested + 1
-
-                        """
-                        recursively add the node in the next range and its subnodes
-                        """
-                        added_contents, points, visited_nodes = self._add_node_content(
-                            next_node,
-                            added_contents=added_contents,
-                            points=points,       
-                            exclude=exclude,
-                            nested=next_nested,
-                            visited_nodes=visited_nodes,
-                            )
+                    """ recursively add the node in the next range and its subnodes """
+                    added_contents, points, visited_nodes = self._add_node_content(
+                        next_node,
+                        added_contents=added_contents,
+                        points=points,       
+                        exclude=exclude,
+                        nested=next_nested,
+                        visited_nodes=visited_nodes,
+                        )
 
             range_number += 1
                    
-        """
-        For this single range of text, replace node pointers with their contents,
-        which cals this function recursively.
-        """
-        if not self.project.nodes[root_node_id].dynamic :  
-            if self.have_flags('-as_single_file'):
+        """ replace node pointers with their contents recursively"""
 
+        if not self.project.nodes[root_node_id].dynamic :  
+
+            if self.have_flags('-as_single_file'):
                 added_contents, points, visited_nodes = self.replace_node_pointers(
                     nested,
                     node_pointer_locations,
@@ -368,7 +351,6 @@ class UrtextExport(UrtextFunctionWithParamsFlags):
 
     def replace_link(self, contents, title):
         return contents
-        #return contents.replace(title, '"'+title+'"')
 
     def replace_file_links(self, contents, escaped_regions):
         to_replace = []

@@ -1,10 +1,11 @@
-from urtext.functions.function import UrtextFunction
+from urtext.extensions.extension import UrtextExtension
 
-class UrtextHeader(UrtextFunction):
+class UrtextHeader(UrtextExtension):
 
     name = ["HEADER"]
     phase = 500
-    def execute(self, contents, project, format):
+    
+    def dynamic_output(self, contents):
         if not self.argument_string:
             self.argument_string = ''
         header = bytes(self.argument_string, "utf-8").decode("unicode_escape")
@@ -12,13 +13,12 @@ class UrtextHeader(UrtextFunction):
             header += '\n'
         return ''.join([header, contents])
 
-class UrtextFooter(UrtextFunction):
+class UrtextFooter(UrtextExtension):
 
     name = ["FOOTER"]
     phase = 500
 
-    def execute(self, contents, project, format):
+    def dynamic_output(self, contents):
         
         footer = bytes(self.argument_string, "utf-8").decode("unicode_escape") + '\n'
-
         return ''.join([contents, footer])

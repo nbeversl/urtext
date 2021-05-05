@@ -1,4 +1,4 @@
-from urtext.functions.export import UrtextExport
+from urtext.extensions.export import UrtextExport
 
 class HTMLExport(UrtextExport):
 
@@ -38,17 +38,11 @@ class HTMLExport(UrtextExport):
                 '<'+heading_tag+'>'+title+'</'+heading_tag+'>',
                 1)
 
-        """
-        Insert special HTML wrappers
-        """
         lines = [line.strip() for line in range_contents.split('\n') if line.strip() != '']
         index = 0
         while index < len(lines):
             line = lines[index]
 
-            """
-            Insert HTML <ul><li><li></ul> tags for lists
-            """
             if line[0] == '-':
                 range_contents += '<ul class="urtext-list">'
                 while index < len(lines) - 1:
@@ -60,7 +54,7 @@ class HTMLExport(UrtextExport):
                 range_contents += '</ul>'
 
             """
-            For non-list items, wrap them in a <div>
+            non-list items
             """
             range_contents += '<div class="urtext_line">' + line.strip()
             if range_contents == ranges[-1] and line == lines[-1] and not strip_urtext_syntax:

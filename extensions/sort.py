@@ -1,14 +1,16 @@
-from .function import  UrtextFunctionWithKeysFlags
+from .extension import  UrtextExtensionWithKeysFlags
 from urtext.timestamp import UrtextTimestamp
 import datetime
 
-class Sort(UrtextFunctionWithKeysFlags):
+class Sort(UrtextExtensionWithKeysFlags):
 
 	name = ["SORT","S"]
 	phase = 120
 		
-	def execute(self, nodes, projects, format):
-		self.project=projects[0]
+	def dynamic_output(self, nodes):
+
+		nodes = [self.project.nodes[nid] for nid in nodes]
+
 		if self.keys:
 			return sorted(
 				nodes,
@@ -27,4 +29,4 @@ class Sort(UrtextFunctionWithKeysFlags):
 			if isinstance(value, str):
 				value=value.lower()
 			t.append(value)
-		return tuple(t)				
+		return tuple(t)

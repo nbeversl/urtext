@@ -7,10 +7,10 @@
 
 import re
 import operator
-from urtext.hooks.nodehook import UrtextHook
+from urtext.extensions.extension import UrtextExtension
 import concurrent.futures
 
-class AddRakeKeywords(UrtextHook):
+class AddRakeKeywords(UrtextExtension):
 
     def setup(self):
         self.project.get_keywords = get_keywords
