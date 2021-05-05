@@ -35,7 +35,6 @@ class UrtextDynamicDefinition:
 		self.spaces = 0
 		self.project = project
 		self.preformat = False
-		self.projects = [project]
 		self.show = None
 		self.multiline_meta = True
 
@@ -43,17 +42,16 @@ class UrtextDynamicDefinition:
 		if not self.show:
 			self.show = '$title $link\n'
 			
-	def add_projects(self, projects):
-		self.projects.extend(force_list(projects))
-
 	def init_self(self, contents):
 
 		for match in re.findall(function_regex,contents):
 
-			func = match[0]
-			argument_string = match[1]
+			func, argument_string = match[0], match[1]
 			if func and func in self.project.extensions:
-				self.operations.append((func, argument_string))
+				op = self.project.extensions[func](self.project)
+				op.set_dynamic_definition(self)
+				op.parse_argument_string(argument_string)	
+				self.operations.append(op)
 			
 			# target
 			if func =='ID':
@@ -72,27 +70,21 @@ class UrtextDynamicDefinition:
 
 			if func == "SHOW":
 				self.show = argument_string
-			
-		if 'LIST' not in [o[0] for o in self.operations] and 'TREE' not in [o[0] for o in self.operations] and 'COLLECT' not in [o[0] for o in self.operations]:
-			self.operations.append(('LIST', '1'))
-		if 'SORT' not in [o[0] for o in self.operations] :
-			self.operations.append(('SORT', ''))
+		all_ops = [t for op in self.operations for t in op.name]
+
+		if 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
+			op = self.project.extensions['LIST'](self.project)
+			op.parse_argument_string('1')		
+			op.set_dynamic_definition(self)
+			self.operations.append(op)
+		if 'SORT' not in all_ops:
+			op = self.project.extensions['SORT'](self.project)
+			op.set_dynamic_definition(self)
+			op.parse_argument_string('')		
+			self.operations.append(op)
 
 	def process_output(self):
-		outcome = []		
-		for operation, argument_string in sorted(self.operations, key = lambda op: self.project.extensions[op[0]].phase) :	
-			e = self.project.extensions[operation]					
-			e.set_dynamic_definition(self)
-			e.parse_argument_string(argument_string)			
-			outcome = e.dynamic_output(outcome)
+		outcome = []
+		for operation in sorted(self.operations, key = lambda op: op.phase) :		
+			outcome = operation.dynamic_output(outcome)
 		return outcome
-
-class Export:
-	def __init__(self):
-		self.output_type = '-plaintext'
-		self.to_nodes = []
-		self.to_files = []
-		self.flags = []
-		self.preformat = False
-
-

@@ -53,7 +53,6 @@ def _process_dynamic_def(self, dynamic_definition):
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
-    print('RUNNING')
     output = dynamic_definition.process_output()            
     final_output = build_final_output(dynamic_definition, output) 
        

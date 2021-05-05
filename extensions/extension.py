@@ -61,11 +61,13 @@ class UrtextExtensionWithKeysFlags(UrtextExtension):
                     self.keys.append(word)
 
     def _parse_flags(self, argument_string):
+
         flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
         for f in flag_regx.finditer(argument_string):
             self.flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')
-    
+        return argument_string
+
     def have_flags(self, flags):
         for f in force_list(flags):
             if f in self.flags:
@@ -96,6 +98,7 @@ class UrtextExtensionWithParamsFlags(UrtextExtension):
         no_flags = self._parse_flags(argument_string)
         params = []
         params_dict = {}
+        
         def separate(string, delimiter=';'):
             return [r.strip() for r in re.split(delimiter+'|\n', string)]
         
@@ -122,10 +125,8 @@ class UrtextExtensionWithParamsFlags(UrtextExtension):
         self.params = params
         self.params_dict = params_dict
 
-      
     def _parse_flags(self, argument_string):
         flags = []
-        flag_regx = re.compile(r'(^|\s)-[\w|_]+(?=\s|$)')
         for f in flag_regx.finditer(argument_string):
             flags.append(f.group().strip())
             argument_string = argument_string.replace(f.group(),' ')

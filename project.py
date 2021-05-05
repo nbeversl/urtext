@@ -130,7 +130,7 @@ class UrtextProject:
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.extensions = {}
-        self.settings_initialized = False
+        self.ext_instances = []
         self.quick_loaded = False
         self.compiled = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
@@ -231,7 +231,8 @@ class UrtextProject:
 
         for c in all_extensions:
             for n in c.name:
-                self.extensions[n] = c(self)
+                self.extensions[n] = c
+
 
         for file in [f for f in os.listdir(self.path) if f not in self.ql['last_accessed']]:
             self._parse_file(file, import_project=import_project)
@@ -241,6 +242,7 @@ class UrtextProject:
                 self.import_file(file)
         
         self.default_timezone = timezone(self.settings['timezone'])
+        
         if self.nodes == {}:
             if init_project == True:
                 self._log_item('Initalizing a new Urtext project in ' + self.path)
@@ -334,9 +336,11 @@ class UrtextProject:
                     self._add_sub_tags( node_id, node_id, e)
 
         for c in self.extensions:
-            self.extensions[c].on_file_modified(filename)
+            plugin_action = self.extensions[c](self)
+            plugin_action.on_file_modified(filename)
 
     def _check_file_for_duplicates(self, file_obj):
+
         duplicate_nodes = {}
         for node_id in file_obj.nodes:
             duplicate_filename = self._is_duplicate_id(node_id, file_obj.filename)
@@ -413,7 +417,6 @@ class UrtextProject:
         for definition in new_node.dynamic_definitions:
             
             if definition.target_id:
-                definition.add_projects(self)
                 defined = self._target_id_defined(definition.target_id)
                 
                 if defined and defined != new_node.id:
@@ -445,9 +448,9 @@ class UrtextProject:
         if new_node.contains_project_settings:
             self._get_settings_from(new_node)            
 
-        if self.compiled:
-            for c in self.extensions:
-                self.extensions[c].on_node_modified(new_node)
+        #if self.compiled:
+        # for c in self.extensions:
+        #     self.extensions[c].on_node_modified(new_node)
                 #self.extensions[c](self).on_node_visited(new_node)
             
     def get_source_node(self, filename, position):

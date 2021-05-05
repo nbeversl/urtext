@@ -26,7 +26,7 @@ class NodeQuery(UrtextExtensionWithParamsFlags):
 
 	def build_list(self, passed_nodes):
 		
-		if '*' in self.flags:
+		if  self.have_flags('*'):
 			if self.have_flags('-include_dynamic'):
 				added_nodes = set([node_id for node_id in self.project.nodes])
 			else:
@@ -46,11 +46,7 @@ class NodeQuery(UrtextExtensionWithParamsFlags):
 		
 		passed_nodes = set(passed_nodes)
 		passed_nodes.discard(self.dynamic_definition.target_id)           
-
-
-		included_nodes = list(passed_nodes.union(set(added_nodes)))
-			
-		#TODO provide exclusions here for target ID
+		included_nodes = list(passed_nodes.union(set(added_nodes)))			
 
 		return list(included_nodes)
 
@@ -70,7 +66,6 @@ class Include(NodeQuery):
 
 	name = ["INCLUDE","+"] 	
 	phase = 100
-
 
 def _build_group_and(project, params, include_dynamic=False):
 	
