@@ -8,7 +8,7 @@ class Sort(UrtextExtensionWithKeysFlags):
 	phase = 120
 		
 	def dynamic_output(self, nodes):
-
+		
 		nodes = [self.project.nodes[nid] for nid in nodes]
 
 		if self.keys:

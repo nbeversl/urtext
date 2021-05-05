@@ -2,7 +2,7 @@ from urtext.extensions.extension import UrtextExtensionWithInteger
 
 class Limit(UrtextExtensionWithInteger):
 
-	name = "LIMIT"
+	name = ["LIMIT"]
 	phase = 150
 
 	def dynamic_output(self,nodes):

@@ -7,7 +7,7 @@ class ReindexFiles(UrtextExtension):
     sorts all file-level nodes by their index, then passes
     the result to rename_file_nodes() to rename them.
     """    
-    name='REINDEX'
+    name=['REINDEX']
     
     def execute(self, project):
         project._sync_file_list()

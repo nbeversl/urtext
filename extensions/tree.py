@@ -11,7 +11,7 @@ Tree
 
 class Tree(UrtextExtensionWithParamsFlags):
 
-    name = ["_TREE"]
+    name = ["TREE"]
     phase = 210
     
     def __init__(self, project):
@@ -19,7 +19,7 @@ class Tree(UrtextExtensionWithParamsFlags):
         self.depth = 10
 
     def dynamic_output(self, start_point):
-       
+        
         exclude=None,
         from_root_of=False
                 

@@ -23,7 +23,7 @@ from .extension import UrtextExtensionWithParamsFlags
 
 class Collect (UrtextExtensionWithParamsFlags):
 
-    name = "COLLECT"
+    name = ["COLLECT"]
     phase = 400
 
     """ generates a collection of context-aware metadata anchors in list or tree format """

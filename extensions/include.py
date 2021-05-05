@@ -21,7 +21,7 @@ from .extension import UrtextExtensionWithParamsFlags, UrtextExtensionWithIntege
 
 class NodeQuery(UrtextExtensionWithParamsFlags):
 
-	name = "QUERY"
+	name = ["QUERY"]
 	phase = 100
 
 	def build_list(self, passed_nodes):

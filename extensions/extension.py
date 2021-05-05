@@ -34,6 +34,11 @@ class UrtextExtension():
     def dynamic_output(self, input_contents):
         return ''
 
+    def is_named(self, name):
+        if name in self.name:
+            return True
+        return False
+
 
 class UrtextExtensionWithKeysFlags(UrtextExtension):
     
@@ -126,6 +131,7 @@ class UrtextExtensionWithParamsFlags(UrtextExtension):
             argument_string = argument_string.replace(f.group(),' ')
         self.flags = flags
         return argument_string
+        
     def have_flags(self, flags):
         for f in force_list(flags):
             if f in self.flags:
@@ -137,7 +143,11 @@ class UrtextExtensionWithInteger(UrtextExtension):
     name = ["EXT_WITH_INT"]
     phase = 0
 
-    def parse_params(self, argument_string):
+    def __init__(self, projects):
+        super().__init__(projects)
+        self.number = None
+        
+    def parse_argument_string(self, argument_string):
         try:
             self.number = int(argument_string)
         except:
