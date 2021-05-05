@@ -118,7 +118,9 @@ class Tree(UrtextExtensionWithParamsFlags):
         
     def on_file_modified(self, filename):
         """ Builds tree elements within the file's nodes, after the file is parsed."""
-    
+
+        self.on_file_removed(filename)
+
         parsed_items = self.project.files[filename].parsed_items
         positions = sorted(parsed_items)
 
@@ -146,13 +148,14 @@ class Tree(UrtextExtensionWithParamsFlags):
                 start_of_node = self.project.nodes[parent].ranges[0][0]
                 parent = self.project.get_node_id_from_position(filename, start_of_node - 1)
             if parent:
+
                 self.project.nodes[node].tree_node.parent = self.project.nodes[parent].tree_node
 
     def on_file_removed(self, filename):
-        
-        self.project.nodes[node_id].tree_node.parent = None
-        self.project.nodes[node_id].tree_node = None
 
+        for node_id in self.project.files[filename].nodes:
+            self.project.nodes[node_id].tree_node.parent = None
+            self.project.nodes[node_id].tree_node = Node(node_id)
         for a in self.project.files[filename].alias_nodes:
             a.parent = None
             a.children = []

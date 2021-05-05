@@ -29,4 +29,5 @@ class NodeList(UrtextExtension):
 		return ''.join(contents)
 
 	def on_file_modified(self, filename):
+		#return
 		self.tree.on_file_modified(filename)

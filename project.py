@@ -201,11 +201,8 @@ class UrtextProject:
         init_project=False):
 
         for c in all_extensions:
-            print(c)
-           
             for n in c.name:
                 self.extensions[n] = c
-
 
         for file in os.listdir(self.path):
             self._parse_file(file, import_project=import_project)
@@ -307,10 +304,10 @@ class UrtextProject:
                     self.nodes[dd.target_id].dynamic = True
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
-
+        
         for dd in self.dynamic_defs():
             for op in dd.operations:
-                print('MODIFYING')
+    
                 op.on_file_modified(filename)
 
     def _check_file_for_duplicates(self, file_obj):
@@ -537,8 +534,6 @@ class UrtextProject:
                     continue             
                 self._remove_sub_tags(node_id)                
                 del self.nodes[node_id]
-
-            
 
             del self.files[filename]
 
