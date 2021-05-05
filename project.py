@@ -717,13 +717,7 @@ class UrtextProject:
 
         # don't re-remember consecutive duplicate links
         if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
-            return
-
-        if node_id in self.nodes and self.nodes[node_id].filename not in self.ql['last_accessed']:
-            self.ql.setdefault('last_accessed',[])
-            self.ql['last_accessed'].insert(0, self.nodes[node_id].filename)
-            self.ql['last_accessed'] = self.ql['last_accessed'][:20]
-            
+            return     
         # add the newly opened file as the new "HEAD"
         self.nav_index += 1
         del self.navigation[self.nav_index:]
