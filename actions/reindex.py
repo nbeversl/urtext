@@ -1,8 +1,9 @@
 import os
 import concurrent.futures
-from urtext.extensions.extension import UrtextExtension
+from urtext.action import UrtextAction
 
-class ReindexFiles(UrtextExtension):
+
+class ReindexFiles(UrtextAction):
     """ 
     sorts all file-level nodes by their index, then passes
     the result to rename_file_nodes() to rename them.

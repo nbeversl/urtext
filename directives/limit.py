@@ -1,6 +1,6 @@
-from urtext.extensions.extension import UrtextExtensionWithInteger
+from urtext.directive import UrtextDirectiveWithInteger
 
-class Limit(UrtextExtensionWithInteger):
+class Limit(UrtextDirectiveWithInteger):
 
 	name = ["LIMIT"]
 	phase = 150

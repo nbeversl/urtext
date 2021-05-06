@@ -1,4 +1,4 @@
-from urtext.extensions.export import UrtextExport
+from urtext.directives.export import UrtextExport
 
 class HTMLExport(UrtextExport):
 

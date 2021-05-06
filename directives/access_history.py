@@ -1,9 +1,7 @@
-from urtext.extension import UrtextExtension
+from urtext.directive import UrtextDirectiveWithKeysFlags
 import datetime
 
-
-
-class AccessHistory(UrtextExtension):
+class AccessHistory(UrtextDirectiveWithKeysFlags):
 
     name = ["ACCESS_HISTORY"]
     phase = 250

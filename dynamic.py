@@ -21,9 +21,9 @@ import os
 
 node_id_regex = r'>[0-9,a-z]{3}\b'
 function_regex = re.compile('([A-Z_\-\+]+)\((.*?)\)', re.DOTALL)
-from urtext.extensions.extension import UrtextExtension
+from urtext.directive import UrtextDirective
 from urtext.utils import force_list
-from urtext.extensions.list import NodeList
+from urtext.directives.list import NodeList
 
 class UrtextDynamicDefinition:
 
@@ -48,8 +48,8 @@ class UrtextDynamicDefinition:
 		for match in re.findall(function_regex,contents):
 
 			func, argument_string = match[0], match[1]
-			if func and func in self.project.extensions:
-				op = self.project.extensions[func](self.project)
+			if func and func in self.project.directives:
+				op = self.project.directives[func](self.project)
 				op.set_dynamic_definition(self)
 				op.parse_argument_string(argument_string)	
 				self.operations.append(op)
@@ -74,13 +74,13 @@ class UrtextDynamicDefinition:
 		all_ops = [t for op in self.operations for t in op.name]
 		
 		if 'ACCESS_HISTORY' not in all_ops and 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
-			op = self.project.extensions['LIST'](self.project)
+			op = self.project.directives['LIST'](self.project)
 			op.parse_argument_string('*')		
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
 		
 		if 'SORT' not in all_ops:
-			op = self.project.extensions['SORT'](self.project)
+			op = self.project.directives['SORT'](self.project)
 			op.set_dynamic_definition(self)
 			op.parse_argument_string('')		
 			self.operations.append(op)

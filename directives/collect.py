@@ -19,9 +19,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 from urtext.dynamic_output import DynamicOutput
 from anytree import Node, PreOrderIter, RenderTree
 from urtext.timestamp import UrtextTimestamp, default_date
-from .extension import UrtextExtensionWithParamsFlags
+from urtext.directive import UrtextDirectiveWithParamsFlags
 
-class Collect (UrtextExtensionWithParamsFlags):
+class Collect (UrtextDirectiveWithParamsFlags):
 
     name = ["COLLECT"]
     phase = 400

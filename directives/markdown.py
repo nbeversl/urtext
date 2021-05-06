@@ -1,5 +1,5 @@
 import re
-from urtext.extensions.export import UrtextExport
+from urtext.directives.export import UrtextExport
 
 escaped_text = r'\`.*?\`';
 

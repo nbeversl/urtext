@@ -7,7 +7,7 @@
 
 import re
 import operator
-from urtext.extensions.extension import UrtextExtension
+from urtext.extension import UrtextExtension
 import concurrent.futures
 
 class AddRakeKeywords(UrtextExtension):

@@ -1,7 +1,7 @@
-from .extension import UrtextExtension
+from urtext.directive import UrtextDirective
 from .tree import Tree
 
-class NodeList(UrtextExtension):
+class NodeList(UrtextDirective):
 
 	name = ["LIST"]    
 	phase = 200

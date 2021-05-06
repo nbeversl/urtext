@@ -65,8 +65,6 @@ def _process_dynamic_def(self, dynamic_definition):
         # Dynamic nodes have blank title by default. Title can be set by header or title key.
         if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'): #and not dynamic_definition.header:
             self.nodes[dynamic_definition.target_id].title = ''
-
-        messages_file = self._populate_messages()
     
         return changed_file
 

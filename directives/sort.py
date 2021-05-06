@@ -1,8 +1,8 @@
-from .extension import  UrtextExtensionWithKeysFlags
+from urtext.directive import  UrtextDirectiveWithKeysFlags
 from urtext.timestamp import UrtextTimestamp
 import datetime
 
-class Sort(UrtextExtensionWithKeysFlags):
+class Sort(UrtextDirectiveWithKeysFlags):
 
 	name = ["SORT","S"]
 	phase = 120

@@ -1,6 +1,6 @@
-from urtext.extensions.extension import UrtextExtension
+from urtext.directive import UrtextDirective
 
-class UrtextHeader(UrtextExtension):
+class UrtextHeader(UrtextDirective):
 
     name = ["HEADER"]
     phase = 500
@@ -13,7 +13,7 @@ class UrtextHeader(UrtextExtension):
             header += '\n'
         return ''.join([header, contents])
 
-class UrtextFooter(UrtextExtension):
+class UrtextFooter(UrtextDirective):
 
     name = ["FOOTER"]
     phase = 500

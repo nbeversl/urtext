@@ -16,10 +16,10 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-from .extension import UrtextExtensionWithParamsFlags, UrtextExtensionWithInteger
+from urtext.directive import UrtextDirectiveWithParamsFlags, UrtextDirectiveWithInteger
 
 
-class NodeQuery(UrtextExtensionWithParamsFlags):
+class NodeQuery(UrtextDirectiveWithParamsFlags):
 
 	name = ["QUERY"]
 	phase = 100

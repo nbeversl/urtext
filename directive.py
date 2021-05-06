@@ -3,7 +3,7 @@ from urtext.utils import force_list
 flag_regx = re.compile(r'((^|\s)(-[\w|_]+)|((^|\s)\*))(?=\s|$)')
 
 
-class UrtextExtension():
+class UrtextDirective():
 
     name = ["EXTENSION"]
     phase = 0
@@ -28,6 +28,9 @@ class UrtextExtension():
     def on_file_modified(self, file_name):
         return
 
+    def on_any_file_modified(self, file_name):
+        return
+
     def on_file_removed(self, file_name):
         return
 
@@ -46,7 +49,7 @@ class UrtextExtension():
         self.argument_string = argument_string
         return
 
-class UrtextExtensionWithKeysFlags(UrtextExtension):
+class UrtextDirectiveWithKeysFlags(UrtextDirective):
     
     name = ["EXT_WITH_KEYS_FLAGS"]
     phase = 0
@@ -87,7 +90,7 @@ class UrtextExtensionWithKeysFlags(UrtextExtension):
         return False
 
 
-class UrtextExtensionWithParamsFlags(UrtextExtension):
+class UrtextDirectiveWithParamsFlags(UrtextDirective):
 
     name = ["EXT_WITH_PARAMS_FLAGS"]
     phase = 0
@@ -145,7 +148,7 @@ class UrtextExtensionWithParamsFlags(UrtextExtension):
                 return True
         return False
 
-class UrtextExtensionWithInteger(UrtextExtension):
+class UrtextDirectiveWithInteger(UrtextDirective):
 
     name = ["EXT_WITH_INT"]
     phase = 0

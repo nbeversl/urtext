@@ -19,12 +19,12 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from anytree import Node
 from anytree import RenderTree
-from urtext.extensions.extension import UrtextExtensionWithParamsFlags
+from urtext.directive  import UrtextDirectiveWithParamsFlags
 
 node_id_regex = '[0-9,a-z]{3}'
 node_link_regex =       r'>[0-9,a-z]{3}\b'
 
-class Interlinks(UrtextExtensionWithParamsFlags):
+class Interlinks(UrtextDirectiveWithParamsFlags):
 
     name = ["INTERLINKS"]
     phase = 250

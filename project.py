@@ -38,7 +38,11 @@ from urtext.meta_handling import metadata_functions
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.utils import strip_backtick_escape
-from urtext.extensions.extension import UrtextExtension
+from urtext.directive import UrtextDirective
+from urtext.action import UrtextAction
+from urtext.extension import UrtextExtension
+
+
 from importlib import import_module
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
@@ -57,11 +61,21 @@ def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])
 
-
 for i in os.listdir(os.path.join(os.path.dirname(__file__),'extensions')):
     if '.py' in i:
         i = os.path.basename(os.path.splitext(i)[0])
         import_module('urtext.extensions.'+i)
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'directives')):
+    if '.py' in i:
+        i = os.path.basename(os.path.splitext(i)[0])
+        import_module('urtext.directives.'+i)
+
+for i in os.listdir(os.path.join(os.path.dirname(__file__),'actions')):
+    if '.py' in i:
+        i = os.path.basename(os.path.splitext(i)[0])
+        import_module('urtext.actions.'+i)
+
 
 def add_functions_as_methods(functions):
     def decorator(Class):
@@ -70,8 +84,9 @@ def add_functions_as_methods(functions):
         return Class
     return decorator
     
-all_extensions = all_subclasses(UrtextExtension);
-
+all_extensions = all_subclasses(UrtextExtension)
+all_directives = all_subclasses(UrtextDirective)
+all_actions = all_subclasses(UrtextAction)
 
 single_values = [
     'home',
@@ -130,6 +145,8 @@ class UrtextProject:
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
         self.extensions = {}
+        self.actions = {}
+        self.directives = {}
         self.compiled = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
@@ -204,6 +221,14 @@ class UrtextProject:
             for n in c.name:
                 self.extensions[n] = c
 
+        for c in all_actions:
+            for n in c.name:
+                self.actions[n] = c
+
+        for c in all_directives:
+            for n in c.name:
+                self.directives[n] = c
+
         for file in os.listdir(self.path):
             self._parse_file(file, import_project=import_project)
 
@@ -264,22 +289,13 @@ class UrtextProject:
     def _parse_file(self, 
             filename, 
             import_project=False):
-        """
-        Parses a single file into the project.
-        Returns None if successful, or a list of duplicate nodes found
-        if duplicate nodes were found.
-        FUTURE: return value should be sanitized Currently returns None, False or list.
-        """
+    
         filename = os.path.basename(filename)
         if self._filter_filenames(filename) == None:
             return
 
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
                 
-        self.messages[filename] = []
-        if new_file.messages:
-            self.messages[filename] = new_file.messages 
-        
         if not new_file.is_parseable:
             self.to_import.append(filename)
             return
@@ -294,6 +310,13 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
         
+        # Here the Project will have had to compile all of these already before being
+        # able to compile the definitions.
+        # anything that requires "on any file modified" should be global, not in a def.
+        # for dd in self.dynamic_defs():
+        #     for op in dd.operations:
+        #         op.on_file_modified(filename)
+
         """
         If not the initial load of the project rebuild sub-tags
         """        
@@ -320,6 +343,8 @@ class UrtextProject:
 
         if duplicate_nodes:
             basename = os.path.basename(file_obj.filename)
+            if basename not in self.messages:
+                self.messages[basename] = []    
             self.messages[basename].append('Duplicate node ID(s) found')
 
             messages = []
@@ -497,27 +522,7 @@ class UrtextProject:
 
         return self._parse_file(filename)
 
-    def _list_messages(self):
-        pass
-        output = []
-        for filename in self.messages:
-            if self.messages[filename]:
-                output.append('f>./'+filename)
-                output.extend(self.messages[filename])
-        return '\n'.join(output)
-
-    def _populate_messages(self):
-        if self.settings['log_id'] and self.settings['log_id'] in self.nodes:
-            output = self._list_messages()
-            output += '\n'+self.urtext_node.build_metadata(
-                {   'id':self.settings['log_id'],
-                    'title':'Log',
-                    'timestamp' : self.timestamp(datetime.datetime.now())
-                })
-            self.messages = {}
-            changed = self._set_node_contents(self.settings['log_id'], output)     
-            if changed:
-                return self.nodes[self.settings['log_id']].filename
+ 
     """
     Removing and renaming files
     """
@@ -925,8 +930,6 @@ class UrtextProject:
         return self.settings['log_id']
 
     def _get_settings_from(self, node):
-
-
       
         self._initialize_settings() # reset defaults
         replacements = {}
@@ -1360,6 +1363,28 @@ class UrtextProject:
             position = self.nodes[node_id].start_position()
             return filename, position
         return None, None
+
+    def _list_messages(self):
+        pass
+        output = []
+        for filename in self.messages:
+            if self.messages[filename]:
+                output.append('f>./'+filename)
+                output.extend(self.messages[filename])
+        return '\n'.join(output)
+
+    def _populate_messages(self):
+        if self.settings['log_id'] and self.settings['log_id'] in self.nodes:
+            output = self._list_messages()
+            output += '\n'+self.urtext_node.build_metadata(
+                {   'id':self.settings['log_id'],
+                    'title':'Log',
+                    'timestamp' : self.timestamp(datetime.datetime.now())
+                })
+            self.messages = {}
+            changed = self._set_node_contents(self.settings['log_id'], output)     
+            if changed:
+                return self.nodes[self.settings['log_id']].filename
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """

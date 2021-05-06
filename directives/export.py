@@ -19,7 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
-from urtext.extensions.extension import UrtextExtensionWithParamsFlags
+from urtext.directive import UrtextDirectiveWithParamsFlags
 import urtext.node
 
 node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
@@ -28,7 +28,7 @@ titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 file_link_regex = re.compile('f>.*')
 
-class UrtextExport(UrtextExtensionWithParamsFlags):
+class UrtextExport(UrtextDirectiveWithParamsFlags):
 
     name = ["EXPORT"]
     phase = 500
