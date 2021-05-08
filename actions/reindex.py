@@ -10,37 +10,43 @@ class ReindexFiles(UrtextAction):
     """    
     name=['REINDEX']
     
-    def execute(self, project):
-        project._sync_file_list()
-        files = project.all_files() 
-        return self.rename_file_nodes(project, files, reindex=True)
+    def execute(self, 
+        param_string, 
+        filename=None,
+        file_pos=0,
+        col_pos=0, 
+        node_id=None):
+
+        self.project._sync_file_list()
+        files = self.project.all_files() 
+        return self.rename_file_nodes(files, reindex=True)
      
-    def rename_file_nodes(self, project, filenames, reindex=False):
+    def rename_file_nodes(self, filenames, reindex=False):
         """ Rename a file or list of files by metadata """
 
         if isinstance(filenames, str):
             filenames = [filenames]
             
         used_names = []
-        existing_files = os.listdir(project.path)
+        existing_files = os.listdir(self.project.path)
         renamed_files = {}
-        date_template = project.settings['filename_datestamp_format']
+        date_template = self.project.settings['filename_datestamp_format']
         prefix = 0
-        prefix_length = len(str(len(project.files)))
+        prefix_length = len(str(len(self.project.files)))
         for filename in filenames:
 
             old_filename = os.path.basename(filename)
-            if old_filename not in project.files:
+            if old_filename not in self.project.files:
                 return {}
 
-            if not project.files[old_filename].root_nodes:
-                project._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
+            if not self.project.files[old_filename].root_nodes:
+                self.project._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
                 continue
 
             ## Name each file from the first root_node
-            root_node_id = project.files[old_filename].root_nodes[0]
-            root_node = project.nodes[root_node_id]
-            filename_template = list(project.settings['filenames'])
+            root_node_id = self.project.files[old_filename].root_nodes[0]
+            root_node = self.project.nodes[root_node_id]
+            filename_template = list(self.project.settings['filenames'])
             for i in range(0,len(filename_template)):
                 
                 if filename_template[i] == 'PREFIX' and reindex == True:
@@ -51,7 +57,7 @@ class ReindexFiles(UrtextAction):
                     
                 elif filename_template[i].lower() == 'title':
                     filename_template[i] = root_node.title
-                elif filename_template[i].lower() in project.settings['use_timestamp']:
+                elif filename_template[i].lower() in self.project.settings['use_timestamp']:
                     timestamp = root_node.metadata.get_first_value(filename_template[i], use_timestamp=True)
                     if timestamp:
                         filename_template[i] = timestamp.strftime(date_template)
@@ -72,14 +78,14 @@ class ReindexFiles(UrtextAction):
                 new_filename = new_filename.replace('.txt',' - '+root_node.id+'.txt')
 
             # renamed_files retains full file paths
-            renamed_files[os.path.join(project.path, old_filename)] = os.path.join(project.path, new_filename)
+            renamed_files[os.path.join(self.project.path, old_filename)] = os.path.join(self.project.path, new_filename)
             used_names.append(new_filename)
 
             # add history files
             old_history_file = old_filename.replace('.txt','.diff')
-            if os.path.exists(os.path.join(project.path, 'history', old_history_file) ):
+            if os.path.exists(os.path.join(self.project.path, 'history', old_history_file) ):
                 new_history_file = new_filename.replace('.txt','.diff')
-                renamed_files[os.path.join(project.path, 'history', old_history_file)] = os.path.join(project.path, 'history', new_history_file)
+                renamed_files[os.path.join(self.project.path, 'history', old_history_file)] = os.path.join(self.project.path, 'history', new_history_file)
 
             prefix += 1
             
@@ -89,7 +95,7 @@ class ReindexFiles(UrtextAction):
             os.rename(old_filename, new_filename)
 
             if old_filename[-4:].lower() == '.txt': # skip history files
-                project._handle_renamed(old_filename, new_filename)
+                self.project._handle_renamed(old_filename, new_filename)
 
         return renamed_files
 

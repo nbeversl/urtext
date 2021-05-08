@@ -966,7 +966,15 @@ class UrtextProject:
                 self.settings[k] = replacements[k][0]
             else:   
                 self.settings[k] = replacements[k]
- 
+
+    def run_action(self, action, string, filename, col_pos=0, file_pos=0):
+        instance = self.actions[action](self)
+        return instance.execute(
+            string, 
+            filename, 
+            col_pos=col_pos,
+            file_pos=file_pos)
+
     def get_home(self):
         return self.settings['home']
 
