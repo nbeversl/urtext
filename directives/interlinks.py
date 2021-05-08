@@ -33,7 +33,6 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
 
         self.visited_nodes = []
         self.backward_visited_nodes = []
-        self.project = project
         self.exclude = []
         if 'from' in self.params_dict:
 

@@ -49,13 +49,12 @@ node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = re.compile(r'(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
-trigger_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
+action_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
 editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
 url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
 functions = compile_functions
 functions.extend(metadata_functions)
-
 
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
@@ -122,12 +121,59 @@ replace = [
     'tag_other',
     'filename_datestamp_format' ]
 
+urtext_settings = {  
+    'home': None,
+    'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
+    'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
+    'filenames': ['PREFIX', 'title'],
+    'filename_datestamp_format':'%m-%d-%Y',
+    'console_log': True,
+    'timezone' : 'UTC',
+    'always_oneline_meta' : False,
+    'strict':False,
+    'node_date_keyname' : 'timestamp',
+    'log_id': '',
+    'numerical_keys': ['_index' ,'index'],
+    'atomic_rename' : False,
+    'tag_other': [],
+    'device_keyname' : '',
+    'breadcrumb_key' : '',
+    'keyless_timestamp' : True,
+    'inline_node_timestamp' :True,
+    'file_node_timestamp' : True,
+    'file_node_leading_contents': '',
+    'hash_key': '',
+    'contents_strip_outer_whitespace' : True,
+    'contents_strip_internal_whitespace' : True,
+    'node_browser_sort' : ['_oldest_timestamp'],
+    'open_with_system' : ['pdf'],
+    'exclude_from_star': [
+        'title', 
+        '_newest_timestamp', 
+        '_oldest_timestamp', 
+        '_breadcrumb',
+         'def'],
+    'file_index_sort': ['_oldest_timestamp'],
+    'case_sensitive': [
+        'title',
+        'notes',
+        'comments',
+        'project_title',
+        'timezone',
+        'timestamp_format',
+        'filenames',
+        'weblink',
+        'timestamp',]
+}
+
+
 @add_functions_as_methods(functions)
 class UrtextProject:
     """ Urtext project object """
 
     urtext_file = UrtextFile
     urtext_node = UrtextNode
+    settings = urtext_settings
 
     def __init__(self,
                  path,
@@ -153,7 +199,6 @@ class UrtextProject:
         self.messages = {}
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
-        self._initialize_settings()
         if self.is_async:
             future = self.executor.submit(self._initialize_project,
                     import_project=import_project, 
@@ -166,60 +211,13 @@ class UrtextProject:
         # TODO -- node date timezones have to be localized
         # do this from UrtextNode.date() method
 
-    def _initialize_settings(self):
-        
-        self.settings = {  # defaults
-            'home': None,
-            'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-            'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
-            'filenames': ['PREFIX', 'title'],
-            'filename_datestamp_format':'%m-%d-%Y',
-            'console_log': True,
-            'timezone' : 'UTC',
-            'always_oneline_meta' : False,
-            'strict':False,
-            'node_date_keyname' : 'timestamp',
-            'log_id': '',
-            'numerical_keys': ['_index' ,'index'],
-            'atomic_rename' : False,
-            'tag_other': [],
-            'device_keyname' : '',
-            'breadcrumb_key' : '',
-            'keyless_timestamp' : True,
-            'inline_node_timestamp' :True,
-            'file_node_timestamp' : True,
-            'file_node_leading_contents': '',
-            'hash_key': '',
-            'contents_strip_outer_whitespace' : True,
-            'contents_strip_internal_whitespace' : True,
-            'node_browser_sort' : ['_oldest_timestamp'],
-            'open_with_system' : ['pdf'],
-            'exclude_from_star': [
-                'title', 
-                '_newest_timestamp', 
-                '_oldest_timestamp', 
-                '_breadcrumb',
-                 'def'],
-            'file_index_sort': ['_oldest_timestamp'],
-            'case_sensitive': [
-                'title',
-                'notes',
-                'comments',
-                'project_title',
-                'timezone',
-                'timestamp_format',
-                'filenames',
-                'weblink',
-                'timestamp',]
-        }
-
     def _initialize_project(self, 
         import_project=False, 
         init_project=False):
 
         for c in all_extensions:
             for n in c.name:
-                self.extensions[n] = c
+                self.extensions[n] = c(self)
 
         for c in all_actions:
             for n in c.name:
@@ -278,14 +276,6 @@ class UrtextProject:
                 last_position = r[1]
         return None
 
-    def _assign_node_parent_title(self):
-        """
-        Only has to be called once on project init
-        """
-
-        for node_id in self.nodes:
-            self.nodes[node_id].parent_project = self.title
-
     def _parse_file(self, 
             filename, 
             import_project=False):
@@ -309,13 +299,6 @@ class UrtextProject:
         self.files[new_file.basename] = new_file  
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
-        
-        # Here the Project will have had to compile all of these already before being
-        # able to compile the definitions.
-        # anything that requires "on any file modified" should be global, not in a def.
-        # for dd in self.dynamic_defs():
-        #     for op in dd.operations:
-        #         op.on_file_modified(filename)
 
         """
         If not the initial load of the project rebuild sub-tags
@@ -327,11 +310,12 @@ class UrtextProject:
                     self.nodes[dd.target_id].dynamic = True
                 for e in self.nodes[node_id].metadata.dynamic_entries:
                     self._add_sub_tags( node_id, node_id, e)
+                for ext in self.extensions:
+                    self.extensions[ext].on_node_visited(node_id)
         
-        for dd in self.dynamic_defs():
-            for op in dd.operations:
-    
-                op.on_file_modified(filename)
+        for ext in self.extensions:
+             self.extensions[ext].on_file_modified(filename)
+
 
     def _check_file_for_duplicates(self, file_obj):
 
@@ -443,14 +427,7 @@ class UrtextProject:
 
         if new_node.contains_project_settings:
             self._get_settings_from(new_node)            
-
-        if self.compiled:
-
-            for dd in self.dynamic_defs():
-                for op in dd.operations:
-                    op.on_node_modified(new_node)
-                    #op.on_node_visited(new_node)
-            
+        
     def get_source_node(self, filename, position):
         if filename not in self.files:
             return None, None
@@ -819,24 +796,37 @@ class UrtextProject:
             return self.nodes[from_id].links
         return []
 
-    def get_link(self, string, position=0):
+    def get_link(self, 
+        string, 
+        filename, 
+        col_pos=0,
+        file_pos=0):
         """ 
         Given a line of text passed from an editor, 
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        link = self.find_link(string[position:])
+        
+        link = self.find_link(
+            string[col_pos:], 
+            filename, 
+            col_pos=col_pos,
+            file_pos=file_pos)
 
         if not link:
             return
 
         # work backwards along the line
         if not link[0]:
-            while position > -1:
-                link = self.find_link(string[position:])
+            while col_pos > -1:
+                link = self.find_link(
+                    string[col_pos:], 
+                    filename, 
+                    col_pos=col_pos,
+                    file_pos=file_pos)
                 if link[0]:
                     break
-                position -= 1
+                col_pos -= 1
 
         if not link[0]:
             if not self.compiled:
@@ -857,17 +847,25 @@ class UrtextProject:
                     op.on_node_visited(link[1])
         return link
 
-    def find_link(self, string):
+    def find_link(self, 
+        string,
+        filename, 
+        col_pos=0,
+        file_pos=0):
+      
+        kind, result, link = '', None, ''
+        result = action_regex.search(string)
 
-        kind, result, link, position = '', None, '', 0
-        result = trigger_regex.search(string)
         if result:
-            trigger = result.group(1)
-            for t in all_triggers:
-                if t.name == trigger:
-                    r = t(result.group(2))
-                    r.execute(self)
-                    return None
+            action = result.group(1)
+            for name in self.actions:
+                if name == action:
+                    r = self.actions[name](self)
+                    return r.execute(
+                        result.group(2),
+                        filename, 
+                        col_pos=col_pos,
+                        file_pos=file_pos)
 
         result = re.search(node_link_regex, string)        
         link_location = None
@@ -897,16 +895,10 @@ class UrtextProject:
                     kind ='HTTP'
                     link = result.group().strip()
 
-        return (kind, link, position, link_location)
+        return (kind, link, file_pos, link_location)
 
     def refresh_file(self, filename):
         self.executor.submit(self._compile_file, filename)
-        
-    def trigger(self, trigger):
-        for t in all_triggers:
-            if t.name == trigger:
-                r = t('')
-                return r.execute(self)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -931,7 +923,7 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
       
-        self._initialize_settings() # reset defaults
+        self.settings = urtext_settings # reset defaults
         replacements = {}
         for entry in node.metadata.entries:
             key = entry.keyname
@@ -984,112 +976,6 @@ class UrtextProject:
             index = random.choice(list(self._node_id_generator()))
         return ''.join(index)
 
-    def pop_node(self, position=None, filename=None, node_id=None):
-        """
-        Pops a node asyncronously, making sure that if the file was saved and on_modified
-        was called in the same calling function, this completes before evaluating
-        the node_id from the position.
-
-        Returns a future containing a list of modified files as the result.
-        """
-        return self._pop_node( position=position, filename=filename, node_id=node_id)
-
-    def _pop_node(self, position=None, filename=None, node_id=None):
- 
-        if not node_id:
-            node_id = self.get_node_id_from_position(filename, position)
- 
-        if not node_id:
-            print('No node ID or duplicate Node ID')
-            return None
-
-        if self.nodes[node_id].root_node:
-            print(node_id+ ' is already a root node.')
-            return None
-
-        start = self.nodes[node_id].ranges[0][0]
-        end = self.nodes[node_id].ranges[-1][1]
-        filename = self.nodes[node_id].filename
-        file_contents = self.files[filename]._get_file_contents()
-        
-        popped_node_id = node_id
-
-        filename = self.nodes[node_id].filename
-
-        popped_node_contents = file_contents[start:end].strip()
-        parent_id = self.nodes[node_id].tree_node.parent
-
-        if self.settings['breadcrumb_key']:
-            popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
-
-        remaining_node_contents = ''.join([
-            file_contents[0:start - 1],
-            '\n| ',
-            self.nodes[popped_node_id].title,
-             ' >>',
-            popped_node_id,
-            '\n',
-            file_contents[end + 1:]])
-       
-        with open (os.path.join(self.path, filename), 'w', encoding='utf-8') as f:
-            f.write(remaining_node_contents)
-        self._parse_file(filename) 
-
-        # new file
-        with open(os.path.join(self.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
-            f.write(popped_node_contents)
-        self._parse_file(popped_node_id+'.txt') 
-        
-    def pull_node(self, string, current_file, current_position):
-        """ File must be saved in the editor first for this to work """
-        if self.is_async:
-            return self.executor.submit(
-                self._pull_node, 
-                string, 
-                os.path.basename(current_file), 
-                current_position) 
-        else:
-            self._pull_node(string, os.path.basename(current_file), current_position)
-    
-    def _pull_node(self, string, current_file, current_position):
-
-        link = self.get_link(string)
-        
-        if not link or link[0] != 'NODE': 
-            return None
-        
-        node_id = link[1]
-        if node_id not in self.nodes: 
-            return None
-
-        current_node = self.get_node_id_from_position(current_file, current_position)
-        if not current_node:
-            return None
-
-        start = self.nodes[node_id].ranges[0][0]
-        end = self.nodes[node_id].ranges[-1][1]
-        
-        filename = self.nodes[node_id].filename
-        contents =self.files[filename]._get_file_contents()
-
-        replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
-
-        if self.nodes[node_id].root_node:
-            self.delete_file(self.nodes[node_id].filename)  
-        else:
-            self.nodes[node_id].filename._set_file_contents(replaced_file_contents)
-            self._parse_file(self.nodes[node_id].filename)
-        pulled_contents = contents[start:end]
-        full_current_contents = self.files[current_file]._get_file_contents()
-
-        # here we need to know the exact location of the returned link within the file
-        span = link[3]
-        replacement = string[span[0]:span[1]]
-        wrapped_contents = ''.join(['{',pulled_contents,'}'])
-        replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
-        self.files[current_file]._set_file_contents(replacement_contents)
-        self._parse_file(current_file)
-
     def titles(self):
         title_list = {}
         for node_id in self.nodes:
@@ -1108,18 +994,18 @@ class UrtextProject:
 
     def get_all_meta_pairs(self):
         pairs = []
-        for k in [kn for kn in self.keynames]: 
-            for value in list(self.keynames[k]):
-                meta_string = ''.join([k, '::', str(value) ])            
-                pairs.append(meta_string)
+        for n in self.nodes:
+            for k in self.nodes[n].metadata.get_keys():
+               values = self.nodes[n].metadata.get_values(k)
+               for v in values:
+                    pairs.append(''.join([k, '::', str(v) ])  )
         return list(set(pairs))
 
     def get_all_for_hash(self):
         hashes = []
-        if self.settings['hash_key']in self.keynames:
-            for value in list(self.keynames[self.settings['hash_key']]):
-                hashes.append(value)
-        return hashes
+        for n in self.get_by_meta(self.settings['hash_key'], '*' ,'='):
+            hashes.append(self.nodes[n].metadata.get_values(self.settings['hash_key']))
+        return list(set(hashes))
 
     def random_node(self):
         if self.nodes:
@@ -1230,8 +1116,6 @@ class UrtextProject:
 
     def title_completions(self):
         return [(self.nodes[n].title, ''.join(['| ',self.nodes[n].title,' >',self.nodes[n].id])) for n in list(self.nodes)]
-
-    
 
     def get_first_value(self, node, keyname):
         value = node.metadata.get_first_value(keyname)

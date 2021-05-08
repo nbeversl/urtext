@@ -58,7 +58,12 @@ class ProjectList():
             if subdir not in ['.git','.DS_Store','/','history','files']:
                 self._add_folder(os.path.join(folder, subdir))
 
-    def get_link_and_set_project(self, string, position=0):
+    def get_link_and_set_project(self, 
+            string, 
+            filename, 
+            col_pos=0,
+            file_pos=0):
+
         """
         Given a line of text, looks for a link to a node or project
         with node, sets the current project to the containing project,
@@ -88,7 +93,12 @@ class ProjectList():
                 self.current_project.nodes[node_id].ranges[0][0])         
 
         """ Otherwise, just search the link for a link in the current project """
-        link = self.current_project.get_link(string, position=position)
+        link = self.current_project.get_link( 
+            string, 
+            filename, 
+            col_pos=col_pos,
+            file_pos=file_pos
+            )
         return link
 
     def on_modified(self, filenames):

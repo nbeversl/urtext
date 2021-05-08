@@ -32,14 +32,13 @@ class Collect (UrtextDirectiveWithParamsFlags):
         
         m_format = self.dynamic_definition.show
 
-        project = project[0]
         keys = {}
    
         for entry in self.params:
 
             k, v, operator = entry
 
-            keynames = project.get_all_keys() if k =='*' else [k]
+            keynames = self.project.get_all_keys() if k =='*' else [k]
 
             for k in keynames:
 
@@ -48,7 +47,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                 keys.setdefault(k, [])            
 
                 if v == '*':
-                    keys[k].extend(project.get_all_values_for_key(k, lower=True))
+                    keys[k].extend(self.project.get_all_values_for_key(k, lower=True))
 
                 else:
                     if v not in keys[k]:
@@ -65,7 +64,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
            
             for k in keys:
 
-                use_timestamp = k in project.settings['use_timestamp']
+                use_timestamp = k in self.project.settings['use_timestamp']
 
                 for v in keys[k]:
                    
@@ -148,7 +147,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
 
                  item = sorted_stuff[index]
 
-                 next_content = DynamicOutput( m_format, project.settings)
+                 next_content = DynamicOutput( m_format, self.project.settings)
                       
                  if next_content.needs_title:
                      next_content.title = item['title']
@@ -169,7 +168,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                      next_content.date = item['dt_string']
 
                  if next_content.needs_meta:
-                      next_content.meta = project.nodes[item['node_id']].consolidate_metadata()
+                      next_content.meta = self.project.nodes[item['node_id']].consolidate_metadata()
 
                  if next_content.needs_contents: 
                      contents = item['context']
@@ -178,7 +177,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                      next_content.contents = contents
 
                  for meta_key in next_content.needs_other_format_keys:
-                     values = project.nodes[item['node_id']].metadata.get_values(meta_key) #, substitute_timestamp=True)
+                     values = self.project.nodes[item['node_id']].metadata.get_values(meta_key) #, substitute_timestamp=True)
                      replacement = ''
                      if values:
                          replacement = ' '.join(values)

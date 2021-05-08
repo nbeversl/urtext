@@ -88,9 +88,7 @@ class UrtextDynamicDefinition:
 	def process_output(self):
 		outcome = []
 		for operation in sorted(self.operations, key = lambda op: op.phase) :		
-			print(operation)
 			new_outcome = operation.dynamic_output(outcome)
 			if new_outcome != False:
 				outcome = new_outcome
-		print('--------------------')
 		return outcome
