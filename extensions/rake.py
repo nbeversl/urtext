@@ -12,23 +12,31 @@ import concurrent.futures
 
 class AddRakeKeywords(UrtextExtension):
 
-    def on_node_modified(self, node):
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
-        executor.submit(self.parse_node, node)
+    name = ['RAKE_KEYWORDS']
 
-    def parse_node(self, nodes):
-        self.node.rake_keywords = Rake(self.node.content_only())
+    def __init__(self, project):
+        super().__init__(project);
+        self.nodes = {}
+  
+    def on_file_modified(self, filename):
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        executor.submit(self.parse_keywords, filename)
+        #self.parse_keywords(filename)
+        
+    def parse_keywords(self, filename):
+        for node_id in self.project.files[filename].nodes:
+            self.nodes[node_id] = Rake(self.project.nodes[node_id].content_only())
 
     def get_keywords(self):
         keywords = []
         for i in self.project.nodes:
-            keywords.extend(self.project.nodes[i].keywords)
+            keywords.extend(self.nodes[i].keywords)
         return list(set(keywords))
 
     def get_by_keyword(self, keyword):
         nodes = []
-        for i in self.project.nodes:
-            if self.project.nodes[i].has_keyword(keyword):
+        for i in self.nodes:
+            if self.nodes[i].has_keyword(keyword):
                 nodes.append(i)
         return nodes
 
@@ -37,18 +45,18 @@ class Rake():
 
     def __init__(self, contents):
         self.__stop_words_pattern = build_stop_word_regex()
-        self.run(contents)
+        self.keywords = []
+        self.parse_keywords(contents)
 
     def run(self, text):
         sentence_list = split_sentences(text)
         phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern)
         word_scores = calculate_word_scores(phrase_list)
         keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores)
-        sorted_keywords = sorted(keyword_candidates.items(), key=operator.itemgetter(1), reverse=True)
-        
+        return sorted(keyword_candidates.items(), key=operator.itemgetter(1), reverse=True)
 
     def parse_keywords(self, parsed_contents):
-        self.keywords = [t[0] for t in r.run(parsed_contents)]
+        self.keywords = [t[0] for t in self.run(parsed_contents)]
 
     def has_keyword(self, keyword):
         return True if keyword in self.keywords else False
