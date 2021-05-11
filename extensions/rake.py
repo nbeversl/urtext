@@ -9,7 +9,7 @@ import re
 import operator
 from urtext.extension import UrtextExtension
 import concurrent.futures
-
+from urtext.node import strip_contents
 class AddRakeKeywords(UrtextExtension):
 
     name = ['RAKE_KEYWORDS']
@@ -17,11 +17,10 @@ class AddRakeKeywords(UrtextExtension):
     def __init__(self, project):
         super().__init__(project);
         self.nodes = {}
-  
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        
     def on_file_modified(self, filename):
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
-        executor.submit(self.parse_keywords, filename)
-        #self.parse_keywords(filename)
+        self.executor.submit(self.parse_keywords, filename)
         
     def parse_keywords(self, filename):
         for node_id in self.project.files[filename].nodes:
@@ -36,10 +35,27 @@ class AddRakeKeywords(UrtextExtension):
 
     def get_by_keyword(self, keyword):
         nodes = []
-        for i in self.nodes:
+        for i in list(self.nodes):
             if self.nodes[i].has_keyword(keyword):
                 nodes.append(i)
         return nodes
+
+    def get_assoc_nodes(self, string, filename, position):
+        node_id = self.project.get_node_id_from_position(filename, position)
+        
+        r = Rake(strip_contents(string))
+        keywords = [t[0] for t in r.run(string)]
+        assoc_nodes = []
+        for k in keywords:
+             assoc_nodes.extend(self.project.extensions['RAKE_KEYWORDS'].get_by_keyword(k))
+        assoc_nodes = list(set(assoc_nodes))
+        if node_id in assoc_nodes:
+            assoc_nodes.remove(node_id)
+        for node_id in assoc_nodes:
+            if self.project.nodes[node_id].dynamic:
+                assoc_nodes.remove(node_id)
+        return assoc_nodes
+        
 
 
 class Rake():

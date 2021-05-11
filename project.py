@@ -661,10 +661,11 @@ class UrtextProject:
     def dynamic_defs(self, target=None):
         dd = []
         for nid in list(self.nodes):
-            if not target:
-                dd.extend([d for d in self.nodes[nid].dynamic_definitions if d])
-            else:
-                dd.extend([d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target])
+            if nid in self.nodes:
+                if not target:
+                    dd.extend([d for d in self.nodes[nid].dynamic_definitions if d])
+                else:
+                    dd.extend([d for d in self.nodes[nid].dynamic_definitions if d and d.target_id == target])
         return dd
 
     """
