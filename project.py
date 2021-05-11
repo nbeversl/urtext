@@ -183,7 +183,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -1220,22 +1220,6 @@ class UrtextProject:
                             k, use_timestamp=use_timestamp, lower=True)))
         
         return results
-        
-    def get_assoc_nodes(self, string, filename, position):
-        node_id = self.get_node_id_from_position(filename, position)
-        r = Rake()
-        string = strip_contents(string)
-        keywords = [t[0] for t in r.run(string)]
-        assoc_nodes = []
-        for k in keywords:
-             assoc_nodes.extend(self.get_by_keyword(k))
-        assoc_nodes = list(set(assoc_nodes))
-        if node_id in assoc_nodes:
-            assoc_nodes.remove(node_id)
-        for node_id in assoc_nodes:
-            if self.nodes[node_id].dynamic:
-                assoc_nodes.remove(node_id)
-        return assoc_nodes
 
     def get_file_and_position(self, node_id):
         if node_id in self.nodes:

@@ -30,7 +30,8 @@ class AddRakeKeywords(UrtextExtension):
     def get_keywords(self):
         keywords = []
         for i in self.project.nodes:
-            keywords.extend(self.nodes[i].keywords)
+            if i in self.nodes:
+                keywords.extend(self.nodes[i].keywords)
         return list(set(keywords))
 
     def get_by_keyword(self, keyword):

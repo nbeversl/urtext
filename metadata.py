@@ -59,7 +59,6 @@ class NodeMetadata:
 
             children=False
             recursive=False
-            print(keyname)
             if keyname[0] == '*' :
                 children = True
                 keyname = keyname[1:] #cdr
