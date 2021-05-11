@@ -23,11 +23,9 @@ class NodeList(UrtextDirective):
 				try:
 					self.tree.depth = int(self.argument_string)
 				except:
-					print(self.argument_string)
-			added_contents = self.tree.dynamic_output(n)
-			contents.append(added_contents)
+					self.tree.depth = 0
+			contents.append(self.tree.dynamic_output(n))
 		return ''.join(contents)
 
 	def on_file_modified(self, filename):
-		#return
 		self.tree.on_file_modified(filename)

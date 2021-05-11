@@ -16,7 +16,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
     
     def __init__(self, project):
         super().__init__(project)
-        self.depth = 10
+        self.depth = 0
 
     def dynamic_output(self, start_point):
         exclude=None,
@@ -97,13 +97,13 @@ class Tree(UrtextDirectiveWithParamsFlags):
                 if '.' in meta_key:
                     k, ext = meta_key.split('.')
                 replacement = ''
-                if ext in ['timestamp','timestamps']:  
+                if ext in ['timestamp','timestamps'] or k in self.project.settings['use_timestamp']:  
                     timestamps = urtext_node.metadata.get_values(k, use_timestamp=True)
                     if timestamps:
                         if ext == 'timestamp':
                             replacement = timestamps[0].string
                         else:
-                            replacement = ' | '.join([t.string for t in e.timestamps])
+                            replacement = ' | '.join([t.string for t in timestamps])
                 else:
                     replacement = ' | '.join(urtext_node.metadata.get_values(k))
                 next_content.other_format_keys[meta_key] = replacement

@@ -38,11 +38,9 @@ class UrtextAnyTree(UrtextExtension):
                 start_of_node = self.project.nodes[parent].ranges[0][0]
                 parent = self.project.get_node_id_from_position(filename, start_of_node - 1)
             if parent:
-
                 self.project.nodes[node].tree_node.parent = self.project.nodes[parent].tree_node
 
     def on_file_removed(self, filename):
-
         for node_id in self.project.files[filename].nodes:
             self.project.nodes[node_id].tree_node.parent = None
             self.project.nodes[node_id].tree_node = Node(node_id)

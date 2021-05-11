@@ -247,11 +247,10 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
-        # build sub tags
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( node_id, node_id, e)
-
+  
         self._compile()
         self.compiled = True
 
@@ -300,9 +299,9 @@ class UrtextProject:
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
 
-        """
-        If not the initial load of the project rebuild sub-tags
-        """        
+        for ext in self.extensions:
+             self.extensions[ext].on_file_modified(filename)
+
         if self.compiled:
             
             for node_id in new_file.nodes:
@@ -312,10 +311,6 @@ class UrtextProject:
                     self._add_sub_tags( node_id, node_id, e)
                 for ext in self.extensions:
                     self.extensions[ext].on_node_visited(node_id)
-        
-        for ext in self.extensions:
-             self.extensions[ext].on_file_modified(filename)
-
 
     def _check_file_for_duplicates(self, file_obj):
 
@@ -990,16 +985,6 @@ class UrtextProject:
             title_list[self.nodes[node_id].title] = (self.title, node_id)
         return title_list
 
-    def complete_meta_value(self, fragment):
-        fragment = fragment.lower().strip()
-        length = len(fragment)
-
-        for keyname in self.keynames:
-            for value in keyname:
-                if fragment == value[:length].lower():
-                    return (keyname, value)
-        return u''        
-
     def get_all_meta_pairs(self):
         pairs = []
         for n in self.nodes:
@@ -1012,7 +997,7 @@ class UrtextProject:
     def get_all_for_hash(self):
         hashes = []
         for n in self.get_by_meta(self.settings['hash_key'], '*' ,'='):
-            hashes.append(self.nodes[n].metadata.get_values(self.settings['hash_key']))
+            hashes.extend(self.nodes[n].metadata.get_values(self.settings['hash_key']))
         return list(set(hashes))
 
     def random_node(self):
@@ -1155,7 +1140,6 @@ class UrtextProject:
         
         if isinstance(values,str):
             values = [values]
-
         results = []
 
         if operator in ['before','after']:
@@ -1171,7 +1155,6 @@ class UrtextProject:
                 return set(results)
 
             return set([])
-
 
         if key == '_contents' and operator == '?': # `=` not currently implemented
             for node_id in list(self.nodes):
@@ -1199,13 +1182,18 @@ class UrtextProject:
 
         results = set([])
 
-        if key == '*':
+        if key == self.settings['hash_key']:
+            keys = ['#', self.settings['hash_key']]
+        
+        elif key == '*':
             keys = self.get_all_keys()
+        
         else:
             keys = [key]
 
         for k in keys:
             for value in values:
+
                 if value in ['*']:
                     results = results.union(set(n for n in list(self.nodes) if self.nodes[n].metadata.get_values(k))) 
                     continue

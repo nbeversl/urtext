@@ -37,7 +37,7 @@ default_date = pytz.timezone('UTC').localize(datetime.datetime(1970,2,1))
 node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]+?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
-embedded_syntax = re.compile('%%-[^E][A-Z-]*.*?%%-END-[A-Z-]*', flags=re.DOTALL)
+embedded_syntax = re.compile('%%-[A-Z-]*.*?%%-[A-Z-]*-END', flags=re.DOTALL)
 short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
 shorthand_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)

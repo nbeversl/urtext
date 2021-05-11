@@ -59,7 +59,7 @@ class NodeMetadata:
 
             children=False
             recursive=False
-
+            print(keyname)
             if keyname[0] == '*' :
                 children = True
                 keyname = keyname[1:] #cdr
@@ -83,19 +83,20 @@ class NodeMetadata:
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
         # parse shorthand meta:
-        if settings and settings['hash_key']:     
-            for m in hash_meta.finditer(parsed_contents):
-                value = m.group().replace('#','').strip()
-                self.entries.append(
-                    MetadataEntry(
-                        settings['hash_key'], 
-                        value, 
-                        position=m.start(), 
-                        end_position=m.start()+ len(m.group()) 
-                    )
+           
+        for m in hash_meta.finditer(parsed_contents):
+            value = m.group().replace('#','').strip()
+            self.entries.append(
+                MetadataEntry(
+                    '#', 
+                    value, 
+                    position=m.start(), 
+                    end_position=m.start()+ len(m.group()) 
                 )
-                parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
-                remaining_contents = remaining_contents.replace(m.group(),'', 1 )
+            )
+
+            parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
+            remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
         # parse inline timestamps:
         for m in timestamp_match.finditer(parsed_contents):

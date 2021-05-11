@@ -1,6 +1,8 @@
 
 from urtext.action import UrtextAction
 import os
+import datetime
+
 
 class PopNode(UrtextAction):
 
@@ -63,7 +65,7 @@ class PopNode(UrtextAction):
         parent_id = self.project.nodes[node_id].tree_node.parent
 
         if self.project.settings['breadcrumb_key']:
-            popped_node_contents += '\n'+self.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.timestamp(datetime.datetime.now());
+            popped_node_contents += '\n'+self.project.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.project.timestamp(datetime.datetime.now());
 
         remaining_node_contents = ''.join([
             file_contents[0:start - 1],

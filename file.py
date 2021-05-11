@@ -32,8 +32,8 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     r'(?<!\\)}',  # inline node closing wrapper
     '>>', # node pointer
     r'\n', # line ending (closes compact node)
-    '%%-[^E][A-Z-]*', # push syntax
-    '%%-END-[A-Z-]*' # pop syntax 
+    '%%-[A-Z-]*', # push syntax
+    '%%-[A-Z-]*(?<!-END)$' # pop syntax 
     ]]
 
 # additional symbols using MULTILINE flag
@@ -102,12 +102,12 @@ class UrtextFile:
         to_remove = []
         for p in self.positions:
 
-            if self.symbols[p] == '%%-[^E][A-Z-]*':
+            if self.symbols[p] == '%%-[A-Z-]*':
                 to_remove.append(p)
                 push_syntax += 1
                 continue
 
-            if self.symbols[p] == '%%-END-[A-Z-]*' :
+            if self.symbols[p] == '%%-[A-Z-]*(?<!-END)$' :
                 to_remove.append(p)
                 push_syntax -= 1
                 continue
