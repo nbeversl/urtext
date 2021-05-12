@@ -26,7 +26,7 @@ class PopNode(UrtextAction):
                 self._pop_node, 
                 param_string, 
                 os.path.basename(filename), 
-                position=position) 
+                position=file_pos) 
         else:
             self._pop_node(
                 param_string, 
@@ -100,7 +100,7 @@ class PullNode(UrtextAction):
             return self.project.executor.submit(
                 self._pull_node, 
                 string, 
-                os.path.basename(current_file), 
+                os.path.basename(filename), 
                 file_pos=file_pos,
                 col_pos=col_pos) 
         else:
