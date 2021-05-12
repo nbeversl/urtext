@@ -99,6 +99,21 @@ class ReindexFiles(UrtextAction):
 
         return renamed_files
 
+
+
+class RenameSingleFile(ReindexFiles):
+
+    name=['RENAME_SINGLE_FILE']
+
+    def execute(self, 
+        param_string, 
+        filename=None,
+        file_pos=0,
+        col_pos=0, 
+        node_id=None):
+
+        return self.rename_file_nodes(filename, reindex=True) 
+
 def strip_illegal_characters(filename):
     for c in ['<', '>', ':', '"', '/', '\\', '|', '?','*']:
         filename = filename.replace(c,' ')

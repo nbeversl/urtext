@@ -1182,11 +1182,8 @@ class UrtextProject:
             return results
 
         results = set([])
-
-        if key == self.settings['hash_key']:
-            keys = ['#', self.settings['hash_key']]
         
-        elif key == '*':
+        if key == '*':
             keys = self.get_all_keys()
         
         else:

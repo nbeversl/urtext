@@ -205,8 +205,10 @@ class NodeMetadata:
         return []
 
     def get_entries(self, keyname):
-        keyname = keyname.lower()
-        return [e for e in self.entries if e.keyname == keyname]
+        keynames = [keyname.lower()]
+        if keynames[0] == self.settings['hash_key']:
+            keynames.append('#')
+        return [e for e in self.entries if e.keyname in keynames]
 
     def get_matching_entries(self, keyname, value):
     

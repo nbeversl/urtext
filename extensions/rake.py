@@ -24,7 +24,8 @@ class AddRakeKeywords(UrtextExtension):
         
     def parse_keywords(self, filename):
         for node_id in self.project.files[filename].nodes:
-            self.nodes[node_id] = Rake(self.project.nodes[node_id].content_only())
+            if not self.project.nodes[node_id].dynamic:
+                self.nodes[node_id] = Rake(self.project.nodes[node_id].content_only())
 
     def get_keywords(self):
         keywords = []
