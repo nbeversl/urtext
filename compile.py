@@ -55,6 +55,7 @@ def _process_dynamic_def(self, dynamic_definition):
     output = dynamic_definition.process_output()    
     if not isinstance(output, str):
         return None
+    
     final_output = build_final_output(dynamic_definition, output) 
        
     if dynamic_definition.target_id in self.nodes:

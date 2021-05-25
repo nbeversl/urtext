@@ -32,8 +32,9 @@ compiled_symbols = [re.compile(symbol) for symbol in  [
     r'(?<!\\)}',  # inline node closing wrapper
     '>>', # node pointer
     r'\n', # line ending (closes compact node)
-    '%%-[A-Z-]*', # push syntax
-    '%%-[A-Z-]*(?<!-END)$' # pop syntax 
+    r'%%-[A-Z]*', # push syntax 
+    r'%%-[A-Z]*-END', # pop syntax
+ 
     ]]
 
 # additional symbols using MULTILINE flag
@@ -85,29 +86,27 @@ class UrtextFile:
 
         unstripped_contents = contents
         contents = strip_backtick_escape(contents)
-     
               
         for compiled_symbol in compiled_symbols:
             locations = compiled_symbol.finditer(contents)
-
             for loc in locations:
                 start = loc.span()[0]
                 self.symbols[start] = compiled_symbol.pattern
 
         self.positions = sorted([key for key in self.symbols if key != -1])
-
+        
         ## Filter out Syntax Push and delete wrapper elements between them.
         push_syntax = 0
         escaped = False
         to_remove = []
         for p in self.positions:
-
-            if self.symbols[p] == '%%-[A-Z-]*':
+            
+            if self.symbols[p] == '%%-[A-Z]*' :
                 to_remove.append(p)
                 push_syntax += 1
                 continue
-
-            if self.symbols[p] == '%%-[A-Z-]*(?<!-END)$' :
+            
+            if self.symbols[p] == '%%-[A-Z]*-END':
                 to_remove.append(p)
                 push_syntax -= 1
                 continue
