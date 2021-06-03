@@ -301,16 +301,16 @@ class UrtextProject:
 
         for ext in self.extensions:
              self.extensions[ext].on_file_modified(filename)
-
-        if self.compiled:
             
-            for node_id in new_file.nodes:
-                for dd in self.dynamic_defs(target=node_id):
-                    self.nodes[dd.target_id].dynamic = True
-                for e in self.nodes[node_id].metadata.dynamic_entries:
-                    self._add_sub_tags( node_id, node_id, e)
-                for ext in self.extensions:
-                    self.extensions[ext].on_node_visited(node_id)
+        for node_id in new_file.nodes:
+            for dd in self.dynamic_defs(target=node_id):
+                self.nodes[dd.target_id].dynamic = True
+            for e in self.nodes[node_id].metadata.dynamic_entries:
+                self._add_sub_tags( node_id, node_id, e)
+        
+        if self.compiled:
+            for ext in self.extensions:
+                self.extensions[ext].on_node_visited(node_id)
 
     def _check_file_for_duplicates(self, file_obj):
 

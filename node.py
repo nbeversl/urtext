@@ -333,7 +333,7 @@ def strip_embedded_syntaxes(contents, preserve_length=False):
     r = ' ' if preserve_length else ''
     stripped_contents = contents
     for e in embedded_syntax.findall(stripped_contents):
-        stripped_contents = stripped_contents.replace(e,''*len(e))
+        stripped_contents = stripped_contents.replace(e,r*len(e))
     return stripped_contents
 
 def strip_errors(contents):

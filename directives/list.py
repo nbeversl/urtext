@@ -20,10 +20,14 @@ class NodeList(UrtextDirective):
 			if self.tree.have_flags('*'):
 				self.tree.depth = 99999
 			else:
-				try:
-					self.tree.depth = int(self.argument_string)
-				except:
-					self.tree.depth = 0
+				if self.argument_string:
+					try:
+						self.tree.depth = int(self.argument_string)
+					except:
+						self.tree.depth = 1
+				else:
+					self.tree.depth = 1
+					
 			contents.append(self.tree.dynamic_output(n))
 		return ''.join(contents)
 

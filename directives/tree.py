@@ -16,7 +16,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
     
     def __init__(self, project):
         super().__init__(project)
-        self.depth = 0
+        self.depth = 1
 
     def dynamic_output(self, start_point):
         exclude=None,
