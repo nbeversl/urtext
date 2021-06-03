@@ -1,6 +1,5 @@
 from urtext.directive import  UrtextDirective
 import urllib
-import pprint
 
 class Request(UrtextDirective):
 

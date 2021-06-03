@@ -26,7 +26,7 @@ class NodeQuery(UrtextDirectiveWithParamsFlags):
 
 	def build_list(self, passed_nodes):
 		
-		if  self.have_flags('*'):
+		if self.have_flags('*'):
 			if self.have_flags('-include_dynamic'):
 				added_nodes = set([node_id for node_id in self.project.nodes])
 			else:

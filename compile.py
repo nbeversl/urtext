@@ -61,6 +61,8 @@ def _process_dynamic_def(self, dynamic_definition):
     if dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)            
     
+    self.nodes[dynamic_definition.target_id].dynamic = True
+    
     if dynamic_definition.target_id in self.nodes:
 
         # Dynamic nodes have blank title by default. Title can be set by header or title key.

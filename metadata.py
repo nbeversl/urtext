@@ -25,7 +25,7 @@ from urtext.utils import force_list
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import UrtextTimestamp, default_date
 timestamp_match = re.compile('<([^-/<\s][^=<]+?)>')
-meta_entry = re.compile('\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
+meta_entry = re.compile('\+?\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 
@@ -57,13 +57,21 @@ class NodeMetadata:
             keyname = keyname.lower()
             value_list = contents.split('|')
 
-            children=False
-            recursive=False
-            if keyname[0] == '*' :
-                children = True
-                keyname = keyname[1:] #cdr
+            tag_self=False
+            tag_children=False
+            tag_descendants=False
+
+            if keyname[0] not in ['+','*']:
+                tag_self=True
+            else:
+                if keyname[0] == '+':
+                    tag_self = True
+                    keyname = keyname[1:]            
                 if keyname[0] == '*' :
-                    recursive = True
+                    tag_children = True
+                    keyname = keyname[1:] #cdr
+                if keyname[0] == '*' :
+                    tag_descendants = True
                     keyname = keyname[1:] #cdr
 
             for value in value_list:
@@ -71,12 +79,13 @@ class NodeMetadata:
                 entry = MetadataEntry(
                         keyname, 
                         value, 
-                        recursive=recursive,
+                        recursive=tag_descendants,
                         position=m.start(), 
                         end_position=m.start() + len(m.group()))    
-                if children or recursive:
+                if tag_children or tag_descendants:
                     self.dynamic_entries.append(entry)
-                self.entries.append(entry)
+                if tag_self:
+                    self.entries.append(entry)
 
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
