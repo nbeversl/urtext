@@ -22,11 +22,11 @@ class PopNode(UrtextAction):
         Returns a future containing a list of modified files as the result.
         """
         if self.project.is_async:
-            return self.project.executor.submit(
+            self.project.executor.submit(
                 self._pop_node, 
                 param_string, 
                 os.path.basename(filename), 
-                position=file_pos) 
+                file_pos=file_pos) 
         else:
             self._pop_node(
                 param_string, 
@@ -104,7 +104,11 @@ class PullNode(UrtextAction):
                 file_pos=file_pos,
                 col_pos=col_pos) 
         else:
-            self._pull_node(string, os.path.basename(filename), file_pos=file_pos, col_pos=col_pos)
+            self._pull_node(
+                string, 
+                os.path.basename(filename), 
+                file_pos=file_pos, 
+                col_pos=col_pos)
     
     def _pull_node(self, 
         string, 

@@ -247,6 +247,7 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
+        #necessary?
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( node_id, node_id, e)
