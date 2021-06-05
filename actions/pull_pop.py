@@ -2,7 +2,7 @@
 from urtext.action import UrtextAction
 import os
 import datetime
-
+import re
 
 class PopNode(UrtextAction):
 
@@ -115,6 +115,8 @@ class PullNode(UrtextAction):
         destination_filename, 
         file_pos=0,
         col_pos=0):
+        
+        replacement_contents = None
 
         link = self.project.get_link(
             string,
@@ -122,10 +124,10 @@ class PullNode(UrtextAction):
             file_pos=file_pos,
             col_pos=col_pos)
         
-        if not link or link[0] != 'NODE': 
+        if not link or link['kind'] != 'NODE': 
             return None
         
-        node_id = link[1]
+        node_id = link['link']
         if node_id not in self.project.nodes: 
             return None
 
@@ -137,6 +139,9 @@ class PullNode(UrtextAction):
         end = self.project.nodes[node_id].ranges[-1][1]
         
         source_filename = self.project.nodes[node_id].filename
+        if source_filename == destination_filename:
+            print('Cannot pull a node from the same file.')
+            return
         contents =self.project.files[source_filename]._get_file_contents()
 
         replaced_file_contents = ''.join([contents[0:start-1],contents[end+1:len(contents)]])
@@ -144,18 +149,32 @@ class PullNode(UrtextAction):
         if self.project.nodes[node_id].root_node:
             self.project.delete_file(self.project.nodes[node_id].filename)  
         else:
-            self.project.nodes[node_id].filename._set_file_contents(replaced_file_contents)
+            self.project.files[source_filename]._set_file_contents(replaced_file_contents)
             self.project._parse_file(self.project.nodes[node_id].filename)
+
         pulled_contents = contents[start:end]
         full_current_contents = self.project.files[destination_filename]._get_file_contents()
 
-        # here we need to know the exact location of the returned link within the file
-        span = link[3]
-        replacement = string[span[0]:span[1]]
+        link_location = link['link_location']
+    
         wrapped_contents = ''.join(['{',pulled_contents,'}'])
-        replacement_contents = full_current_contents.replace(replacement, wrapped_contents)
-        self.project.files[destination_filename]._set_file_contents(replacement_contents)
-        self.project._parse_file(destination_filename)
+
+        for m in re.finditer(re.escape(link['link_match']), full_current_contents):
+
+            if m.start() < link['link_location'] < m.end():
+                
+                replacement_contents = ''.join([
+                    full_current_contents[:m.start()],
+                    wrapped_contents,
+                    full_current_contents[m.end():]]
+                    )
+                break
+
+        if replacement_contents:
+
+            self.project.files[destination_filename]._set_file_contents(replacement_contents)
+            self.project._parse_file(destination_filename)
+            
 
 
 

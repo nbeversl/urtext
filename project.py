@@ -48,7 +48,7 @@ from importlib import import_module
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-node_link_regex = re.compile(r'(\|?.*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+node_link_regex = re.compile(r'(\|?[^\|]*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
 action_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
 editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
 url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
@@ -183,7 +183,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -266,14 +266,19 @@ class UrtextProject:
         return itertools.product(chars, repeat=3)
 
 
-    def get_file_position(self, node_id, position):
+    def get_file_position(self, node_id, position): 
+
         if node_id in self.nodes:
-            last_position = 0
+            node_length = 0
+            offset_position = position
             for r in self.nodes[node_id].ranges:
-                position += r[0] - last_position
-                if position in range(r[0],r[1]):
-                    return position
-                last_position = r[1]
+                range_length = r[1] - r[0]
+                node_length += range_length
+                if position < node_length:
+                    break
+                offset_position -= range_length
+            file_position = r[0] + offset_position + 1
+            return file_position
         return None
 
     def _parse_file(self, 
@@ -805,7 +810,7 @@ class UrtextProject:
         """
         
         link = self.find_link(
-            string[col_pos:], 
+            string, 
             filename, 
             col_pos=col_pos,
             file_pos=file_pos)
@@ -814,34 +819,34 @@ class UrtextProject:
             return
 
         # work backwards along the line
-        if not link[0]:
+        if not link['kind']:
             while col_pos > -1:
                 link = self.find_link(
                     string[col_pos:], 
                     filename, 
                     col_pos=col_pos,
                     file_pos=file_pos)
-                if link[0]:
+                if link['kind']:
                     break
                 col_pos -= 1
 
-        if not link[0]:
+        if not link['kind']:
             if not self.compiled:
                return self._log_item('Project is still compiling')
             return self._log_item('No node ID, web link, or file found on this line.')
 
-        if link[0] == 'NODE' and link[1] not in self.nodes:
+        if link['kind'] == 'NODE' and link['link'] not in self.nodes:
             if not self.compiled:
                return self._log_item('Project is still compiling')
-            self._log_item('Node ' + link[1] + ' is not in the project')
+            self._log_item('Node ' + link['link'] + ' is not in the project')
             return None
 
-        if link[0] == 'NODE':
-            self.nodes[link[1]].metadata.access()
+        if link['kind'] == 'NODE':
+            self.nodes[link['link']].metadata.access()
 
             for dd in self.dynamic_defs():
                 for op in dd.operations:
-                    op.on_node_visited(link[1])
+                    op.on_node_visited(link['link'])
         return link
 
     def find_link(self, 
@@ -850,7 +855,10 @@ class UrtextProject:
         col_pos=0,
         file_pos=0):
       
-        kind, result, link = '', None, ''
+        kind = ''
+        link = ''
+        dest_position = None
+        link_match = None
         result = action_regex.search(string)
 
         if result:
@@ -864,19 +872,24 @@ class UrtextProject:
                         col_pos=col_pos,
                         file_pos=file_pos)
 
-        result = re.search(node_link_regex, string)        
+        result = re.search(
+            node_link_regex, 
+            string[col_pos:] # look only to the right of the click point
+            )        
         link_location = None
+        
         if result:
             kind = 'NODE'
-            link_location = result.span()
+            link_match = result.group()
+            link_location = file_pos + result.span()[1] - 3
             link = result.group(2) # node id
             if len(result.groups()) > 2:
-                position = result.group(3) 
-                if position:
-                    position = int(position[1:])
+                dest_position = result.group(3) 
+                if dest_position:
+                    dest_position = int(dest_position[1:])
                 else:
-                    position = 0
-                position = self.get_file_position(link, position)
+                    dest_position = 0
+                dest_position = self.get_file_position(link, dest_position)
                 if link in self.nodes:
                     self.refresh_file(self.nodes[link].filename)
         else:
@@ -891,8 +904,13 @@ class UrtextProject:
                 if result:
                     kind ='HTTP'
                     link = result.group().strip()
-
-        return (kind, link, file_pos, link_location)
+        return {
+            'kind' : kind, 
+            'link' : link, 
+            'link_match' : link_match,
+            'file_pos': file_pos, 
+            'link_location' : link_location, 
+            'dest_position' : dest_position }
 
     def refresh_file(self, filename):
         self.executor.submit(self._compile_file, filename)

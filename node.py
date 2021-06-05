@@ -110,7 +110,7 @@ class UrtextNode:
     def get_date(self, date_keyword):
         return self.metadata.get_date(date_keyword)
 
-    def contents(self):
+    def contents(self, preserve_length=False):
    
         with open(os.path.join(self.project.path, self.filename),
                   'r',
@@ -126,7 +126,9 @@ class UrtextNode:
             node_contents.append(this_range)
         node_contents = ''.join(node_contents)
         node_contents = strip_wrappers(node_contents)
-        node_contents = strip_embedded_syntaxes(contents=node_contents)
+        node_contents = strip_embedded_syntaxes(
+            contents=node_contents,
+            preserve_length=preserve_length)
         return node_contents
 
     def date(self):
@@ -145,7 +147,6 @@ class UrtextNode:
     def strip_inline_nodes(self, contents='', preserve_length=False):
         r = ' ' if preserve_length else ''
         if contents == '':
-            #contents = self.contents
             contents = self.contents()
         
         stripped_contents = contents
@@ -160,11 +161,13 @@ class UrtextNode:
         for node in nodes:
             self.links.append(node[-3:])
 
-    def content_only(self, contents=None, preserve_length=False):
+    def content_only(self, 
+        contents=None, 
+        preserve_length=False):
 
         if contents == None:
-            contents = self.contents()
-        return strip_contents(contents)
+            contents = self.contents(preserve_length=preserve_length)
+        return strip_contents(contents, preserve_length=preserve_length)
 
     def set_title(self, contents):
 

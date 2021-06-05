@@ -33,33 +33,25 @@ class Collect (UrtextDirectiveWithParamsFlags):
         m_format = self.dynamic_definition.show
 
         keys = {}
-   
+        
         for entry in self.params:
 
             k, v, operator = entry
+            
+            if operator == '!=' and k in keys:
+                keys[k].remove(v)
+                continue
 
-            keynames = self.project.get_all_keys() if k =='*' else [k]
+            if k =='*':
+                for k in self.project.get_all_keys():
+                    keys[k] = v.lower()
+                
+            else:
+                keys[k] = v.lower()
 
-            for k in keynames:
-
-                k = k.lower()
-
-                keys.setdefault(k, [])            
-
-                if v == '*':
-                    keys[k].extend(self.project.get_all_values_for_key(k, lower=True))
-
-                else:
-                    if v not in keys[k]:
-                        keys[k].append(v.lower())
-
-                keys[k] = list(set(keys[k]))
-
-                if operator == '!=' and k in keys:
-                    keys[k].remove(v)
 
         found_stuff = []
-       
+
         for node in nodes:
            
             for k in keys:
@@ -67,7 +59,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                 use_timestamp = k in self.project.settings['use_timestamp']
 
                 for v in keys[k]:
-                   
+
                     if v == '*':
                         entries = node.metadata.get_entries(k)
                     else:
@@ -76,11 +68,13 @@ class Collect (UrtextDirectiveWithParamsFlags):
                     for p in range(len(entries)):
 
                          entry = entries[p]
-                         found_item = {}
                          
+                         found_item = {}
+
                          if v == '*':
+
                             if use_timestamp:
-                                values = [entry.timestamp.datetime]
+                                values = [entry.timestamps[0].datetime]
                             else:
                                 values = [ve for ve in entry.values]
 
@@ -89,7 +83,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                                 values = [entry.timestamps[0].datetime]
                             else:
                                 values = [e.value for e in entries]
-                         
+
                          for value in values:
 
                              found_item['node_id'] = node.id
@@ -118,11 +112,13 @@ class Collect (UrtextDirectiveWithParamsFlags):
                             
                              context = []
                              length = 0
-                            
-                             stop = len(full_contents)
-                             start = entry.end_position
-                             
-                             found_item['context'] = full_contents[start:stop]
+                             lines = full_contents.split('\n')
+                             for line in lines:
+                                length += len(line)
+                                if entry.end_position < length:
+                                    break
+                           
+                             found_item['context'] = line.strip().replace('_',' ')
 
                              while '>>' in found_item['context']:
                                 found_item['context'] = found_item['context'].replace('>>','>')
