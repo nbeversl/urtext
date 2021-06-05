@@ -76,7 +76,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                             if use_timestamp:
                                 values = [entry.timestamps[0].datetime]
                             else:
-                                values = [ve for ve in entry.values]
+                                values = [ve for ve in entry.value]
 
                          else:
                             if use_timestamp and entry.timestamps[0].datetime == v:

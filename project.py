@@ -183,7 +183,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
