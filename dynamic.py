@@ -30,6 +30,8 @@ class UrtextDynamicDefinition:
 	def __init__(self, contents, project):
 
 		self.target_id = None
+		self.included_nodes = []
+		self.excluded_nodes = []
 		self.used_functions = []
 		self.operations = []
 		self.spaces = 0
@@ -37,7 +39,6 @@ class UrtextDynamicDefinition:
 		self.preformat = False
 		self.show = None
 		self.multiline_meta = True
-		self.included_nodes = []
 		self.init_self(contents)
 		
 		if not self.show:
@@ -60,7 +61,7 @@ class UrtextDynamicDefinition:
 				if node_id_match:
 					self.target_id = node_id_match.group(0)[1:]
 					continue
-
+  
 			# #output
 			# if func == "FORMAT":
 			# 	if has_flags(['-multiline-meta','-mm'], flags):

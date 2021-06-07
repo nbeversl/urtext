@@ -18,10 +18,11 @@ class Tree(UrtextDirectiveWithParamsFlags):
         super().__init__(project)
         self.depth = 1
 
-    def dynamic_output(self, start_point):
-        exclude=None,
+    def dynamic_output(self, start_point, exclude=None):
+
+        exclude=self.dynamic_definition.excluded_nodes
         from_root_of=False
-                
+
         if self.have_flags('*'):
             self.depth = 999999
         

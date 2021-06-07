@@ -46,9 +46,8 @@ class NodeQuery(UrtextDirectiveWithParamsFlags):
 		
 		passed_nodes = set(passed_nodes)
 		passed_nodes.discard(self.dynamic_definition.target_id)           
-		included_nodes = list(passed_nodes.union(set(added_nodes)))			
-
-		return list(included_nodes)
+		self.dynamic_definition.included_nodes = list(passed_nodes.union(set(added_nodes)))	
+		return list(self.dynamic_definition.included_nodes)
 
 	def dynamic_output(self, nodes):
 		return self.build_list(nodes)
@@ -60,7 +59,9 @@ class Exclude(NodeQuery):
 
 	def dynamic_output(self, nodes):
 		excluded_nodes = set(self.build_list([]))
+		self.dynamic_definition.excluded_nodes = list(excluded_nodes)
 		return list(set(nodes) - excluded_nodes)
+			 
 
 class Include(NodeQuery):
 
