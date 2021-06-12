@@ -94,26 +94,57 @@ def consolidate_metadata(self, node_id, one_line=False):
 
             
 def _add_sub_tags(self, 
-    source_id, # ID containing the metadata
-    target_id,
-    entry):
-
-    children = self.nodes[target_id].tree_node.children
+    source_tree_node, # ID containing the metadata
+    target_tree_node,
+    entry,
+    visited_nodes=None):
     
-    for child in children:
+    if visited_nodes == None:
+        visited_nodes = []
+    
+    if target_tree_node.name.strip('ALIAS') not in self.nodes:
+        return
 
-        node_to_tag = child.name.strip('ALIAS') 
+    source_id = source_tree_node.name
 
-        if node_to_tag in self.nodes and not self.nodes[node_to_tag].dynamic:
-            self.nodes[node_to_tag].metadata.entries.append(MetadataEntry(entry.keyname, entry.value, from_node=source_id))
-            self.nodes[source_id].target_nodes.append(node_to_tag)
-            if entry.recursive:
-                self._add_sub_tags(source_id, node_to_tag, entry)
+    for child in self.nodes[target_tree_node.name.strip('ALIAS')].tree_node.children:
+        
+        uid = target_tree_node.name + child.name
+        if uid in visited_nodes:
+            continue
+        node_to_tag = child.name.strip('ALIAS')
+        if node_to_tag not in self.nodes:
+            visited_nodes.append(uid)
+            continue
+        if uid not in visited_nodes and not self.nodes[node_to_tag].dynamic:
+            self.nodes[node_to_tag].metadata.add_entry(
+                entry.keyname, 
+                entry.value, 
+                from_node=source_id, 
+                recursive=entry.recursive)
+            if node_to_tag not in self.nodes[source_id].target_nodes:
+                self.nodes[source_id].target_nodes.append(node_to_tag)
+        
+        visited_nodes.append(uid)        
+        
+        if entry.recursive:
+            self._add_sub_tags(
+                source_tree_node, 
+                self.nodes[node_to_tag].tree_node, 
+                entry, 
+                visited_nodes=visited_nodes)
 
 def _remove_sub_tags(self, source_id):
 
     for target_id in self.nodes[source_id].target_nodes:
          if target_id in self.nodes:
-             self.nodes[target_id].metadata.clear_from_source(source_id)                           
+             self.nodes[target_id].metadata.clear_from_source(source_id)       
 
-metadata_functions = [ _add_sub_tags,  _tag_other_node, _remove_sub_tags, consolidate_metadata, tag_other_node]
+def _reassign_sub_tags(self, target_id):
+ 
+    for source_id in self.nodes:
+        if target_id in self.nodes[source_id].target_nodes:
+            for e in self.nodes[source_id].metadata.dynamic_entries:               
+                self._add_sub_tags( self.nodes[source_id].tree_node, self.nodes[target_id].tree_node, e)    
+
+metadata_functions = [ _add_sub_tags,  _reassign_sub_tags, _tag_other_node, _remove_sub_tags, consolidate_metadata, tag_other_node]

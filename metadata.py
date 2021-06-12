@@ -76,6 +76,9 @@ class NodeMetadata:
 
             for value in value_list:
                 value = value.strip()
+                if value in self.get_values(keyname):
+                    continue
+
                 entry = MetadataEntry(
                         keyname, 
                         value, 
@@ -90,50 +93,59 @@ class NodeMetadata:
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
-        # parse shorthand meta:
-           
+        # shorthand meta:
         for m in hash_meta.finditer(parsed_contents):
             value = m.group().replace('#','').strip()
-            self.entries.append(
-                MetadataEntry(
-                    '#', 
-                    value, 
-                    position=m.start(), 
-                    end_position=m.start()+ len(m.group()) 
-                )
-            )
-
+            self.add_entry(
+                '#', 
+                value, 
+                position=m.start(), 
+                end_position=m.start()+len(m.group()))
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
 
-        # parse inline timestamps:
+        # inline timestamps:
         for m in timestamp_match.finditer(parsed_contents):
-            e = MetadataEntry(
-                    'inline-timestamp', 
-                    m.group(),
-                    position=m.start(), 
-                    end_position=m.start() + len(m.group())
-                    )
-            if e.timestamps:
-                self.entries.append(e)
+            self.add_entry(
+                'inline-timestamp',
+                m.group(),
+                position=m.start(),
+                end_position=m.start() + len(m.group())
+                )
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
      
-        # parse title
+        # title
         s = node_title_regex.search(parsed_contents)
         if s:
            title = s.group(0).strip()
-           self.entries.append(MetadataEntry(
-                'title', title,
+           self.add_entry(
+                'title', 
+                title,
                 position=s.start(),
-                end_position=s.end()
-                ))
+                end_position=s.end())
            parsed_contents = parsed_contents.replace(s.group(),' '*len(s.group()), 1)
            remaining_contents = remaining_contents.replace(s.group(),'', 1 )
 
         self.add_system_keys()
 
         return remaining_contents
+
+    def add_entry(self, key, value, position=0, end_position=0, from_node=None, recursive=False):
+
+        if value in self.get_values(key):
+            return False
+        e = MetadataEntry(
+                    key, 
+                    value,
+                    position=position, 
+                    from_node=from_node,
+                    end_position=end_position,
+                    recursive=recursive)
+        if key == 'inline-timestamp' and not e.timestamps:
+            return False
+        self.entries.append(e)
+        return True
 
     def add_system_keys(self):
 

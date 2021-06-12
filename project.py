@@ -183,7 +183,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.nodes = {}
         self.files = {}
@@ -250,7 +250,10 @@ class UrtextProject:
         #necessary?
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
-                self._add_sub_tags( node_id, node_id, e)
+                self._add_sub_tags( 
+                    self.nodes[node_id].tree_node, 
+                    self.nodes[node_id].tree_node, 
+                    e)
   
         self._compile()
         self.compiled = True
@@ -312,12 +315,26 @@ class UrtextProject:
             for dd in self.dynamic_defs(target=node_id):
                 self.nodes[dd.target_id].dynamic = True
             for e in self.nodes[node_id].metadata.dynamic_entries:
-                self._add_sub_tags( node_id, node_id, e)
+                self._add_sub_tags( self.nodes[node_id].tree_node, 
+                    self.nodes[node_id].tree_node, 
+                    e)
+        
+            # for child in self.nodes[node_id].tree_node.children:
+            #     child_node = child.name.strip('ALIAS')
+            #     self._reassign_sub_tags(child_node)
         
         if self.compiled:
             for ext in self.extensions:
                 self.extensions[ext].on_node_visited(node_id)
 
+        # TODO: Needs optimization
+        for node_id in list(self.nodes):
+            for e in self.nodes[node_id].metadata.dynamic_entries:                
+                self._add_sub_tags( 
+                    self.nodes[node_id].tree_node, 
+                    self.nodes[node_id].tree_node, 
+                    e)
+                
     def _check_file_for_duplicates(self, file_obj):
 
         duplicate_nodes = {}

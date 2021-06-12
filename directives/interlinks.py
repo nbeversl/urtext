@@ -34,8 +34,8 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
         self.visited_nodes = []
         self.backward_visited_nodes = []
         self.exclude = []
-        if 'from' in self.params_dict:
 
+        if 'from' in self.params_dict:
             root_node_id = self.params_dict['from'][0]
             root_node = self.project.nodes[root_node_id]
             root_meta = self.project.nodes[root_node_id].metadata
@@ -54,7 +54,7 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
         links = self.project.nodes[parent.name].links
 
         for link in links:
-            # if link in self.exclude:
+            # if link in selfexclude:
             #     continue
             if link == None:
                 child_nodename = Node('(Broken Link)', parent=parent)

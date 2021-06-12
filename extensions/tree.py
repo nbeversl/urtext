@@ -20,7 +20,6 @@ class UrtextAnyTree(UrtextExtension):
                 inserted_node_id = node[2:]
                 parent_node = self.project.get_node_id_from_position(filename, position)     
                 if not parent_node:
-                    print(filename)
                     continue 
                 alias_node = Node('ALIAS'+inserted_node_id)
                 alias_node.parent = self.project.nodes[parent_node].tree_node
