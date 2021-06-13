@@ -97,7 +97,7 @@ class NodeMetadata:
         for m in hash_meta.finditer(parsed_contents):
             value = m.group().replace('#','').strip()
             self.add_entry(
-                '#', 
+                self.settings['hash_key'], 
                 value, 
                 position=m.start(), 
                 end_position=m.start()+len(m.group()))
@@ -290,6 +290,9 @@ class MetadataEntry:  # container for a single metadata entry
         print('from_node: %s' % self.from_node)
         print('recursive: %s' % self.recursive)
         print(self.timestamps)
+
+
+
 
     def _parse_values(self, contents):
 
