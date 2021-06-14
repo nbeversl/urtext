@@ -33,20 +33,19 @@ class NodeMetadata:
 
     def __init__(self, 
         node,
-        node_id=None, 
-        settings=None):
+        project,
+        node_id=None):
 
         self.node = node
         self.entries = []
         self.dynamic_entries = []
         self._last_accessed = 0
-    
+        self.project = project
+   
     def access(self):
         self._last_accessed = time.time()
 
-    def parse_contents(self, full_contents, settings=None):
-
-        self.settings=settings
+    def parse_contents(self, full_contents):
 
         parsed_contents = full_contents
         remaining_contents = full_contents
@@ -96,8 +95,11 @@ class NodeMetadata:
         # shorthand meta:
         for m in hash_meta.finditer(parsed_contents):
             value = m.group().replace('#','').strip()
+            keyname = '#'
+            if self.project.compiled:
+                keyname = self.project.settings['hash_key']
             self.add_entry(
-                '#', 
+                keyname,
                 value, 
                 position=m.start(), 
                 end_position=m.start()+len(m.group()))
@@ -128,8 +130,11 @@ class NodeMetadata:
            remaining_contents = remaining_contents.replace(s.group(),'', 1 )
 
         self.add_system_keys()
-
         return remaining_contents
+
+    def convert_hash_keys(self):
+        for entry in self.get_entries('#'):
+            entry.set_keyname(self.project.settings['hash_key'])
 
     def add_entry(self, key, value, position=0, end_position=0, from_node=None, recursive=False):
 
@@ -169,14 +174,14 @@ class NodeMetadata:
             if keyname == 'title':
                 return self.node.title
             if return_type:
-                if keyname in self.settings['use_timestamp']:
+                if keyname in self.project.settings['use_timestamp']:
                     return default_date
-                if keyname in self.settings['numerical_keys']:
+                if keyname in self.project.settings['numerical_keys']:
                     return 999999
                 return ''
             return None 
 
-        if use_timestamp or keyname in self.settings['use_timestamp']:
+        if use_timestamp or keyname in self.project.settings['use_timestamp']:
             if entries[0].timestamps:
                 return entries[0].timestamps[0].datetime
             if return_type:
@@ -188,7 +193,7 @@ class NodeMetadata:
                 return ''
             return None
 
-        if as_int or keyname in self.settings['numerical_keys']:
+        if as_int or keyname in self.project.settings['numerical_keys']:
             try:
                 return int(entries[0].value)
             except:
@@ -227,8 +232,6 @@ class NodeMetadata:
 
     def get_entries(self, keyname):
         keynames = [keyname.lower()]
-        if keynames[0] == self.settings['hash_key']:
-            keynames.append('#')
         return [e for e in self.entries if e.keyname in keynames]
 
     def get_matching_entries(self, keyname, value):
@@ -291,6 +294,9 @@ class MetadataEntry:  # container for a single metadata entry
         print('recursive: %s' % self.recursive)
         print(self.timestamps)
 
+    def set_keyname(self, keyname):
+        self.keyname = keyname
+        
     def _parse_values(self, contents):
 
         for timestamp in timestamp_match.finditer(contents):

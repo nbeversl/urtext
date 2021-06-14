@@ -142,7 +142,7 @@ urtext_settings = {
     'inline_node_timestamp' :True,
     'file_node_timestamp' : True,
     'file_node_leading_contents': '',
-    'hash_key': '',
+    'hash_key': '#',
     'contents_strip_outer_whitespace' : True,
     'contents_strip_internal_whitespace' : True,
     'node_browser_sort' : ['_oldest_timestamp'],
@@ -163,7 +163,7 @@ urtext_settings = {
         'timestamp_format',
         'filenames',
         'weblink',
-        'timestamp',]
+        'timestamp',],
 }
 
 
@@ -254,10 +254,10 @@ class UrtextProject:
                     self.nodes[node_id].tree_node, 
                     self.nodes[node_id].tree_node, 
                     e)
+            self.nodes[node_id].metadata.convert_hash_keys()
   
         self._compile()
         self.compiled = True
-
         print('"'+self.title+'" compiled from '+self.path )
     
     def _node_id_generator(self):
