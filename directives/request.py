@@ -8,6 +8,9 @@ class Request(UrtextDirective):
 		
 	def dynamic_output(self, nodes):
 
-		with urllib.request.urlopen(self.argument_string) as f:
-			t = f.read().decode('utf-8')
-		return '%%-JSON\n'+ t +'\n%%-JSON-END\n'
+		try:
+			with urllib.request.urlopen(self.argument_string) as f:
+				t = f.read().decode('utf-8')
+			return '%%-JSON\n'+ t +'\n%%-JSON-END\n'
+		except urllib.error.URLError:
+			return str(urllib.error.URLError)

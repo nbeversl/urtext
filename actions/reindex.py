@@ -71,7 +71,7 @@ class ReindexFiles(UrtextAction):
             new_filename = new_filename.replace('’', "'")
             new_filename = new_filename.strip().strip('-').strip();
             new_filename = strip_illegal_characters(new_filename)
-            new_filename = new_filename[:255]
+            new_filename = new_filename[:250]
             new_filename += '.txt'
 
             if new_filename in used_names:

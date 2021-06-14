@@ -84,8 +84,8 @@ class UrtextNode:
         contents = strip_dynamic_definitions(contents)
         contents = strip_backtick_escape(contents)
     
-        self.metadata = self.urtext_metadata(self)        
-        contents = self.metadata.parse_contents(contents, settings=self.project.settings)
+        self.metadata = self.urtext_metadata(self, self.project)        
+        contents = self.metadata.parse_contents(contents)
 
         r = re.search(r'(^|\s)@[0-9,a-z]{3}\b', contents)
         if r:
