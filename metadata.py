@@ -75,9 +75,6 @@ class NodeMetadata:
 
             for value in value_list:
                 value = value.strip()
-                if value in self.get_values(keyname):
-                    continue
-
                 entry = MetadataEntry(
                         keyname, 
                         value, 
@@ -95,9 +92,7 @@ class NodeMetadata:
         # shorthand meta:
         for m in hash_meta.finditer(parsed_contents):
             value = m.group().replace('#','').strip()
-            keyname = '#'
-            if self.project.compiled:
-                keyname = self.project.settings['hash_key']
+            keyname = self.project.settings['hash_key']
             self.add_entry(
                 keyname,
                 value, 

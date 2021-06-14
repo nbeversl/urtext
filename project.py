@@ -121,50 +121,7 @@ replace = [
     'tag_other',
     'filename_datestamp_format' ]
 
-urtext_settings = {  
-    'home': None,
-    'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
-    'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
-    'filenames': ['PREFIX', 'title'],
-    'filename_datestamp_format':'%m-%d-%Y',
-    'console_log': True,
-    'timezone' : 'UTC',
-    'always_oneline_meta' : False,
-    'strict':False,
-    'node_date_keyname' : 'timestamp',
-    'log_id': '',
-    'numerical_keys': ['_index' ,'index'],
-    'atomic_rename' : False,
-    'tag_other': [],
-    'device_keyname' : '',
-    'breadcrumb_key' : '',
-    'keyless_timestamp' : True,
-    'inline_node_timestamp' :True,
-    'file_node_timestamp' : True,
-    'file_node_leading_contents': '',
-    'hash_key': '#',
-    'contents_strip_outer_whitespace' : True,
-    'contents_strip_internal_whitespace' : True,
-    'node_browser_sort' : ['_oldest_timestamp'],
-    'open_with_system' : ['pdf'],
-    'exclude_from_star': [
-        'title', 
-        '_newest_timestamp', 
-        '_oldest_timestamp', 
-        '_breadcrumb',
-         'def'],
-    'file_index_sort': ['_oldest_timestamp'],
-    'case_sensitive': [
-        'title',
-        'notes',
-        'comments',
-        'project_title',
-        'timezone',
-        'timestamp_format',
-        'filenames',
-        'weblink',
-        'timestamp',],
-}
+
 
 
 @add_functions_as_methods(functions)
@@ -173,7 +130,7 @@ class UrtextProject:
 
     urtext_file = UrtextFile
     urtext_node = UrtextNode
-    settings = urtext_settings
+    
 
     def __init__(self,
                  path,
@@ -185,6 +142,7 @@ class UrtextProject:
         self.is_async = True 
         #self.is_async = False # development only
         self.path = path
+        self.reset_settings()
         self.nodes = {}
         self.files = {}
         self.navigation = []  # Stores, in order, the path of navigation
@@ -247,6 +205,9 @@ class UrtextProject:
             print('Urtext project already exists here.')
             return None            
         
+        for node_id in self.nodes:
+            self.nodes[node_id].metadata.convert_hash_keys()
+
         #necessary?
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
@@ -254,12 +215,57 @@ class UrtextProject:
                     self.nodes[node_id].tree_node, 
                     self.nodes[node_id].tree_node, 
                     e)
-            self.nodes[node_id].metadata.convert_hash_keys()
-  
+    
         self._compile()
         self.compiled = True
         print('"'+self.title+'" compiled from '+self.path )
     
+    def reset_settings(self):
+
+        self.settings = {  
+            'home': None,
+            'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
+            'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
+            'filenames': ['PREFIX', 'title'],
+            'filename_datestamp_format':'%m-%d-%Y',
+            'console_log': True,
+            'timezone' : 'UTC',
+            'always_oneline_meta' : False,
+            'strict':False,
+            'node_date_keyname' : 'timestamp',
+            'log_id': '',
+            'numerical_keys': ['_index' ,'index'],
+            'atomic_rename' : False,
+            'tag_other': [],
+            'device_keyname' : '',
+            'breadcrumb_key' : '',
+            'keyless_timestamp' : True,
+            'inline_node_timestamp' :True,
+            'file_node_timestamp' : True,
+            'file_node_leading_contents': '',
+            'hash_key': '#',
+            'contents_strip_outer_whitespace' : True,
+            'contents_strip_internal_whitespace' : True,
+            'node_browser_sort' : ['_oldest_timestamp'],
+            'open_with_system' : ['pdf'],
+            'exclude_from_star': [
+                'title', 
+                '_newest_timestamp', 
+                '_oldest_timestamp', 
+                '_breadcrumb',
+                 'def'],
+            'file_index_sort': ['_oldest_timestamp'],
+            'case_sensitive': [
+                'title',
+                'notes',
+                'comments',
+                'project_title',
+                'timezone',
+                'timestamp_format',
+                'filenames',
+                'weblink',
+                'timestamp',],
+        }
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -955,7 +961,7 @@ class UrtextProject:
 
     def _get_settings_from(self, node):
       
-        self.settings = urtext_settings # reset defaults
+        self.reset_settings()
         replacements = {}
         for entry in node.metadata.entries:
             key = entry.keyname
