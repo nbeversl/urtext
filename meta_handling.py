@@ -24,16 +24,17 @@ import datetime
 import re 
 from .node import UrtextNode
 from .metadata import MetadataEntry
+import os
 
 entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?',re.DOTALL)
 
-def tag_other_node(self,node_id, metadata={}):
+def tag_other_node(self, node_id, open_files=[], metadata={}):
     if self.is_async:
-        return self.executor.submit(self._tag_other_node, node_id, metadata=metadata)
+        return self.executor.submit(self._tag_other_node, node_id, metadata=metadata, open_files=open_files)
     else:
-        self._tag_other_node(node_id, metadata=metadata)
+        self._tag_other_node(node_id, metadata=metadata, open_files=open_files)
         
-def _tag_other_node(self, node_id, metadata={}):
+def _tag_other_node(self, node_id, metadata={}, open_files=[]):
     """adds a metadata tag to a node programmatically"""
 
     if metadata == {}:
@@ -46,7 +47,7 @@ def _tag_other_node(self, node_id, metadata={}):
     metadata_contents = UrtextNode.build_metadata(metadata)
 
     filename = self.nodes[node_id].filename
-   
+
     full_file_contents = self.files[filename]._get_file_contents()
     tag_position = territory[-1][1]
 
@@ -62,7 +63,10 @@ def _tag_other_node(self, node_id, metadata={}):
         full_file_contents[tag_position:]])
 
     self.files[filename]._set_file_contents(new_contents)
-    return self.on_modified(self.nodes[node_id].filename)
+    s = self.on_modified(filename)
+    for f in open_files:
+        self.refresh_file(os.path.basename(f))
+    return s
 
 def consolidate_metadata(self, node_id, one_line=False):
 

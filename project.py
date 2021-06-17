@@ -936,7 +936,10 @@ class UrtextProject:
             'dest_position' : dest_position }
 
     def refresh_file(self, filename):
-        self.executor.submit(self._compile_file, filename)
+        if self.is_async:
+            self.executor.submit(self._compile_file, filename)
+        else:
+            self._compile_file(filename)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1084,19 +1087,16 @@ class UrtextProject:
         return self._on_modified(filenames)
 
     def _on_modified(self, filenames):
-
         do_not_update = ['history','files','.git']
         filenames = [o for o in filenames if os.path.basename(o) in self.files]
         return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
 
     def _file_update(self, filenames):
         modified_files = []
-        for f in filenames:
-            
+        for f in filenames:            
             for dd in self.dynamic_defs():
                 for op in dd.operations:
                     op.on_file_modified(f)
-
             self._rewrite_titles(f)
             self._parse_file(f)
             modified_file = self._compile_file(f)   
