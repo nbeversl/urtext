@@ -711,19 +711,18 @@ class UrtextProject:
             return None
         
         self.nav_index += 1
-       
-        return self.navigation[self.nav_index]
-
-
+        return self.refresh_file(self.nodes[self.navigation[self.nav_index]].filename)
+        
     def nav_new(self, node_id):
-
-        # don't re-remember consecutive duplicate links
-        if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
-            return     
-        # add the newly opened file as the new "HEAD"
-        self.nav_index += 1
-        del self.navigation[self.nav_index:]
-        self.navigation.append(node_id)
+        if node_id in self.nodes:
+            # don't re-remember consecutive duplicate links
+            if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
+                return     
+            # add the newly opened file as the new "HEAD"
+            self.nav_index += 1
+            del self.navigation[self.nav_index:]
+            self.refresh_file(self.nodes[node_id].filename)
+            self.navigation.append(node_id)
       
          
     def nav_reverse(self):
@@ -736,7 +735,7 @@ class UrtextProject:
 
         self.nav_index -= 1
         last_node = self.navigation[self.nav_index]
-        
+        self.refresh_file(self.nodes[last_node].filename)
         return last_node
 
     def nav_current(self):
@@ -761,7 +760,8 @@ class UrtextProject:
             use_timestamp= k in self.settings['use_timestamp']
             as_int = k in self.settings['numerical_keys']
             k = k.lower()
-            node_group = [r for r in remaining_nodes if self.nodes[r].metadata.get_first_value(k)]
+
+            node_group = [r for r in remaining_nodes if r in self.nodes and self.nodes[r].metadata.get_first_value(k)]
             for r in node_group:
                 if use_timestamp:
                     self.nodes[r].display_meta = k + ': <'+  str(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))+'>'
@@ -936,10 +936,11 @@ class UrtextProject:
             'dest_position' : dest_position }
 
     def refresh_file(self, filename):
-        if self.is_async:
-            self.executor.submit(self._compile_file, filename)
-        else:
-            self._compile_file(filename)
+        pass
+        # if self.is_async:
+        #     return self.executor.submit(self._compile_file, filename)
+        # else:
+        #     return self._compile_file(filename)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """

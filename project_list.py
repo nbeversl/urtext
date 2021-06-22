@@ -319,12 +319,10 @@ class ProjectList():
             return
         
         self.nav_index += 1
-        
         project, next_node = self.navigation[self.nav_index]
         self.set_current_project(project)
-       
+        future = self.current_project.nav_advance().result()
         return next_node
-    
 
     def delete_file(self, file_name, project=None, open_files=[]):
         self.executor.submit(self._delete_file, file_name, project=project, open_files=open_files)
@@ -369,6 +367,6 @@ class ProjectList():
 
         project, last_node = self.navigation[self.nav_index]
         self.set_current_project(project)
-       
+        self.current_project.nav_reverse()   
         return last_node
 
