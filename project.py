@@ -140,7 +140,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -313,10 +313,10 @@ class UrtextProject:
         self.files[new_file.basename] = new_file  
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
-
+    
         for ext in self.extensions:
              self.extensions[ext].on_file_modified(filename)
-            
+              
         for node_id in new_file.nodes:
             for dd in self.dynamic_defs(target=node_id):
                 self.nodes[dd.target_id].dynamic = True
@@ -324,15 +324,10 @@ class UrtextProject:
                 self._add_sub_tags( self.nodes[node_id].tree_node, 
                     self.nodes[node_id].tree_node, 
                     e)
+            for child in self.nodes[node_id].tree_node.children:
+                child_node = child.name.strip('ALIAS')
+                self._reassign_sub_tags(child_node)
         
-            # for child in self.nodes[node_id].tree_node.children:
-            #     child_node = child.name.strip('ALIAS')
-            #     self._reassign_sub_tags(child_node)
-        
-        if self.compiled:
-            for ext in self.extensions:
-                self.extensions[ext].on_node_visited(node_id)
-
         # TODO: Needs optimization
         for node_id in list(self.nodes):
             for e in self.nodes[node_id].metadata.dynamic_entries:                
@@ -476,6 +471,7 @@ class UrtextProject:
         if parse:
             self._parse_file(self.nodes[node_id].filename)
         if node_id in self.nodes:
+            # Here we need to only set content if the file has changed
             self.nodes[node_id].set_content(contents, preserve_metadata=True)       
             self._parse_file(self.nodes[node_id].filename)
             if node_id in self.nodes:
@@ -711,7 +707,6 @@ class UrtextProject:
             return None
         
         self.nav_index += 1
-        return self.refresh_file(self.nodes[self.navigation[self.nav_index]].filename)
         
     def nav_new(self, node_id):
         if node_id in self.nodes:
@@ -721,10 +716,8 @@ class UrtextProject:
             # add the newly opened file as the new "HEAD"
             self.nav_index += 1
             del self.navigation[self.nav_index:]
-            self.refresh_file(self.nodes[node_id].filename)
             self.navigation.append(node_id)
-      
-         
+               
     def nav_reverse(self):
         if not self.navigation:
             return None
@@ -735,7 +728,6 @@ class UrtextProject:
 
         self.nav_index -= 1
         last_node = self.navigation[self.nav_index]
-        self.refresh_file(self.nodes[last_node].filename)
         return last_node
 
     def nav_current(self):
@@ -866,10 +858,10 @@ class UrtextProject:
 
         if link['kind'] == 'NODE':
             self.nodes[link['link']].metadata.access()
-
             for dd in self.dynamic_defs():
                 for op in dd.operations:
                     op.on_node_visited(link['link'])
+
         return link
 
     def find_link(self, 
@@ -913,8 +905,8 @@ class UrtextProject:
                 else:
                     dest_position = 0
                 dest_position = self.get_file_position(link, dest_position)
-                if link in self.nodes:
-                    self.refresh_file(self.nodes[link].filename)
+                # if link in self.nodes:
+                #     self.refresh_file(self.nodes[link].filename)
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -934,13 +926,6 @@ class UrtextProject:
             'file_pos': file_pos, 
             'link_location' : link_location, 
             'dest_position' : dest_position }
-
-    def refresh_file(self, filename):
-        pass
-        # if self.is_async:
-        #     return self.executor.submit(self._compile_file, filename)
-        # else:
-        #     return self._compile_file(filename)
 
     def _is_duplicate_id(self, node_id, filename):
         """ private method to check if a node id is already in the project """
@@ -1074,23 +1059,36 @@ class UrtextProject:
                 for link in links:
                     new_contents = new_contents.replace(link, replacement, 1)
             if contents != new_contents:
-                self.files[filename].set_file_contents( new_contents)
+                self.files[filename].set_file_contents(new_contents, compare=False)
                 if self.is_async:
                     self.executor.submit(self._file_update, filename)
                 else:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
+        ## Method to be called by the editor when a file is modified.
+        ## Accepts a file or list of modified files, 
+        ## returns a list of modified files.
         if not isinstance(filenames, list):
             filenames = [filenames]
-        if self.is_async:
-            return self.executor.submit(self._on_modified, filenames)
-        return self._on_modified(filenames)
-
-    def _on_modified(self, filenames):
         do_not_update = ['history','files','.git']
-        filenames = [o for o in filenames if os.path.basename(o) in self.files]
-        return self._file_update([os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f])
+        filenames = [os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f]
+        if self.is_async:
+            return self.executor.submit(self._file_update, filenames)
+        return self._file_update(filenames)
+
+    def visit_node(self, node_id):
+        # NOT YET USED 
+        for ext in self.extensions:
+            self.extensions[ext].on_node_visited(node_id)
+
+    def visit_file(self, filename):
+        if filename in self.files and self.compiled:            
+            
+            if self.is_async:
+                modified = self.executor.submit(self._compile_file, filename)
+                return modified.result()
+            return self._compile_file(filename)
 
     def _file_update(self, filenames):
         modified_files = []
@@ -1098,6 +1096,8 @@ class UrtextProject:
             for dd in self.dynamic_defs():
                 for op in dd.operations:
                     op.on_file_modified(f)
+            for ext in self.extensions:
+                 self.extensions[ext].on_file_modified(f)
             self._rewrite_titles(f)
             self._parse_file(f)
             modified_file = self._compile_file(f)   

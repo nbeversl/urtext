@@ -340,9 +340,14 @@ class UrtextFile:
         full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
         return full_file_contents
 
-    def _set_file_contents(self, contents):
+    def _set_file_contents(self, new_contents, compare=True):
+        if compare:
+            with open(self.filename, 'r', encoding='utf-8') as f:
+                existing_contents = f.read()
+            if existing_contents == new_contents:
+                return
         with open(self.filename, 'w', encoding='utf-8') as theFile:
-            theFile.write(contents)
+            theFile.write(new_contents)
 
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
@@ -384,7 +389,7 @@ class UrtextFile:
             contents,
             ])
 
-        self._set_file_contents(new_contents)
+        self._set_file_contents(new_contents, compare=False)
         self.nodes = {}
         self.root_nodes = []
         self.anonymous_nodes = []

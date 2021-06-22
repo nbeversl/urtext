@@ -64,8 +64,8 @@ def _tag_other_node(self, node_id, metadata={}, open_files=[]):
 
     self.files[filename]._set_file_contents(new_contents)
     s = self.on_modified(filename)
-    for f in open_files:
-        self.refresh_file(os.path.basename(f))
+    # for f in open_files:
+    #     self.refresh_file(os.path.basename(f))
     return s
 
 def consolidate_metadata(self, node_id, one_line=False):

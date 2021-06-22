@@ -92,7 +92,8 @@ class ProjectList():
                 node_id, 
                 self.current_project.nodes[node_id].ranges[0][0])         
 
-        """ Otherwise, just search the link for a link in the current project """
+        """ Otherwise, set the project search the link for a link in the current project """
+        self.set_current_project(os.path.basename(filename))
         link = self.current_project.get_link( 
             string, 
             filename, 
@@ -104,14 +105,12 @@ class ProjectList():
     def on_modified(self, filenames):
         if not isinstance(filenames, list):
             filenames = [filenames]
-        if self.set_current_project(os.path.dirname(filenames[0])):
-            if self.current_project.is_async:
-                future = self.current_project.on_modified(filenames)
-                result = future.result()
-                self.executor.submit(self._propagate_projects, future)
-            else:
-                new_filename = self.current_project.on_modified(filenames)            
-                return new_filename
+        for f in filenames:
+            if self.set_current_project(os.path.dirname(f)):
+                if self.current_project.is_async:
+                    future = self.current_project.on_modified(os.path.basename(f))
+                else:
+                    new_filename = self.current_project.on_modified(os.path.basename(f))            
         
     def _propagate_projects(self, future):
         # wait on future to complete
@@ -204,6 +203,11 @@ class ProjectList():
             self.projects.append(project)
             self.set_current_project(path)
         return None
+
+    def visit_file(self, filename):
+        path = os.path.dirname(filename)
+        self.set_current_project(path)
+        self.current_project.visit_file(os.path.basename(filename))
 
     def move_file(self, 
         filename, 

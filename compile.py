@@ -30,15 +30,13 @@ def _compile(self):
     for dynamic_definition in self.dynamic_defs(): 
         self._process_dynamic_def(dynamic_definition)
 
-def _compile_file(self, filename):
-   
+def _compile_file(self, filename): 
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
         for dd in self.dynamic_defs(target=node_id):
             if self._process_dynamic_def(dd) and not modified:
                 modified = filename
-   
     return modified
 
 def _process_dynamic_def(self, dynamic_definition):
@@ -48,6 +46,7 @@ def _process_dynamic_def(self, dynamic_definition):
 
     if not dynamic_definition.target_id:
         return
+        
     if dynamic_definition.target_id not in self.nodes:
         return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
