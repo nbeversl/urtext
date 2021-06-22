@@ -106,11 +106,12 @@ class ProjectList():
         if not isinstance(filenames, list):
             filenames = [filenames]
         for f in filenames:
-            if self.set_current_project(os.path.dirname(f)):
-                if self.current_project.is_async:
-                    future = self.current_project.on_modified(os.path.basename(f))
+            project = self._get_project_from_path(os.path.dirname(f))
+            if project:
+                if project.is_async:
+                    future = project.on_modified(os.path.basename(f))
                 else:
-                    new_filename = self.current_project.on_modified(os.path.basename(f))            
+                    new_filename = project.on_modified(os.path.basename(f))            
         
     def _propagate_projects(self, future):
         # wait on future to complete

@@ -324,9 +324,9 @@ class UrtextProject:
                 self._add_sub_tags( self.nodes[node_id].tree_node, 
                     self.nodes[node_id].tree_node, 
                     e)
-            for child in self.nodes[node_id].tree_node.children:
-                child_node = child.name.strip('ALIAS')
-                self._reassign_sub_tags(child_node)
+            # for child in self.nodes[node_id].tree_node.children:
+            #     child_node = child.name.strip('ALIAS')
+            #     self._reassign_sub_tags(child_node)
         
         # TODO: Needs optimization
         for node_id in list(self.nodes):
@@ -1019,7 +1019,7 @@ class UrtextProject:
 
     def get_all_meta_pairs(self):
         pairs = []
-        for n in self.nodes:
+        for n in list(self.nodes):
             for k in self.nodes[n].metadata.get_keys():
                values = self.nodes[n].metadata.get_values(k)
                for v in values:
@@ -1093,11 +1093,11 @@ class UrtextProject:
     def _file_update(self, filenames):
         modified_files = []
         for f in filenames:            
-            for dd in self.dynamic_defs():
-                for op in dd.operations:
-                    op.on_file_modified(f)
-            for ext in self.extensions:
-                 self.extensions[ext].on_file_modified(f)
+            # for dd in self.dynamic_defs():
+            #     for op in dd.operations:
+            #         op.on_file_modified(f)
+            # for ext in self.extensions:
+            #      self.extensions[ext].on_file_modified(f)
             self._rewrite_titles(f)
             self._parse_file(f)
             modified_file = self._compile_file(f)   
