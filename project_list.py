@@ -321,12 +321,13 @@ class ProjectList():
             return None
             
         if self.nav_index == len(self.navigation) - 1:
+            print('index is already at the end')
             return
-        
+
         self.nav_index += 1
         project, next_node = self.navigation[self.nav_index]
         self.set_current_project(project)
-        future = self.current_project.nav_advance().result()
+        next_node = self.current_project.nav_advance()
         return next_node
 
     def delete_file(self, file_name, project=None, open_files=[]):

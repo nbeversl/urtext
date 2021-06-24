@@ -140,7 +140,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        self.is_async = False # development only
+        #self.is_async = False # development only
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -239,6 +239,8 @@ class UrtextProject:
             'tag_other': [],
             'device_keyname' : '',
             'breadcrumb_key' : '',
+            'new_file_node_format' : '$datestamp $id',
+            'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
             'inline_node_timestamp' :True,
             'file_node_timestamp' : True,
@@ -612,7 +614,7 @@ class UrtextProject:
         
         filename = node_id + '.txt'
         with open(os.path.join(self.path, filename), "w") as f:
-            f.write(contents )  
+            f.write(contents)  
         self._parse_file(filename)
         return { 
                 'filename':filename, 
@@ -641,7 +643,7 @@ class UrtextProject:
     
     def _new_node(self, 
             date=None, 
-            contents='\n',
+            contents='',
             node_id=None,
             metadata=None,
             one_line=None,
@@ -667,12 +669,12 @@ class UrtextProject:
             if date == None:
                 date = datetime.datetime.now() 
             if self.settings['keyless_timestamp'] == True:
-                new_node_contents += '  ' + self.timestamp(date) + ' '
+                new_node_contents += self.timestamp(date) + ' '
             elif self.settings['node_date_keyname']:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-            
-        new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
 
+        new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
+        new_node_contents += '\n\n'
         return new_node_contents, node_id
 
     def add_compact_node(self,  
@@ -707,7 +709,10 @@ class UrtextProject:
             return None
         
         self.nav_index += 1
-        
+        next_node = self.navigation[self.nav_index]
+        self.visit_node(next_node)
+        return next_node 
+
     def nav_new(self, node_id):
         if node_id in self.nodes:
             # don't re-remember consecutive duplicate links
@@ -717,6 +722,7 @@ class UrtextProject:
             self.nav_index += 1
             del self.navigation[self.nav_index:]
             self.navigation.append(node_id)
+            self.visit_node(node_id)
                
     def nav_reverse(self):
         if not self.navigation:
@@ -728,6 +734,7 @@ class UrtextProject:
 
         self.nav_index -= 1
         last_node = self.navigation[self.nav_index]
+        self.visit_node(last_node)
         return last_node
 
     def nav_current(self):
@@ -1077,34 +1084,46 @@ class UrtextProject:
             return self.executor.submit(self._file_update, filenames)
         return self._file_update(filenames)
 
+
     def visit_node(self, node_id):
-        # NOT YET USED 
+        if self.is_async:
+            self.executor.submit(self._visit_node, node_id)
+        else:
+            self._visit_node(node_id)
+
+    def _visit_node(self, node_id):
         for ext in self.extensions:
             self.extensions[ext].on_node_visited(node_id)
+        for dd in self.dynamic_defs():
+            for op in dd.operations:
+                op.on_node_visited(node_id)
 
     def visit_file(self, filename):
+        if self.is_async:
+            return self.executor.submit(self._visit_file, filename)
+        else:
+            return self._visit_file(filename)
+
+    def _visit_file(self, filename):
         if filename in self.files and self.compiled:            
-            
-            if self.is_async:
-                modified = self.executor.submit(self._compile_file, filename)
-                return modified.result()
             return self._compile_file(filename)
 
     def _file_update(self, filenames):
-        modified_files = []
-        for f in filenames:            
-            # for dd in self.dynamic_defs():
-            #     for op in dd.operations:
-            #         op.on_file_modified(f)
-            # for ext in self.extensions:
-            #      self.extensions[ext].on_file_modified(f)
-            self._rewrite_titles(f)
-            self._parse_file(f)
-            modified_file = self._compile_file(f)   
-            if modified_file:
-                modified_files.append(modified_file)
-        return modified_files
-
+        if self.compiled:
+            modified_files = []
+            for f in filenames:            
+                # for dd in self.dynamic_defs():
+                #     for op in dd.operations:
+                #         op.on_file_modified(f)
+                # for ext in self.extensions:
+                #      self.extensions[ext].on_file_modified(f)
+                self._rewrite_titles(f)
+                self._parse_file(f)
+                modified_file = self._compile_file(f)   
+                if modified_file:
+                    modified_files.append(modified_file)
+            return modified_files
+        
     def _sync_file_list(self):
         new_files = []
         for file in [f for f in os.listdir(self.path) if os.path.basename(f) not in self.files]:
@@ -1114,7 +1133,7 @@ class UrtextProject:
             if not duplicate_node_ids:
                 self._log_item(file+' found. Adding to "'+self.title+'"')    
                 new_files.append(os.path.basename(file))
-        lost_files = [f for f in self.files if f not in os.listdir(self.path)]
+        lost_files = [f for f in self.files if os.path.join(self.path,f) not in os.listdir(self.path)]
         for f in lost_files:
             self._log_item(f+' no longer seen in project path. Dropping it from the project.')
             self.remove_file(f)

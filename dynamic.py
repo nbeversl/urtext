@@ -87,10 +87,11 @@ class UrtextDynamicDefinition:
 			op.parse_argument_string('')		
 			self.operations.append(op)
 
-	def process_output(self):
+	def process_output(self, max_phase=600):
 		outcome = []
 		for operation in sorted(self.operations, key = lambda op: op.phase) :		
-			new_outcome = operation.dynamic_output(outcome)
-			if new_outcome != False:
-				outcome = new_outcome
+			if operation.phase < max_phase:
+				new_outcome = operation.dynamic_output(outcome)
+				if new_outcome != False:
+					outcome = new_outcome
 		return outcome

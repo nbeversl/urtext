@@ -40,6 +40,7 @@ class UrtextDirective():
     """ dynamic output """
 
     def dynamic_output(self, input_contents):
+        # returning False leaves existing content unmodified
         return ''
     
     def set_dynamic_definition(self, dynamic_definition):

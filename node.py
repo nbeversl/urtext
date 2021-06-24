@@ -251,7 +251,6 @@ class UrtextNode:
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator
-
         if nid:
             new_metadata += '@'+nid
 
