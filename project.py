@@ -1073,9 +1073,10 @@ class UrtextProject:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
-        ## Method to be called by the editor when a file is modified.
-        ## Accepts a file or list of modified files, 
-        ## returns a list of modified files.
+        #  Method to be called by the editor when a file is modified.
+        #  Accepts a file or list of modified files, 
+        #  returns a list of modified files.
+        
         if not isinstance(filenames, list):
             filenames = [filenames]
         do_not_update = ['history','files','.git']
@@ -1083,7 +1084,6 @@ class UrtextProject:
         if self.is_async:
             return self.executor.submit(self._file_update, filenames)
         return self._file_update(filenames)
-
 
     def visit_node(self, node_id):
         if self.is_async:
@@ -1099,6 +1099,7 @@ class UrtextProject:
                 op.on_node_visited(node_id)
 
     def visit_file(self, filename):
+        filename = os.path.basename(filename)
         if self.is_async:
             return self.executor.submit(self._visit_file, filename)
         else:

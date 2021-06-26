@@ -108,10 +108,7 @@ class ProjectList():
         for f in filenames:
             project = self._get_project_from_path(os.path.dirname(f))
             if project:
-                if project.is_async:
-                    future = project.on_modified(os.path.basename(f))
-                else:
-                    new_filename = project.on_modified(os.path.basename(f))            
+                return project.on_modified(os.path.basename(f))            
         
     def _propagate_projects(self, future):
         # wait on future to complete
@@ -206,9 +203,10 @@ class ProjectList():
         return None
 
     def visit_file(self, filename):
-        path = os.path.dirname(filename)
-        self.set_current_project(path)
-        self.current_project.visit_file(os.path.basename(filename))
+        if filename:
+            path = os.path.dirname(filename)
+            self.set_current_project(path)
+            return self.current_project.visit_file(os.path.basename(filename))
 
     def move_file(self, 
         filename, 
@@ -351,6 +349,7 @@ class ProjectList():
 
         # don't re-remember consecutive duplicate links
         if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
+            print('DUPLICTE')
             return
 
         # add the newly opened file as the new "HEAD"

@@ -345,9 +345,10 @@ class UrtextFile:
             with open(self.filename, 'r', encoding='utf-8') as f:
                 existing_contents = f.read()
             if existing_contents == new_contents:
-                return
+                return False
         with open(self.filename, 'w', encoding='utf-8') as theFile:
             theFile.write(new_contents)
+        return True
 
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
