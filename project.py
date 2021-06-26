@@ -681,9 +681,9 @@ class UrtextProject:
             contents='', 
             metadata={},
         ):
-        	metadata['id']=self.next_index()
-        	metadata_block = self.urtext_node.build_metadata(metadata, one_line=True)
-        	return '•  '+contents + ' ' + metadata_block
+            metadata['id']=self.next_index()
+            metadata_block = self.urtext_node.build_metadata(metadata, one_line=True)
+            return '•  '+contents + ' ' + metadata_block
 
     def dynamic_defs(self, target=None):
         dd = []
@@ -1073,10 +1073,9 @@ class UrtextProject:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
-        #  Method to be called by the editor when a file is modified.
-        #  Accepts a file or list of modified files, 
-        #  returns a list of modified files.
-        
+        ## Method to be called by the editor when a file is modified.
+        ## Accepts a file or list of modified files, 
+        ## returns a list of modified files.
         if not isinstance(filenames, list):
             filenames = [filenames]
         do_not_update = ['history','files','.git']
