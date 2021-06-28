@@ -1,6 +1,7 @@
 from urtext.directive import UrtextDirectiveWithKeysFlags
 import datetime
 
+# This class should be abstracted as an accumulator (prepend/append)
 class AccessHistory(UrtextDirectiveWithKeysFlags):
 
     name = ["ACCESS_HISTORY"]

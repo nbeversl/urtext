@@ -37,6 +37,8 @@ def _compile_file(self, filename):
         for dd in self.dynamic_defs(target=node_id):
             if self._process_dynamic_def(dd) and not modified:
                 modified = filename
+    if modified:
+        print('DEBUGGING: '+modified + ' was modified.')
     return modified
 
 def _process_dynamic_def(self, dynamic_definition):
