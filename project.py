@@ -473,11 +473,10 @@ class UrtextProject:
         if parse:
             self._parse_file(self.nodes[node_id].filename)
         if node_id in self.nodes:
-            # Here we need to only set content if the file has changed
-            self.nodes[node_id].set_content(contents, preserve_metadata=True)       
-            self._parse_file(self.nodes[node_id].filename)
-            if node_id in self.nodes:
-                return self.nodes[node_id].filename
+            if self.nodes[node_id].set_content(contents, preserve_metadata=True):
+                self._parse_file(self.nodes[node_id].filename)
+                if node_id in self.nodes:
+                    return self.nodes[node_id].filename
         return False
 
     def _adjust_ranges(self, filename, from_position, amount):
