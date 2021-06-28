@@ -27,8 +27,11 @@ from urtext.directives.list import NodeList
 
 class UrtextDynamicDefinition:
 
-	def __init__(self, contents, project):
+	def __init__(self, match, project):
 
+		contents = match.group(0)[2:-2]
+
+		self.location = match.start()
 		self.target_id = None
 		self.included_nodes = []
 		self.excluded_nodes = []

@@ -77,11 +77,11 @@ class UrtextNode:
         self.display_meta = ''
         self.parent = None
 
+        contents = self.parse_dynamic_definitions(contents, self.dynamic_definitions)
+        contents = strip_dynamic_definitions(contents)
         contents = strip_wrappers(contents, compact=compact)
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
-        contents = self.parse_dynamic_definitions(contents, self.dynamic_definitions)
-        contents = strip_dynamic_definitions(contents)
         contents = strip_backtick_escape(contents)
     
         self.metadata = self.urtext_metadata(self, self.project)        
@@ -271,7 +271,7 @@ class UrtextNode:
 
     def parse_dynamic_definitions(self, contents, dynamic_definitions): 
         for d in dynamic_def_regexp.finditer(contents):
-            dynamic_definitions.append(UrtextDynamicDefinition(d.group(0)[2:-2], self.project))
+            dynamic_definitions.append(UrtextDynamicDefinition(d, self.project))
         return contents
 
 

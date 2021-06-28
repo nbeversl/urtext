@@ -56,7 +56,7 @@ def _process_dynamic_def(self, dynamic_definition):
     output = dynamic_definition.process_output()    
     if not isinstance(output, str):
         return None
-    
+
     final_output = build_final_output(dynamic_definition, output) 
        
     if dynamic_definition.target_id in self.nodes:
@@ -75,9 +75,10 @@ def _process_dynamic_def(self, dynamic_definition):
 def build_final_output(dynamic_definition, contents):
 
     metadata_values = {}
+    
     if dynamic_definition.target_id:
         metadata_values['ID'] = dynamic_definition.target_id
-        metadata_values['def'] = [ '>'+dynamic_definition.source_id ] 
+        metadata_values['def'] = [ '| >'+dynamic_definition.source_id +':'+str(dynamic_definition.location)] 
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
@@ -103,4 +104,4 @@ def indent(contents, spaces=4):
             content_lines[index] = '\t' * spaces + line
     return '\n'+'\n'.join(content_lines)
 
-compile_functions = [_compile,_process_dynamic_def, _compile_file ]
+compile_functions = [_compile, _process_dynamic_def, _compile_file ]

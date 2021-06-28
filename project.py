@@ -242,7 +242,7 @@ class UrtextProject:
             'new_file_node_format' : '$datestamp $id',
             'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
-            'inline_node_timestamp' :True,
+            'inline_node_timestamp' :False,
             'file_node_timestamp' : True,
             'file_node_leading_contents': '',
             'hash_key': '#',
@@ -278,7 +278,6 @@ class UrtextProject:
 
 
     def get_file_position(self, node_id, position): 
-
         if node_id in self.nodes:
             node_length = 0
             offset_position = position
@@ -636,7 +635,7 @@ class UrtextProject:
             include_timestamp=self.settings['inline_node_timestamp'])
 
         return {
-            'contents' : ''.join(['{ ', contents, '}']),
+            'contents' : ''.join(['{ \n', contents, '}']),
             'id':node_id
         }
     
@@ -673,7 +672,6 @@ class UrtextProject:
                 metadata[self.settings['node_date_keyname']] = self.timestamp(date)
 
         new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
-        new_node_contents += '\n\n'
         return new_node_contents, node_id
 
     def add_compact_node(self,  
@@ -862,12 +860,6 @@ class UrtextProject:
             self._log_item('Node ' + link['link'] + ' is not in the project')
             return None
 
-        if link['kind'] == 'NODE':
-            self.nodes[link['link']].metadata.access()
-            for dd in self.dynamic_defs():
-                for op in dd.operations:
-                    op.on_node_visited(link['link'])
-
         return link
 
     def find_link(self, 
@@ -911,8 +903,6 @@ class UrtextProject:
                 else:
                     dest_position = 0
                 dest_position = self.get_file_position(link, dest_position)
-                # if link in self.nodes:
-                #     self.refresh_file(self.nodes[link].filename)
         else:
             result = re.search(editor_file_link_regex, string)            
             if result:
@@ -1090,6 +1080,7 @@ class UrtextProject:
             self._visit_node(node_id)
 
     def _visit_node(self, node_id):
+        self.nodes[node_id].metadata.access() # ?
         for ext in self.extensions:
             self.extensions[ext].on_node_visited(node_id)
         for dd in self.dynamic_defs():
