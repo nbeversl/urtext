@@ -1062,9 +1062,9 @@ class UrtextProject:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
-        ## Method to be called by the editor when a file is modified.
-        ## Accepts a file or list of modified files, 
-        ## returns a list of modified files.
+        # Method to be called by the editor when a file is modified.
+        # Accepts a file or list of modified files, 
+        # returns a list of modified files.
         if not isinstance(filenames, list):
             filenames = [filenames]
         do_not_update = ['history','files','.git']
@@ -1102,11 +1102,6 @@ class UrtextProject:
         if self.compiled:
             modified_files = []
             for f in filenames:            
-                # for dd in self.dynamic_defs():
-                #     for op in dd.operations:
-                #         op.on_file_modified(f)
-                # for ext in self.extensions:
-                #      self.extensions[ext].on_file_modified(f)
                 self._rewrite_titles(f)
                 self._parse_file(f)
                 modified_file = self._compile_file(f)   
@@ -1296,8 +1291,7 @@ class UrtextProject:
                     'timestamp' : self.timestamp(datetime.datetime.now())
                 })
             self.messages = {}
-            changed = self._set_node_contents(self.settings['log_id'], output)     
-            if changed:
+            if self._set_node_contents(self.settings['log_id'], output):
                 return self.nodes[self.settings['log_id']].filename
 
 class NoProject(Exception):

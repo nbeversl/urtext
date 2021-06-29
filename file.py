@@ -341,6 +341,7 @@ class UrtextFile:
         return full_file_contents
 
     def _set_file_contents(self, new_contents, compare=True):
+        new_contents = new_contents.encode('utf-8')
         if compare:
             with open(self.filename, 'r', encoding='utf-8') as f:
                 existing_contents = f.read()
