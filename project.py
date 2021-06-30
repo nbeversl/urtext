@@ -364,36 +364,39 @@ class UrtextProject:
 
         return False
 
-    def _rewrite_titles(self, filename):
+    def _rewrite_titles(self, filename=None, contents=""):
 
-        original_contents = self.files[filename]._get_file_contents()
+        if contents:
+            original_contents = contents
+        elif filename:
+            original_contents = self.files[filename]._get_file_contents()
+        else:
+            return
         new_contents = original_contents
         offset = 0        
         for match in re.finditer(title_marker_regex, new_contents):
             start = match.start() + offset
-            end = match.end() + offset
-            location_node_id = self.get_node_id_from_position(filename, start)
-            if not location_node_id or location_node_id not in self.nodes:
-                continue
-            if not self.nodes[location_node_id].dynamic:          
-                match_contents = new_contents[start:end]
-                node_id = match_contents[-3:]
-                if node_id in self.nodes:
-                    title = self.nodes[node_id].title
-                else:
-                    title = ' ? '
-                bracket = '>'
-                if re.search(node_pointer_regex, match_contents):
-                    bracket += '>'
-                replaced_contents = ''.join([new_contents[:start],
-                    '| ', title, ' ', bracket, node_id,
-                    new_contents[end:]
-                    ])
-                offset += len(replaced_contents) - len(new_contents)
-                new_contents = replaced_contents
-        if new_contents != original_contents:
+            end = match.end() + offset   
+            match_contents = new_contents[start:end]
+            node_id = match_contents[-3:]
+            if node_id in self.nodes:
+                title = self.nodes[node_id].title
+            else:
+                title = ' ? '
+            bracket = '>'
+            if re.search(node_pointer_regex, match_contents):
+                bracket += '>'
+            replaced_contents = ''.join([new_contents[:start],
+                '| ', title, ' ', bracket, node_id,
+                new_contents[end:]
+                ])
+            offset += len(replaced_contents) - len(new_contents)
+            new_contents = replaced_contents
+        if contents:
+            return new_contents
+        if new_contents != original_contents:            
             self.files[filename]._set_file_contents(new_contents)
-            self._parse_file(filename)
+            return True
         return False
 
     def _target_id_defined(self, check_id):
@@ -1095,14 +1098,16 @@ class UrtextProject:
             return self._visit_file(filename)
 
     def _visit_file(self, filename):
-        if filename in self.files and self.compiled:            
+        if filename in self.files and self.compiled:
+            if self._rewrite_titles(filename=filename):
+                self._parse_file(filename)
             return self._compile_file(filename)
 
     def _file_update(self, filenames):
         if self.compiled:
             modified_files = []
             for f in filenames:            
-                self._rewrite_titles(f)
+                self._rewrite_titles(filename=f)
                 self._parse_file(f)
                 modified_file = self._compile_file(f)   
                 if modified_file:
