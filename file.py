@@ -326,11 +326,7 @@ class UrtextFile:
     def _get_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
-            with open(
-                    self.filename,
-                    'r',
-                    encoding='utf-8',
-            ) as theFile:
+            with open(self.filename, 'r', encoding='utf-8',) as theFile:
                 full_file_contents = theFile.read()
         except IsADirectoryError:
             return None
@@ -341,10 +337,13 @@ class UrtextFile:
         return full_file_contents
 
     def _set_file_contents(self, new_contents, compare=True):
+        new_contents = "\n".join(new_contents.splitlines())
         if compare:
-            with open(self.filename, 'r', encoding='utf-8') as f:
-                existing_contents = f.read()
-            if existing_contents == new_contents.encode('utf-8'):
+            existing_contents = self._get_file_contents()
+            existing_contents = "\n".join(existing_contents.splitlines())
+            if not existing_contents:
+                return False
+            if existing_contents == new_contents:
                 return False
         with open(self.filename, 'w', encoding='utf-8') as theFile:
             theFile.write(new_contents)
@@ -353,12 +352,7 @@ class UrtextFile:
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
         if cleared_contents != contents:
-            with open(
-                self.filename,
-                'w',
-                encoding='utf-8',
-            ) as theFile:
-                theFile.write(cleared_contents)
+            self._set_file_contents(cleared_contents)
         return cleared_contents
 
     def write_errors(self, settings, messages=None):
