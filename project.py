@@ -394,7 +394,12 @@ class UrtextProject:
             new_contents = replaced_contents
         if contents:
             return new_contents
-        if new_contents != original_contents:            
+        if "\n".join(new_contents.splitlines()) != "\n".join(original_contents.splitlines()):            
+            print('YEP')
+            print("OLD")
+            print(original_contents)
+            print("NEW")
+            print(new_contents)
             self.files[filename]._set_file_contents(new_contents)
             return True
         return False
@@ -1058,7 +1063,7 @@ class UrtextProject:
                 for link in links:
                     new_contents = new_contents.replace(link, replacement, 1)
             if contents != new_contents:
-                self.files[filename].set_file_contents(new_contents, compare=False)
+                self.files[filename]._set_file_contents(new_contents, compare=False)
                 if self.is_async:
                     self.executor.submit(self._file_update, filename)
                 else:

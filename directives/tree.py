@@ -42,11 +42,15 @@ class Tree(UrtextDirectiveWithParamsFlags):
      
         tree_render = ''
         
+        level = 0
+
         for pre, _, this_node in RenderTree(
                 start_point, 
                 style=ContStyle, 
                 maxlevel=self.depth):
-            
+
+            indented_pre = '  '+pre
+
             if self._tree_node_is_excluded(this_node, exclude):
                 this_node.children = []
                 continue
@@ -109,7 +113,14 @@ class Tree(UrtextDirectiveWithParamsFlags):
                     replacement = ' | '.join(urtext_node.metadata.get_values(k))
                 next_content.other_format_keys[meta_key] = replacement
 
-            tree_render += "%s%s" % (pre, next_content.output())
+            if level == 0:
+                prefix = pre
+            else:
+                prefix = indented_pre
+
+            tree_render += "%s%s" % (prefix, next_content.output())
+
+            level += 1
 
         return tree_render
 

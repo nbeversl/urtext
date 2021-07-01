@@ -57,7 +57,7 @@ def _process_dynamic_def(self, dynamic_definition):
     if not isinstance(output, str):
         return
 
-    final_output = build_final_output(dynamic_definition, output) 
+    final_output = self._build_final_output(dynamic_definition, output) 
        
     if dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)  
@@ -72,13 +72,13 @@ def _process_dynamic_def(self, dynamic_definition):
     
     return changed_file
 
-def build_final_output(dynamic_definition, contents):
+def _build_final_output(self, dynamic_definition, contents):
 
     metadata_values = {}
     
     if dynamic_definition.target_id:
         metadata_values['ID'] = dynamic_definition.target_id
-        metadata_values['def'] = [ '| >'+dynamic_definition.source_id +':'+str(dynamic_definition.location)] 
+        metadata_values['def'] = [ '| '+ self.nodes[dynamic_definition.source_id].title +' >'+dynamic_definition.source_id +':'+str(dynamic_definition.location)] 
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
@@ -88,7 +88,6 @@ def build_final_output(dynamic_definition, contents):
         ' ', ## TODO: Make leading space an option.
         contents,
         built_metadata,
-        ' '
         ])
     if dynamic_definition.spaces:
         final_contents = indent(final_contents, dynamic_definition.spaces)
@@ -104,4 +103,4 @@ def indent(contents, spaces=4):
             content_lines[index] = '\t' * spaces + line
     return '\n'+'\n'.join(content_lines)
 
-compile_functions = [_compile, _process_dynamic_def, _compile_file ]
+compile_functions = [_compile, _build_final_output, _process_dynamic_def, _compile_file ]

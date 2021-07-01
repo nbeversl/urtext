@@ -41,7 +41,7 @@ class UrtextDynamicDefinition:
 		self.project = project
 		self.preformat = False
 		self.show = None
-		self.multiline_meta = True
+		self.multiline_meta = False
 		self.init_self(contents)
 		
 		if not self.show:

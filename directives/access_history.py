@@ -16,9 +16,9 @@ class AccessHistory(UrtextDirectiveWithKeysFlags):
                 contents = ''.join([ 
                         '\n',
                         self.project.timestamp(self.project.default_timezone.localize(datetime.datetime.now())), 
-                        ' ', 
+                        ' | ', 
                         self.project.nodes[node_id].title, 
-                        '| >', 
+                        ' >', 
                         node_id,
                         contents
                     ])
