@@ -1126,7 +1126,7 @@ class UrtextProject:
 
     def _file_update(self, filenames):
         if self.compiled:
-            self._sync_file_list()
+            #self._sync_file_list()
             modified_files = []
             for f in filenames:            
                 self._rewrite_titles(filename=f)
