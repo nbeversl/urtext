@@ -631,7 +631,7 @@ class UrtextProject:
         one_line=None,
         ):
 
-        contents, node_id = self._new_node(
+        contents, node_id, cursor_pos = self._new_node(
             date=date,
             contents=contents,
             metadata=metadata,
@@ -640,7 +640,8 @@ class UrtextProject:
 
         return {
             'contents' : ''.join(['{ \n', contents, '}']),
-            'id':node_id
+            'id':node_id,
+            'cursor_pos' : cursor_pos
         }
     
     def _new_node(self, 
