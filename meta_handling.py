@@ -64,8 +64,6 @@ def _tag_other_node(self, node_id, metadata={}, open_files=[]):
 
     self.files[filename]._set_file_contents(new_contents)
     s = self.on_modified(filename)
-    # for f in open_files:
-    #     self.refresh_file(os.path.basename(f))
     return s
 
 def consolidate_metadata(self, node_id, one_line=False):
@@ -77,10 +75,11 @@ def consolidate_metadata(self, node_id, one_line=False):
     consolidated_metadata = self.nodes[node_id].consolidate_metadata(
         one_line=one_line)
 
-    file_contents = self.nodes[node_id].filename.get_contents()
     filename = self.nodes[node_id].filename
+    file_contents = self.files[filename]._get_file_contents()
     length = len(file_contents)
     ranges = self.nodes[node_id].ranges
+
     for single_range in ranges:
 
         for section in entry_regex.finditer(file_contents[single_range[0]:single_range[1]]):
@@ -92,10 +91,10 @@ def consolidate_metadata(self, node_id, one_line=False):
             file_contents += second_splice
             self._adjust_ranges(filename, start, len(section.group()))
 
-    new_file_contents = file_contents[0:ranges[-1][1] - 2]
-    new_file_contents += consolidated_metadata
+    new_file_contents = file_contents[0:ranges[-1][1]]
+    new_file_contents += '\n'+consolidated_metadata
     new_file_contents += file_contents[ranges[-1][1]:]
-    self.files[filename].set_file_contents(new_file_contents)
+    self.files[filename]._set_file_contents(new_file_contents)
     self._parse_file(filename)
 
             

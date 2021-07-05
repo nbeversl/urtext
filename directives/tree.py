@@ -108,9 +108,9 @@ class Tree(UrtextDirectiveWithParamsFlags):
                         if ext == 'timestamp':
                             replacement = timestamps[0].string
                         else:
-                            replacement = ' | '.join([t.string for t in timestamps])
+                            replacement = ' - '.join([t.string for t in timestamps])
                 else:
-                    replacement = ' | '.join(urtext_node.metadata.get_values(k))
+                    replacement = ' - '.join(urtext_node.metadata.get_values(k))
                 next_content.other_format_keys[meta_key] = replacement
 
             if level == 0:

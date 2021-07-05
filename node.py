@@ -211,16 +211,21 @@ class UrtextNode:
     def consolidate_metadata(self, one_line=True, separator='::'):
         
         keynames = {}
-        for entry in self.metadata._entries:
+        for entry in self.metadata.entries:
+            if entry.keyname in [
+                '_newest_timestamp',
+                '_oldest_timestamp', 
+                'inline-timestamp']:
+                continue
             if entry.keyname not in keynames:
                 keynames[entry.keyname] = []
-            timestamp = ''
-            if entry.timestamp.string:
-                timestamp = '<'+entry.timestamp.string+'>'
-            if not entry.values:
-                keynames[entry.keyname].append(timestamp)
-            for value in entry.values:
-                keynames[entry.keyname].append(str(value)+timestamp)
+            timestamps = ''
+            if entry.timestamps:
+                timestamps = ' '.join(['<'+t.string+'>' for t in entry.timestamps])
+            if not entry.value:
+                keynames[entry.keyname].append(timestamps)
+            else:
+                keynames[entry.keyname].append(str(entry.value)+' '+timestamps)
 
         return self.build_metadata(keynames, one_line=one_line, separator=separator)
 
@@ -247,7 +252,7 @@ class UrtextNode:
                 continue
             new_metadata += keyname + separator
             if isinstance(metadata[keyname], list):
-                new_metadata += ' | '.join(metadata[keyname])
+                new_metadata += ' - '.join(metadata[keyname])
             else:
                 new_metadata += metadata[keyname]
             new_metadata += line_separator

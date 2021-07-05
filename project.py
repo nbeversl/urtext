@@ -97,8 +97,8 @@ single_values = [
     'breadcrumb_key',
     'title',
     'id',
+    'new_file_node_format',
     'hash_key',
-    'file_node_leading_contents',
     'filename_datestamp_format',
     'timezone' ]
 
@@ -239,12 +239,11 @@ class UrtextProject:
             'tag_other': [],
             'device_keyname' : '',
             'breadcrumb_key' : '',
-            'new_file_node_format' : '$datestamp $id',
+            'new_file_node_format' : '$timestamp $id',
             'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
             'inline_node_timestamp' :False,
             'file_node_timestamp' : True,
-            'file_node_leading_contents': '',
             'hash_key': '#',
             'contents_strip_outer_whitespace' : True,
             'contents_strip_internal_whitespace' : True,
@@ -395,11 +394,6 @@ class UrtextProject:
         if contents:
             return new_contents
         if "\n".join(new_contents.splitlines()) != "\n".join(original_contents.splitlines()):            
-            print('YEP')
-            print("OLD")
-            print(original_contents)
-            print("NEW")
-            print(new_contents)
             self.files[filename]._set_file_contents(new_contents)
             return True
         return False
@@ -579,8 +573,7 @@ class UrtextProject:
         self.files[new_filename] = self.files[old_filename]
         for node_id in self.files[new_filename].nodes:
             self.nodes[node_id].filename = new_filename
-            self.nodes[node_id].full_path = os.path.join(
-                self.path, new_filename)
+            self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
         if new_filename != old_filename:
             del self.files[old_filename]
 
@@ -607,13 +600,15 @@ class UrtextProject:
         node_id=None,
         one_line=None
         ):
-        
-        if contents == None:
-            contents = bytes(self.settings['file_node_leading_contents'], "utf-8").decode("unicode_escape")
 
-        contents, node_id = self._new_node(
+        contents_format = None
+        if contents == None:
+            contents_format = bytes(self.settings['new_file_node_format'], "utf-8").decode("unicode_escape")
+
+        contents, node_id, cursor_pos = self._new_node(
             date=date,
             contents=contents,
+            contents_format=contents_format,
             metadata=metadata,
             node_id=node_id,
             include_timestamp=self.settings['file_node_timestamp'])
@@ -624,7 +619,8 @@ class UrtextProject:
         self._parse_file(filename)
         return { 
                 'filename':filename, 
-                'id':node_id
+                'id':node_id,
+                'cursor_pos' : cursor_pos
                 }
 
     def new_inline_node(self, 
@@ -650,37 +646,57 @@ class UrtextProject:
     def _new_node(self, 
             date=None, 
             contents='',
+            contents_format=None,
             node_id=None,
             metadata=None,
             one_line=None,
             include_timestamp=False):
 
-        if one_line == None:
-            one_line = self.settings['always_oneline_meta']
-        
+        cursor_pos = 0
         if not node_id:
             node_id = self.next_index()
 
-        if not metadata:
-            metadata = {}
+        node_id = self.next_index()
+        if contents_format:
+            new_node_contents = contents_format.replace('$timestamp', self.timestamp(datetime.datetime.now()) )
+            new_node_contents = new_node_contents.replace('$device_keyname', platform.node() )
+            
+            if '$id' in new_node_contents:
+                new_node_contents = new_node_contents.replace('$id', '@'+node_id )
+            else:
+                new_node_contents += ' @'+ self.next_index()
+        
+            if '$cursor' in new_node_contents:
+                new_node_contents = new_node_contents.split('$cursor')
+                cursor_pos = len(new_node_contents[0])
+                new_node_contents = ''.join(new_node_contents)
 
-        if  self.settings['device_keyname']:
-            metadata[self.settings['device_keyname']] = platform.node()
+        else:
 
-        metadata['id']=node_id
+            if one_line == None:
+                one_line = self.settings['always_oneline_meta']
+            
+            if not metadata:
+                metadata = {}
 
-        new_node_contents = contents
+            if  self.settings['device_keyname']:
+                metadata[self.settings['device_keyname']] = platform.node()
 
-        if include_timestamp:
-            if date == None:
-                date = datetime.datetime.now() 
-            if self.settings['keyless_timestamp'] == True:
-                new_node_contents += self.timestamp(date) + ' '
-            elif self.settings['node_date_keyname']:
-                metadata[self.settings['node_date_keyname']] = self.timestamp(date)
+            metadata['id']=node_id
 
-        new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
-        return new_node_contents, node_id
+            new_node_contents = contents
+
+            if include_timestamp:
+                if date == None:
+                    date = datetime.datetime.now() 
+                if self.settings['keyless_timestamp'] == True:
+                    new_node_contents += self.timestamp(date) + ' '
+                elif self.settings['node_date_keyname']:
+                    metadata[self.settings['node_date_keyname']] = self.timestamp(date)
+
+            new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
+
+        return new_node_contents, node_id, cursor_pos
 
     def add_compact_node(self,  
             contents='', 
@@ -1110,6 +1126,7 @@ class UrtextProject:
 
     def _file_update(self, filenames):
         if self.compiled:
+            self._sync_file_list()
             modified_files = []
             for f in filenames:            
                 self._rewrite_titles(filename=f)
@@ -1121,14 +1138,15 @@ class UrtextProject:
         
     def _sync_file_list(self):
         new_files = []
-        for file in [f for f in os.listdir(self.path) if os.path.basename(f) not in self.files]:
+        files = os.listdir(self.path)
+        for file in [os.path.basename(f) for f in os.listdir(self.path) if f not in self.files]:
             if self._filter_filenames(file) == None:
                 continue
             duplicate_node_ids = self._parse_file(file)
             if not duplicate_node_ids:
                 self._log_item(file+' found. Adding to "'+self.title+'"')    
                 new_files.append(os.path.basename(file))
-        lost_files = [f for f in self.files if os.path.join(self.path,f) not in os.listdir(self.path)]
+        lost_files = [f for f in list(self.files) if f not in os.listdir(self.path)]
         for f in lost_files:
             self._log_item(f+' no longer seen in project path. Dropping it from the project.')
             self.remove_file(f)

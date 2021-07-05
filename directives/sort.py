@@ -31,4 +31,10 @@ class Sort(UrtextDirectiveWithKeysFlags):
 			if isinstance(value, str):
 				value=value.lower()
 			t.append(value)
+		if self.have_flags('-num'):
+			try:
+				nt = [int(n) for n in t]
+			except ValueError:
+				return tuple([])
+			return tuple(nt)	
 		return tuple(t)
