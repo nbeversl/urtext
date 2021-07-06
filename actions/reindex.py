@@ -71,6 +71,7 @@ class ReindexFiles(UrtextAction):
                 return print('New filename(s) could not be made. Check project_settings')
 
             # start with the filename template, replace each element
+            filename_template = [p.strip() for p in filename_template if p.strip()]
             new_filename = ' - '.join(filename_template)      
             new_filename = new_filename.replace('’', "'")
             new_filename = new_filename.strip().strip('-').strip();
