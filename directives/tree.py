@@ -110,7 +110,8 @@ class Tree(UrtextDirectiveWithParamsFlags):
                         else:
                             replacement = ' - '.join([t.string for t in timestamps])
                 else:
-                    replacement = ' - '.join(urtext_node.metadata.get_values(k))
+                    values = [v for v in urtext_node.metadata.get_values(k) if v ]
+                    replacement = ' - '.join(values)
                 next_content.other_format_keys[meta_key] = replacement
 
             if level == 0:

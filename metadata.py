@@ -24,11 +24,13 @@ import time
 from urtext.utils import force_list
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import UrtextTimestamp, default_date
+
 timestamp_match = re.compile('<([^-/<\s][^=<]+?)>')
 meta_entry = re.compile('\+?\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 meta_separator = re.compile(r'\s-(\s|$)')
+
 class NodeMetadata:
 
     def __init__(self, 
@@ -83,7 +85,7 @@ class NodeMetadata:
                         end_position=m.start() + len(m.group()))    
                 if tag_children or tag_descendants:
                     self.dynamic_entries.append(entry)
-                if tag_self:
+                if tag_self and value not in self.get_values(keyname):
                     self.entries.append(entry)
 
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)

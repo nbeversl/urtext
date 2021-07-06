@@ -1094,7 +1094,7 @@ class UrtextProject:
         if not isinstance(filenames, list):
             filenames = [filenames]
         do_not_update = ['history','files','.git']
-        filenames = [os.path.basename(f) for f in filenames if f in do_not_update and '.git' not in f]
+        filenames = [os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f]
         filenames = [f for f in filenames if f in self.files] 
         if self.is_async:
             return self.executor.submit(self._file_update, filenames)
