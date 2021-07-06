@@ -75,21 +75,16 @@ class NodeMetadata:
 
             for value in value_list:
                 value = value.strip()
-                if tag_children or tag_descendants:
-                    self.dynamic_entries.append(MetadataEntry(
+                entry = MetadataEntry(
                         keyname, 
                         value, 
                         recursive=tag_descendants,
                         position=m.start(), 
-                        end_position=m.start() + len(m.group())) )
+                        end_position=m.start() + len(m.group()))    
+                if tag_children or tag_descendants:
+                    self.dynamic_entries.append(entry)
                 if tag_self:
-                    self.add_entry(
-                        keyname,
-                        value,
-                        recursive=tag_descendants,
-                        position=m.start(),
-                        end_position=m.start() + len(m.group())
-                        )
+                    self.entries.append(entry)
 
             parsed_contents = parsed_contents.replace(m.group(),' '*len(m.group()), 1)
             remaining_contents = remaining_contents.replace(m.group(),'', 1 )
@@ -215,7 +210,7 @@ class NodeMetadata:
         for e in entries:
             if use_timestamp:
                 values.extend(e.timestamps)
-            elif e.value:
+            else:
                 values.append(e.value)        
 
         if not values and use_timestamp:
