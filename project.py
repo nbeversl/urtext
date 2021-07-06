@@ -570,21 +570,16 @@ class UrtextProject:
     def _handle_renamed(self, old_filename, new_filename):
         new_filename = os.path.basename(new_filename)
         old_filename = os.path.basename(old_filename)
-        self.files[new_filename] = self.files[old_filename]
-        for node_id in self.files[new_filename].nodes:
-            self.nodes[node_id].filename = new_filename
-            self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
         if new_filename != old_filename:
+            self.files[new_filename] = self.files[old_filename]
+            for node_id in self.files[new_filename].nodes:
+                self.nodes[node_id].filename = new_filename
+                self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
             del self.files[old_filename]
-
     """ 
     Methods for filtering files to skip 
     """
     def _filter_filenames(self, filename):
-        """ Filters out files to skip altogether """
-        """ Omit system files """
-        if filename[0] == '.':
-            return None
         if not filename.endswith('.txt'):
             # FUTURE:
             # save and check these in an optional list of other extensions 
@@ -1017,11 +1012,19 @@ class UrtextProject:
 
     def run_action(self, action, string, filename, col_pos=0, file_pos=0):
         instance = self.actions[action](self)
-        return instance.execute(
-            string, 
-            filename, 
-            col_pos=col_pos,
-            file_pos=file_pos)
+        if self.is_async:
+            return self.executor.submit(
+                instance.execute,            
+                string, 
+                filename, 
+                col_pos=col_pos,
+                file_pos=file_pos)
+        else:
+            return instance.execute(
+                string, 
+                filename, 
+                col_pos=col_pos,
+                file_pos=file_pos)
 
     def get_home(self):
         return self.settings['home']
@@ -1120,6 +1123,7 @@ class UrtextProject:
             return self._visit_file(filename)
 
     def _visit_file(self, filename):
+        print('DEBUGGING : ' +filename)
         if filename in self.files and self.compiled:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
@@ -1127,7 +1131,6 @@ class UrtextProject:
 
     def _file_update(self, filenames):
         if self.compiled:
-            #self._sync_file_list()
             modified_files = []
             for f in filenames:            
                 self._rewrite_titles(filename=f)

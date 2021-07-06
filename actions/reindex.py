@@ -17,7 +17,6 @@ class ReindexFiles(UrtextAction):
         col_pos=0, 
         node_id=None):
 
-        self.project._sync_file_list()
         files = self.project.all_files() 
         return self.rename_file_nodes(files, reindex=True)
      
@@ -26,7 +25,7 @@ class ReindexFiles(UrtextAction):
 
         if isinstance(filenames, str):
             filenames = [filenames]
-            
+       
         used_names = []
         existing_files = os.listdir(self.project.path)
         renamed_files = {}
@@ -47,8 +46,9 @@ class ReindexFiles(UrtextAction):
             root_node_id = self.project.files[old_filename].root_nodes[0]
             root_node = self.project.nodes[root_node_id]
             filename_template = list(self.project.settings['filenames'])
+
             for i in range(0,len(filename_template)):
-                
+
                 if filename_template[i] == 'PREFIX' and reindex == True:
                     padded_prefix = '{number:0{width}d}'.format(
                         width = prefix_length, 
@@ -57,15 +57,19 @@ class ReindexFiles(UrtextAction):
                     
                 elif filename_template[i].lower() == 'title':
                     filename_template[i] = root_node.title
+                
                 elif filename_template[i].lower() in self.project.settings['use_timestamp']:
                     timestamp = root_node.metadata.get_first_value(filename_template[i], use_timestamp=True)
                     if timestamp:
                         filename_template[i] = timestamp.strftime(date_template)
                     else:
-                        filename_template[i] = ''
+                        filename_template[i] = ''                
                 else:
                     filename_template[i] = ' '.join([str(s) for s in root_node.metadata.get_values(filename_template[i])])
-     
+
+            if filename_template in [ [], [''] ]:
+                return print('New filename(s) could not be made. Check project_settings')
+
             # start with the filename template, replace each element
             new_filename = ' - '.join(filename_template)      
             new_filename = new_filename.replace('’', "'")
@@ -93,9 +97,7 @@ class ReindexFiles(UrtextAction):
             old_filename = filename
             new_filename = renamed_files[old_filename]
             os.rename(old_filename, new_filename)
-
-            if old_filename[-4:].lower() == '.txt': # skip history files
-                self.project._handle_renamed(old_filename, new_filename)
+            self.project._handle_renamed(old_filename, new_filename)
 
         return renamed_files
 
