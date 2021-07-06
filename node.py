@@ -103,7 +103,6 @@ class UrtextNode:
             self.contains_project_settings = True
 
         self.get_links(contents=contents)
-
     def start_position(self):
         return self.ranges[0][0]
     

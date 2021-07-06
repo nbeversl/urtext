@@ -574,6 +574,7 @@ class UrtextProject:
             self.files[new_filename] = self.files[old_filename]
             for node_id in self.files[new_filename].nodes:
                 self.nodes[node_id].filename = new_filename
+                self.files[new_filename].filename = os.path.join(self.path, new_filename)
                 self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
             del self.files[old_filename]
     """ 
@@ -1090,13 +1091,11 @@ class UrtextProject:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
-        # Method to be called by the editor when a file is modified.
-        # Accepts a file or list of modified files, 
-        # returns a list of modified files.
         if not isinstance(filenames, list):
             filenames = [filenames]
         do_not_update = ['history','files','.git']
-        filenames = [os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f]
+        filenames = [os.path.basename(f) for f in filenames if f in do_not_update and '.git' not in f]
+        filenames = [f for f in filenames if f in self.files] 
         if self.is_async:
             return self.executor.submit(self._file_update, filenames)
         return self._file_update(filenames)

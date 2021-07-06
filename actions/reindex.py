@@ -89,7 +89,7 @@ class ReindexFiles(UrtextAction):
             old_history_file = old_filename.replace('.txt','.diff')
             if os.path.exists(os.path.join(self.project.path, 'history', old_history_file) ):
                 new_history_file = new_filename.replace('.txt','.diff')
-                renamed_files[os.path.join(self.project.path, 'history', old_history_file)] = os.path.join(self.project.path, 'history', new_history_file)
+                #renamed_files[os.path.join(self.project.path, 'history', old_history_file)] = os.path.join(self.project.path, 'history', new_history_file)
 
             prefix += 1
             
