@@ -300,7 +300,7 @@ class UrtextProject:
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
  
         if not new_file.nodes:
-            return False
+            return -1
  
         if not new_file.is_parseable:
             self.to_import.append(filename)
@@ -467,7 +467,7 @@ class UrtextProject:
         returns filename if contents has changed.
         """
         if parse:
-            if not self._parse_file(self.nodes[node_id].filename):
+            if self._parse_file(self.nodes[node_id].filename) == -1:
                 return
         if node_id in self.nodes:
             if self.nodes[node_id].set_content(contents, preserve_metadata=True):
