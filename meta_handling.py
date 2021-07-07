@@ -61,7 +61,6 @@ def _tag_other_node(self, node_id, metadata={}, open_files=[]):
         metadata_contents,
         separator,
         full_file_contents[tag_position:]])
-
     self.files[filename]._set_file_contents(new_contents)
     s = self.on_modified(filename)
     return s

@@ -150,7 +150,7 @@ class UrtextFile:
 
         unstripped_contents = contents
         contents = strip_backtick_escape(contents)
-
+        
         for index in range(0, len(self.positions)):
 
             position = self.positions[index]
@@ -161,6 +161,8 @@ class UrtextFile:
             """
             If this opens a new node
             """
+            
+                
             if self.symbols[position] == r'(?<!\\){':
 
                 if [last_position, position + 1] not in nested_levels[nested]:
@@ -214,10 +216,11 @@ class UrtextFile:
                     compact = True
                     compact_node_open = False   
 
+                
                 if [last_position, position] not in nested_levels[nested]: # avoid duplicates
                     nested_levels[nested].append([last_position, position ])
                 
-                 # file level nodes are root nodes, with multiples permitted  
+                # file level nodes are root nodes, with multiples permitted  
                 if not compact:
 
                     if nested == 0 or self.symbols[position] == 'EOF':
@@ -234,7 +237,7 @@ class UrtextFile:
                     position, 
                     root=root, 
                     compact=compact)
-                
+
                 del nested_levels[nested]
 
                 if compact and not success and self.symbols[position] != 'EOF' :
@@ -336,7 +339,8 @@ class UrtextFile:
         full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
         return full_file_contents
 
-    def _set_file_contents(self, new_contents, compare=True):
+    def _set_file_contents(self, new_contents, compare=True): 
+
         new_contents = "\n".join(new_contents.splitlines())
         if compare:
             existing_contents = self._get_file_contents()

@@ -299,7 +299,10 @@ class UrtextProject:
             return
 
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
-                
+ 
+        if not new_file.nodes:
+            return False
+ 
         if not new_file.is_parseable:
             self.to_import.append(filename)
             return
@@ -393,7 +396,7 @@ class UrtextProject:
             new_contents = replaced_contents
         if contents:
             return new_contents
-        if "\n".join(new_contents.splitlines()) != "\n".join(original_contents.splitlines()):            
+        if "\n".join(new_contents.splitlines()) != "\n".join(original_contents.splitlines()):   
             self.files[filename]._set_file_contents(new_contents)
             return True
         return False
@@ -472,7 +475,8 @@ class UrtextProject:
         returns filename if contents has changed.
         """
         if parse:
-            self._parse_file(self.nodes[node_id].filename)
+            if not self._parse_file(self.nodes[node_id].filename):
+                return
         if node_id in self.nodes:
             if self.nodes[node_id].set_content(contents, preserve_metadata=True):
                 self._parse_file(self.nodes[node_id].filename)
@@ -1122,7 +1126,6 @@ class UrtextProject:
             return self._visit_file(filename)
 
     def _visit_file(self, filename):
-        print('DEBUGGING : ' +filename)
         if filename in self.files and self.compiled:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
