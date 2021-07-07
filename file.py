@@ -70,10 +70,12 @@ class UrtextFile:
         self.messages = []
         self.project = project
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.errors = False
 
         contents = self._get_file_contents() 
         if not contents:
             return
+        
         contents = self.clear_errors(contents)
         self.file_length = len(contents)        
         self.parse(self.lex(contents))
@@ -357,6 +359,7 @@ class UrtextFile:
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
         if cleared_contents != contents:
             self._set_file_contents(cleared_contents)
+        self.errors = False
         return cleared_contents
 
     def write_errors(self, settings, messages=None):
@@ -364,7 +367,7 @@ class UrtextFile:
             return False
         if messages:
             self.messages = messages
-            
+        
         contents = self._get_file_contents()
 
         messages = ''.join([ 
@@ -395,6 +398,7 @@ class UrtextFile:
         self.parsed_items = {}
         self.messages = []
         self.parse(new_contents)
+        self.errors = True
         for n in self.nodes:
             self.nodes[n].errors = True
 

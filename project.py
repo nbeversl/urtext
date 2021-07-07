@@ -299,7 +299,7 @@ class UrtextProject:
 
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
  
-        if not new_file.nodes:
+        if new_file.errors:
             return -1
  
         if not new_file.is_parseable:
