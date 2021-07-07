@@ -154,7 +154,6 @@ class UrtextProject:
         self.compiled = False
         self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
-        self.messages = {}
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
         if self.is_async:
@@ -349,10 +348,8 @@ class UrtextProject:
 
         if duplicate_nodes:
             basename = os.path.basename(file_obj.filename)
-            if basename not in self.messages:
-                self.messages[basename] = []    
-            self.messages[basename].append('Duplicate node ID(s) found')
-
+            self._log_item('Duplicate node ID(s) found :')
+            self._log_item(duplicate_nodes)
             messages = []
             for node_id in duplicate_nodes:
                 messages.append(''.join([
@@ -431,8 +428,6 @@ class UrtextProject:
                                   '. Keeping the definition in >',
                                   defined, '.'
                                   ])
-
-                    self.messages[new_node.filename].append(message)
                     self._log_item(message)
 
                     definition = None
@@ -441,9 +436,6 @@ class UrtextProject:
             message = ''.join([ 
                     'Multiple ID tags in >' , new_node.id ,': ',
                     ', '.join(new_node.metadata.get_first_value('ID')),' - using the first one found.'])
-            if new_node.filename not in self.messages: #why?
-                self.messages[new_node.filename] = []
-            self.messages[new_node.filename].append(message)
             self._log_item(message)
 
         new_node.parent_project = self.title
@@ -1307,26 +1299,6 @@ class UrtextProject:
             return filename, position
         return None, None
 
-    def _list_messages(self):
-        pass
-        output = []
-        for filename in self.messages:
-            if self.messages[filename]:
-                output.append('f>./'+filename)
-                output.extend(self.messages[filename])
-        return '\n'.join(output)
-
-    def _populate_messages(self):
-        if self.settings['log_id'] and self.settings['log_id'] in self.nodes:
-            output = self._list_messages()
-            output += '\n'+self.urtext_node.build_metadata(
-                {   'id':self.settings['log_id'],
-                    'title':'Log',
-                    'timestamp' : self.timestamp(datetime.datetime.now())
-                })
-            self.messages = {}
-            if self._set_node_contents(self.settings['log_id'], output):
-                return self.nodes[self.settings['log_id']].filename
 
 class NoProject(Exception):
     """ no Urtext nodes are in the folder """
