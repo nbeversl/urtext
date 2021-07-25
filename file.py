@@ -62,15 +62,14 @@ class UrtextFile:
         self.root_nodes = []
         self.alias_nodes = []
         self.filename = filename
+        self.project = project
         self.anonymous_nodes = []
         self.basename = os.path.basename(filename)        
         self.parsed_items = {}
         self.strict = False
-        self.is_parseable = True
-        self.messages = []
-        self.project = project
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self.messages = []        
         self.errors = False
+        self.could_import = False
 
         contents = self._get_file_contents() 
         if not contents:
@@ -83,7 +82,6 @@ class UrtextFile:
         
     def lex(self, contents):
 
-        """ populate a dict syntax symbols """
         self.symbols = {}
 
         unstripped_contents = contents
@@ -124,12 +122,9 @@ class UrtextFile:
 
     def parse(self, contents):
 
-        """
-        Counters and trackers
-        """
-        nested = 0  # tracks depth of node nesting
+        nested = 0  #  depth of node nesting
         nested_levels = {} # store node nesting into layers
-        last_position = 0  # tracks the most recently parsed position in the file
+        last_position = 0  # most recently parsed position in file
         compact_node_open = False
 
         """
@@ -163,8 +158,7 @@ class UrtextFile:
             """
             If this opens a new node
             """
-            
-                
+                  
             if self.symbols[position] == r'(?<!\\){':
 
                 if [last_position, position + 1] not in nested_levels[nested]:
@@ -305,11 +299,10 @@ class UrtextFile:
             root=root,
             compact=compact)
         
-        new_node.executor = self.executor
         new_node.get_file_contents = self._get_file_contents
         new_node.set_file_contents = self._set_file_contents
         
-        if new_node.id != None and re.match(node_id_regex, new_node.id):
+        if new_node.id != None: # and re.match(node_id_regex, new_node.id):
             self.nodes[new_node.id] = new_node
             self.nodes[new_node.id].ranges = ranges
             if new_node.root_node:
@@ -322,7 +315,6 @@ class UrtextFile:
                 self.messages.append('Warning : root Node has no ID.')
             elif compact:
                 pass
-                #self.messages.append('Warning: Compact Node symbol without ID at %s.' % (position))     
             else:
                 self.anonymous_nodes.append(new_node) 
                 self.messages.append('Warning: Node missing ID at position '+str(position))
@@ -338,8 +330,7 @@ class UrtextFile:
         except UnicodeDecodeError:
             self.log_error('UnicodeDecode Error: f>' + self.filename)
             return None
-        full_file_contents = full_file_contents.encode('utf-8').decode('utf-8')
-        return full_file_contents
+        return full_file_contents.encode('utf-8').decode('utf-8')
 
     def _set_file_contents(self, new_contents, compare=True): 
 
@@ -368,6 +359,10 @@ class UrtextFile:
         if messages:
             self.messages = messages
         
+        if self.nodes == {}:
+            self.could_import = True
+            return
+
         contents = self._get_file_contents()
 
         messages = ''.join([ 
@@ -404,7 +399,6 @@ class UrtextFile:
 
     def log_error(self, message, position):
 
-        self.is_parseable = False
         self.nodes = {}
         self.parsed_items = {}
         self.root_nodes = []
@@ -414,5 +408,3 @@ class UrtextFile:
         print(''.join([ 
                 message, ' in >f', self.filename, ' at position ',
             str(position)]))
-
-        return None

@@ -26,12 +26,11 @@ class ProjectList():
 
     def __init__(self, 
         base_path, 
-        import_project=False,
         first_project=None):
 
         self.projects = []
         self.base_path = base_path
-        self._add_folder(base_path, import_project=import_project)
+        self._add_folder(base_path)
         self.current_project = None
         self.navigation = []
         self.nav_index = -1
@@ -41,18 +40,14 @@ class ProjectList():
         if first_project:
             self.set_current_project(first_project)
 
-    def _add_folder(self, folder, import_project=False):
+    def _add_folder(self, folder):
         """ recursively add folders """
         try:
             if os.path.basename(folder) not in ['history','img','files' ]:
-                project = UrtextProject(folder, 
-                    import_project=import_project)
+                project = UrtextProject(folder)
                 self.projects.append(project)
         except NoProject:
-            if import_project:
-                self.import_project(folder)
-            else:
-                print('No project found in '+folder)
+            print('No project found in '+folder)
         sub_dirs = next(os.walk(folder))[1]
         for subdir in sub_dirs:
             if subdir not in ['.git','.DS_Store','/','history','files']:
@@ -170,18 +165,6 @@ class ProjectList():
         for project in self.projects:
             titles.append(project.title)
         return titles
-    
-    def import_project(self, path):
-
-        # See if the target project is already in the list.
-        project = self.get_project(path)
-        if project:
-            self.projects.remove(project)
-            
-        project = UrtextProject(path, import_project=True)
-        print('Imported project '+project.title)
-        self.projects.append(project)
-        self.set_current_project(path)
 
     def get_current_project(self, path):
         for project in self.projects:

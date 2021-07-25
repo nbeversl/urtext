@@ -106,6 +106,7 @@ single_boolean_values = [
     'always_oneline_meta',
     'preformat',
     'console_log',
+    'import',
     'atomic_rename',
     'autoindex',
     'keyless_timestamp',
@@ -119,7 +120,8 @@ replace = [
     'filenames',
     'node_browser_sort',
     'tag_other',
-    'filename_datestamp_format' ]
+    'filename_datestamp_format',
+    'exclude_files' ]
 
 
 
@@ -136,7 +138,6 @@ class UrtextProject:
                  path,
                  rename=False,
                  recursive=False,
-                 import_project=False,
                  init_project=False):
         
         self.is_async = True 
@@ -156,21 +157,18 @@ class UrtextProject:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
+        self.excluded_files = []
+        self.error_files = []
         if self.is_async:
             future = self.executor.submit(self._initialize_project,
-                    import_project=import_project, 
                     init_project=init_project)
         else:    
-            self._initialize_project(
-                 import_project=import_project, 
-                 init_project=init_project)
+            self._initialize_project(init_project=init_project)
 
         # TODO -- node date timezones have to be localized
         # do this from UrtextNode.date() method
 
-    def _initialize_project(self, 
-        import_project=False, 
-        init_project=False):
+    def _initialize_project(self, init_project=False):
 
         for c in all_extensions:
             for n in c.name:
@@ -185,11 +183,7 @@ class UrtextProject:
                 self.directives[n] = c
 
         for file in os.listdir(self.path):
-            self._parse_file(file, import_project=import_project)
-
-        if import_project:
-            for file in self.to_import:
-                self.import_file(file)
+            self._parse_file(file)
         
         self.default_timezone = timezone(self.settings['timezone'])
         
@@ -223,6 +217,7 @@ class UrtextProject:
 
         self.settings = {  
             'home': None,
+            'import': False,
             'timestamp_format':'%a., %b. %d, %Y, %I:%M %p', 
             'use_timestamp': [ 'updated','timestamp', 'inline-timestamp', '_oldest_timestamp', '_newest_timestamp'],
             'filenames': ['PREFIX', 'title'],
@@ -237,6 +232,7 @@ class UrtextProject:
             'atomic_rename' : False,
             'tag_other': [],
             'device_keyname' : '',
+            'exclude_files': [],
             'breadcrumb_key' : '',
             'new_file_node_format' : '$timestamp $id',
             'new_file_line_pos' : 2,
@@ -289,20 +285,20 @@ class UrtextProject:
             return file_position
         return None
 
-    def _parse_file(self, 
-            filename, 
-            import_project=False):
+    def _parse_file(self, filename):
     
         filename = os.path.basename(filename)
+
         if self._filter_filenames(filename) == None:
-            return
+            return self._add_to_excluded_files(filename)
 
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
  
         if new_file.errors:
+            self._add_to_error_files(filename)
             return -1
  
-        if not new_file.is_parseable:
+        if new_file.could_import and new_file.filename not in self.to_import:
             self.to_import.append(filename)
             return
 
@@ -310,8 +306,12 @@ class UrtextProject:
  
         duplicate_nodes = self._check_file_for_duplicates(new_file)
         if duplicate_nodes:
+            self._add_to_error_files(filename)
             return duplicate_nodes
- 
+        
+        if new_file.filename in self.error_files:
+            self.error_files.remove(new_file.filename)
+    
         self.files[new_file.basename] = new_file  
         for node_id in new_file.nodes:
             self._add_node(new_file.nodes[node_id])
@@ -326,9 +326,6 @@ class UrtextProject:
                 self._add_sub_tags( self.nodes[node_id].tree_node, 
                     self.nodes[node_id].tree_node, 
                     e)
-            # for child in self.nodes[node_id].tree_node.children:
-            #     child_node = child.name.strip('ALIAS')
-            #     self._reassign_sub_tags(child_node)
         
         # TODO: Needs optimization
         for node_id in list(self.nodes):
@@ -358,7 +355,7 @@ class UrtextProject:
                     ' exists in f>',
                     duplicate_nodes[node_id]]) )
 
-            file_obj.write_errors( self.settings, messages=messages)
+            file_obj.write_errors(self.settings, messages=messages)
             return duplicate_nodes
 
         return False
@@ -491,33 +488,20 @@ class UrtextProject:
 
 
     def import_file(self, filename):
-
-        with open(
-                os.path.join(self.path, filename),
-                'r',
-                encoding='utf-8',
-        ) as theFile:
+        with open(os.path.join(self.path, filename),'r',encoding='utf-8') as theFile:
             full_file_contents = theFile.read()
             theFile.close()
 
         date = creation_date(os.path.join(self.path, filename))
         now = datetime.datetime.now()
-        contents = '\n\n'
-        contents += "@" + self.next_index() + '\n'
-        if 'node_date_keyname' in self.settings:
-            contents += self.settings['node_date_keyname']+'::'
-        else:
-            contents += '\n'
-        contents += self.timestamp(date) + '\n'
-        contents += 'imported::' + self.timestamp(now) + '\n'
-
-        full_file_contents += contents
-
-        self.files[filename].set_file_contents(full_file_contents)
-
+        full_file_contents += '\n\n'
+        full_file_contents += "@" + self.next_index() + '\n'
+        full_file_contents += 'file_date::'+self.timestamp(date) + '\n'
+        full_file_contents += 'imported::' + self.timestamp(now) + '\n'
+        with open(os.path.join(self.path, filename),'w',encoding='utf-8') as theFile:
+            theFile.write(full_file_contents)
         return self._parse_file(filename)
 
- 
     """
     Removing and renaming files
     """
@@ -573,16 +557,17 @@ class UrtextProject:
                 self.files[new_filename].filename = os.path.join(self.path, new_filename)
                 self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
             del self.files[old_filename]
+    
     """ 
     Methods for filtering files to skip 
     """
     def _filter_filenames(self, filename):
         if not filename.endswith('.txt'):
-            # FUTURE:
-            # save and check these in an optional list of other extensions 
-            # set from project_settings 
             return None
-            
+        if filename in ['history','files','.git']:
+            return None            
+        if filename in self.settings['exclude_files']:
+            return None
         return filename
     
     def new_file_node(self, 
@@ -1089,12 +1074,31 @@ class UrtextProject:
     def on_modified(self, filenames):
         if not isinstance(filenames, list):
             filenames = [filenames]
-        do_not_update = ['history','files','.git']
-        filenames = [os.path.basename(f) for f in filenames if f not in do_not_update and '.git' not in f]
-        filenames = [f for f in filenames if f in self.files] 
+        filenames = [f for f in filenames if f not in self.excluded_files]
         if self.is_async:
             return self.executor.submit(self._file_update, filenames)
         return self._file_update(filenames)
+    
+    def _file_update(self, filenames):
+        if self.compiled:
+            modified_files = []
+            for f in filenames:  
+                if f in self.error_files:
+                    self._parse_file(f)
+                if f not in self.files:
+                    continue
+                self._rewrite_titles(filename=f)
+                self._parse_file(f)
+                modified_file = self._compile_file(f)   
+                if modified_file:
+                    modified_files.append(modified_file)
+            self._sync_file_list()
+            if self.settings['import'] == True:
+                for f in self.to_import:
+                    self.import_file(f)
+                    self.to_import.remove(f)
+            return modified_files
+
 
     def visit_node(self, node_id):
         if self.is_async:
@@ -1122,32 +1126,36 @@ class UrtextProject:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
             return self._compile_file(filename)
-
-    def _file_update(self, filenames):
-        if self.compiled:
-            modified_files = []
-            for f in filenames:            
-                self._rewrite_titles(filename=f)
-                self._parse_file(f)
-                modified_file = self._compile_file(f)   
-                if modified_file:
-                    modified_files.append(modified_file)
-            return modified_files
         
     def _sync_file_list(self):
         new_files = []
         files = os.listdir(self.path)
-        for file in [os.path.basename(f) for f in os.listdir(self.path) if f not in self.files]:
-            if self._filter_filenames(file) == None:
+        current_file_list = list(self.files)
+        modified_files = []
+
+        for file in [os.path.basename(f) for f in os.listdir(self.path) if f not in self.excluded_files]:
+            if file in current_file_list:
+                current_file_list.remove(file)
                 continue
             duplicate_node_ids = self._parse_file(file)
             if not duplicate_node_ids:
-                self._log_item(file+' found. Adding to "'+self.title+'"')    
+                self._log_item(file+' found. Parsing for "'+self.title+'"')    
                 new_files.append(os.path.basename(file))
-        lost_files = [f for f in list(self.files) if f not in os.listdir(self.path)]
-        for f in lost_files:
+
+        for f in current_file_list: # now list of dropped files
             self._log_item(f+' no longer seen in project path. Dropping it from the project.')
             self.remove_file(f)
+
+        for f in new_files:
+            self._parse_file(f)
+    
+    def _add_to_excluded_files(self, filename):
+        if filename not in self.excluded_files:
+            self.excluded_files.append(filename)    
+    
+    def _add_to_error_files(self, filename):
+        if filename not in self.error_files:
+            self.error_files.append(filename)    
 
     def add_file(self, filename):
         """ 
