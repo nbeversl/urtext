@@ -488,6 +488,8 @@ class UrtextProject:
 
 
     def import_file(self, filename):
+        self._log_item('Importing %s for %s' % (filename, self.title) )    
+
         with open(os.path.join(self.path, filename),'r',encoding='utf-8') as theFile:
             full_file_contents = theFile.read()
             theFile.close()
@@ -500,6 +502,7 @@ class UrtextProject:
         full_file_contents += 'imported::' + self.timestamp(now) + '\n'
         with open(os.path.join(self.path, filename),'w',encoding='utf-8') as theFile:
             theFile.write(full_file_contents)
+
         return self._parse_file(filename)
 
     """
@@ -890,10 +893,14 @@ class UrtextProject:
         result = re.search(
             node_link_regex, 
             string[col_pos:] # look only to the right of the click point
-            )        
+            )
         link_location = None
         
         if result:
+            result = re.search(
+                node_link_regex, 
+                string # include entire match in result
+                )
             kind = 'NODE'
             link_match = result.group()
             link_location = file_pos + result.span()[1] - 3
@@ -1139,7 +1146,6 @@ class UrtextProject:
                 continue
             duplicate_node_ids = self._parse_file(file)
             if not duplicate_node_ids:
-                self._log_item(file+' found. Parsing for "'+self.title+'"')    
                 new_files.append(os.path.basename(file))
 
         for f in current_file_list: # now list of dropped files
