@@ -1220,7 +1220,7 @@ class UrtextProject:
         keys = []
         exclude = self.settings['exclude_from_star']
         exclude.extend(self.settings.keys())
-        for nid in self.nodes:
+        for nid in list(self.nodes):
             keys.extend(self.nodes[nid].metadata.get_keys(exclude=exclude)
             )
         return list(set(keys))
