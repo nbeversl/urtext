@@ -841,19 +841,24 @@ class UrtextProject:
 
         if not link:
             return
-
+        
         # work backwards along the line
-        if not link['kind']:
-            while col_pos > -1:
-                link = self.find_link(
-                    string[col_pos:], 
-                    filename, 
-                    col_pos=col_pos,
-                    file_pos=file_pos)
-                if link['kind']:
-                    break
-                col_pos -= 1
-
+        # if not link['kind']:
+        #     while col_pos > -1:
+        #         link = self.find_link(
+        #             string[col_pos:], 
+        #             filename, 
+        #             col_pos=col_pos,
+        #             file_pos=file_pos)
+        #         if link['kind']:
+        #             break
+        #         col_pos -= 1
+        link = self.find_link(
+            string, 
+            filename, 
+            col_pos=col_pos,
+            file_pos=file_pos)
+        
         if not link['kind']:
             if not self.compiled:
                return self._log_item('Project is still compiling')
@@ -864,7 +869,6 @@ class UrtextProject:
                return self._log_item('Project is still compiling')
             self._log_item('Node ' + link['link'] + ' is not in the project')
             return None
-
         return link
 
     def find_link(self, 
@@ -890,17 +894,11 @@ class UrtextProject:
                         col_pos=col_pos,
                         file_pos=file_pos)
 
-        result = re.search(
-            node_link_regex, 
-            string[col_pos:] # look only to the right of the click point
-            )
+        result = re.search(node_link_regex, string)
         link_location = None
         
         if result:
-            result = re.search(
-                node_link_regex, 
-                string # include entire match in result
-                )
+
             kind = 'NODE'
             link_match = result.group()
             link_location = file_pos + result.span()[1] - 3

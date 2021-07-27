@@ -48,10 +48,7 @@ class PopNode(UrtextAction):
         end = self.project.nodes[node_id].ranges[-1][1]
         filename = self.project.nodes[node_id].filename
         file_contents = self.project.files[filename]._get_file_contents()
-        
         popped_node_id = node_id
-
-        filename = self.project.nodes[node_id].filename
 
         popped_node_contents = file_contents[start:end].strip()
         parent_id = self.project.nodes[node_id].tree_node.parent
@@ -72,7 +69,6 @@ class PopNode(UrtextAction):
             f.write(remaining_node_contents)
         self.project._parse_file(filename) 
 
-        # new file
         with open(os.path.join(self.project.path, popped_node_id+'.txt'), 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
         self.project._parse_file(popped_node_id+'.txt') 
@@ -128,7 +124,7 @@ class PullNode(UrtextAction):
         if source_filename == destination_filename:
             return print('Cannot pull a node from the same file.')
         
-        source_file_contents =self.project.files[source_filename]._get_file_contents()
+        source_file_contents = self.project.files[source_filename]._get_file_contents()
 
         updated_source_file_contents = ''.join([
             source_file_contents[0:start-1],
@@ -137,11 +133,14 @@ class PullNode(UrtextAction):
         if not self.project.nodes[source_id].root_node:
             self.project.files[source_filename]._set_file_contents(updated_source_file_contents)
             self.project._parse_file(source_filename)
-
+        else:
+            self.project._delete_file(source_filename)
+            
         pulled_contents = source_file_contents[start:end]
         destination_file_contents = self.project.files[destination_filename]._get_file_contents()
     
         wrapped_contents = ''.join(['{',pulled_contents,'}'])
+
         for m in re.finditer(re.escape(link['link_match']), destination_file_contents):
                 
             replacement_contents = ''.join([
@@ -154,10 +153,10 @@ class PullNode(UrtextAction):
             return print('DEBUGGING - error')
 
         self.project.files[destination_filename]._set_file_contents(replacement_contents)
+
         self.project._parse_file(destination_filename)
 
         if self.project.nodes[source_id].root_node:
-            self.project.delete_file(source_filename)  
             return os.path.join(self.project.path, source_filename)
         
         return None
