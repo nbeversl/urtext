@@ -526,8 +526,9 @@ class UrtextProject:
                 del self.nodes[node_id]
 
             del self.files[filename]
-            if filename in self.messages:
-                del self.messages[filename]
+
+        if filename in self.messages:
+            del self.messages[filename]
 
     def delete_file(self, filename, open_files=[]):
         if self.is_async:
@@ -550,7 +551,10 @@ class UrtextProject:
                         self.nav_index -= 1            
             self.remove_file(filename, is_async=False)
             os.remove(os.path.join(self.path, filename))
-        
+        if filename in self.error_files:
+            os.remove(os.path.join(self.path, filename))
+        if filename in self.messages:
+            del self.messages[filename]
         if open_files:
             return self.on_modified(open_files)
         return []
@@ -948,8 +952,7 @@ class UrtextProject:
         #     self.messages[None] = message
 
         if self.settings['console_log']:
-            print(filename)
-            print(message)
+            print(str(filename)+' : '+ message)
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
