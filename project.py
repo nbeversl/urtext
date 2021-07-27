@@ -141,7 +141,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -1017,13 +1017,13 @@ class UrtextProject:
             return self.executor.submit(
                 instance.execute,            
                 string, 
-                filename, 
+                filename=filename, 
                 col_pos=col_pos,
                 file_pos=file_pos)
         else:
             return instance.execute(
                 string, 
-                filename, 
+                filename=filename, 
                 col_pos=col_pos,
                 file_pos=file_pos)
 
