@@ -280,9 +280,9 @@ class UrtextNode:
 
 
 def strip_contents(contents, preserve_length=False):
+    contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
     contents = strip_metadata(contents=contents, preserve_length=preserve_length)
     contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
-    contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
     contents = contents.strip().strip('{').strip()
 
     return contents
@@ -337,9 +337,10 @@ def strip_dynamic_definitions(contents, preserve_length=False):
 def strip_embedded_syntaxes(contents, preserve_length=False):
 
     r = ' ' if preserve_length else ''
-    stripped_contents = contents
+    stripped_contents = strip_backtick_escape(contents)
     for e in embedded_syntax.findall(stripped_contents):
         stripped_contents = stripped_contents.replace(e,r*len(e))
+
     return stripped_contents
 
 def strip_errors(contents):

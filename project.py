@@ -1047,15 +1047,12 @@ class UrtextProject:
         for n in list(self.nodes):
             for k in self.nodes[n].metadata.get_keys():
                values = self.nodes[n].metadata.get_values(k)
+               if k == '#':
+                    k = self.settings['hash_key']
                for v in values:
                     pairs.append(''.join([k, '::', str(v) ])  )
-        return list(set(pairs))
 
-    def get_all_for_hash(self):
-        hashes = []
-        for n in self.get_by_meta(self.settings['hash_key'], '*' ,'='):
-            hashes.extend(self.nodes[n].metadata.get_values(self.settings['hash_key']))
-        return list(set(hashes))
+        return list(set(pairs))
 
     def random_node(self):
         if self.nodes:

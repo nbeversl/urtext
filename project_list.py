@@ -254,12 +254,6 @@ class ProjectList():
                     meta_values.append(pair)
         return meta_values
 
-    def get_all_for_hash(self):
-        hashes = []
-        for project in self.projects:
-            hashes.extend(project.get_all_for_hash())
-        return hashes
-
     def get_node_link(self, string):
 
         node_string = re.compile(node_id_regex + '(\:\d{0,20})?')
