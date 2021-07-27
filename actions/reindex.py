@@ -39,7 +39,7 @@ class ReindexFiles(UrtextAction):
                 return {}
 
             if not self.project.files[old_filename].root_nodes:
-                self.project._log_item('DEBUGGING (reindex.py): No root nodes in '+old_filename)
+                print('No root nodes in '+old_filename)
                 continue
 
             ## Name each file from the first root_node
@@ -78,7 +78,7 @@ class ReindexFiles(UrtextAction):
             if filename_template in [ [], [''] ]:
                 return print('New filename(s) could not be made. Check project_settings')
 
-            if keep_prefix:
+            if keep_prefix and 'PREFIX' in filename_template:
                 filename_template.insert(0, str(existing_prefix))
             filename_template = [p.strip() for p in filename_template if p.strip()]
             new_filename = ' - '.join(filename_template)      

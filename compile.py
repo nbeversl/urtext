@@ -49,7 +49,7 @@ def _process_dynamic_def(self, dynamic_definition):
         return
         
     if dynamic_definition.target_id not in self.nodes:
-        return self._log_item('Dynamic node definition in >' + dynamic_definition.source_id +
+        return self._log_item(None, 'Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
     output = dynamic_definition.process_output()    

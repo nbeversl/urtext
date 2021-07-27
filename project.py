@@ -141,11 +141,12 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.reset_settings()
         self.nodes = {}
         self.files = {}
+        self.messages = {}
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
         self.to_import = []
@@ -189,7 +190,6 @@ class UrtextProject:
         
         if self.nodes == {}:
             if init_project == True:
-                self._log_item('Initalizing a new Urtext project in ' + self.path)
                 self.new_file_node()
             else:
                 raise NoProject('No Urtext nodes in this folder.')
@@ -345,8 +345,11 @@ class UrtextProject:
 
         if duplicate_nodes:
             basename = os.path.basename(file_obj.filename)
-            self._log_item('Duplicate node ID(s) found :')
-            self._log_item(duplicate_nodes)
+            message = []
+            for n in duplicate_nodes:
+                message.append('>'+n + ' exists in f>'+duplicate_nodes[n]+'\n')
+            self._log_item(basename, 'Duplicate node ID(s) found: '+ ', '.join(duplicate_nodes))
+
             messages = []
             for node_id in duplicate_nodes:
                 messages.append(''.join([
@@ -425,7 +428,7 @@ class UrtextProject:
                                   '. Keeping the definition in >',
                                   defined, '.'
                                   ])
-                    self._log_item(message)
+                    self._log_item(new_node.filename, message)
 
                     definition = None
                        
@@ -433,7 +436,7 @@ class UrtextProject:
             message = ''.join([ 
                     'Multiple ID tags in >' , new_node.id ,': ',
                     ', '.join(new_node.metadata.get_first_value('ID')),' - using the first one found.'])
-            self._log_item(message)
+            self._log_item(new_node.filename, message)
 
         new_node.parent_project = self.title
         new_node.project = self
@@ -488,7 +491,7 @@ class UrtextProject:
 
 
     def import_file(self, filename):
-        self._log_item('Importing %s for %s' % (filename, self.title) )    
+        self._log_item(filename, 'Importing %s for %s' % (filename, self.title) )    
 
         with open(os.path.join(self.path, filename),'r',encoding='utf-8') as theFile:
             full_file_contents = theFile.read()
@@ -523,6 +526,8 @@ class UrtextProject:
                 del self.nodes[node_id]
 
             del self.files[filename]
+            if filename in self.messages:
+                del self.messages[filename]
 
     def delete_file(self, filename, open_files=[]):
         if self.is_async:
@@ -707,7 +712,7 @@ class UrtextProject:
         
         # return if the index is already at the end
         if self.nav_index == len(self.navigation) - 1:
-            self._log_item('project index is at the end.')
+            print('project index is at the end.')
             return None
         
         self.nav_index += 1
@@ -731,7 +736,7 @@ class UrtextProject:
             return None
 
         if self.nav_index == 0:
-            self._log_item('project index is already at the beginning.')
+            print('project index is already at the beginning.')
             return None
 
         self.nav_index -= 1
@@ -800,7 +805,7 @@ class UrtextProject:
                 root_nodes.extend(self.files[filename].root_nodes)
             else:
                 if not self.files[filename].root_nodes:
-                    self._log_item('DEBUGGING (project.py): No root nodes in f>'+filename)
+                    self._log_item(filename, 'No root nodes in f>'+filename)
                 else:
                     root_nodes.append(self.files[filename].root_nodes[0])
         return root_nodes
@@ -861,14 +866,14 @@ class UrtextProject:
         
         if not link['kind']:
             if not self.compiled:
-               return self._log_item('Project is still compiling')
-            return self._log_item('No node ID, web link, or file found on this line.')
+               return print('Project is still compiling')
+            return print('No node ID, web link, or file found on this line.')
 
         if link['kind'] == 'NODE' and link['link'] not in self.nodes:
             if not self.compiled:
-               return self._log_item('Project is still compiling')
-            self._log_item('Node ' + link['link'] + ' is not in the project')
-            return None
+               return print('Project is still compiling')
+            return print('Node ' + link['link'] + ' is not in the project')
+
         return link
 
     def find_link(self, 
@@ -936,9 +941,15 @@ class UrtextProject:
             return self.nodes[node_id].filename
         return False
 
-    def _log_item(self, item):
+    def _log_item(self, filename, message):
+        if filename:
+            self.messages[filename] = message
+        # else:
+        #     self.messages[None] = message
+
         if self.settings['console_log']:
-            print(item)
+            print(filename)
+            print(message)
         
     def timestamp(self, date):
         """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
@@ -1147,7 +1158,7 @@ class UrtextProject:
                 new_files.append(os.path.basename(file))
 
         for f in current_file_list: # now list of dropped files
-            self._log_item(f+' no longer seen in project path. Dropping it from the project.')
+            self._log_item(f, f+' no longer seen in project path. Dropping it from the project.')
             self.remove_file(f)
 
         for f in new_files:
@@ -1169,7 +1180,7 @@ class UrtextProject:
         any_duplicate_ids = self._parse_file(filename)
         
         if any_duplicate_ids:
-            self._log_item('File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
+            self._log_item(filename, 'File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
             raise DuplicateIDs()
         else:
             if self.is_async:

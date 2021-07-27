@@ -73,11 +73,11 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
             exclude = []
         
         if not root_node_id:
-            self.project._log_item('Root node ID is None')
+            print('Root node ID is None')
             return
             
         if root_node_id not in self.project.nodes:
-            self.project._log_item('EXPORT: Root node ID ' + root_node_id +' not in the project.')
+            print('EXPORT: Root node ID ' + root_node_id +' not in the project.')
             return '','',''    
        
         """
