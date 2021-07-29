@@ -44,6 +44,7 @@ class PopNode(UrtextAction):
             print(node_id+ ' is already a root node.')
             return None
 
+        self.project._parse_file(filename)
         start = self.project.nodes[node_id].ranges[0][0]
         end = self.project.nodes[node_id].ranges[-1][1]
         filename = self.project.nodes[node_id].filename
@@ -114,15 +115,23 @@ class PullNode(UrtextAction):
             return None
 
         #  make sure we are in a node in an Urtext file.
-        if not self.project.get_node_id_from_position(destination_filename, file_pos):
+        self.project._parse_file(destination_filename)
+        destination_node = self.project.get_node_id_from_position(destination_filename, file_pos)
+        if not destination_node:
+            return None
+        if self.project.nodes[destination_node].dynamic:
+            print('Not pulling content into a dynamic node')
             return None
 
+        source_filename = self.project.nodes[source_id].filename
+        for ancestor in self.project.nodes[destination_node].tree_node.ancestors:
+            if ancestor.name == source_id:
+                print('Cannot pull a node into its own child or descendant.')
+                return None
+                        
+        self.project._parse_file(source_filename)
         start = self.project.nodes[source_id].ranges[0][0]
         end = self.project.nodes[source_id].ranges[-1][1]
-        
-        source_filename = self.project.nodes[source_id].filename
-        if source_filename == destination_filename:
-            return print('Cannot pull a node from the same file.')
         
         source_file_contents = self.project.files[source_filename]._get_file_contents()
 
@@ -148,9 +157,6 @@ class PullNode(UrtextAction):
                 wrapped_contents,
                 destination_file_contents[m.end():]]
                 )
-
-        if not replacement_contents: #safeguard
-            return print('DEBUGGING - error')
 
         self.project.files[destination_filename]._set_file_contents(replacement_contents)
 
