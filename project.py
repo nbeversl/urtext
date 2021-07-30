@@ -141,7 +141,7 @@ class UrtextProject:
                  init_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development only
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -1013,6 +1013,8 @@ class UrtextProject:
 
     def run_action(self, action, string, filename, col_pos=0, file_pos=0):
         instance = self.actions[action](self)
+        if not filename:
+            return None
         if self.is_async:
             return self.executor.submit(
                 instance.execute,            

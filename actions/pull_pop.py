@@ -63,7 +63,6 @@ class PopNode(UrtextAction):
             self.project.nodes[popped_node_id].title,
              ' >>',
             popped_node_id,
-            '\n',
             file_contents[end + 1:]])
        
         with open (os.path.join(self.project.path, filename), 'w', encoding='utf-8') as f:
@@ -84,7 +83,8 @@ class PullNode(UrtextAction):
         filename, 
         file_pos=0, 
         col_pos=0):
-        
+    
+
         """ File must be saved in the editor """
         return self._pull_node(
             string, 
@@ -139,12 +139,14 @@ class PullNode(UrtextAction):
             source_file_contents[0:start-1],
             source_file_contents[end+1:len(source_file_contents)]])
 
+        root = False
         if not self.project.nodes[source_id].root_node:
             self.project.files[source_filename]._set_file_contents(updated_source_file_contents)
             self.project._parse_file(source_filename)
         else:
             self.project._delete_file(source_filename)
-            
+            root = True
+        
         pulled_contents = source_file_contents[start:end]
         destination_file_contents = self.project.files[destination_filename]._get_file_contents()
     
@@ -159,10 +161,9 @@ class PullNode(UrtextAction):
                 )
 
         self.project.files[destination_filename]._set_file_contents(replacement_contents)
-
         self.project._parse_file(destination_filename)
 
-        if self.project.nodes[source_id].root_node:
+        if root:
             return os.path.join(self.project.path, source_filename)
         
         return None
