@@ -1069,7 +1069,7 @@ class UrtextProject:
         if new_id:
             replacement = '>'+new_id
         if new_project:
-            replacement = '{"'+new_project+'"}'+replacement
+            replacement = '=>"'+new_project+'"'+replacement
         patterns_to_replace = [
             r'\|.*?\s>{1,2}',   # replace title markers before anything else
             r'[^\}]>>',         # then node pointers

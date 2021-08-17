@@ -35,7 +35,7 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
         self.backward_visited_nodes = []
         self.exclude = []
 
-        if 'from' in self.params_dict:
+        if 'from' in self.params_dict and self.params_dict['from'][0] in self.project.nodes:
             root_node_id = self.params_dict['from'][0]
             root_node = self.project.nodes[root_node_id]
             root_meta = self.project.nodes[root_node_id].metadata

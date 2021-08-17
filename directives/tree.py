@@ -77,7 +77,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
             if next_content.needs_link:
                 link = []
                 if urtext_node.parent_project not in [self.project.title, self.project.path]:
-                    link.extend(['{"',this_node.parent_project,'"}'])
+                    link.extend(['=>"',urtext_node.parent_project,'"'])
                 else:
                     link.append('>')
                 link.append(str(urtext_node.id))
