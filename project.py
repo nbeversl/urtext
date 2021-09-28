@@ -146,6 +146,7 @@ class UrtextProject:
         self.reset_settings()
         self.nodes = {}
         self.files = {}
+        self.exports = {}
         self.messages = {}
         self.navigation = []  # Stores, in order, the path of navigation
         self.nav_index = -1  # pointer to the CURRENT position in the navigation list
@@ -1142,20 +1143,20 @@ class UrtextProject:
                 op.on_node_visited(node_id)
 
     def visit_file(self, filename):
-        filename = os.path.basename(filename)
         if self.is_async:
             return self.executor.submit(self._visit_file, filename)
         else:
             return self._visit_file(filename)
 
     def _visit_file(self, filename):
+        filename = os.path.basename(filename)
+        if filename in self.exports:
+            self._process_dynamic_def(self.exports[filename])
+        
         if filename in self.files and self.compiled:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
             return self._compile_file(filename)
-
-
-
         
     def _sync_file_list(self):
         new_files = []

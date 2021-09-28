@@ -194,7 +194,7 @@ class ProjectList():
         if filename:
             path = os.path.dirname(filename)
             self.set_current_project(path)
-            return self.current_project.visit_file(os.path.basename(filename))
+            return self.current_project.visit_file(filename)
 
     def move_file(self, 
         filename, 

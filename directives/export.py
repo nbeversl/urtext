@@ -34,7 +34,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
 
     name = ["EXPORT"]
     phase = 500
-    
+
     def dynamic_output(self, input):
         if 'root' in self.params_dict:
             return self.export_from(

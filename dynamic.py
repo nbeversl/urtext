@@ -66,6 +66,7 @@ class UrtextDynamicDefinition:
 					continue
 
 			if func == 'FILE':
+				# currently works for files in the project path only
 				self.target_file = argument_string
 				continue
 

@@ -37,6 +37,9 @@ class UrtextDirective():
     def on_project_init(self):
         return
 
+    def on_file_visited(self, file_name):
+        return
+
     """ dynamic output """
 
     def dynamic_output(self, input_contents):
