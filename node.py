@@ -114,7 +114,7 @@ class UrtextNode:
 
     def contents(self, 
         preserve_length=False,
-        strip_embedded_syntaxes=True):
+        do_strip_embedded_syntaxes=True):
    
         with open(os.path.join(self.project.path, self.filename),
                   'r',
@@ -130,7 +130,7 @@ class UrtextNode:
             node_contents.append(this_range)
         node_contents = ''.join(node_contents)
         node_contents = strip_wrappers(node_contents)
-        if strip_embedded_syntaxes:
+        if do_strip_embedded_syntaxes:
             node_contents = strip_embedded_syntaxes(
                 contents=node_contents,
                 preserve_length=preserve_length)
