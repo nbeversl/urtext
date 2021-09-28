@@ -33,6 +33,7 @@ class UrtextDynamicDefinition:
 
 		self.location = match.start()
 		self.target_id = None
+		self.target_file = None
 		self.included_nodes = []
 		self.excluded_nodes = []
 		self.used_functions = []
@@ -57,14 +58,17 @@ class UrtextDynamicDefinition:
 				op.set_dynamic_definition(self)
 				op.parse_argument_string(argument_string)	
 				self.operations.append(op)
-			
-			# target
+
 			if func =='ID':
 				node_id_match = re.search(node_id_regex, argument_string)
 				if node_id_match:
 					self.target_id = node_id_match.group(0)[1:]
 					continue
-  
+
+			if func == 'FILE':
+				self.target_file = argument_string
+				continue
+
 			# #output
 			# if func == "FORMAT":
 			# 	if has_flags(['-multiline-meta','-mm'], flags):

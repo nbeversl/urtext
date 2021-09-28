@@ -27,6 +27,8 @@ node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
 titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
 file_link_regex = re.compile('f>.*')
+embedded_syntax_open = re.compile('(%%-[A-Z-]+?)', flags=re.DOTALL)
+embedded_syntax_close = re.compile('|(%%-[A-Z-]*-END)', flags=re.DOTALL)
 
 class UrtextExport(UrtextDirectiveWithParamsFlags):
 
@@ -178,11 +180,8 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
             and add it, assuming we are including all sub-nodes.
             TODO: Add checking in here for excluded nodes
             """
-        
             if not self.have_flags('-single_node_only') and single_range[1] < ranges[-1][1]:
-
                 next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
-                
                 if next_node and next_node not in visited_nodes:
 
                     next_nested = nested + 1
@@ -363,14 +362,16 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
 
     def _strip_urtext_syntax(self, contents):
         
-        contents = urtext.node.strip_contents(contents).strip()
+        contents = urtext.node.strip_contents(contents, 
+            include_backtick=False, 
+            reformat_and_keep_embedded_syntaxes=True).strip()
         if contents and contents[0] == '{':
             contents = contents[1:]
         if contents and contents[-1] == '}':
             contents = contents[:-1]
             
         return contents
- 
+
     def opening_wrapper(self, node_id, nested):
         return ''
 

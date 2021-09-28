@@ -16,7 +16,7 @@ class MarkdownExport(UrtextExport):
         # TODO - make quote wrapper optional
         return contents
 
-    def before_replace_node_link(self, range_contents):
+    def before_replace_node_links(self, range_contents):
         return strip_leading_space(range_contents)
 
     def after_replace_node_links(self, range_contents):

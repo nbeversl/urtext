@@ -38,6 +38,8 @@ node_link_regex = r'>{1,2}[0-9,a-z]{3}\b'
 timestamp_match = re.compile('(?:<)([^-/<\s`][^=<]+?)(?:>)', flags=re.DOTALL)
 inline_meta = re.compile('\*{0,2}\w+\:\:([^\n};]+;?(?=>:})?)?', flags=re.DOTALL)
 embedded_syntax = re.compile('%%-[A-Z-]*.*?%%-[A-Z-]*-END', flags=re.DOTALL)
+embedded_syntax_open = re.compile('%%-[A-Z-]+', flags=re.DOTALL)
+embedded_syntax_close = re.compile('%%-[A-Z-]+?-END', flags=re.DOTALL)
 short_id = re.compile(r'(?:\s?)@[0-9,a-z]{3}\b')
 shorthand_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
 preformat_syntax = re.compile('\`.*?\`', flags=re.DOTALL)
@@ -103,13 +105,16 @@ class UrtextNode:
             self.contains_project_settings = True
 
         self.get_links(contents=contents)
+    
     def start_position(self):
         return self.ranges[0][0]
     
     def get_date(self, date_keyword):
         return self.metadata.get_date(date_keyword)
 
-    def contents(self, preserve_length=False):
+    def contents(self, 
+        preserve_length=False,
+        strip_embedded_syntaxes=True):
    
         with open(os.path.join(self.project.path, self.filename),
                   'r',
@@ -125,9 +130,10 @@ class UrtextNode:
             node_contents.append(this_range)
         node_contents = ''.join(node_contents)
         node_contents = strip_wrappers(node_contents)
-        node_contents = strip_embedded_syntaxes(
-            contents=node_contents,
-            preserve_length=preserve_length)
+        if strip_embedded_syntaxes:
+            node_contents = strip_embedded_syntaxes(
+                contents=node_contents,
+                preserve_length=preserve_length)
         return node_contents
 
     def date(self):
@@ -279,8 +285,15 @@ class UrtextNode:
         return contents
 
 
-def strip_contents(contents, preserve_length=False):
-    contents = strip_embedded_syntaxes(contents=contents, preserve_length=preserve_length)
+def strip_contents(contents, 
+    preserve_length=False, 
+    include_backtick=True,
+    reformat_and_keep_embedded_syntaxes=False,
+    ):
+    contents = strip_embedded_syntaxes(contents, 
+        preserve_length=preserve_length, 
+        include_backtick=include_backtick,
+        reformat_and_keep_contents=reformat_and_keep_embedded_syntaxes)
     contents = strip_metadata(contents=contents, preserve_length=preserve_length)
     contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
     contents = contents.strip().strip('{').strip()
@@ -334,12 +347,30 @@ def strip_dynamic_definitions(contents, preserve_length=False):
             stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
         return stripped_contents.strip()
 
-def strip_embedded_syntaxes(contents, preserve_length=False):
+#TODO refactor
+def strip_embedded_syntaxes(
+    stripped_contents, 
+    preserve_length=False, 
+    reformat_and_keep_contents=False,
+    include_backtick=True):
 
     r = ' ' if preserve_length else ''
-    stripped_contents = strip_backtick_escape(contents)
+    if include_backtick:
+        stripped_contents = strip_backtick_escape(stripped_contents)
     for e in embedded_syntax.findall(stripped_contents):
-        stripped_contents = stripped_contents.replace(e,r*len(e))
+        if reformat_and_keep_contents:
+            unwrapped_contents = e
+            for opening_wrapper in embedded_syntax_open.findall(unwrapped_contents):
+                unwrapped_contents = unwrapped_contents.replace(opening_wrapper,'`',1)   
+            for closing_wrapper in embedded_syntax_close.findall(unwrapped_contents):
+                unwrapped_contents = unwrapped_contents.replace(closing_wrapper,'`',1)
+            unwrapped_contents = unwrapped_contents.strip()
+            unwrapped_contents = unwrapped_contents.split('\n')
+            unwrapped_contents = [line.strip() for line in unwrapped_contents if line.strip() != '']
+            unwrapped_contents = '\t\t\n'.join(unwrapped_contents)
+            stripped_contents = stripped_contents.replace(e, unwrapped_contents)
+        else:
+            stripped_contents = stripped_contents.replace(e,r*len(e))
 
     return stripped_contents
 

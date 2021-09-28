@@ -79,16 +79,20 @@ class ProjectList():
                 """ If a node ID is included, and it exists, link to it """
                 node_id = project_name.group(3)
                 if node_id in self.current_project.nodes:
-                    return ('NODE', 
-                        node_id, 
-                        self.current_project.nodes[node_id].ranges[0][0])
-            """ else (for both cases): """
-            node_id = self.current_project.nav_current()
-            return ('NODE', 
-                node_id, 
-                self.current_project.nodes[node_id].ranges[0][0])         
+                    return {
+                        'kind' : "OTHER_PROJECT", 
+                        'link' : node_id, 
+                        'dest_position' : 0,
+                    }
 
-        """ Otherwise, set the project search the link for a link in the current project """
+            node_id = self.current_project.nav_current()
+            return {
+                'kind': 'NODE', 
+                'link': node_id, 
+                'dest_position' : 0,
+                }
+
+        """ Otherwise, set the project, search the link for a link in the current project """
         self.set_current_project(os.path.basename(filename))
         link = self.current_project.get_link( 
             string, 

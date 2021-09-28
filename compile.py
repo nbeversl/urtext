@@ -30,6 +30,7 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename): 
+    
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
@@ -44,32 +45,39 @@ def _process_dynamic_def(self, dynamic_definition):
 
     # points = {} # Future
     new_node_contents = []
-
-    if not dynamic_definition.target_id:
+    if not dynamic_definition.target_id and not dynamic_definition.target_file:
         return
         
-    if dynamic_definition.target_id not in self.nodes:
+    if dynamic_definition.target_id and dynamic_definition.target_id not in self.nodes:
         return self._log_item(None, 'Dynamic node definition in >' + dynamic_definition.source_id +
                       ' points to nonexistent node >' + dynamic_definition.target_id)
 
     output = dynamic_definition.process_output()    
+
+    #TODO this should not be necessary, but:
     if not isinstance(output, str):
         return
 
     final_output = self._build_final_output(dynamic_definition, output) 
+    final_output = self._build_final_output(dynamic_definition, output) 
        
-    if dynamic_definition.target_id in self.nodes:
+    if dynamic_definition.target_id and dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)  
-        if not changed_file:
-            return
-   
-    self.nodes[dynamic_definition.target_id].dynamic = True
+        if changed_file:
+
+            self.nodes[dynamic_definition.target_id].dynamic = True
+        
+            # Dynamic nodes have blank title by default. Title can be set by header or title key.
+            if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'):
+                self.nodes[dynamic_definition.target_id].title = ''
     
-    # Dynamic nodes have blank title by default. Title can be set by header or title key.
-    if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'):
-        self.nodes[dynamic_definition.target_id].title = ''
-    
+    if dynamic_definition.target_file:
+        with open(os.path.join(self.path, dynamic_definition.target_file), 'w', encoding='utf-8' ) as f:
+            f.write(final_output)
+        changed_file = os.path.join(self.path, dynamic_definition.target_file)
+
     return changed_file
+
 
 def _build_final_output(self, dynamic_definition, contents):
 
@@ -77,7 +85,6 @@ def _build_final_output(self, dynamic_definition, contents):
     
     if dynamic_definition.target_id:
         metadata_values['ID'] = dynamic_definition.target_id
-        metadata_values['def'] = [ '| '+ self.nodes[dynamic_definition.source_id].title +' >'+dynamic_definition.source_id +':'+str(dynamic_definition.location)] 
 
     built_metadata = UrtextNode.build_metadata(
         metadata_values, 
@@ -86,6 +93,8 @@ def _build_final_output(self, dynamic_definition, contents):
     final_contents = ''.join([
         ' ', ## TODO: Make leading space an option.
         contents,
+        '((>'+dynamic_definition.source_id +':'+str(dynamic_definition.location),
+        ')) ',
         built_metadata,
         ])
     if dynamic_definition.spaces:

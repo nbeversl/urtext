@@ -37,8 +37,6 @@ class HistorySnapshot(UrtextAction):
                 with open( history_file, "w") as f:
                     f.write(json.dumps(file_history))
 
-  
-
 class GetHistory(UrtextAction):
 
     name=['HISTORY_GET_HISTORY']

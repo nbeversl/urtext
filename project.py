@@ -31,13 +31,12 @@ from pytz import timezone
 from anytree import Node, PreOrderIter, RenderTree
 
 from urtext.file import UrtextFile
-from urtext.node import UrtextNode, strip_contents
+from urtext.node import UrtextNode
 from urtext.compile import compile_functions
 from urtext.meta_handling import metadata_functions
 
 from urtext.dynamic import UrtextDynamicDefinition
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
-from urtext.utils import strip_backtick_escape
 from urtext.directive import UrtextDirective
 from urtext.action import UrtextAction
 from urtext.extension import UrtextExtension
@@ -100,7 +99,8 @@ single_values = [
     'new_file_node_format',
     'hash_key',
     'filename_datestamp_format',
-    'timezone' ]
+    'timezone',
+    'filename_title_length' ]
 
 single_boolean_values = [
     'always_oneline_meta',
@@ -190,7 +190,11 @@ class UrtextProject:
         
         if self.nodes == {}:
             if init_project == True:
-                self.new_file_node()
+                new_node = self.new_file_node(contents = 
+                    "Home Node\n\n")
+
+                self.new_file_node(contents = 
+                    "New Urtext Project\n\n{ project_settings \n\n home::"+new_node['id']+"\n\n@"+self.next_index()+"}\n\n")
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
@@ -232,6 +236,7 @@ class UrtextProject:
             'atomic_rename' : False,
             'tag_other': [],
             'device_keyname' : '',
+            'filename_title_length': 100,
             'exclude_files': [],
             'breadcrumb_key' : '',
             'new_file_node_format' : '$timestamp $id',
@@ -262,6 +267,7 @@ class UrtextProject:
                 'weblink',
                 'timestamp',],
         }
+
     def _node_id_generator(self):
         chars = [
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c',
@@ -696,7 +702,10 @@ class UrtextProject:
             metadata_block = self.urtext_node.build_metadata(metadata, one_line=True)
             return '•  '+contents + ' ' + metadata_block
 
-    def dynamic_defs(self, target=None):
+    def dynamic_defs(self, 
+        target=None, 
+        filename=None):
+
         dd = []
         for nid in list(self.nodes):
             if nid in self.nodes:
@@ -1144,6 +1153,9 @@ class UrtextProject:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
             return self._compile_file(filename)
+
+
+
         
     def _sync_file_list(self):
         new_files = []
