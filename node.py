@@ -132,7 +132,7 @@ class UrtextNode:
         node_contents = strip_wrappers(node_contents)
         if do_strip_embedded_syntaxes:
             node_contents = strip_embedded_syntaxes(
-                contents=node_contents,
+                node_contents,
                 preserve_length=preserve_length)
         return node_contents
 
