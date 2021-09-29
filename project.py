@@ -576,6 +576,8 @@ class UrtextProject:
                 self.files[new_filename].filename = os.path.join(self.path, new_filename)
                 self.nodes[node_id].full_path = os.path.join(self.path, new_filename)
             del self.files[old_filename]
+            for ext in self.extensions:
+                self.extensions[ext].on_file_renamed(old_filename, new_filename)
     
     """ 
     Methods for filtering files to skip 

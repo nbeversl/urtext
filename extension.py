@@ -14,3 +14,7 @@ class UrtextExtension:
 
     def on_init(self, project):
         return
+
+    def on_file_renamed(self, old_filename, new_filename):
+        return
+
