@@ -42,7 +42,7 @@ def _tag_other_node(self, node_id, metadata={}, open_files=[]):
             return None
         timestamp = self.timestamp(datetime.datetime.now())
         metadata = { self.settings['tag_other'][0] : self.settings['tag_other'][1] + ' ' + timestamp}
-   
+    
     territory = self.nodes[node_id].ranges
     metadata_contents = UrtextNode.build_metadata(metadata)
 

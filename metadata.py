@@ -29,7 +29,7 @@ timestamp_match = re.compile('<([^-/<\s][^=<]+?)>')
 meta_entry = re.compile('\+?\*{0,2}\w+\:\:[^\n@};]+;?(?=>:})?')
 node_title_regex = re.compile('^[^\n_]*?(?= _)', re.MULTILINE)
 hash_meta = re.compile(r'(?:^|\s)#[A-Z,a-z].*?\b')
-meta_separator = re.compile(r'\s-(\s|$)')
+meta_separator = re.compile(r'\s-\s|$')
 
 class NodeMetadata:
 
