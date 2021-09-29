@@ -39,7 +39,8 @@ class ProjectList():
             self.current_project = self.projects[0]
         if first_project:
             self.set_current_project(first_project)
-
+        self._propagate_projects(None)
+    
     def _add_folder(self, folder):
         """ recursively add folders """
         if folder not in [p.path for p in self.projects]:
@@ -115,7 +116,7 @@ class ProjectList():
         if future: # future can be None
             s = future.result()
         for project in self.projects:
-            project.other_projects = self.projects
+            project.project_list = self
 
     def _get_project_from_path(self, path):
         for project in self.projects:
@@ -159,7 +160,7 @@ class ProjectList():
             link += '>'
         link += node_id
         if include_project or project != self.current_project:
-            link = '=>"' + project.title +'">'+link
+            link = '=>"' + project.title +'"'+link
         return link
 
     def nav_current(self):

@@ -45,7 +45,7 @@ from urtext.extension import UrtextExtension
 from importlib import import_module
 
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
-title_marker_regex = r'\|.*?\s>{1,2}[0-9,a-z]{3}\b'
+title_marker_regex = r'(=>"[^"]*?")?(\|.*?\s>{1,2}[0-9,a-z]{3}\b)'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
 node_link_regex = re.compile(r'(\|?[^\|]*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
 action_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
@@ -155,7 +155,7 @@ class UrtextProject:
         self.actions = {}
         self.directives = {}
         self.compiled = False
-        self.other_projects = [] # propagates from UrtextProjectList, permits "awareness" of list context
+        self.project_list = None # becomes UrtextProjectList, permits "awareness" of list context
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=50)
         self.default_timezone = timezone('UTC')
         self.title = self.path # default
@@ -379,20 +379,34 @@ class UrtextProject:
         else:
             return
         new_contents = original_contents
-        offset = 0        
+        offset = 0
         for match in re.finditer(title_marker_regex, new_contents):
+
+            # cross-project link
+            if match.group(1):
+                project_title = match.group(1)[3:-1]
+                project = self.project_list.get_project(project_title)
+            else:
+                project = self
+
             start = match.start() + offset
             end = match.end() + offset   
             match_contents = new_contents[start:end]
             node_id = match_contents[-3:]
-            if node_id in self.nodes:
-                title = self.nodes[node_id].title
+            if node_id in project.nodes:
+                title = project.nodes[node_id].title
             else:
                 title = ' ? '
             bracket = '>'
             if re.search(node_pointer_regex, match_contents):
                 bracket += '>'
-            replaced_contents = ''.join([new_contents[:start],
+            if project == self:
+                project_prefix = ''
+            else:
+                project_prefix = '=>"'+project.title+'"'
+            replaced_contents = ''.join([                
+                new_contents[:start],
+                project_prefix,
                 '| ', title, ' ', bracket, node_id,
                 new_contents[end:]
                 ])
