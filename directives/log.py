@@ -12,6 +12,7 @@ class Log(UrtextDirective):
 				file = 'f>'+k+'; '
 			else:
 				file = '(no file) '
-			output.append(file + ":" + self.project.messages[k])
+			for message in self.project.messages[k]:
+				output.append(file + ":" + message)
 
 		return '\n'.join(output) + '\n'

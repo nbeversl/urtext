@@ -47,7 +47,7 @@ from importlib import import_module
 node_pointer_regex = r'>>[0-9,a-z]{3}\b'
 title_marker_regex = r'(=>"[^"]*?")?(\|.*?\s>{1,2}[0-9,a-z]{3}\b)'
 node_id_regex = r'\b[0-9,a-z]{3}\b'
-node_link_regex = re.compile(r'(\|?[^\|]*?[^f]>{1,2})(\w{3})(\:\d{1,10})?')
+node_link_regex = re.compile(r'(\|?[^\|]*?>{1,2})(\w{3})(\:\d{1,10})?')
 action_regex = re.compile(r'>>>([A-Z_]+)\((.*?)\)', re.DOTALL)
 editor_file_link_regex = re.compile('(f>{1,2})([^;]+)')
 url_scheme = re.compile(r'http[s]?:\/\/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
@@ -90,7 +90,6 @@ single_values = [
     'home',
     'project_title',
     'node_date_keyname',
-    'log_id',
     'timestamp_format',
     'device_keyname',
     'breadcrumb_key',
@@ -232,7 +231,6 @@ class UrtextProject:
             'always_oneline_meta' : False,
             'strict':False,
             'node_date_keyname' : 'timestamp',
-            'log_id': '',
             'numerical_keys': ['_index' ,'index'],
             'atomic_rename' : False,
             'tag_other': [],
@@ -300,7 +298,7 @@ class UrtextProject:
             return self._add_to_excluded_files(filename)
 
         new_file = self.urtext_file(os.path.join(self.path, filename), self)
- 
+        self.messages[new_file.filename] = new_file.messages
         if new_file.errors:
             self._add_to_error_files(filename)
             return -1
@@ -386,8 +384,8 @@ class UrtextProject:
             if match.group(1):
                 project_title = match.group(1)[3:-1]
                 project = self.project_list.get_project(project_title)
-            else:
-                project = self
+                if project == None: return False
+            else: project = self
 
             start = match.start() + offset
             end = match.end() + offset   
@@ -867,7 +865,7 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        
+        print(string)
         link = self.find_link(
             string, 
             filename, 
@@ -972,24 +970,20 @@ class UrtextProject:
         return False
 
     def _log_item(self, filename, message):
-        if filename:
-            self.messages[filename] = message
-        # else:
-        #     self.messages[None] = message
-
-        if self.settings['console_log']:
-            print(str(filename)+' : '+ message)
+        if filename: 
+            self.messages.setdefault(filename, [])
+            self.messages[filename].append(message)
+        if self.settings['console_log']: print(str(filename)+' : '+ message)
         
     def timestamp(self, date):
-        """ Given a datetime object, returns a timestamp in the format set in project_settings, or the default """
-
+        """ 
+        Given a datetime object, returns a timestamp 
+        in the format set in project_settings, or the default 
+        """
         if date.tzinfo == None:
             date = self.default_timezone.localize(date)    
         timestamp_format = '<' + self.settings['timestamp_format'] + '>'
         return date.strftime(timestamp_format)
-
-    def get_log_node(self):
-        return self.settings['log_id']
 
     def _get_settings_from(self, node):
       
