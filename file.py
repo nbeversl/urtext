@@ -52,33 +52,32 @@ symbol_length = {
     'EOF': 0,
 }
 
-class UrtextFile:
+class UrtextBuffer:
 
     urtext_node = UrtextNode
 
-    def __init__(self, filename, project):
+    def __init__(self, contents, project):
         
         self.nodes = {}
         self.root_nodes = []
-        self.alias_nodes = []
-        self.filename = filename
-        self.project = project
-        self.anonymous_nodes = []
-        self.basename = os.path.basename(filename)        
+        self.alias_nodes = []           
         self.parsed_items = {}
+        self.anonymous_nodes = []
         self.strict = False
         self.messages = []        
         self.errors = False
-        self.could_import = False
-
-        contents = self._get_file_contents() 
-        if not contents:
-            return
+        self.contents = contents
+        self.filename = 'yyyyyyyyyyy'
+        self.basename = 'yyyyyyyyyyy'
+        self.project = project
         
-        contents = self.clear_errors(contents)
+        
+        self.could_import = False        
         self.file_length = len(contents)        
         self.parse(self.lex(contents))
-        self.write_errors(project.settings)
+        
+     
+        #self.write_errors(project.settings)
         
     def lex(self, contents):
 
@@ -319,32 +318,19 @@ class UrtextFile:
                 self.anonymous_nodes.append(new_node) 
                 self.messages.append('Warning: Node missing ID at position '+str(position))
             return False
-
+            
     def _get_file_contents(self):
-        """ returns the file contents, filtering out Unicode Errors, directories, other errors """
-        try:
-            with open(self.filename, 'r', encoding='utf-8',) as theFile:
-                full_file_contents = theFile.read()
-        except IsADirectoryError:
+          return self.contents 
+          
+    def _set_file_contents(self, contents):
+          return
+          
+    def get_node_id_from_position(self, position):
+            for node_id in self.nodes:
+                for r in self.nodes[node_id].ranges:
+                    if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.
+                        return node_id
             return None
-        except UnicodeDecodeError:
-            self.log_error('UnicodeDecode Error: f>' + self.filename)
-            return None
-        return full_file_contents.encode('utf-8').decode('utf-8')
-
-    def _set_file_contents(self, new_contents, compare=True): 
-
-        new_contents = "\n".join(new_contents.splitlines())
-        if compare:
-            existing_contents = self._get_file_contents()
-            existing_contents = "\n".join(existing_contents.splitlines())
-            if not existing_contents:
-                return False
-            if existing_contents == new_contents:
-                return False
-        with open(self.filename, 'w', encoding='utf-8') as theFile:
-            theFile.write(new_contents)
-        return True
 
     def clear_errors(self, contents):
         cleared_contents = re.sub(error_messages, '', contents, flags=re.DOTALL)
@@ -408,3 +394,53 @@ class UrtextFile:
         print(''.join([ 
                 message, ' in >f', self.filename, ' at position ',
             str(position)]))
+            
+
+class UrtextFile(UrtextBuffer):
+   
+    def __init__(self, filename, project):
+        self.basename = os.path.basename(filename)
+        self.nodes = {}
+        self.root_nodes = []
+        self.alias_nodes = []           
+        self.parsed_items = {}
+        self.strict = False
+        self.messages = []        
+        self.errors = False
+        self.project = project
+        self.anonymous_nodes = []
+        
+        self.filename = os.path.join(project.path, os.path.basename(filename))
+        contents = self._get_file_contents()
+        self.could_import = False        
+        self.file_length = len(contents)        
+        self.parse(self.lex(contents))
+        self.write_errors(project.settings)
+      
+    def _get_file_contents(self):
+        
+        """ returns the file contents, filtering out Unicode Errors, directories, other errors """
+        try:
+            with open(self.filename, 'r', encoding='utf-8',) as theFile:
+                full_file_contents = theFile.read()
+        except IsADirectoryError:
+            return None
+        except UnicodeDecodeError:
+            self.log_error('UnicodeDecode Error: f>' + self.filename)
+            return None
+        return full_file_contents.encode('utf-8').decode('utf-8')
+
+    def _set_file_contents(self, new_contents, compare=True): 
+
+        new_contents = "\n".join(new_contents.splitlines())
+        if compare:
+            existing_contents = self._get_file_contents()
+            existing_contents = "\n".join(existing_contents.splitlines())
+            if not existing_contents:
+                return False
+            if existing_contents == new_contents:
+                return False
+        with open(self.filename, 'w', encoding='utf-8') as theFile:
+            theFile.write(new_contents)
+        return True
+

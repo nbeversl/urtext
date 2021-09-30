@@ -154,7 +154,9 @@ class ProjectList():
             project = self.current_project
         else:
             project = self.get_project(project_title)
-        node_title = project.nodes[node_id].title
+        node_title = ''
+        if node_id in project.nodes:
+            node_title = project.nodes[node_id].title
         link = '| '+ node_title +' >'
         if pointer:
             link += '>'

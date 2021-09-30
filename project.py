@@ -30,7 +30,7 @@ import concurrent.futures
 from pytz import timezone
 from anytree import Node, PreOrderIter, RenderTree
 
-from urtext.file import UrtextFile
+from urtext.file import UrtextFile, UrtextBuffer
 from urtext.node import UrtextNode
 from urtext.compile import compile_functions
 from urtext.meta_handling import metadata_functions
@@ -846,6 +846,15 @@ class UrtextProject:
                     if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.
                         return node_id
         return None
+
+    def get_node_id_from_position_in_buffer(self, buffer, position):
+        buffer_file = UrtextBuffer(buffer, self)
+        for node_id in buffer_file.nodes:
+            for r in buffer_file.nodes[node_id].ranges:
+                if position  >= r[0] and position < r[1]:
+                    return node_id
+        return None
+
 
     def get_links_to(self, to_id):
         return [i for i in self.nodes if to_id in self.nodes[i].links]
