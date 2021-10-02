@@ -68,7 +68,7 @@ class ProjectList():
         this should be done by the calling procedure.
         """
         node_id = None
-        project_link_r = re.compile(r'=>\"(.*?)\"(>([0-9,a-z]{3})\b)?')
+        project_link_r = re.compile(r'=>\"(.*?)\"|.*?(>([0-9,a-z]{3})\b)?')
         project_name = project_link_r.search(string)
         
         """ If a project name has been specified, locate the project and node """
@@ -150,20 +150,22 @@ class ProjectList():
         project_title=None, 
         pointer=False, 
         include_project=False):
-        if project_title == None:
-            project = self.current_project
-        else:
-            project = self.get_project(project_title)
-        node_title = ''
-        if node_id in project.nodes:
-            node_title = project.nodes[node_id].title
-        link = '| '+ node_title +' >'
-        if pointer:
-            link += '>'
-        link += node_id
-        if include_project or project != self.current_project:
-            link = '=>"' + project.title +'"'+link
-        return link
+        if node_id:
+            
+            if project_title == None:
+                project = self.current_project
+            else:
+                project = self.get_project(project_title)
+            node_title = ''
+            if node_id in project.nodes:
+                node_title = project.nodes[node_id].title
+            link = '| '+ node_title +' >'
+            if pointer:
+                link += '>'
+            link += node_id
+            if include_project or project != self.current_project:
+                link = '=>"' + project.title +'"'+link
+            return link
 
     def nav_current(self):
         return self.current_project.nav_current()

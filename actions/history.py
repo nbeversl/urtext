@@ -54,7 +54,6 @@ class GetHistory(UrtextAction):
         file_pos=0,
         col_pos=0, 
         node_id=None):
-
         return get_history(self.project, filename)
  
     def most_recent_history(self, history):
@@ -90,12 +89,11 @@ def apply_patches(history, distance_back=0):
     return original
 
 def get_history(project, filename):
-    dmp = dmp_module.diff_match_patch()
     filename = os.path.basename(filename)
     history_file = os.path.join(project.path, 'history', filename.replace('.txt','.diff'))
     if os.path.exists(history_file):
         with open(history_file, "r") as f:
             file_history = f.read()
         return json.loads(file_history)
-        return None
+    print('NO HISTORY FILE FOUND')
 

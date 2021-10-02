@@ -369,7 +369,7 @@ class UrtextProject:
         return False
 
     def _rewrite_titles(self, filename=None, contents=""):
-
+        
         if contents:
             original_contents = contents
         elif filename:
@@ -874,7 +874,6 @@ class UrtextProject:
         opens a web link, file, or returns a node,
         in that order. Returns a tuple of type and success/failure or node ID
         """
-        print(string)
         link = self.find_link(
             string, 
             filename, 
