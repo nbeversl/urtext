@@ -144,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        self.is_async = False # development
+        #self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
