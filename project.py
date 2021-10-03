@@ -91,6 +91,7 @@ single_values = [
     'project_title',
     'node_date_keyname',
     'timestamp_format',
+    'device_keyname',
     'breadcrumb_key',
     'title',
     'id',
@@ -98,7 +99,7 @@ single_values = [
     'hash_key',
     'filename_datestamp_format',
     'timezone',
-    'history_interval',
+    'new_file_line_pos',
     'filename_title_length' ]
 
 single_boolean_values = [
@@ -106,6 +107,11 @@ single_boolean_values = [
     'preformat',
     'console_log',
     'import',
+    'strict',
+    'atomic_rename',
+    'autoindex',
+    'keyless_timestamp',
+    'file_node_timestamp',
     'inline_node_timestamp',
     'contents_strip_outer_whitespace',
     'contents_strip_internal_whitespace',]
@@ -119,7 +125,7 @@ replace = [
     'exclude_files' ]
 
 integers = [
-    'history_interval'
+    'new_file_line_pos'
 ]
 
 
@@ -138,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        self.is_async = False # development
+        #self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -266,16 +272,21 @@ class UrtextProject:
             'console_log': True,
             'timezone' : 'UTC',
             'always_oneline_meta' : False,
+            'strict':False,
             'node_date_keyname' : 'timestamp',
             'numerical_keys': ['_index' ,'index'],
+            'atomic_rename' : False,
             'tag_other': [],
+            'device_keyname' : '',
             'filename_title_length': 100,
             'exclude_files': [],
             'breadcrumb_key' : '',
             'new_file_node_format' : '$timestamp $id',
-            'history_interval' : 10,
+            'new_file_line_pos' : 2,
+            'keyless_timestamp' : True,
             'inline_node_timestamp' :False,
-            'hash_key': 'keyword',
+            'file_node_timestamp' : True,
+            'hash_key': '#',
             'contents_strip_outer_whitespace' : True,
             'contents_strip_internal_whitespace' : True,
             'node_browser_sort' : ['_oldest_timestamp'],
@@ -637,14 +648,14 @@ class UrtextProject:
     
     def new_file_node(self, 
         date=None, 
-        contents='',
+        contents=None,
         metadata = {}, 
         node_id=None,
         one_line=None
         ):
 
         contents_format = None
-        if contents == '':
+        if contents == None:
             contents_format = bytes(self.settings['new_file_node_format'], "utf-8").decode("unicode_escape")
 
         contents, node_id, cursor_pos = self._new_node(
@@ -652,7 +663,8 @@ class UrtextProject:
             contents=contents,
             contents_format=contents_format,
             metadata=metadata,
-            node_id=node_id)
+            node_id=node_id,
+            include_timestamp=self.settings['file_node_timestamp'])
         
         filename = node_id + '.txt'
         with open(os.path.join(self.path, filename), "w") as f:
@@ -721,6 +733,9 @@ class UrtextProject:
             if not metadata:
                 metadata = {}
 
+            if  self.settings['device_keyname']:
+                metadata[self.settings['device_keyname']] = platform.node()
+
             metadata['id']=node_id
 
             new_node_contents = contents
@@ -728,8 +743,9 @@ class UrtextProject:
             if include_timestamp:
                 if date == None:
                     date = datetime.datetime.now() 
-                new_node_contents += self.timestamp(date) + ' '
-                if self.settings['node_date_keyname']:
+                if self.settings['keyless_timestamp'] == True:
+                    new_node_contents += self.timestamp(date) + ' '
+                elif self.settings['node_date_keyname']:
                     metadata[self.settings['node_date_keyname']] = self.timestamp(date)
 
             new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)

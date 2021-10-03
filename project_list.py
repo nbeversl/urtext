@@ -44,12 +44,11 @@ class ProjectList():
     def _add_folder(self, folder):
         """ recursively add folders """
         if folder not in [p.path for p in self.projects]:
-            
-            if os.path.basename(folder) not in ['history','img','files' ]:
-                project = UrtextProject(folder)
-                self.projects.append(project)
-            #except NoProject:
-            else:
+            try:
+                if os.path.basename(folder) not in ['history','img','files' ]:
+                    project = UrtextProject(folder)
+                    self.projects.append(project)
+            except NoProject:
                 print('No project found in '+folder)
             sub_dirs = next(os.walk(folder))[1]
             for subdir in sub_dirs:
