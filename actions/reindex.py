@@ -64,7 +64,7 @@ class ReindexFiles(UrtextAction):
                     filename_template[i] = padded_prefix
                 
                 elif filename_template[i].lower() == 'title':
-                    filename_length = self.project.settings['filename_title_length']
+                    filename_length = int(self.project.settings['filename_title_length'])
                     if filename_length > 255:
                         filename_length = 255
                     filename_template[i] = root_node.title[0:filename_length]
