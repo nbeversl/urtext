@@ -19,6 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 from urtext.node import UrtextNode
 import os
+import re
 
 def _compile(self):
     
@@ -30,7 +31,6 @@ def _compile(self):
         self._process_dynamic_def(dynamic_definition)
 
 def _compile_file(self, filename): 
-    
     modified = False
     filename = os.path.basename(filename)
     for node_id in self.files[filename].nodes:
@@ -59,8 +59,7 @@ def _process_dynamic_def(self, dynamic_definition):
         return
 
     final_output = self._build_final_output(dynamic_definition, output) 
-    final_output = self._build_final_output(dynamic_definition, output) 
-       
+
     if dynamic_definition.target_id and dynamic_definition.target_id in self.nodes:
         changed_file = self._set_node_contents(dynamic_definition.target_id, final_output)  
         if changed_file:
@@ -69,8 +68,8 @@ def _process_dynamic_def(self, dynamic_definition):
             # Dynamic nodes have blank title by default. Title can be set by header or title key.
             if not self.nodes[dynamic_definition.target_id].metadata.get_first_value('title'):
                 self.nodes[dynamic_definition.target_id].title = ''
-    
     if dynamic_definition.target_file:
+        final_output = strip_source_information(final_output)
         self.exports[dynamic_definition.target_file] = dynamic_definition
         with open(os.path.join(self.path, dynamic_definition.target_file), 'w', encoding='utf-8' ) as f:
             f.write(final_output)
@@ -110,5 +109,11 @@ def indent(contents, spaces=4):
         if line.strip() != '':
             content_lines[index] = '\t' * spaces + line
     return '\n'+'\n'.join(content_lines)
+
+def strip_source_information(string):
+    source_info = re.compile(r'\(\(>[0-9,a-z]{3}\:\d+\)\)')
+    for s in source_info.findall(string):
+        string = string.replace(s,'')
+    return string
 
 compile_functions = [_compile, _build_final_output, _process_dynamic_def, _compile_file ]

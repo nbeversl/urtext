@@ -295,7 +295,6 @@ def strip_contents(contents,
     contents = strip_metadata(contents=contents, preserve_length=preserve_length)
     contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
     contents = contents.strip().strip('{').strip()
-
     return contents
 
 def strip_syntax_elements(contents):

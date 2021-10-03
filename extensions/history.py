@@ -4,6 +4,7 @@ import os
 class RenameHistoryFiles(UrtextExtension):
 
     def on_file_renamed(self, old_filename, new_filename):
+        
         history_file = os.path.join(
             self.project.path, 
             'history',

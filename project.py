@@ -144,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development
+        self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -1161,6 +1161,7 @@ class UrtextProject:
                     self._file_update(filename)
                     
     def on_modified(self, filenames):
+        
         if not isinstance(filenames, list):
             filenames = [filenames]
         filenames = [f for f in filenames if f not in self.excluded_files]
@@ -1209,7 +1210,7 @@ class UrtextProject:
         else:
             return self._visit_file(filename)
 
-    def _visit_file(self, filename):
+    def _visit_file(self, filename):        
         filename = os.path.basename(filename)
         if filename in self.exports:
             self._process_dynamic_def(self.exports[filename])
@@ -1218,7 +1219,7 @@ class UrtextProject:
             if self._rewrite_titles(filename=filename):
                 self._parse_file(filename)
             return self._compile_file(filename)
-        
+    
     def _sync_file_list(self):
         new_files = []
         files = os.listdir(self.path)
