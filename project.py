@@ -99,6 +99,7 @@ single_values = [
     'hash_key',
     'filename_datestamp_format',
     'timezone',
+    'new_file_line_pos',
     'filename_title_length' ]
 
 single_boolean_values = [
@@ -106,6 +107,7 @@ single_boolean_values = [
     'preformat',
     'console_log',
     'import',
+    'strict',
     'atomic_rename',
     'autoindex',
     'keyless_timestamp',
@@ -122,7 +124,9 @@ replace = [
     'filename_datestamp_format',
     'exclude_files' ]
 
-
+integers = [
+    'new_file_line_pos'
+]
 
 
 @add_functions_as_methods(functions)
@@ -140,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development only
+        self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -192,7 +196,7 @@ class UrtextProject:
         if self.nodes == {}:
             if new_project:
 
-                #TODO Refactor to an Urtext Project class.
+                #TODO Refactor to an UrtextProject class.
                 new_id = self.next_index()
                 new_file_node = self.new_file_node(contents='\n'.join([
                     "New File Node _ ",
@@ -202,6 +206,11 @@ class UrtextProject:
                     "{ Example text",
                     " @"+new_id+"}"
                     ]))
+
+                contents = "title::project_settings\n"
+                contents += "project_title::"+os.path.basename(self.path) +'\n'
+                contents += UrtextNode.build_metadata(self.settings)
+                project_settings_file = self.new_file_node(contents=contents)
 
                 new_node = self.new_file_node(contents = 
                     '\n'.join ([ 
@@ -218,12 +227,11 @@ class UrtextProject:
                         "  Use Ctrl-Shift-/ or Ctrl-Shift-Mouseclick to follow any link, for example, this one:",
                         "\n",
                         "| >"+new_file_node['id'],
+                        "To view project settings, visit | >"+project_settings_file['id'],
                         "For full documentation, see https://github.com/nbeversl/urtext-docs",
                         ]))
 
-                project_settings = UrtextNode.build_metadata(self.project_settings)
-                project_settings_file = self.new_file_node(contents =project_settings)
-
+                
                 self.new_file_node(contents = 
                     '\n'.join([
                         "New Urtext Project \n",
@@ -1061,10 +1069,10 @@ class UrtextProject:
                 continue            
 
             if key not in self.settings:
-                self.settings[key] = []
-                
-            self.settings[key].append(value)
-            self.settings[key] = list(set(self.settings[key]))
+                self.settings[str(key)] = []
+   
+            self.settings[str(key)].append(value)
+            self.settings[str(key)] = list(set(self.settings[key]))
 
         self.default_timezone = timezone(self.settings['timezone'])
 

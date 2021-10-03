@@ -247,7 +247,6 @@ class UrtextNode:
         line_separator = '\n'
         if one_line:
             line_separator = '; '
-  
         new_metadata = ''
 
         nid = ''
@@ -259,11 +258,10 @@ class UrtextNode:
             if isinstance(metadata[keyname], list):
                 new_metadata += ' - '.join(metadata[keyname])
             else:
-                new_metadata += metadata[keyname]
+                new_metadata += str(metadata[keyname])
             new_metadata += line_separator
         if nid:
             new_metadata += '@'+nid
-
         return new_metadata.strip()
 
     def set_content(self, contents, preserve_metadata=False, bypass_check=False):
