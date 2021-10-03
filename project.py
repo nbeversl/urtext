@@ -137,7 +137,7 @@ class UrtextProject:
                  path,
                  rename=False,
                  recursive=False,
-                 init_project=False):
+                 new_project=False):
         
         self.is_async = True 
         #self.is_async = False # development only
@@ -162,14 +162,15 @@ class UrtextProject:
         self.error_files = []
         if self.is_async:
             future = self.executor.submit(self._initialize_project,
-                    init_project=init_project)
+                    new_project=new_project)
         else:    
-            self._initialize_project(init_project=init_project)
+            self._initialize_project(new_project=new_project)
 
         # TODO -- node date timezones have to be localized
         # do this from UrtextNode.date() method
 
-    def _initialize_project(self, init_project=False):
+    def _initialize_project(self, 
+        new_project=False):
 
         for c in all_extensions:
             for n in c.name:
@@ -189,23 +190,57 @@ class UrtextProject:
         self.default_timezone = timezone(self.settings['timezone'])
         
         if self.nodes == {}:
-            if init_project == True:
+            if new_project:
+
+                #TODO Refactor to an Urtext Project class.
+                new_id = self.next_index()
+                new_file_node = self.new_file_node(contents='\n'.join([
+                    "New File Node _ ",
+                    "\n",
+                    "This is a file node. Make new bracket nodes with Ctrl-Shift-\{ (Ctrl-Shift-leftSquigglyBracket)",
+                    "\nExample:",
+                    "{ Example text",
+                    " @"+new_id+"}"
+                    ]))
+
                 new_node = self.new_file_node(contents = 
-                    "Home Node\n\n")
+                    '\n'.join ([ 
+                        "Home Node _",
+                        "This is a new, blank Urtext project",
+                        "\n",
+                        "This is the home node; to get here from anywhere press Ctrl-Shift-H",
+                        "\n",
+                        "Basic operations:"
+                        "  Make new file nodes with Ctrl-Shift-;",
+                        "  Make new bracket nodes with Ctrl-Shift-\{ (Ctrl-Shift-leftSquigglyBracket)",
+                        "  Make new bullet nodes with Ctrl-Shift-^",
+                        "\n",
+                        "  Use Ctrl-Shift-/ or Ctrl-Shift-Mouseclick to follow any link, for example, this one:",
+                        "\n",
+                        "| >"+new_file_node['id'],
+                        "For full documentation, see https://github.com/nbeversl/urtext-docs",
+                        ]))
+
+                project_settings = UrtextNode.build_metadata(self.project_settings)
+                project_settings_file = self.new_file_node(contents =project_settings)
 
                 self.new_file_node(contents = 
-                    "New Urtext Project\n\n{ project_settings \n\n home::"+new_node['id']+"\n\n@"+self.next_index()+"}\n\n")
+                    '\n'.join([
+                        "New Urtext Project \n",
+                        "{ project_settings \n",
+                        "  home::"+new_node['id'],
+                        "  project_title::New Urtext Project",
+                        "@"+self.next_index()+"}\n\n"]))
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
-        elif init_project:
+        elif new_project:
             print('Urtext project already exists here.')
             return None            
         
         for node_id in self.nodes:
             self.nodes[node_id].metadata.convert_hash_keys()
 
-        #necessary?
         for node_id in self.nodes:
             for e in self.nodes[node_id].metadata.dynamic_entries:                
                 self._add_sub_tags( 

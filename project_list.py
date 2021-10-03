@@ -67,34 +67,33 @@ class ProjectList():
         and returns the link information. Does not update navigation,
         this should be done by the calling procedure.
         """
+        string=string.strip()
         node_id = None
-        project_link_r = re.compile(r'=>\"(.*?)\"|.*?(>([0-9,a-z]{3})\b)?')
-        project_name = project_link_r.search(string)
-        
+        project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z]{3})\b)?')
+        link = project_link_r.search(string)
+        project_name = link.group(2)
+        node_id = link.group(4)
         """ If a project name has been specified, locate the project and node """
         if project_name:
-            other_project = project_name.group(1)
-            if not self.set_current_project(other_project):
+            if not self.set_current_project(project_name):
                 return None
-            if project_name.group(2):
-                """ If a node ID is included, and it exists, link to it """
-                node_id = project_name.group(3)
-                if node_id in self.current_project.nodes:
+            if node_id and node_id in self.current_project.nodes:
                     return {
                         'kind' : "OTHER_PROJECT", 
                         'link' : node_id, 
                         'dest_position' : 0,
                     }
 
-            node_id = self.current_project.nav_current()
             return {
                 'kind': 'NODE', 
-                'link': node_id, 
+                'link': self.current_project.nav_current(), 
                 'dest_position' : 0,
                 }
-
+        
         """ Otherwise, set the project, search the link for a link in the current project """
+        
         self.set_current_project(os.path.basename(filename))
+
         link = self.current_project.get_link( 
             string, 
             filename, 
@@ -189,7 +188,7 @@ class ProjectList():
         if not os.path.exists(path):
             os.makedirs(path)
         project = UrtextProject(path, 
-            init_project=True)
+            new_project=True)
         if project:
             self.projects.append(project)
             self.set_current_project(path)
