@@ -414,6 +414,7 @@ class UrtextFile(UrtextBuffer):
         contents = self._get_file_contents()
         self.could_import = False        
         self.file_length = len(contents)        
+        self.clear_errors(contents)
         self.parse(self.lex(contents))
         self.write_errors(project.settings)
       
