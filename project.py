@@ -203,24 +203,26 @@ class UrtextProject:
                     'r', 
                     encoding="utf-8") as f:
                    new_file_node_contents = f.read()
-                new_file_node_contents = new_file_node_contents.replace('NEW_ID', str(self.next_index()))
+                new_file_node_contents = new_file_node_contents.replace('NEW_ID', self.next_index())
                 new_file_node = self.new_file_node(contents=new_file_node_contents)
 
-
+                project_settings_node_id = self.next_index()
                 with open(os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), 
                     'templates/new_project_home.txt'),'r', encoding="utf-8") as f:
                    new_project_home_contents = f.read()
-                new_project_home_contents.replace('_NEW_FILE_NODE_ID',new_file_node['id'])
+                new_project_home_contents = new_project_home_contents.replace('_NEW_FILE_NODE_ID',new_file_node['id'])
+                new_project_home_contents = new_project_home_contents.replace('_PROJECT_SETTINGS_NODE_ID',project_settings_node_id)
                 new_home_id = self.new_file_node(contents=new_project_home_contents)
-
 
                 with open(os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), 
                         'templates/project_settings.txt'),'r', encoding="utf-8") as f:
                    project_settings_contents = f.read()
                 project_settings_contents = project_settings_contents.replace('HOME_NODE_ID', new_home_id['id'])
-                new_file_node = self.new_file_node(contents=project_settings_contents)
+                project_settings_node = self.new_file_node(
+                    contents=project_settings_contents, 
+                    node_id=project_settings_node_id)
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
