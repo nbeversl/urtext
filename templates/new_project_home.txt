@@ -5,6 +5,12 @@ Welcome to Urtext. This is a new, blank Urtext project.
 This is the "home" node; to get here from anywhere in the project, press Ctrl-Shift-H
 For full documentation, see https://github.com/nbeversl/urtext-docs,
 
+To follow the links below, use `ctrl+shift+/` or `ctrl-shift-MouseClick` (from cursor/pointer position)
+
+| Another Example File Node >_NEW_FILE_NODE_ID
+To view project settings, visit | >_PROJECT_SETTINGS_NODE_ID
+
+
 
 {  Making New Nodes _
 
@@ -30,7 +36,7 @@ For full documentation, see https://github.com/nbeversl/urtext-docs,
 
     `ctrl+shift+<`  Nav Backward (like a browser)
 
-    `ctrl+shift+/` or `ctrl-shift-MouseClick` Open Link
+    `ctrl+shift+/` or `ctrl-shift-MouseClick` Open Link (from cursor/pointer position)
 
     `ctrl+shift+r` Toggle Traverse Mode
 
@@ -50,7 +56,15 @@ For full documentation, see https://github.com/nbeversl/urtext-docs,
 
 { File Management _
     
-    `ctrl+shift+s`  Rename File  @dbr}
+    `ctrl+shift+s`  Rename File  
+
+    (Command Palette) "Urtext: Move File to Other Project" : Moves the file to another (chosen) project.
+
+    (Command Palette) "Urtext: Reindex All Files" : Renames all files with an optional index prefix.
+
+    (Command Palette) "Urtext: Delete This Node" : Deletes the current file node.
+
+    @dbr}
 
 
 { Global _
@@ -87,9 +101,23 @@ For full documentation, see https://github.com/nbeversl/urtext-docs,
 
     `ctrl+shift+super+left`  Pull Node 
 
-    `ctrl+shift+0`  Add Metadata to Linked Node From This Node @rym}
+    `ctrl+shift+0`  Add Metadata to Linked Node From This Node 
+
+    (Command Palette) "Urtext: Consolidate Metadata" : Consolidates all metadata in the node to a single block.
 
 
-| >_NEW_FILE_NODE_ID
+    @rym}
 
-To view project settings, visit | >_PROJECT_SETTINGS_NODE_ID
+
+{ Utility Commands _
+
+
+    (Command Palette) "Urtext: New Project" : Creates a new Urtext project in a chosen folder.
+
+    (Command Palette) "Urtext: Reload Project" : Reloads the current project.
+
+
+
+@m45}
+
+

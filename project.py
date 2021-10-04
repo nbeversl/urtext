@@ -196,49 +196,31 @@ class UrtextProject:
         if self.nodes == {}:
             if new_project:
 
-                #TODO Refactor to an UrtextProject class.
                 new_id = self.next_index()
-                new_file_node = self.new_file_node(contents='\n'.join([
-                    "New File Node _ ",
-                    "\n",
-                    "This is a file node. Make new bracket nodes with Ctrl-Shift-\{ (Ctrl-Shift-leftSquigglyBracket)",
-                    "\nExample:",
-                    "{ Example text",
-                    " @"+new_id+"}"
-                    ]))
+                with open(os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), 
+                    'templates/file_node_example.txt'),
+                    'r', 
+                    encoding="utf-8") as f:
+                   new_file_node_contents = f.read()
+                new_file_node_contents = new_file_node_contents.replace('NEW_ID', str(self.next_index()))
+                new_file_node = self.new_file_node(contents=new_file_node_contents)
 
-                contents = "title::project_settings\n"
-                contents += "project_title::"+os.path.basename(self.path) +'\n'
-                contents += UrtextNode.build_metadata(self.settings)
-                project_settings_file = self.new_file_node(contents=contents)
 
-                new_node = self.new_file_node(contents = 
-                    '\n'.join ([ 
-                        "Home Node _",
-                        "This is a new, blank Urtext project",
-                        "\n",
-                        "This is the home node; to get here from anywhere press Ctrl-Shift-H",
-                        "\n",
-                        "Basic operations:"
-                        "  Make new file nodes with Ctrl-Shift-;",
-                        "  Make new bracket nodes with Ctrl-Shift-\{ (Ctrl-Shift-leftSquigglyBracket)",
-                        "  Make new bullet nodes with Ctrl-Shift-^",
-                        "\n",
-                        "  Use Ctrl-Shift-/ or Ctrl-Shift-Mouseclick to follow any link, for example, this one:",
-                        "\n",
-                        "| >"+new_file_node['id'],
-                        "To view project settings, visit | >"+project_settings_file['id'],
-                        "For full documentation, see https://github.com/nbeversl/urtext-docs",
-                        ]))
+                with open(os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), 
+                    'templates/new_project_home.txt'),'r', encoding="utf-8") as f:
+                   new_project_home_contents = f.read()
+                new_project_home_contents.replace('_NEW_FILE_NODE_ID',new_file_node['id'])
+                new_home_id = self.new_file_node(contents=new_project_home_contents)
 
-                
-                self.new_file_node(contents = 
-                    '\n'.join([
-                        "New Urtext Project \n",
-                        "{ project_settings \n",
-                        "  home::"+new_node['id'],
-                        "  project_title::New Urtext Project",
-                        "@"+self.next_index()+"}\n\n"]))
+
+                with open(os.path.join(
+                    os.path.dirname(os.path.realpath(__file__)), 
+                        'templates/project_settings.txt'),'r', encoding="utf-8") as f:
+                   project_settings_contents = f.read()
+                project_settings_contents = project_settings_contents.replace('HOME_NODE_ID', new_home_id['id'])
+                new_file_node = self.new_file_node(contents=project_settings_contents)
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
