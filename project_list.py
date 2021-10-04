@@ -26,19 +26,24 @@ class ProjectList():
 
     def __init__(self, 
         base_path, 
-        first_project=None):
+        initial_project=None,
+        first_project=False):
 
         self.projects = []
         self.base_path = base_path
-        self._add_folder(base_path)
         self.current_project = None
         self.navigation = []
         self.nav_index = -1
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        
+        if first_project:
+            self.init_new_project(base_path)    
+        self._add_folder(base_path)
+        
         if self.projects:
             self.current_project = self.projects[0]
-        if first_project:
-            self.set_current_project(first_project)
+        if initial_project:
+            self.set_current_project(initial_project)
         self._propagate_projects(None)
     
     def _add_folder(self, folder):
@@ -187,12 +192,12 @@ class ProjectList():
             return None
         if not os.path.exists(path):
             os.makedirs(path)
-        project = UrtextProject(path, 
-            new_project=True)
+        project = UrtextProject(path, new_project=True)
         if project:
             self.projects.append(project)
             self.set_current_project(path)
-        return None
+            
+        print('Initialized New project at '+os.path.abspath(path))
 
     def visit_file(self, filename):
         if filename:
