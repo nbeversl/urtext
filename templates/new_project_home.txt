@@ -7,8 +7,10 @@ For full documentation, see https://github.com/nbeversl/urtext-docs,
 
 To follow the links below, use `ctrl+shift+/` or `ctrl-shift-MouseClick` (from cursor/pointer position)
 
-| Another Example File Node >_NEW_FILE_NODE_ID
-To view project settings, visit | >_PROJECT_SETTINGS_NODE_ID
+
+To view project settings, visit | project_settings >2bl
+
+NOTE: Add Created date
 
 
 
@@ -117,7 +119,7 @@ To view project settings, visit | >_PROJECT_SETTINGS_NODE_ID
     (Command Palette) "Urtext: Reload Project" : Reloads the current project.
 
 
-
 @m45}
 
 
+<Tue., Oct. 05, 2021, 02:12 PM>

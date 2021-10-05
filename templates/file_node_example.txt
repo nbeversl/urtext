@@ -2,10 +2,12 @@ New File Node _
 
 This is a file node. 
 
-Make new bracket nodes with Ctrl-Shift-\{ (Ctrl-Shift-leftSquigglyBracket)  ,
+Make new bracket nodes with `Ctrl-Shift-{` (Ctrl-Shift-leftSquigglyBracket)
 
 Example:  
 
-  { Example text  ,
+  { Example text 
   
-   @NEW_ID}  
+   @232} 
+
+ @sdw

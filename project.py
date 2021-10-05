@@ -144,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development
+        self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -196,33 +196,21 @@ class UrtextProject:
         if self.nodes == {}:
             if new_project:
 
-                new_id = self.next_index()
-                with open(os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), 
-                    'templates/file_node_example.txt'),
-                    'r', 
-                    encoding="utf-8") as f:
-                   new_file_node_contents = f.read()
-                new_file_node_contents = new_file_node_contents.replace('NEW_ID', new_id)
-                new_file_node = self.new_file_node(contents=new_file_node_contents)
+                for u_file in os.listdir(os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)), 
+                        'templates')):
+                    
+                    with open(os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)), 
+                        'templates', u_file),
+                        'r', 
+                        encoding="utf-8") as f:
+                       contents = f.read()
 
-                project_settings_node_id = self.next_index()
-                with open(os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), 
-                    'templates/new_project_home.txt'),'r', encoding="utf-8") as f:
-                   new_project_home_contents = f.read()
-                new_project_home_contents = new_project_home_contents.replace('_NEW_FILE_NODE_ID',new_file_node['id'])
-                new_project_home_contents = new_project_home_contents.replace('_PROJECT_SETTINGS_NODE_ID',project_settings_node_id)
-                new_home_id = self.new_file_node(contents=new_project_home_contents)
+                    with open(os.path.join(self.path, u_file ), 'w', encoding='utf-8') as f:
+                        f.write(contents) 
+                    self._parse_file(os.path.basename(u_file))
 
-                with open(os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)), 
-                        'templates/project_settings.txt'),'r', encoding="utf-8") as f:
-                   project_settings_contents = f.read()
-                project_settings_contents = project_settings_contents.replace('HOME_NODE_ID', new_home_id['id'])
-                project_settings_node = self.new_file_node(
-                    contents=project_settings_contents, 
-                    node_id=project_settings_node_id)
             else:
                 raise NoProject('No Urtext nodes in this folder.')
 
@@ -688,6 +676,7 @@ class UrtextProject:
             node_id=None,
             metadata=None,
             one_line=None,
+
             include_timestamp=False):
 
         cursor_pos = 0
