@@ -144,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        self.is_async = False # development
+        #self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -203,7 +203,7 @@ class UrtextProject:
                     'r', 
                     encoding="utf-8") as f:
                    new_file_node_contents = f.read()
-                new_file_node_contents = new_file_node_contents.replace('NEW_ID', self.next_index())
+                new_file_node_contents = new_file_node_contents.replace('NEW_ID', new_id)
                 new_file_node = self.new_file_node(contents=new_file_node_contents)
 
                 project_settings_node_id = self.next_index()
