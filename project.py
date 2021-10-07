@@ -814,7 +814,6 @@ class UrtextProject:
             node_group = [r for r in remaining_nodes if r in self.nodes and self.nodes[r].metadata.get_first_value(k)]
             for r in node_group:
                 if use_timestamp:
-                    print(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp) )
                     self.nodes[r].display_meta = self.timestamp(self.nodes[r].metadata.get_first_value(k, use_timestamp=use_timestamp))
                 else:
                     self.nodes[r].display_meta = str(self.nodes[r].metadata.get_first_value(k))
