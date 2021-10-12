@@ -96,6 +96,7 @@ single_values = [
     'title',
     'id',
     'new_file_node_format',
+    'new_bracket_node_format',
     'hash_key',
     'filename_datestamp_format',
     'timezone',
@@ -254,6 +255,7 @@ class UrtextProject:
             'exclude_files': [],
             'breadcrumb_key' : '',
             'new_file_node_format' : '$timestamp $id',
+            'new_bracket_node_format' : '$timestamp $id',
             'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
             'inline_node_timestamp' :False,
@@ -656,15 +658,20 @@ class UrtextProject:
         one_line=None,
         ):
 
+        contents_format = None
+        if contents == '':
+            contents_format = bytes(self.settings['new_bracket_node_format'], "utf-8").decode("unicode_escape")
+
         contents, node_id, cursor_pos = self._new_node(
             date=date,
             contents=contents,
+            contents_format=contents_format,
             metadata=metadata,
             node_id=node_id,
             include_timestamp=self.settings['inline_node_timestamp'])
 
         return {
-            'contents' : ''.join(['{ \n', contents, '}']),
+            'contents' : ''.join(['{', contents, '}']),
             'id':node_id,
             'cursor_pos' : cursor_pos
         }
