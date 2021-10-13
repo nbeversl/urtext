@@ -3,7 +3,7 @@ from .tree import Tree
 
 class NodeList(UrtextDirective):
 
-	name = ["LIST"]    
+	name = ["TREE"]    
 	phase = 200
 	
 	def __init__(self, project):

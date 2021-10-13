@@ -32,13 +32,16 @@ def _compile(self):
 
 def _compile_file(self, filename): 
     modified = False
-    filename = os.path.basename(filename)
-    for node_id in self.files[filename].nodes:
-        for dd in self.dynamic_defs(target=node_id):
-            if self._process_dynamic_def(dd) and not modified:
-                modified = filename
-    if modified:
-        print('DEBUGGING: '+modified + ' was modified.')
+    if filename in self.files:
+        filename = os.path.basename(filename)
+        for node_id in self.files[filename].nodes:
+            for dd in self.dynamic_defs(target=node_id):
+                if self._process_dynamic_def(dd) and not modified:
+                    modified = filename
+        if modified:
+            print('DEBUGGING: '+modified + ' was modified.')
+    else:
+        print('DEBUGGING: '+filename +' not found in project')
     return modified
 
 def _process_dynamic_def(self, dynamic_definition):

@@ -113,7 +113,6 @@ single_boolean_values = [
     'autoindex',
     'keyless_timestamp',
     'file_node_timestamp',
-    'inline_node_timestamp',
     'contents_strip_outer_whitespace',
     'contents_strip_internal_whitespace',]
 
@@ -258,7 +257,6 @@ class UrtextProject:
             'new_bracket_node_format' : '$timestamp $id',
             'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
-            'inline_node_timestamp' :False,
             'file_node_timestamp' : True,
             'hash_key': '#',
             'contents_strip_outer_whitespace' : True,
@@ -667,8 +665,7 @@ class UrtextProject:
             contents=contents,
             contents_format=contents_format,
             metadata=metadata,
-            node_id=node_id,
-            include_timestamp=self.settings['inline_node_timestamp'])
+            node_id=node_id)
 
         return {
             'contents' : ''.join(['{', contents, '}']),

@@ -70,21 +70,13 @@ class UrtextDynamicDefinition:
 				self.target_file = argument_string
 				continue
 
-			# #output
-			# if func == "FORMAT":
-			# 	if has_flags(['-multiline-meta','-mm'], flags):
-			# 		self.multiline_meta = True
-				
-			# 	if has_flags(['-preformat','-p'], flags):
-			# 		self.preformat = True
-
 			if func == "SHOW":
 				self.show = argument_string
 		
 		all_ops = [t for op in self.operations for t in op.name]
 		
-		if 'ACCESS_HISTORY' not in all_ops and 'LIST' not in all_ops and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
-			op = self.project.directives['LIST'](self.project)
+		if 'ACCESS_HISTORY' not in all_ops  and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
+			op = self.project.directives['TREE'](self.project)
 			op.parse_argument_string('1')		
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
