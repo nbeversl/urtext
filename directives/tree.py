@@ -11,7 +11,6 @@ Tree
 
 class Tree(UrtextDirectiveWithParamsFlags):
 
-    name = ["TREE"]
     phase = 210
     
     def __init__(self, project):
