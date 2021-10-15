@@ -144,7 +144,7 @@ class UrtextProject:
                  new_project=False):
         
         self.is_async = True 
-        #self.is_async = False # development
+        self.is_async = False # development
         self.path = path
         self.reset_settings()
         self.nodes = {}
@@ -253,8 +253,8 @@ class UrtextProject:
             'filename_title_length': 100,
             'exclude_files': [],
             'breadcrumb_key' : '',
-            'new_file_node_format' : '$timestamp $id',
-            'new_bracket_node_format' : '$timestamp $id',
+            'new_file_node_format' : '$timestamp $id \n$cursor',
+            'new_bracket_node_format' : '$timestamp $id $cursor',
             'new_file_line_pos' : 2,
             'keyless_timestamp' : True,
             'file_node_timestamp' : True,

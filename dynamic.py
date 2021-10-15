@@ -89,14 +89,8 @@ class UrtextDynamicDefinition:
 
 	def process_output(self, max_phase=600):
 		outcome = []
-		print('--------------------')
-		print(self.target_id)
-		print(self.target_file)
-		print('--------------------')
 		
 		for operation in sorted(self.operations, key = lambda op: op.phase) :		
-			print(operation.phase)
-			print(operation.name)
 		
 			if operation.phase < max_phase:
 				new_outcome = operation.dynamic_output(outcome)
