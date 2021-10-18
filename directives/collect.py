@@ -29,7 +29,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
     """ generates a collection of context-aware metadata anchors in list or tree format """
 
     def dynamic_output(self, nodes):
-        
+       
         m_format = self.dynamic_definition.show
 
         keys = {}
@@ -37,18 +37,16 @@ class Collect (UrtextDirectiveWithParamsFlags):
         for entry in self.params:
 
             k, v, operator = entry
-            
             if operator == '!=' and k in keys:
                 keys[k].remove(v)
                 continue
 
             if k =='*':
                 for k in self.project.get_all_keys():
-                    keys[k] = v.lower()
+                    keys[k] = [v.lower()]
                 
             else:
-                keys[k] = v.lower()
-
+                keys[k] = [v.lower()]
 
         found_stuff = []
 
@@ -59,74 +57,70 @@ class Collect (UrtextDirectiveWithParamsFlags):
                 use_timestamp = k in self.project.settings['use_timestamp']
 
                 for v in keys[k]:
-
+                    
                     if v == '*':
                         entries = node.metadata.get_entries(k)
                     else:
                         entries = node.metadata.get_matching_entries(k, v)
-                    
-                    for p in range(len(entries)):
 
-                         entry = entries[p]
-                         
+                    for entry in entries:
+
                          found_item = {}
 
                          if v == '*':
 
                             if use_timestamp:
-                                values = [entry.timestamps[0].datetime]
+                                value = [entry.timestamps[0].datetime]
                             else:
-                                values = [ve for ve in entry.value]
+                                value = entry.value
 
                          else:
                             if use_timestamp and entry.timestamps[0].datetime == v:
-                                values = [entry.timestamps[0].datetime]
+                                value = [entry.timestamps[0].datetime]
                             else:
-                                values = [e.value for e in entries]
+                                value = [e.value for e in entries]
 
-                         for value in values:
+                         found_item['node_id'] = node.id
+                         found_item['title'] = node.title
+                         found_item['dt_string'] = entry.timestamps[0].string if entry.timestamps else ''
 
-                             found_item['node_id'] = node.id
-                             found_item['title'] = node.title
-                             found_item['dt_string'] = entry.timestamps[0].string if entry.timestamps else ''
-
-                             if use_timestamp:
-                                 found_item['value'] = entry.timestamps[0].string
-                                 found_item['sort_value'] = entry.timestamps[0].datetime
-                           
+                         if use_timestamp:
+                             found_item['value'] = entry.timestamps[0].string
+                             found_item['sort_value'] = entry.timestamps[0].datetime
+                       
+                         else:
+                             found_item['value'] = value
+                             sort_value = value
+                             if self.have_flags('-sort_numeric'):
+                                 try:
+                                    sort_value = float(value)
+                                 except ValueError: 
+                                    sort_value = 99999999
                              else:
-                                 found_item['value'] = value
-                                 sort_value = value
-                                 if self.have_flags('-sort_numeric'):
-                                     try:
-                                        sort_value = float(value)
-                                     except ValueError: 
-                                        sort_value = 99999999
-                                 else:
-                                    sort_value = str(sort_value)
-            
-                                 found_item['sort_value'] = sort_value
+                                sort_value = str(sort_value)
+        
+                             found_item['sort_value'] = sort_value
 
-                             found_item['keyname'] = k
-                             full_contents = node.content_only(preserve_length=True)
-                            
-                             context = []
-                             length = 0
-                             lines = full_contents.split('\n')
-                             for line in lines:
-                                length += len(line)
-                                if entry.end_position < length:
-                                    break
-                           
-                             found_item['context'] = line.strip().replace('_',' ')
+                         found_item['keyname'] = k
+                         full_contents = node.content_only(preserve_length=True)
+                        
+                         context = []
+                         length = 0
+                         lines = full_contents.split('\n')
+                         for line in lines:
+                            length += len(line)
+                            if entry.end_position < length:
+                                break
+                       
+                         found_item['context'] = line.strip().replace('_',' ')
 
-                             while '>>' in found_item['context']:
-                                found_item['context'] = found_item['context'].replace('>>','>')
+                         while '>>' in found_item['context']:
+                            found_item['context'] = found_item['context'].replace('>>','>')
 
-                             # this will be position in NODE, not FILE:
-                             found_item['position'] = str(entry.position)                         
-                             
-                             found_stuff.append(found_item)
+                         # this will be position in NODE, not FILE:
+                         found_item['position'] = str(entry.position)                         
+                         
+                         found_stuff.append(found_item)
     
         if not found_stuff:
              return ''
@@ -188,7 +182,6 @@ class Collect (UrtextDirectiveWithParamsFlags):
 
             contents = ''
             for k in sorted(keys.keys()):
-
                 root = Node(k)
                 if not contains_different_types(keys[k]):
                    keys[k] = sorted(keys[k], key=meta_value_sort_criteria)
@@ -200,12 +193,11 @@ class Collect (UrtextDirectiveWithParamsFlags):
                     else:
                         t = Node(v) 
                     for node in nodes:
-                        for n in node.metadata.get_matching_entries(k,v):
+                        for n in node.metadata.get_matching_entries(k,value):
                             f = Node(node.title + ' >' + node.id)
                             f.parent = t
-                    if f:                        
-                        t.parent = root
-
+                        if f:                        
+                            t.parent = root
                 for pre, _, node in RenderTree(root):
                     contents += "%s%s\n" % (pre, node.name)
 
