@@ -1,24 +1,33 @@
-from anytree import Node, RenderTree, PreOrderIter
-from anytree.render import ContStyle
-from urtext.dynamic_output import DynamicOutput
-from urtext.timestamp import UrtextTimestamp
 import datetime
-from urtext.directive import UrtextDirectiveWithParamsFlags, UrtextDirectiveWithInteger
+import os
+
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.anytree import Node, RenderTree, PreOrderIter
+    from Urtext.anytree.render import ContStyle
+    from ..dynamic_output import DynamicOutput
+    from ..timestamp import UrtextTimestamp
+    from ..directive import UrtextDirective
+else:
+    from anytree import Node, RenderTree, PreOrderIter
+    from anytree.render import ContStyle
+    from urtext.dynamic_output import DynamicOutput
+    from urtext.timestamp import UrtextTimestamp
+    from urtext.directive import UrtextDirective
 
 """
 Tree
 """
 
-class Tree(UrtextDirectiveWithParamsFlags):
+class Tree(UrtextDirective):
 
-    phase = 210
+    phase = 310
     
     def __init__(self, project):
         super().__init__(project)
         self.depth = 1
 
     def dynamic_output(self, start_point, exclude=None):
-
+        
         exclude=self.dynamic_definition.excluded_nodes
         from_root_of=False
 
@@ -34,42 +43,41 @@ class Tree(UrtextDirectiveWithParamsFlags):
         while alias_nodes:  
             for leaf in alias_nodes:
                 if leaf.name[:5] == 'ALIAS':
-                    node_id = leaf.name[-3:]
+                    node_id = leaf.name[5:]
                     new_tree = self.duplicate_tree(self.project.nodes[node_id].tree_node, leaf)            
                     leaf.children = new_tree.children
             alias_nodes = self._has_aliases(start_point)
      
         tree_render = ''
-        
+                
         level = 0
-
         for pre, _, this_node in RenderTree(
                 start_point, 
                 style=ContStyle, 
                 maxlevel=self.depth):
 
-            indented_pre = '  '+pre
+            indented_pre = '  ' + pre
 
             if self._tree_node_is_excluded(this_node, exclude):
                 this_node.children = []
                 continue
 
-            if not this_node.name[-3:] in self.project.nodes:
-                tree_render += "%s%s" % (pre, this_node.name + ' NOT IN PROJECT (DEBUGGING)\n')    
-                continue
+            if not this_node.name in self.project.nodes:
+                if this_node.name[:5] == 'ALIAS' and this_node.name[5:] not in self.project.nodes:
+                    tree_render += "%s%s" % (pre, this_node.name + ' NOT IN PROJECT (DEBUGGING)\n')    
+                    continue
 
             if this_node.name[:11] == '! RECURSION':
                 tree_render += "%s%s" % (pre, this_node.name + '\n')    
                 continue
 
             if this_node.name[:5] == 'ALIAS':
-                urtext_node = self.project.nodes[this_node.name[-3:]]
+                urtext_node = self.project.nodes[this_node.name[5:]]
             else:
                 urtext_node = self.project.nodes[this_node.name]
             
-            # need to pass SHOW here somehow.
-            next_content = DynamicOutput(  self.dynamic_definition.show, self.project.settings)
-           
+            next_content = DynamicOutput(self.dynamic_definition.show, self.project.settings)
+          
             if next_content.needs_title:
                 next_content.title = urtext_node.title
            
@@ -78,8 +86,8 @@ class Tree(UrtextDirectiveWithParamsFlags):
                 if urtext_node.parent_project not in [self.project.title, self.project.path]:
                     link.extend(['=>"',urtext_node.parent_project,'"'])
                 else:
-                    link.append('>')
-                link.append(str(urtext_node.id))
+                    link.append('| ')
+                link.append(str(urtext_node.id + ' >'))
                 next_content.link = ''.join(link)
 
             if next_content.needs_date:
@@ -90,10 +98,6 @@ class Tree(UrtextDirectiveWithParamsFlags):
 
             if next_content.needs_contents: 
                 next_content.contents = urtext_node.content_only().strip('\n').strip()
-
-            if next_content.needs_last_accessed: 
-                t = datetime.datetime.utcfromtimestamp(urtext_node.metadata.get_first_value('_last_accessed'))
-                next_content.last_accessed = t.strftime(self.project.settings['timestamp_format'])
 
             for meta_key in next_content.needs_other_format_keys:
                 
@@ -133,7 +137,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
         if not excluded_nodes:
             return False
 
-        node_id = tree_node.name[-3:]
+        node_id = tree_node.name
 
         if node_id in excluded_nodes:
             return True
@@ -142,7 +146,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
             return True
 
         for ancestor in self.project.nodes[node_id].tree_node.ancestors:
-            if ancestor.name[-3:] in excluded_nodes:
+            if ancestor.name in excluded_nodes:
                 return True
 
         return False
@@ -154,22 +158,22 @@ class Tree(UrtextDirectiveWithParamsFlags):
 
         for leaf in leaves:
             ancestors = [a.name for a in leaf.ancestors]
-            if 'ALIAS' in leaf.name and leaf.name[-3:] in self.project.nodes and self.project.nodes[leaf.name[-3:]].tree_node.children:
-                if leaf.name[-3:] not in ancestors:
+            if 'ALIAS' in leaf.name and leaf.name[5:] in self.project.nodes and self.project.nodes[leaf.name[5:]].tree_node.children:
+                if leaf.name not in ancestors:
                     alias_nodes.append(leaf)
                 else:
-                    leaf.name = '! RECURSION - (from alias) : '+ self.project.nodes[leaf.name[-3:]].title + ' >'+leaf.name[-3:]
+                    leaf.name = '! RECURSION - (from alias) : '+ self.project.nodes[leaf.name].get_title() + ' >'+leaf.name
 
         return alias_nodes
 
     def duplicate_tree(self, original_node, leaf):
 
         new_root = Node(original_node.name)
-        ancestors = [ancestor.name[-3:] for ancestor in leaf.ancestors]
-        ancestors.extend([ancestor.name[-3:] for ancestor in original_node.ancestors])
-        ancestors.append(leaf.name[-3:])
-        ancestors.append(original_node.root.name[-3:])
-        ancestors.append(original_node.name[-3:])
+        ancestors = [ancestor.name for ancestor in leaf.ancestors]
+        ancestors.extend([ancestor.name for ancestor in original_node.ancestors])
+        ancestors.append(leaf.name)
+        ancestors.append(original_node.root.name)
+        ancestors.append(original_node.name)
 
         # iterate immediate children only
         all_nodes = PreOrderIter(original_node, maxlevel=2)  
@@ -177,7 +181,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
         for node in all_nodes: 
      
             if 'ALIAS' in node.name:            
-                node_id = node.name[-3:] 
+                node_id = node.name[5:]
                 if node_id not in ancestors:
                     if node_id in self.project.nodes:
                         new_node = Node(node.name)
@@ -186,7 +190,7 @@ class Tree(UrtextDirectiveWithParamsFlags):
                         new_node = Node('! (Missing Node) >'+node_id)
                         new_node.parent = new_root            
                 else:
-                    new_node = Node('! RECURSION (from tree duplication) : '+ self.project.nodes[node_id].title + ' >'+node_id)
+                    new_node = Node('! RECURSION (from tree duplication) : '+ self.project.nodes[node_id].get_title() + ' >'+node_id)
                     new_node.parent = new_root  
                 continue
 

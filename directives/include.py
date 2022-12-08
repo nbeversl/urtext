@@ -1,31 +1,16 @@
-# -*- coding: utf-8 -*-
-"""
-This file is part of Urtext.
+import os
 
-Urtext is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+	from Urtext.urtext.directive import UrtextDirective
+else:
+	from urtext.directive import UrtextDirective
 
-Urtext is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
-
-"""
-from urtext.directive import UrtextDirectiveWithParamsFlags, UrtextDirectiveWithInteger
-
-
-class NodeQuery(UrtextDirectiveWithParamsFlags):
+class NodeQuery(UrtextDirective):
 
 	name = ["QUERY"]
 	phase = 100
 
 	def build_list(self, passed_nodes):
-		
 		if self.have_flags('*'):
 			if self.have_flags('-include_dynamic'):
 				added_nodes = set([node_id for node_id in self.project.nodes])
@@ -75,6 +60,10 @@ def _build_group_and(project, params, include_dynamic=False):
 	for group in params:
 		key, value, operator = group
 		if key.lower() == 'id' and operator == '=':
+			if '"' not in value:
+				print('NO READABLE VALUE in ', value)
+				continue
+			value = value.split('"')[1]
 			new_group = set([value])
 		else:
 			new_group = set(project.get_by_meta(key, value, operator))

@@ -1,17 +1,18 @@
-from urtext.directive import  UrtextDirectiveWithKeysFlags
-from urtext.timestamp import UrtextTimestamp
-import datetime
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+	from ..directive import  UrtextDirective
+	from ..timestamp import UrtextTimestamp
+else:
+	from urtext.directive import UrtextDirective
+	from urtext.timestamp import UrtextTimestamp
 
-class Sort(UrtextDirectiveWithKeysFlags):
+class Sort(UrtextDirective):
 
 	name = ["SORT","S"]
-	phase = 120
+	phase = 220
 		
 	def dynamic_output(self, nodes):
-
-		self.dynamic_definition.included_nodes = nodes
-		nodes = [self.project.nodes[nid] for nid in nodes]
-
+		
 		if self.keys:
 			return sorted(
 				nodes,

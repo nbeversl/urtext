@@ -1,11 +1,16 @@
 import re
-from urtext.directives.export import UrtextExport
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.urtext.directives.export import UrtextExport
+else:
+    from urtext.directives.export import UrtextExport
 
 escaped_text = r'\`.*?\`';
 
 class MarkdownExport(UrtextExport):
 
     name = ["MARKDOWN"]
+    phase = 700
 
     def replace_link(self, contents, title):
         link = '#' + title.lower().replace(' ','-');
@@ -25,7 +30,7 @@ class MarkdownExport(UrtextExport):
         return range_contents
         
     def wrap_title(self,node_id, nested):
-        title = self.project.nodes[node_id].title      
+        title = self.project.nodes[node_id].get_title()      
         return '\n\n' + '#' * nested + ' ' + title.strip()
 
 def strip_leading_space(text):

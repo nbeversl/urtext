@@ -19,21 +19,20 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import re
-from urtext.directive import UrtextDirectiveWithParamsFlags
-import urtext.node
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.urtext.directive import UrtextDirective
+    import Urtext.urtext.node
+    import Urtext.urtext.syntax as syntax
+else:
+    from urtext.directive import UrtextDirective
+    import urtext.node
+    import urtext.syntax as syntax
 
-node_link_regex = r'[^>]>[0-9,a-z]{3}\b'
-node_pointer_regex = r'>>[0-9,a-z]{3}\b'
-titled_link_regex = r'\|.*?[^>]>[0-9,a-z]{3}\b'
-titled_node_pointer_regex =r'\|.*?>>[0-9,a-z]{3}\b'
-file_link_regex = re.compile('f>.*')
-embedded_syntax_open = re.compile('(%%-[A-Z-]+?)', flags=re.DOTALL)
-embedded_syntax_close = re.compile('|(%%-[A-Z-]*-END)', flags=re.DOTALL)
 
-class UrtextExport(UrtextDirectiveWithParamsFlags):
+class UrtextExport(UrtextDirective):
 
     name = ["EXPORT"]
-    phase = 500
+    phase = 600
 
     def dynamic_output(self, input):
         if 'root' in self.params_dict:
@@ -99,7 +98,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
         ranges = self.project.nodes[root_node_id].ranges
         filename = self.project.nodes[root_node_id].filename
         file_contents = self.project.files[filename]._get_file_contents()
-        title = self.project.nodes[root_node_id].title
+        title = self.project.nodes[root_node_id].get_title()
         meta_title = True if self.project.nodes[root_node_id].metadata.get_first_value('title') else False
 
         if root_node_id in exclude or root_node_id in visited_nodes:
@@ -230,14 +229,11 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
         
     def get_node_pointers_with_locations(self, text, escaped_regions=[]):
 
-        patterns = [titled_node_pointer_regex, node_pointer_regex]
         matches = []
         locations = []
-        for pattern in patterns:
-            matches = re.finditer(pattern, text)
-            for m in matches:
-                if not self.is_escaped(escaped_regions, (m.start(), m.end())):
-                   locations.append((text.find(m.group()), m.group()))
+        for m in node_pointer_c.finditer(text):
+            if not self.is_escaped(escaped_regions, (m.start(), m.end())):
+               locations.append((text.find(m.group()), m.group()))
         return locations
 
     def replace_node_pointers(self,     
@@ -261,7 +257,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
         for location in locations:
 
             match = node_pointer_locations[location]
-            node_id = match[-3:]
+            node_id = match
 
             pointer_length = len(match)
 
@@ -330,21 +326,18 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
     def replace_node_links(self, contents):
         """ replace node links, including titled ones, with exported versions """
 
-        for pattern in [titled_link_regex,  node_link_regex]:
+        node_links = syntax.node_link_c.findall(contents)
 
-            node_links = re.findall(pattern, contents)
+        for match in node_links:
+            node_link = synax.node_link_c.search(match)           
+            node_id = node_link.group(0)
 
-            for match in node_links:
+            if node_id not in self.project.nodes:                    
+                contents = contents.replace(match, '[ MISSING LINK : '+node_id+' ] ')
+                continue
 
-                node_link = re.search(node_link_regex, match)           
-                node_id = node_link.group(0)[-3:]
-
-                if node_id not in self.project.nodes:                    
-                    contents = contents.replace(match, '[ MISSING LINK : '+node_id+' ] ')
-                    continue
-
-                title = self.project.nodes[node_id].title
-                contents = self.replace_link(contents, title)                                    
+            title = self.project.nodes[node_id].get_title()
+            contents = self.replace_link(contents, title)                                    
         
         return contents
 
@@ -353,7 +346,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
 
     def replace_file_links(self, contents, escaped_regions):
         to_replace = []
-        for link in re.finditer(file_link_regex, contents):
+        for link in file_link_c.finditer(contents):
             if not self.is_escaped(escaped_regions, (link.start(), link.end())):
                 to_replace.append(link)
         for link in to_replace:
@@ -362,7 +355,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
 
     def _strip_urtext_syntax(self, contents):
         
-        contents = urtext.node.strip_contents(contents, 
+        contents = Urtext.urtext.node.strip_contents(contents, 
             include_backtick=False, 
             reformat_and_keep_embedded_syntaxes=True).strip()
         if contents and contents[0] == '{':
@@ -382,7 +375,7 @@ class UrtextExport(UrtextDirectiveWithParamsFlags):
         return ''
 
     def wrap_title(self, node_id, nested):        
-        title = self.project.nodes[node_id].title
+        title = self.project.nodes[node_id].get_title()
         return title
 
 def preformat_embedded_syntaxes(text):

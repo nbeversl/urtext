@@ -1,8 +1,10 @@
-
-from urtext.action import UrtextAction
 import os
 import datetime
 import re
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.urtext.action import UrtextAction
+else:
+    from urtext.action import UrtextAction
 
 class PopNode(UrtextAction):
 
@@ -45,7 +47,7 @@ class PopNode(UrtextAction):
             return None
 
         self.project._parse_file(filename)
-        start = self.project.nodes[node_id].ranges[0][0]
+        start = self.project.nodes[node_id].start_position()
         end = self.project.nodes[node_id].ranges[-1][1]
         filename = self.project.nodes[node_id].filename
         file_contents = self.project.files[filename]._get_file_contents()
@@ -55,15 +57,15 @@ class PopNode(UrtextAction):
         parent_id = self.project.nodes[node_id].tree_node.parent
 
         if self.project.settings['breadcrumb_key']:
-            popped_node_contents += '\n'+self.project.settings['breadcrumb_key']+'::>'+parent_id.name+ ' '+self.project.timestamp(datetime.datetime.now());
+            popped_node_contents += '\n'+self.project.settings['breadcrumb_key']+'::| '+parent_id.name+ ' > '+self.project.timestamp(datetime.datetime.now());
 
         remaining_node_contents = ''.join([
             file_contents[0:start - 1],
             '\n| ',
-            self.project.nodes[popped_node_id].title,
-             ' >>',
-            popped_node_id,
-            file_contents[end + 1:]])
+            self.project.nodes[popped_node_id].get_title(),
+            ' >>',
+            file_contents[end + 1:]
+            ])
        
         with open (os.path.join(self.project.path, filename), 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
@@ -84,7 +86,6 @@ class PullNode(UrtextAction):
         file_pos=0, 
         col_pos=0):
     
-
         """ File must be saved in the editor """
         return self._pull_node(
             string, 
@@ -130,7 +131,7 @@ class PullNode(UrtextAction):
                 return None
                         
         self.project._parse_file(source_filename)
-        start = self.project.nodes[source_id].ranges[0][0]
+        start = self.project.nodes[source_id].start_position()
         end = self.project.nodes[source_id].ranges[-1][1]
         
         source_file_contents = self.project.files[source_filename]._get_file_contents()
@@ -150,9 +151,9 @@ class PullNode(UrtextAction):
         pulled_contents = source_file_contents[start:end]
         destination_file_contents = self.project.files[destination_filename]._get_file_contents()
     
-        wrapped_contents = ''.join(['{',pulled_contents,'}'])
+        wrapped_contents = ''.join(['{ ',pulled_contents,' }'])
 
-        for m in re.finditer(re.escape(link['link_match']), destination_file_contents):
+        for m in re.finditer(re.escape(link['full_match']), destination_file_contents):
                 
             replacement_contents = ''.join([
                 destination_file_contents[:m.start()],
@@ -160,8 +161,9 @@ class PullNode(UrtextAction):
                 destination_file_contents[m.end():]]
                 )
 
-        self.project.files[destination_filename]._set_file_contents(replacement_contents)
-        self.project._parse_file(destination_filename)
+        if replacement_contents:
+            self.project.files[destination_filename]._set_file_contents(replacement_contents)
+            self.project._parse_file(destination_filename)
 
         if root:
             return os.path.join(self.project.path, source_filename)

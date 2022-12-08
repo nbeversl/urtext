@@ -16,17 +16,26 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-from urtext.dynamic_output import DynamicOutput
-from anytree import Node, PreOrderIter, RenderTree
-from urtext.timestamp import UrtextTimestamp, default_date
-from urtext.directive import UrtextDirectiveWithParamsFlags
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.urtext.dynamic_output import DynamicOutput
+    from Urtext.anytree import Node, PreOrderIter, RenderTree
+    from Urtext.urtext.timestamp import UrtextTimestamp, default_date
+    from Urtext.urtext.directive import UrtextDirective
+else:
+    from urtext.directive import UrtextDirective
+    from urtext.dynamic_output import DynamicOutput
+    from anytree import Node, PreOrderIter, RenderTree
+    from urtext.timestamp import UrtextTimestamp, default_date
+    from urtext.directive import UrtextDirective
 
-class Collect (UrtextDirectiveWithParamsFlags):
+class Collect (UrtextDirective):
 
     name = ["COLLECT"]
-    phase = 400
+    phase = 300
 
-    """ generates a collection of context-aware metadata anchors in list or tree format """
+    """ 
+    generates a collection of context-aware metadata anchors in list or tree format """
 
     def dynamic_output(self, nodes):
        
@@ -70,15 +79,15 @@ class Collect (UrtextDirectiveWithParamsFlags):
                          if v == '*':
 
                             if use_timestamp:
-                                value = [entry.timestamps[0].datetime]
+                                value = entry.timestamps[0].datetime
                             else:
                                 value = entry.value
 
                          else:
                             if use_timestamp and entry.timestamps[0].datetime == v:
-                                value = [entry.timestamps[0].datetime]
+                                value =entry.timestamps[0].datetime
                             else:
-                                value = [e.value for e in entries]
+                                value = entry.value
 
                          found_item['node_id'] = node.id
                          found_item['title'] = node.title
@@ -133,9 +142,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
              key=lambda x: ( x['sort_value'] ),
              reverse=self.have_flags('-sort_reverse'))
 
-            for index in range(0, len(sorted_stuff)):
-
-                 item = sorted_stuff[index]
+            for item in sorted_stuff:
 
                  next_content = DynamicOutput( m_format, self.project.settings)
                       
@@ -152,7 +159,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                     next_content.values = item['value']
 
                  if next_content.needs_link:            
-                     next_content.link = '>'+item['node_id']+':'+item['position']
+                     next_content.link = '| '+item['node_id']+':'+item['position'] + '> '
 
                  if next_content.needs_date:
                      next_content.date = item['dt_string']
@@ -166,12 +173,12 @@ class Collect (UrtextDirectiveWithParamsFlags):
                          contents = contents.replace('\n\n', '\n')
                      next_content.contents = contents
 
-                 for meta_key in next_content.needs_other_format_keys:
-                     values = self.project.nodes[item['node_id']].metadata.get_values(meta_key) #, substitute_timestamp=True)
-                     replacement = ''
-                     if values:
-                         replacement = ' '.join(values)
-                     next_content.other_format_keys[meta_key] = values
+                 # for meta_key in next_content.needs_other_format_keys:
+                 #     values = self.project.nodes[item['node_id']].metadata.get_values(meta_key) #, substitute_timestamp=True)
+                 #     replacement = ''
+                 #     if values:
+                 #         replacement = ' - '.join(values)
+                 #     next_content.other_format_keys[meta_key] = replacement
 
                  collection.extend([next_content.output()])
 
@@ -194,7 +201,7 @@ class Collect (UrtextDirectiveWithParamsFlags):
                         t = Node(v) 
                     for node in nodes:
                         for n in node.metadata.get_matching_entries(k,value):
-                            f = Node(node.title + ' >' + node.id)
+                            f = Node(node.get_title() + ' >' + node.id)
                             f.parent = t
                         if f:                        
                             t.parent = root

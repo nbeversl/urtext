@@ -17,9 +17,13 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-
+import os
 import re
-format_key_regex = re.compile('\$_?[\.A-Za-z0-9_-]*', re.DOTALL)
+
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+    import Urtext.urtext.syntax as syntax
+else:
+    import urtext.syntax as syntax
 
 class DynamicOutput():
 
@@ -32,7 +36,6 @@ class DynamicOutput():
         self.entry = ''
         self.key = ''
         self.contents = ''
-        self.last_accessed = ''
         self.other_format_keys = {}
         self.project_settings = project_settings
         self.needs_title = False
@@ -41,14 +44,14 @@ class DynamicOutput():
         self.needs_date = False
         self.needs_contents = False
         self.needs_entry = False
-        self.needs_other_format_keys = []
-        self.needs_last_accessed = False
-        
+        self.needs_other_format_keys = []        
         self.needs_key = False
         self.needs_values = False
 
         self.format_string = format_string
-        self.shah = '%&&&&888' #FUTURE : possibly randomize -- must not be any regex operators.
+
+        #TODO : randomize -- must not be any regex operators.
+        self.shah = '%&&&&888'
         self.values = []
         self.item_format = self._tokenize_format();
 
@@ -60,7 +63,7 @@ class DynamicOutput():
         item_format = bytes(item_format, "utf-8").decode("unicode_escape")
         
         # tokenize all $ format keys
-        format_keys = re.findall(format_key_regex, item_format)
+        format_keys = syntax.format_key_c.findall(item_format)
         for token in format_keys:
             item_format = item_format.replace(token, self.shah + token)
             self.values.append(token)
@@ -76,7 +79,6 @@ class DynamicOutput():
             'meta',
             'contents',
             'entry' # for metadata collection
-            '_last_accessed',
         ]
 
         if self.shah + '$title' in self.item_format:
@@ -93,8 +95,6 @@ class DynamicOutput():
             self.needs_key = True
         if self.shah + '$values' in self.item_format:
             self.needs_values = True
-        if self.shah + '$_last_accessed' in self.item_format:
-            self.needs_last_accessed = True
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)
@@ -108,7 +108,7 @@ class DynamicOutput():
                 self.needs_other_format_keys.append(meta_key)
 
     def output(self):
-      
+
         self.item_format = self.item_format.replace(self.shah + '$title', self.title)
         self.item_format = self.item_format.replace(self.shah + '$link', self.link)
         self.item_format = self.item_format.replace(self.shah + '$date', self.date)
@@ -116,7 +116,6 @@ class DynamicOutput():
         self.item_format = self.item_format.replace(self.shah + '$entry', self.entry)
         self.item_format = self.item_format.replace(self.shah + '$key', self.key)
         self.item_format = self.item_format.replace(self.shah + '$values', str(self.values))
-        self.item_format = self.item_format.replace(self.shah + '$_last_accessed', str(self.last_accessed))
 
         contents_syntax = re.compile(self.shah+'\$contents'+'(:\d*)?', re.DOTALL)      
         contents_match = re.search(contents_syntax, self.item_format)

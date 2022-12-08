@@ -16,41 +16,56 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import re
 import os
 
-node_id_regex = r'>[0-9,a-z]{3}\b'
-function_regex = re.compile('([A-Z_\-\+]+)\((.*?)\)', re.DOTALL)
-from urtext.directive import UrtextDirective
-from urtext.utils import force_list
-from urtext.directives.list import NodeList
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+	from .directive import UrtextDirective
+	from .utils import force_list
+	from .directives.list import NodeList
+	import Urtext.urtext.syntax as syntax
+else:
+	from urtext.directive import UrtextDirective
+	from urtext.utils import force_list
+	from urtext.directives.list import NodeList
+	import urtext.syntax as syntax
+
+phases = [
+	100, # Queries, building and sorting list of nodes included/excluded
+	200, # Expects list of node objects. Sorting, limiting, transforming 
+	300, # Expects list of node objects. Convert selected nodes to text output
+	400, # currently unused, left for future.
+	500, # Adding header/footer, preserving other elements as needed
+	600, # Transform built text further (exports, etc.)
+	700, # custom operations
+]
 
 class UrtextDynamicDefinition:
 
-	def __init__(self, match, project):
+	def __init__(self, param_string, project, location):
 
-		contents = match.group(0)[2:-2]
-
-		self.location = match.start()
+		
+		self.location = location
 		self.target_id = None
 		self.target_file = None
 		self.included_nodes = []
 		self.excluded_nodes = []
-		self.used_functions = []
 		self.operations = []
 		self.spaces = 0
 		self.project = project
 		self.preformat = False
 		self.show = None
 		self.multiline_meta = False
-		self.init_self(contents)
+		self.returns_text = True
+		self.init_self(param_string)
+		self.all_ops = []
+		self.source_id = None # set by node once compiled
 		
 		if not self.show:
-			self.show = '$title $link\n'
+			self.show = '$link\n'
 			
 	def init_self(self, contents):
 
-		for match in re.findall(function_regex,contents):
+		for match in syntax.function_c.findall(contents):
 
 			func, argument_string = match[0], match[1]
 			if func and func in self.project.directives:
@@ -60,10 +75,9 @@ class UrtextDynamicDefinition:
 				self.operations.append(op)
 
 			if func =='ID':
-				node_id_match = re.search(node_id_regex, argument_string)
-				if node_id_match:
-					self.target_id = node_id_match.group(0)[1:]
-					continue
+				## TODO: improve this prse
+				self.target_id = argument_string.strip('>').strip('|').strip()
+				continue
 
 			if func == 'FILE':
 				# currently works for files in the project path only
@@ -73,27 +87,47 @@ class UrtextDynamicDefinition:
 			if func == "SHOW":
 				self.show = argument_string
 		
-		all_ops = [t for op in self.operations for t in op.name]
-		
-		if 'ACCESS_HISTORY' not in all_ops  and 'TREE' not in all_ops and 'COLLECT' not in all_ops:
+		self.phases = [op.phase for op in self.operations]
+		is_custom_output = max(self.phases) >= 700 if self.phases else False
+		if not is_custom_output and not has_text_output(self.operations):
+			# add simple list output if none supplied
 			op = self.project.directives['TREE'](self.project)
-			op.parse_argument_string('1')		
+			op.parse_argument_string('1')	
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
-		
-		if 'SORT' not in all_ops:
-			op = self.project.directives['SORT'](self.project)
-			op.set_dynamic_definition(self)
-			op.parse_argument_string('')		
-			self.operations.append(op)
+			self.phases.append(300)
 
-	def process_output(self, max_phase=600):
-		outcome = []
+		self.all_ops = [t for op in self.operations for t in op.name]
+
+		if all(i < 300 or i > 600 for i in self.phases):
+			self.returns_text = False
+
+	def preserve_title_if_present(self):
+		if self.project.nodes[self.target_id].first_line_title:
+			return ' ' + self.project.nodes[self.target_id].title + ' _\n'
+		return ''
+
+	def process_output(self, max_phase=800):
 		
-		for operation in sorted(self.operations, key = lambda op: op.phase) :		
+		outcome = [] # initially
+		phases_to_process = [p for p in phases if p <= max_phase]
+		operations = list(self.operations)
 		
-			if operation.phase < max_phase:
+		all_operations = sorted(operations, key = lambda op: op.phase)
+		for p in phases_to_process:
+			if p == 200:
+				# convert node_id list to node objects for remaining processing
+				self.included_nodes = outcome
+				outcome = [self.project.nodes[nid] for nid in outcome]
+			next_phase = p + 100
+			for operation in [op for op in all_operations if p <= op.phase < next_phase]:
 				new_outcome = operation.dynamic_output(outcome)
 				if new_outcome != False:
 					outcome = new_outcome
 		return outcome
+
+def has_text_output(operations):
+	for op in operations:
+		if 300 <= op.phase < 400:
+			return True
+	return False 

@@ -16,18 +16,20 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import re
-from anytree import Node
-from anytree import RenderTree
-from urtext.directive  import UrtextDirectiveWithParamsFlags
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.anytree import Node
+    from Urtext.anytree import RenderTree
+    from Urtext.urtext.directive  import UrtextDirective
+else:
+    from anytree import Node
+    from anytree import RenderTree
+    from urtext.directive  import UrtextDirective
 
-node_id_regex = '[0-9,a-z]{3}'
-node_link_regex =       r'>[0-9,a-z]{3}\b'
-
-class Interlinks(UrtextDirectiveWithParamsFlags):
+class Interlinks(UrtextDirective):
 
     name = ["INTERLINKS"]
-    phase = 250
+    phase = 350
     
     def dynamic_output(self, nodes):
 
@@ -89,7 +91,7 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
     def render_tree(self):
         render = ''
         for pre, fill, node in RenderTree(self.backward_tree):          
-            render += ("%s%s" % (pre, self.project.nodes[node.name].title +
+            render += ("%s%s" % (pre, self.project.nodes[node.name].get_title() +
                              ' >' + node.name)) + '\n'
         render = render.replace('└', '┌')
         render = render.split('\n')
@@ -100,7 +102,7 @@ class Interlinks(UrtextDirectiveWithParamsFlags):
 
         render = ''
         for pre, fill, node in RenderTree(self.tree):
-            render += ("%s%s" % (pre, self.project.nodes[node.name].title +
+            render += ("%s%s" % (pre, self.project.nodes[node.name].get_title() +
                                  ' >' + node.name)) + '\n'
         render = render_upside_down + render
         render = render.split('\n')

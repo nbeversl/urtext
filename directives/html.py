@@ -1,8 +1,13 @@
-from urtext.directives.export import UrtextExport
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+    from Urtext.urtext.directives.export import UrtextExport
+else:
+    from urtext.directives.export import UrtextExport
 
 class HTMLExport(UrtextExport):
 
     name = ["HTML"]
+    phase = 600
 
     def replace_link(self, link, contents, title):
 
@@ -20,7 +25,7 @@ class HTMLExport(UrtextExport):
         return contents
 
     def wrap_title(self, node_id, nested):
-        return '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n',
+        return '<h'+str(nested)+'>' + title + '</h'+str(nested)+'>\n'
 
     def opening_wrapper(self, node_id, nested):
         return '<div class="urtext_nested_'+str(nested)+'"><a name="'+ node_id + '"></a>'

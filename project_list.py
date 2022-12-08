@@ -16,11 +16,14 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-
-from urtext.project import UrtextProject, node_id_regex, NoProject
 import concurrent.futures
-import re
 import os
+import re
+
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+    from .project import UrtextProject, NoProject
+else:
+    from urtext.project import UrtextProject, NoProject
 
 class ProjectList():
 
@@ -28,13 +31,11 @@ class ProjectList():
         base_path, 
         initial_project=None,
         first_project=False):
-
         self.projects = []
         self.base_path = base_path
         self.current_project = None
         self.navigation = []
         self.nav_index = -1
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         
         if first_project:
             self.init_new_project(base_path)    
@@ -72,9 +73,8 @@ class ProjectList():
         and returns the link information. Does not update navigation,
         this should be done by the calling procedure.
         """
-        string=string.strip()
         node_id = None
-        project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z]{3})\b)?')
+        project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z,A-Z,\s]+)\b)?')
         link = project_link_r.search(string)
         project_name = link.group(2)
         node_id = link.group(4)
@@ -98,7 +98,6 @@ class ProjectList():
         """ Otherwise, set the project, search the link for a link in the current project """
         
         self.set_current_project(os.path.basename(filename))
-
         link = self.current_project.get_link( 
             string, 
             filename, 
@@ -108,12 +107,14 @@ class ProjectList():
         return link
 
     def on_modified(self, filenames):
+        modified_files = []
         if not isinstance(filenames, list):
             filenames = [filenames]
         for f in filenames:
             project = self._get_project_from_path(os.path.dirname(f))
             if project:
-                return project.on_modified(os.path.basename(f))            
+                modified_files.append(project.on_modified(os.path.basename(f)))
+        return modified_files         
         
     def _propagate_projects(self, future):
         # wait on future to complete
@@ -162,11 +163,10 @@ class ProjectList():
                 project = self.get_project(project_title)
             node_title = ''
             if node_id in project.nodes:
-                node_title = project.nodes[node_id].title
-            link = '| '+ node_title +' >'
+                node_title = project.nodes[node_id].get_title()
+            link = '| ' + node_title + ' >'
             if pointer:
-                link += '>'
-            link += node_id
+                link +='>'
             if include_project or project != self.current_project:
                 link = '=>"' + project.title +'"'+link
             return link
@@ -268,21 +268,6 @@ class ProjectList():
                     meta_values.append(pair)
         return meta_values
 
-    def get_node_link(self, string):
-
-        node_string = re.compile(node_id_regex + '(\:\d{0,20})?')
-        if re.search(node_string, string):
-            node_and_position = re.search(node_string, string).group(0)
-            node_id = node_and_position.split(':')[0].strip()
-            for project in self.projects:
-                for node in project.nodes:
-                    if node == node_id:
-                        return {
-                            'project_path': project.path,
-                            'filename': project.nodes[node].filename
-                        }
-        return None
-
     def replace_links(self, old_project_path_or_title, new_project_path_or_title, node_id):
         old_project = self.get_project(old_project_path_or_title)
         new_project = self.get_project(new_project_path_or_title)
@@ -292,7 +277,7 @@ class ProjectList():
         title_list = {}
         for project in self.projects:
             for node_id in project.nodes:
-                title_list[project.nodes[node_id].title] = (project.title, node_id)
+                title_list[project.nodes[node_id].get_title()] = (project.title, node_id)
         return title_list
 
     def is_in_export(self, filename, position):
@@ -320,12 +305,11 @@ class ProjectList():
         return next_node
 
     def delete_file(self, file_name, project=None, open_files=[]):
-        self.executor.submit(self._delete_file, file_name, project=project, open_files=open_files)
-
-    def _delete_file(self, file_name, project=None, open_files=[]):
         if not project:
             project = self.current_project
-        removed_node_ids = project.delete_file(os.path.basename(file_name), open_files=open_files).future()
+        removed_node_ids = project.delete_file(os.path.basename(file_name), open_files=open_files)
+        if project.is_async:
+            removed_node_ids = removed_node_ids.future()
         for node_id in removed_node_ids:
             navigation_entry = (project.title, node_id)
             while navigation_entry in self.navigation:
@@ -340,7 +324,6 @@ class ProjectList():
 
         # don't re-remember consecutive duplicate links
         if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
-            print('DUPLICTE')
             return
 
         # add the newly opened file as the new "HEAD"

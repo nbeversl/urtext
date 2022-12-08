@@ -1,8 +1,11 @@
 import datetime
-from pytz import timezone
-from dateutil.parser import *
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+    from Urtext.dateutil.parser import *
+else:
+    from dateutil.parser import *
 
-default_date = timezone('UTC').localize(datetime.datetime(1970,1,1))
+default_date = datetime.datetime(1970,1,1, tzinfo=datetime.timezone.utc)
 
 class UrtextTimestamp:
     def __init__(self, dt_string):
@@ -21,7 +24,12 @@ def date_from_timestamp(datestamp_string):
     try:
         d = parse(datestamp_string)
     except:
-        pass
-    if d and d.tzinfo == None:
-         d = timezone('UTC').localize(d) 
+        return None
+    if d.tzinfo == None:
+        try:
+            d = d.replace(tzinfo=datetime.timezone.utc)    
+        except:
+            print('cannot add timezone info to')
+            print(datestamp_string)
+            print(d)
     return d

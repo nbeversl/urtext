@@ -20,19 +20,23 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 Metadata
 """
-import datetime
-import re 
-from .node import UrtextNode
-from .metadata import MetadataEntry
 import os
 
-entry_regex = re.compile('\w+\:\:[^\n;]+[\n;]?',re.DOTALL)
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+    from .node import UrtextNode
+    from .metadata import MetadataEntry
+    from .syntax import metadata_entry
+else:
+    from urtext.node import UrtextNode
+    from urtext.metadata import MetadataEntry
+    from urtext.syntax import metadata_entry
 
 def tag_other_node(self, node_id, open_files=[], metadata={}):
-    if self.is_async:
-        return self.executor.submit(self._tag_other_node, node_id, metadata=metadata, open_files=open_files)
-    else:
-        self._tag_other_node(node_id, metadata=metadata, open_files=open_files)
+    return self.execute(
+        self._tag_other_node, 
+        node_id, 
+        metadata=metadata, 
+        open_files=open_files)
         
 def _tag_other_node(self, node_id, metadata={}, open_files=[]):
     """adds a metadata tag to a node programmatically"""
@@ -40,7 +44,7 @@ def _tag_other_node(self, node_id, metadata={}, open_files=[]):
     if metadata == {}:
         if len(self.settings['tag_other']) < 2:
             return None
-        timestamp = self.timestamp(datetime.datetime.now())
+        timestamp = self.timestamp()
         metadata = { self.settings['tag_other'][0] : self.settings['tag_other'][1] + ' ' + timestamp}
     
     territory = self.nodes[node_id].ranges
@@ -81,7 +85,7 @@ def consolidate_metadata(self, node_id, one_line=False):
 
     for single_range in ranges:
 
-        for section in entry_regex.finditer(file_contents[single_range[0]:single_range[1]]):
+        for section in metadata_entry.finditer(file_contents[single_range[0]:single_range[1]]):
             start = section.start() + single_range[0]
             end = start + len(section.group())
             first_splice = file_contents[:start]
@@ -98,25 +102,26 @@ def consolidate_metadata(self, node_id, one_line=False):
 
             
 def _add_sub_tags(self, 
-    source_tree_node, # ID containing the metadata
-    target_tree_node,
     entry,
+    next_node=None,
     visited_nodes=None):
+
     
     if visited_nodes == None:
         visited_nodes = []
-    
-    if target_tree_node.name.strip('ALIAS') not in self.nodes:
+    if next_node:
+        source_tree_node = next_node
+    else:
+        source_tree_node = self.nodes[entry.from_node].tree_node
+    if source_tree_node.name.replace('ALIAS','') not in self.nodes:
         return
 
-    source_id = source_tree_node.name
-
-    for child in self.nodes[target_tree_node.name.strip('ALIAS')].tree_node.children:
+    for child in self.nodes[source_tree_node.name.replace('ALIAS','')].tree_node.children:
         
-        uid = target_tree_node.name + child.name
+        uid = source_tree_node.name + child.name
         if uid in visited_nodes:
             continue
-        node_to_tag = child.name.strip('ALIAS')
+        node_to_tag = child.name.replace('ALIAS','')
         if node_to_tag not in self.nodes:
             visited_nodes.append(uid)
             continue
@@ -124,22 +129,20 @@ def _add_sub_tags(self,
             self.nodes[node_to_tag].metadata.add_entry(
                 entry.keyname, 
                 entry.value, 
-                from_node=source_id, 
+                from_node=entry.from_node, 
                 recursive=entry.recursive)
-            if node_to_tag not in self.nodes[source_id].target_nodes:
-                self.nodes[source_id].target_nodes.append(node_to_tag)
+            if node_to_tag not in self.nodes[entry.from_node].target_nodes:
+                self.nodes[entry.from_node].target_nodes.append(node_to_tag)
         
         visited_nodes.append(uid)        
         
         if entry.recursive:
             self._add_sub_tags(
-                source_tree_node, 
-                self.nodes[node_to_tag].tree_node, 
-                entry, 
+                entry,
+                next_node=self.nodes[node_to_tag].tree_node, 
                 visited_nodes=visited_nodes)
 
 def _remove_sub_tags(self, source_id):
-
     for target_id in self.nodes[source_id].target_nodes:
          if target_id in self.nodes:
              self.nodes[target_id].metadata.clear_from_source(source_id)       
@@ -151,4 +154,10 @@ def _reassign_sub_tags(self, target_id):
             for e in self.nodes[source_id].metadata.dynamic_entries:               
                 self._add_sub_tags( self.nodes[source_id].tree_node, self.nodes[target_id].tree_node, e)    
 
-metadata_functions = [ _add_sub_tags,  _reassign_sub_tags, _tag_other_node, _remove_sub_tags, consolidate_metadata, tag_other_node]
+metadata_functions = [ 
+    _add_sub_tags,  
+    _reassign_sub_tags, 
+    _tag_other_node, 
+    _remove_sub_tags, 
+    consolidate_metadata, 
+    tag_other_node]
