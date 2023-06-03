@@ -17,38 +17,33 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 import os
+import re
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from .buffer import UrtextBuffer
+    import Urtext.urtext.syntax as syntax 
 else:
     from urtext.buffer import UrtextBuffer
+    import urtext.syntax as syntax
 
 class UrtextFile(UrtextBuffer):
    
     def __init__(self, filename, project):
-        self.basename = os.path.basename(filename)
-        self.nodes = {}
-        self.root_nodes = []
-        self.alias_nodes = []           
-        self.parsed_items = {}
-        self.messages = []    
-        self.filename = filename    
-        self.errors = False
-        self.project = project
+        super().__init__(project)
+        self.filename = filename
         self.file_contents = self._read_file_contents()
-        self.contents = self._get_file_contents()        
-        self.filename = os.path.join(project.path, os.path.basename(filename))
-        self.could_import = False        
-        self.clear_errors(self.contents)
-        symbols = self.lex(self.contents)
-        self.parse(self.contents, symbols)
-        self.write_errors(project.settings)
+        if self.file_contents:
+            self.contents = self._get_file_contents()                
+            self.lex_and_parse(self.contents)
+            self.write_messages(project.settings)
+            for node in self.nodes:
+                node.filename = filename
+                node.file = self
 
     def _get_file_contents(self):
         return self.file_contents
 
     def _read_file_contents(self):
-        
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
             with open(self.filename, 'r', encoding='utf-8',) as theFile:
@@ -56,7 +51,11 @@ class UrtextFile(UrtextBuffer):
         except IsADirectoryError:
             return None
         except UnicodeDecodeError:
-            self.log_error('UnicodeDecode Error: f>' + self.filename, 0)
+            self.log_error(''.join([
+                'UnicodeDecode Error: ',
+                syntax.file_link_opening_wrapper,
+                self.filename,
+                syntax.file_link_closing_wrapper]), 0)
             return None
         return full_file_contents
 
@@ -75,7 +74,6 @@ class UrtextFile(UrtextBuffer):
             ]))
 
     def _set_file_contents(self, new_contents, compare=True): 
-
         new_contents = "\n".join(new_contents.splitlines())
         if compare:
             existing_contents = self._get_file_contents()
@@ -86,3 +84,36 @@ class UrtextFile(UrtextBuffer):
         self.file_contents = new_contents
         return True
 
+    def write_messages(self, settings, messages=None):
+        if not messages and not self.messages:
+            return False
+        if messages:
+            self.messages = messages
+
+        contents = self._get_file_contents()
+
+        messages = ''.join([ 
+            syntax.urtext_message_opening_wrapper,
+            '\n',
+            '\n'.join(self.messages),
+            '\n',
+            syntax.urtext_message_closing_wrapper,
+            '\n',
+            ])
+
+        message_length = len(messages)
+        
+        for n in re.finditer('position \d{1,10}', messages):
+            old_n = int(n.group().strip('position '))
+            new_n = old_n + message_length
+            messages = messages.replace(str(old_n), str(new_n))
+             
+        new_contents = ''.join([
+            messages,
+            contents,
+            ])
+
+        self._set_file_contents(new_contents, compare=False)
+        self.nodes = []
+        self.root_node = None
+        self.lex_and_parse(new_contents)

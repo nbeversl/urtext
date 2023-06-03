@@ -91,10 +91,10 @@ class Collect (UrtextDirective):
 
                          found_item['node_id'] = node.id
                          found_item['title'] = node.title
-                         found_item['dt_string'] = entry.timestamps[0].string if entry.timestamps else ''
+                         found_item['dt_string'] = entry.timestamps[0].unwrapped_string if entry.timestamps else ''
 
                          if use_timestamp:
-                             found_item['value'] = entry.timestamps[0].string
+                             found_item['value'] = entry.timestamps[0].unwrapped_string
                              found_item['sort_value'] = entry.timestamps[0].datetime
                        
                          else:
@@ -196,12 +196,12 @@ class Collect (UrtextDirective):
                 for v in keys[k]:
                     f = None
                     if isinstance(v, UrtextTimestamp):
-                        t=Node(v.string)
+                        t=Node(v.unwrapped_string)
                     else:
                         t = Node(v) 
                     for node in nodes:
                         for n in node.metadata.get_matching_entries(k,value):
-                            f = Node(node.get_title() + ' >' + node.id)
+                            f = Node(node.id + ' >' + node.id) #?
                             f.parent = t
                         if f:                        
                             t.parent = root

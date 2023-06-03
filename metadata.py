@@ -22,7 +22,6 @@ if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sub
     from .dynamic import UrtextDynamicDefinition
     from .timestamp import UrtextTimestamp, default_date
     import Urtext.urtext.syntax as syntax
-
 else:
     from urtext.dynamic import UrtextDynamicDefinition
     from urtext.timestamp import UrtextTimestamp, default_date
@@ -46,10 +45,9 @@ class NodeMetadata:
         remaining_contents = full_contents
 
         for m in syntax.metadata_entry_c.finditer(full_contents):
-
-            keyname, contents = m.group().strip(syntax.metadata_end_marker).split(syntax.metadata_assigner, 1)
-            value_list = syntax.metadata_separator_c.split(contents)
-
+            keyname, contents = m.group().strip(syntax.metadata_end_marker).split(syntax.metadata_assigner, 1)                 
+            value_list = syntax.metadata_separator_pattern_c.split(contents)
+            
             tag_self=False
             tag_children=False
             tag_descendants=False
@@ -59,19 +57,19 @@ class NodeMetadata:
             else:
                 if syntax.metadata_tag_self_c.match(keyname[0]):
                     tag_self = True
-                    keyname = keyname[1:]            
+                    keyname = keyname[1:]
                 if syntax.metadata_tag_desc_c.match(keyname[0]):
                     tag_children = True
-                    keyname = keyname[1:] #cdr
+                    keyname = keyname[1:]
                 if syntax.metadata_tag_desc_c.match(keyname[0]):
                     tag_descendants = True
-                    keyname = keyname[1:] #cdr
+                    keyname = keyname[1:]
 
             for value in value_list:
                 value = value.strip()
                 entry = MetadataEntry(
                         keyname,
-                        value, 
+                        value,
                         recursive=tag_descendants,
                         position=m.start(), 
                         end_position=m.start() + len(m.group()))
@@ -113,16 +111,20 @@ class NodeMetadata:
     def add_entry(self, 
         key, 
         value,
+        is_node=False,
         position=0, 
         end_position=0, 
         from_node=None, 
         recursive=False):
 
+        key = key.lower()
         if value in self.get_values(key):
             return False
+
         e = MetadataEntry(
             key, 
             value,
+            is_node=is_node,
             position=position, 
             from_node=from_node,
             end_position=end_position,
@@ -130,18 +132,17 @@ class NodeMetadata:
         if key == 'inline_timestamp' and not e.timestamps:
             return False
         self.entries_dict.setdefault(key, [])
-        self.entries_dict[key].append(e)
+        if e.is_node:
+            self.entries_dict[key] = [e]
+        else:
+            self.entries_dict[key].append(e)
 
     def add_system_keys(self):
         t = self.get_entries('inline_timestamp')
         if t:
             t = sorted(t, key=lambda i: i.timestamps[0].datetime) 
-            self.add_entry(
-                    '_oldest_timestamp', 
-                    '<'+t[0].timestamps[0].string+'>')
-            self.add_entry(
-                    '_newest_timestamp', 
-                    '<'+t[-1].timestamps[0].string+'>')
+            self.add_entry('_oldest_timestamp', t[0].timestamps[0].wrapped_string)
+            self.add_entry('_newest_timestamp', t[-1].timestamps[0].wrapped_string)
 
     def get_first_value(self, 
         keyname, 
@@ -190,21 +191,16 @@ class NodeMetadata:
         use_timestamp=False,
         lower=False):
 
-        keyname = keyname.lower()
         values = []
+        keyname = keyname.lower()
         entries = self.get_entries(keyname)
 
-        for e in entries:
-            if use_timestamp:
-                values.extend(e.timestamps)
-            else:
-                values.append(e.value)        
-
-        if not values and use_timestamp:
-            for e in entries:
-                values.extend(e.timestamps)            
+        if use_timestamp:
+            values = [e.timestamps for e in entries]
+        else:
+            values = [e.value for e in entries]        
         if lower:
-            return strings_to_lower(values)
+            return [v.lower() if isinstance(v, str) else v for v in values]
         return values
     
     def get_keys(self, exclude=[]):
@@ -219,8 +215,9 @@ class NodeMetadata:
         for k in self.entries_dict:
             all_entries.extend(self.entries_dict[k])
         return all_entries
-        
-    def get_matching_entries(self, keyname, value):    
+
+    def get_matching_entries(self, keyname, value):
+        keyname = keyname.lower() 
         entries = self.get_entries(keyname)
         matching_entries = []
         if entries:
@@ -237,6 +234,7 @@ class NodeMetadata:
         """
         Returns the timestamp of the FIRST matching metadata entry with the given key.
         """
+        keyname = keyname.lower()
         entries = self.get_entries(keyname)
         if entries and entries[0].timestamps:
             return entries[0].timestamps[0].datetime
@@ -256,6 +254,28 @@ class NodeMetadata:
             self.entries_dict[self.project.settings['hash_key']].extend(self.entries_dict['#'])
             del self.entries_dict['#']
 
+    def get_oldest_timestamp(self):
+
+        if self.get_entries('_oldest_timestamp'):
+            return self.get_entries('_oldest_timestamp')[0].timestamps[0]
+        all_timestamps = []
+        for entry in self.all_entries():
+            all_timestamps.extend(entry.timestamps)
+        all_timestamps = sorted(all_timestamps, reverse=True, key=lambda ts: ts.datetime)
+        if all_timestamps:
+            return all_timestamps[0]
+
+    def convert_node_links(self):
+        for entry in self.all_entries():
+            if not entry.is_node:
+                m = syntax.node_link_or_pointer_c.search(entry.value)
+                if m:
+                    node_id = m.group(2)
+                    if node_id in self.project.nodes:
+                        entry.value = self.project.nodes[node_id]
+                        entry.is_node = True
+                        # timestamp, if any, will remain
+
     def log(self):
         for entry in self.all_entries():
             entry.log()
@@ -264,6 +284,7 @@ class MetadataEntry:  # container for a single metadata entry
     def __init__(self, 
         keyname, 
         contents, 
+        is_node=False,
         as_int=False,
         position=None,
         recursive=False,
@@ -278,7 +299,11 @@ class MetadataEntry:  # container for a single metadata entry
         self.from_node = from_node
         self.position = position
         self.end_position = end_position
-        self._parse_values(contents)
+        self.is_node = is_node
+        if is_node:
+            self.value = contents
+        else:
+            self._parse_values(contents)
         
     def log(self):
         print('key: %s' % self.keyname)
@@ -286,16 +311,17 @@ class MetadataEntry:  # container for a single metadata entry
         print('from_node: %s' % self.from_node)
         print('recursive: %s' % self.recursive)
         print(self.timestamps)
+        print('is node', self.is_node)
+        print('-------------------------')
         
     def _parse_values(self, contents):
-
         for ts in syntax.timestamp_c.finditer(contents):
             dt_string = ts.group(0).strip()
             contents = contents.replace(dt_string, '').strip()
             t = UrtextTimestamp(dt_string[1:-1])
             if t.datetime:
                 self.timestamps.append(t)        
-        self.value = contents 
+        self.value = contents
    
     def ints(self):
         parts = self.value.split[' ']
@@ -311,12 +337,12 @@ class MetadataEntry:  # container for a single metadata entry
         try:
             return int(self.value)
         except:
-            return None 
+            return None
 
-""" Helpers """
-
-def strings_to_lower(list):
-    for i in range(len(list)):
-        if isinstance(list[i], str):
-            list[i] = list[i].lower()
-    return list 
+    def value_as_string(self):
+        if self.is_node:
+            return ''.join([
+                syntax.link_opening_wrapper,
+                self.value.title,
+                syntax.link_closing_wrapper ])
+        return self.value

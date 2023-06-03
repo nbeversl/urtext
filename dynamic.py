@@ -20,76 +20,85 @@ import os
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
 	from .directive import UrtextDirective
-	from .utils import force_list
-	from .directives.list import NodeList
+	from .utils import force_list, get_id_from_link
 	import Urtext.urtext.syntax as syntax
 else:
 	from urtext.directive import UrtextDirective
-	from urtext.utils import force_list
-	from urtext.directives.list import NodeList
+	from urtext.utils import force_list, get_id_from_link
 	import urtext.syntax as syntax
 
 phases = [
+	000, # Pre-checks, such as WHEN()
 	100, # Queries, building and sorting list of nodes included/excluded
-	200, # Expects list of node objects. Sorting, limiting, transforming 
-	300, # Expects list of node objects. Convert selected nodes to text output
-	400, # currently unused, left for future.
-	500, # Adding header/footer, preserving other elements as needed
-	600, # Transform built text further (exports, etc.)
+	200, # Expects list of node objects. Sorting, limiting, transforming the node list.
+	300, # Build text. Expects list of node objects. Convert selected nodes to text output
+	400, # Adding header/footer, preserving other elements as needed
+	500, # Transform built text further (exports, etc.)
+	600, # currently unused
 	700, # custom operations
+	800, # post-process (formatting per target, preserving title/definition, etc.)
 ]
 
 class UrtextDynamicDefinition:
 
-	def __init__(self, param_string, project, location):
+	def __init__(self, param_string, project, position):
 
-		
-		self.location = location
-		self.target_id = None
+		self.position = position
+		self.contents = None
+		self.target_ids = []
+		self.targets = []
 		self.target_file = None
 		self.included_nodes = []
 		self.excluded_nodes = []
-		self.operations = []
 		self.spaces = 0
 		self.project = project
 		self.preformat = False
 		self.show = None
-		self.multiline_meta = False
 		self.returns_text = True
-		self.init_self(param_string)
-		self.all_ops = []
+		self.param_string = param_string
+		self.init_self(param_string)	
 		self.source_id = None # set by node once compiled
-		
-		if not self.show:
-			self.show = '$link\n'
-			
+		if not self.show: self.show = '$link\n'
+
 	def init_self(self, contents):
 
-		for match in syntax.function_c.findall(contents):
+		self.operations = []
+		self.flags = []
+		self.contents = contents
 
-			func, argument_string = match[0], match[1]
+		for match in syntax.function_c.finditer(contents):
+			
+			func, argument_string = match.group(1), match.group().strip(match.group(1)).strip(')(')
+			argument_string = match.group(2)
 			if func and func in self.project.directives:
 				op = self.project.directives[func](self.project)
+				op.argument_string = argument_string
 				op.set_dynamic_definition(self)
 				op.parse_argument_string(argument_string)	
 				self.operations.append(op)
 
-			if func =='ID':
-				## TODO: improve this prse
-				self.target_id = argument_string.strip('>').strip('|').strip()
+			if func in ['TARGET', '>']:
+				output_target = syntax.virtual_target_match_c.match(argument_string)
+				if output_target:
+					self.targets.append(output_target.group())
+				else:
+					self.target_ids.append(get_id_from_link(argument_string))
+					self.targets.append(argument_string)
 				continue
 
 			if func == 'FILE':
-				# currently works for files in the project path only
 				self.target_file = argument_string
 				continue
 
 			if func == "SHOW":
 				self.show = argument_string
 		
-		self.phases = [op.phase for op in self.operations]
-		is_custom_output = max(self.phases) >= 700 if self.phases else False
-		if not is_custom_output and not has_text_output(self.operations):
+		self.phases = list(set([op.phase for op in self.operations]))
+		
+		#TODO rewrite -- 
+		#is_custom_output = max(self.phases) >= 700 if self.phases else False
+		#if not is_custom_output and not has_text_output(self.operations):
+		if not has_text_output(self.operations):
 			# add simple list output if none supplied
 			op = self.project.directives['TREE'](self.project)
 			op.parse_argument_string('1')	
@@ -97,37 +106,114 @@ class UrtextDynamicDefinition:
 			self.operations.append(op)
 			self.phases.append(300)
 
-		self.all_ops = [t for op in self.operations for t in op.name]
-
 		if all(i < 300 or i > 600 for i in self.phases):
 			self.returns_text = False
 
-	def preserve_title_if_present(self):
-		if self.project.nodes[self.target_id].first_line_title:
-			return ' ' + self.project.nodes[self.target_id].title + ' _\n'
+	def preserve_title_if_present(self, target):
+		if target == '@self':
+			return ' ' + self.project.nodes[self.source_id].title + syntax.title_marker +'\n'
+		node_id = get_id_from_link(target)
+		if node_id in self.target_ids and node_id in self.project.nodes and self.project.nodes[node_id].first_line_title:
+			return ' ' + self.project.nodes[node_id].title + syntax.title_marker +'\n'
 		return ''
 
-	def process_output(self, max_phase=800):
-		
-		outcome = [] # initially
+	def process_output(self, max_phase=700):
+
+		outcome = []
 		phases_to_process = [p for p in phases if p <= max_phase]
-		operations = list(self.operations)
-		
-		all_operations = sorted(operations, key = lambda op: op.phase)
-		for p in phases_to_process:
-			if p == 200:
+		all_operations = sorted(list(self.operations), key = lambda op: op.phase)
+
+		for p in phases_to_process:	
+			if p == 200: 
 				# convert node_id list to node objects for remaining processing
 				self.included_nodes = outcome
-				outcome = [self.project.nodes[nid] for nid in outcome]
+				outcome = [
+					self.project.nodes[nid] for nid in outcome if (
+						nid in self.project.nodes)
+					]
+
 			next_phase = p + 100
-			for operation in [op for op in all_operations if p <= op.phase < next_phase]:
-				new_outcome = operation.dynamic_output(outcome)
-				if new_outcome != False:
+			ops_this_phase = [op for op in all_operations if p <= op.phase < next_phase]
+			
+			if len(ops_this_phase) > 1 and 300 <= p < 400:
+				accumulated_text = ''
+				for operation in ops_this_phase:
+					next_outcome = operation._dynamic_output(outcome)
+					if next_outcome != False:
+						accumulated_text += next_outcome
+				outcome = accumulated_text
+			else:
+				for operation in ops_this_phase:
+					new_outcome = operation._dynamic_output(outcome)					
+					if new_outcome == False:
+						return False
 					outcome = new_outcome
-		return outcome
+
+		self.flags = []
+		return outcome		
+
+	def have_flags(self, flag):
+		if flag in self.flags:
+			return True
+		return False
+
+	def get_definition_text(self):
+		return  '\n' + ''.join([
+			syntax.dynamic_def_opening_wrapper,
+			'\n'.join([line.strip() for line in self.contents.split('\n')]),
+			syntax.dynamic_def_closing_wrapper
+			])
+
+	def process(self, flags=[]):
+		self.flags = flags
+
+		# if self.target_id == None and not self.target_file: 
+		# 	return self.project._log_item(None, ''.join([
+		# 			'Dynamic definition in ',
+		# 			syntax.link_opening_wrapper,
+		# 			self.source_id,
+		# 			syntax.link_closing_wrapper,
+		# 			' has no target']))
+
+		for target_id in self.target_ids:
+
+			if target_id not in self.project.nodes:
+				self.project._log_item(None, ''.join([
+							'Dynamic node definition in',
+							syntax.link_opening_wrapper,
+							self.source_id,
+							syntax.link_closing_wrapper,
+							' points to nonexistent node ',
+							syntax.link_opening_wrapper,
+							target_id,
+							syntax.link_closing_wrapper]))
+
+		output = self.process_output()
+		if output == False: return
+		if not self.returns_text and not self.target_file: return
+		if self.spaces: output = indent(output, spaces=self.spaces)
+		return output
+
+	def post_process(self, target, output):
+		output = self.preserve_title_if_present(target) + output
+		if target == '@self':
+			output += self.get_definition_text()
+		post_process_ops = [op for op in list(self.operations) if op.phase >= 800]
+		for op in post_process_ops:
+			output = op._dynamic_output(output)
+		return output
+
 
 def has_text_output(operations):
 	for op in operations:
 		if 300 <= op.phase < 400:
 			return True
-	return False 
+	return False
+
+def indent(contents, spaces=4):
+	content_lines = contents.split('\n')
+	content_lines[0] = content_lines[0].strip()
+	for index, line in enumerate(content_lines):
+		if line.strip() != '':
+			content_lines[index] = '\t' * spaces + line
+	return '\n'+'\n'.join(content_lines)

@@ -3,19 +3,17 @@
 # Rose, S., D. Engel, N. Cramer, and W. Cowley (2010). 
 # Automatic keyword extraction from indi-vidual documents. 
 # In M. W. Berry and J. Kogan (Eds.), Text Mining: Applications and Theory.unknown: John Wiley and Sons, Ltd.
-
-
 import re
 import operator
 import concurrent.futures
 import os
+
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
     from Urtext.urtext.node import strip_contents
     from Urtext.urtext.extension import UrtextExtension
 else:
     from urtext.node import strip_contents
     from urtext.extension import UrtextExtension
-
 
 class AddRakeKeywords(UrtextExtension):
 
@@ -24,64 +22,79 @@ class AddRakeKeywords(UrtextExtension):
     def __init__(self, project):
         super().__init__(project);
         self.nodes = {}
+        self.rake = Rake()
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
         
-    def on_file_modified(self, filename):
-        self.executor.submit(self.parse_keywords, filename)
-        
-    def parse_keywords(self, filename):
-        for node_id in self.project.files[filename].nodes:
-            if not self.project.nodes[node_id].dynamic:
-                self.nodes[node_id] = Rake(self.project.nodes[node_id].content_only())
+    def on_node_added(self, node):
+        if self.project.compiled:
+            self.executor.submit(self.parse_keywords, node)
+    
+    def after_project_initialized(self):
+        for node in self.project.nodes.values():
+            self.executor.submit(self.parse_keywords, node)
+            
+    def parse_keywords(self, node):
+        if not node.dynamic:
+            self.nodes[node.id] = self.rake.parse_keywords(
+                node.content_only())
 
     def get_keywords(self):
-        keywords = []
-        for i in self.project.nodes:
-            if i in self.nodes:
-                keywords.extend(self.nodes[i].keywords)
-        return list(set(keywords))
+        keyword_list = []
+        for keywords in self.nodes.values():
+            keyword_list.extend(keywords)
+        return list(set(keyword_list))
 
     def get_by_keyword(self, keyword):
         nodes = []
         for i in list(self.nodes):
-            if self.nodes[i].has_keyword(keyword):
+            if keyword in self.nodes[i]:
                 nodes.append(i)
         return nodes
 
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.project.get_node_id_from_position(filename, position)
-        
-        r = Rake(strip_contents(string))
-        keywords = [t[0] for t in r.run(string)]
-        assoc_nodes = []
-        for k in keywords:
-             assoc_nodes.extend(self.project.extensions['RAKE_KEYWORDS'].get_by_keyword(k))
-        assoc_nodes = list(set(assoc_nodes))
-        if node_id in assoc_nodes:
-            assoc_nodes.remove(node_id)
-        for node_id in assoc_nodes:
-            if self.project.nodes[node_id].dynamic:
+        if node_id:
+            r = Rake(strip_contents(string))
+            keywords = [t[0] for t in r.run(string)]
+            assoc_nodes = []
+            for k in keywords:
+                 assoc_nodes.extend(self.get_by_keyword(k))
+            assoc_nodes = list(set(assoc_nodes))
+            
+            if node_id in assoc_nodes:
                 assoc_nodes.remove(node_id)
-        return assoc_nodes
-        
+            for node_id in assoc_nodes:
+                if self.project.nodes[node_id].dynamic:
+                    assoc_nodes.remove(node_id)
+            return assoc_nodes
 
+    def on_node_id_changed(self, old_node_id, new_node_id):
+        if old_node_id in self.nodes:
+            self.nodes[new_node_id] = self.nodes[old_node_id]
+            del self.nodes[old_node_id]
 
 class Rake():
 
-    def __init__(self, contents):
+    def __init__(self):
         self.__stop_words_pattern = build_stop_word_regex()
         self.keywords = []
-        self.parse_keywords(contents)
 
     def run(self, text):
         sentence_list = split_sentences(text)
-        phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern)
+        phrase_list = generate_candidate_keywords(
+            sentence_list,
+            self.__stop_words_pattern)
         word_scores = calculate_word_scores(phrase_list)
-        keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores)
-        return sorted(keyword_candidates.items(), key=operator.itemgetter(1), reverse=True)
+        keyword_candidates = generate_candidate_keyword_scores(
+            phrase_list, 
+            word_scores)
+        return sorted(
+            keyword_candidates.items(), 
+            key=operator.itemgetter(1), 
+            reverse=True)
 
     def parse_keywords(self, parsed_contents):
-        self.keywords = [t[0] for t in self.run(parsed_contents)]
+        return [t[0] for t in self.run(parsed_contents)]
 
     def has_keyword(self, keyword):
         return True if keyword in self.keywords else False
@@ -90,10 +103,6 @@ class Rake():
 """
 Free Association
 """
-
-
-
-
 def is_number(s):
     try:
         float(s) if '.' in s else int(s)

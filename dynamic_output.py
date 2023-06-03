@@ -47,7 +47,6 @@ class DynamicOutput():
         self.needs_other_format_keys = []        
         self.needs_key = False
         self.needs_values = False
-
         self.format_string = format_string
 
         #TODO : randomize -- must not be any regex operators.
@@ -126,6 +125,7 @@ class DynamicOutput():
                 contents = contents.strip()
             if self.project_settings['contents_strip_internal_whitespace']:
                 contents =  strip_internal_whitespace(contents)
+            #TODO check whether this is ever reached:
             while '>>' in contents:
                 contents = contents.replace('>>','(>)>')
             suffix = ''

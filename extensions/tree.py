@@ -10,52 +10,62 @@ class UrtextAnyTree(UrtextExtension):
 
     name = ["TREE_EXTENSION"]
 
-    def on_file_modified(self, filename):
-        """ Build tree elements """
+    def on_file_added(self, filename):
+        if filename in self.project.files:
+            for node in self.project.files[filename].nodes:
+                for pointer in node.pointers:
+                    alias_node = Node('ALIA$'+pointer['id']) # anytree Node, not UrtextNode 
+                    alias_node.position = pointer['position']
+                    alias_node.parent = node.tree_node
+                    self.project.files[filename].alias_nodes.append(alias_node)
+                if node.parent:
+                    node.tree_node.parent = node.parent.tree_node
 
-        parsed_items = self.project.files[filename].parsed_items
-        positions = sorted(parsed_items.keys())
-        for position in positions:
+    def on_node_added(self, node):
+        node.tree_node = Node(node.id)
 
-            # parse each marker, positioning it within its parent node
-            if parsed_items[position][-2:].strip() == '>>':
-                inserted_node_id = parsed_items[position][:-2].strip()
-                parent_node = self.project.get_node_id_from_position(filename, position)
-                if not parent_node:
-                    continue
-                alias_node = Node('ALIAS'+inserted_node_id)
-                alias_node.parent = self.project.nodes[parent_node].tree_node
-                self.project.files[filename].alias_nodes.append(alias_node)
-                continue
+    def on_node_id_changed(self, old_node_id, new_node_id):
+        self.project.nodes[new_node_id].tree_node.name = new_node_id
 
-            node_title = parsed_items[position].strip()
-            if node_title not in self.project.nodes:
-                continue
-
-            if position == 0 and parsed_items[0] == '{':
-                self.project.nodes[node_title].tree_node.parent = self.project.nodes[root_node_id].tree_node
-                continue
-
-            start_of_node = self.project.nodes[node_title].start_position()
-            
-            parent = self.project.get_node_id_from_position(filename, start_of_node - 1)
-            if parent:
-                while self.project.nodes[parent].compact:
-                    start_of_node = self.project.nodes[parent].start_position()
-                    if start_of_node == 0:
-                        parent = self.project.nodes[self.project.files[filename].root_nodes[0]].title
-                        break
-                    else:
-                        parent = self.project.get_node_id_from_position(filename, start_of_node - 1)
-                        if not parent:
-                            parent = self.project.nodes[self.project.files[filename].root_nodes[0]].title
-                            break
-                self.project.nodes[node_title].tree_node.parent = self.project.nodes[parent].tree_node
-
-    def on_file_removed(self, filename):
-        for node_id in self.project.files[filename].nodes:
-            self.project.nodes[node_id].tree_node.parent = None
-            self.project.nodes[node_id].tree_node = Node(node_id)
+    def on_file_dropped(self, filename):
+        for node in self.project.files[filename].nodes:
+            node.tree_node.parent = None
+            del node.tree_node
         for a in self.project.files[filename].alias_nodes:
             a.parent = None
             a.children = []
+
+    def on_sub_tags_added(self, 
+        node_id,
+        entry, 
+        next_node=None, 
+        visited_nodes=None):
+    
+        visited_nodes = []
+
+        for pointer in self.project.nodes[node_id].pointers:
+            uid = node_id + pointer['id']
+            if uid in visited_nodes:
+                continue
+            node_to_tag = pointer['id']
+            if node_to_tag not in self.project.nodes:
+                visited_nodes.append(uid)
+                continue
+
+            if uid not in visited_nodes and not self.project.nodes[node_to_tag].dynamic:
+                self.project.nodes[node_to_tag].metadata.add_entry(
+                    entry.keyname, 
+                    entry.value, 
+                    from_node=entry.from_node, 
+                    recursive=entry.recursive)
+                if node_to_tag not in self.project.nodes[entry.from_node].target_nodes:
+                    self.project.nodes[entry.from_node].target_nodes.append(node_to_tag)
+
+            visited_nodes.append(uid)        
+            
+            if entry.recursive:
+                self.on_sub_tags_added(
+                    pointer['id'],
+                    entry,
+                    next_node=node_to_tag, 
+                    visited_nodes=visited_nodes)

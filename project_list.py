@@ -16,122 +16,96 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import concurrent.futures
 import os
 import re
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .project import UrtextProject, NoProject
+    from .project import UrtextProject
+    import Urtext.urtext.syntax as syntax
 else:
-    from urtext.project import UrtextProject, NoProject
+    from urtext.project import UrtextProject
+    import urtext.syntax as syntax
+
+project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z,A-Z,\s]+)\b)?')
 
 class ProjectList():
 
     def __init__(self, 
-        base_path, 
-        initial_project=None,
-        first_project=False):
-        self.projects = []
-        self.base_path = base_path
-        self.current_project = None
-        self.navigation = []
-        self.nav_index = -1
-        
-        if first_project:
-            self.init_new_project(base_path)    
-        self._add_folder(base_path)
-        
-        if self.projects:
-            self.current_project = self.projects[0]
-        if initial_project:
-            self.set_current_project(initial_project)
-        self._propagate_projects(None)
+        entry_point,
+        editor_methods={}):
     
-    def _add_folder(self, folder):
-        """ recursively add folders """
-        if folder not in [p.path for p in self.projects]:
-            try:
-                if os.path.basename(folder) not in ['history','img','files' ]:
-                    project = UrtextProject(folder)
-                    self.projects.append(project)
-            except NoProject:
-                print('No project found in '+folder)
-            sub_dirs = next(os.walk(folder))[1]
-            for subdir in sub_dirs:
-                if subdir not in ['.git','.DS_Store','/','history','files']:
-                    self._add_folder(os.path.join(folder, subdir))
+        self.entry_point = entry_point
+        self.projects = []
+        self.extensions = {}
+        self.current_project = None
+        self.editor_methods = editor_methods
+        self.add_project(entry_point)
 
-    def get_link_and_set_project(self, 
+    def add_project(self, path):
+        """ recursively add folders """
+        paths = []
+        for p in self.projects:
+            paths.extend([entry['path'] for entry in p.settings['paths']])
+        if path not in paths:
+            if os.path.basename(path) not in ['urtext_files']:
+                project = UrtextProject(path, 
+                    project_list=self,
+                    editor_methods=self.editor_methods)
+                self.projects.append(project)
+
+    def handle_link(self, 
             string, 
             filename, 
             col_pos=0,
-            file_pos=0):
+            file_pos=0,
+            return_target_only=False):
 
         """
         Given a line of text, looks for a link to a node or project
         with node, sets the current project to the containing project,
         and returns the link information. Does not update navigation,
-        this should be done by the calling procedure.
+        this should be done by the calling method.
         """
         node_id = None
-        project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z,A-Z,\s]+)\b)?')
         link = project_link_r.search(string)
         project_name = link.group(2)
         node_id = link.group(4)
+
         """ If a project name has been specified, locate the project and node """
         if project_name:
-            if not self.set_current_project(project_name):
-                return None
-            if node_id and node_id in self.current_project.nodes:
-                    return {
-                        'kind' : "OTHER_PROJECT", 
-                        'link' : node_id, 
-                        'dest_position' : 0,
-                    }
-
-            return {
-                'kind': 'NODE', 
-                'link': self.current_project.nav_current(), 
-                'dest_position' : 0,
-                }
-        
+            if not self.set_current_project(project_name): return None
+            return self.current_project.handle_link(
+                string, 
+                col_pos=col_pos,
+                file_pos=file_pos,
+                return_target_only=return_target_only)
+         
         """ Otherwise, set the project, search the link for a link in the current project """
-        
-        self.set_current_project(os.path.basename(filename))
-        link = self.current_project.get_link( 
-            string, 
-            filename, 
-            col_pos=col_pos,
-            file_pos=file_pos
-            )
-        return link
+        if filename:
+            self.set_current_project(os.path.dirname(filename))
+            if self.current_project:
+                return self.current_project.handle_link( 
+                    string,
+                    col_pos=col_pos,
+                    file_pos=file_pos,
+                    return_target_only=return_target_only)
 
-    def on_modified(self, filenames):
-        modified_files = []
-        if not isinstance(filenames, list):
-            filenames = [filenames]
-        for f in filenames:
-            project = self._get_project_from_path(os.path.dirname(f))
-            if project:
-                modified_files.append(project.on_modified(os.path.basename(f)))
-        return modified_files         
-        
-    def _propagate_projects(self, future):
-        # wait on future to complete
-        if future: # future can be None
-            s = future.result()
-        for project in self.projects:
-            project.project_list = self
+    def on_modified(self, filename):
+        project = self._get_project_from_path(
+            os.path.dirname(filename))
+        if project:
+            future = project.on_modified(filename)
+            return future
 
     def _get_project_from_path(self, path):
         for project in self.projects:
-            if path == project.path:
+            if path in [entry['path'] for entry in project.settings['paths']]:
                 return project
         return None
 
     def _get_project_from_title(self, title):
         for project in self.projects:
-            if title == project.title:
+            if title == project.settings['project_title']:
                 return project
         return None
 
@@ -144,10 +118,11 @@ class ProjectList():
     def set_current_project(self, title_or_path):
         project = self.get_project(title_or_path) 
         if not project:
-            return None
-        if  ( not self.current_project ) or ( project and project.title != self.current_project.title ) :
+            return
+        if ( not self.current_project ) or ( 
+            project.settings['project_title'] != self.current_project.settings['project_title'] ) :
            self.current_project = project
-           print('Switched to project: ' + self.current_project.title)
+           print('Switched to project: ' + self.current_project.settings['project_title'])
         return project
 
     def build_contextual_link(self, 
@@ -155,55 +130,44 @@ class ProjectList():
         project_title=None, 
         pointer=False, 
         include_project=False):
+
         if node_id:
-            
             if project_title == None:
                 project = self.current_project
             else:
                 project = self.get_project(project_title)
-            node_title = ''
             if node_id in project.nodes:
-                node_title = project.nodes[node_id].get_title()
-            link = '| ' + node_title + ' >'
-            if pointer:
-                link +='>'
-            if include_project or project != self.current_project:
-                link = '=>"' + project.title +'"'+link
-            return link
-
-    def nav_current(self):
-        return self.current_project.nav_current()
+                link = syntax.link_opening_wrapper + node_id + syntax.link_closing_wrapper
+                if pointer:
+                    link = link.replace(syntax.link_closing_wrapper, syntax.pointer_closing_wrapper)
+                if include_project or project != self.current_project:
+                    link = syntax.other_project_link_prefix+ '"' + project.settings['project_title'] +'"'+link
+                return link
         
     def project_titles(self):
         titles = []
         for project in self.projects:
-            titles.append(project.title)
+            titles.append(project.settings['project_title'])
         return titles
 
     def get_current_project(self, path):
         for project in self.projects:
-            if project.path == path:
+            if project.path in project.settings['paths']:
                 return project
         return None
 
-    def init_new_project(self, path):
-        if path in self.project_titles():
-            print('Path already in use.')
-            return None
-        if not os.path.exists(path):
-            os.makedirs(path)
-        project = UrtextProject(path, new_project=True)
-        if project:
-            self.projects.append(project)
-            self.set_current_project(path)
-            
-        print('Initialized New project at '+os.path.abspath(path))
-
     def visit_file(self, filename):
-        if filename:
+        if filename and self.current_project:
             path = os.path.dirname(filename)
             self.set_current_project(path)
             return self.current_project.visit_file(filename)
+
+    def new_project_in_path(self, path):
+        if os.path.exists(path):
+            new_project = UrtextProject(path, project_list=self)
+            self.set_current_project(path)
+        else:
+            print('%s does not exist' % path) 
 
     def move_file(self, 
         filename, 
@@ -221,18 +185,17 @@ class ProjectList():
             print('Destination project `'+ destination_project_name_or_path +'` was not found.')
             return None
 
-        filename = os.path.basename(filename)
         if filename not in self.current_project.files:
             print('File '+ filename +' not included in the current project.')
             return None
 
         affected_nodes = self.current_project.files[filename].nodes.keys()
         
-        self.current_project.remove_file(filename) # also updates the source project
+        self.current_project.drop_file(filename) # also updates the source project
 
         os.rename(
-            os.path.join( self.current_project.path, filename),
-            os.path.join( destination_project.path, filename)
+            os.path.join( self.current_project.settings['paths'][0], filename),
+            os.path.join( destination_project.settings['paths'][0], filename)
             )
 
         """
@@ -247,15 +210,9 @@ class ProjectList():
         if replace_links:
             for node_id in affected_nodes:
                 self.replace_links(
-                    self.current_project.title,
-                    destination_project.title,                   
+                    self.current_project.settings['project_title'],
+                    destination_project.settings['project_title'],                   
                     node_id)
-
-        # also move the history file
-        history_file = filename.replace('.txt','.pkl')
-        if os.path.exists(os.path.join(self.current_project.path, 'history', history_file)):
-            os.rename(os.path.join(self.current_project.path, 'history', history_file),
-                  os.path.join(destination_project.path, 'history', history_file))
 
         return True
 
@@ -271,13 +228,13 @@ class ProjectList():
     def replace_links(self, old_project_path_or_title, new_project_path_or_title, node_id):
         old_project = self.get_project(old_project_path_or_title)
         new_project = self.get_project(new_project_path_or_title)
-        old_project.replace_links(node_id, new_project=new_project.title)
+        old_project.replace_links(node_id, new_project=new_project.settings['project_title'])
     
     def titles(self):
         title_list = {}
         for project in self.projects:
             for node_id in project.nodes:
-                title_list[project.nodes[node_id].get_title()] = (project.title, node_id)
+                title_list[project.nodes[node_id].title] = (project.settings['project_title'], node_id)
         return title_list
 
     def is_in_export(self, filename, position):
@@ -285,67 +242,19 @@ class ProjectList():
             return None
         return self.current_project.is_in_export(filename, position)
 
-    """
-    Project List Navigation
-    """
-
-    def nav_advance(self):
-
-        if not self.navigation:
-            return None
-            
-        if self.nav_index == len(self.navigation) - 1:
-            print('index is already at the end')
-            return
-
-        self.nav_index += 1
-        project, next_node = self.navigation[self.nav_index]
-        self.set_current_project(project)
-        next_node = self.current_project.nav_advance()
-        return next_node
+    def editor_insert_link_to_node(self, node, project_title=None):
+        if project_title == None:
+            project_title = self.current_project.title
+        if project_title:
+            link = self.build_contextual_link(
+                node.id,
+                project_title=project_title)
+            if 'insert_text' in self.editor_methods:
+                self.editor_methods['insert_text'](link)
 
     def delete_file(self, file_name, project=None, open_files=[]):
         if not project:
             project = self.current_project
-        removed_node_ids = project.delete_file(os.path.basename(file_name), open_files=open_files)
-        if project.is_async:
-            removed_node_ids = removed_node_ids.future()
-        for node_id in removed_node_ids:
-            navigation_entry = (project.title, node_id)
-            while navigation_entry in self.navigation:
-                index = self.navigation.index(navigation_entry)
-                del self.navigation[index]
-                if self.nav_index > index: # >= ?
-                    self.nav_index -= 1
-
-    def nav_new(self, node_id, project=None):
-        if not project:
-            project = self.current_project
-
-        # don't re-remember consecutive duplicate links
-        if -1 < self.nav_index < len(self.navigation) and node_id == self.navigation[self.nav_index]:
-            return
-
-        # add the newly opened file as the new "HEAD"
-        self.nav_index += 1
-        del self.navigation[self.nav_index:]
-        self.navigation.append((project.title, node_id))
-        self.current_project.nav_new(node_id)
-
-    def nav_reverse(self):
-        
-        if not self.navigation:
-            print('no nav history')
-            return None
-            
-        if self.nav_index == 0:
-            print('index is already at the beginning.')
-            return None
-        
-        self.nav_index -= 1
-
-        project, last_node = self.navigation[self.nav_index]
-        self.set_current_project(project)
-        self.current_project.nav_reverse()   
-        return last_node
-
+        project.delete_file(
+            file_name, 
+            open_files=open_files)
