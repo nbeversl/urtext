@@ -1,5 +1,6 @@
-import os 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+from ..context import CONTEXT
+
+if CONTEXT == 'Sublime Text':
 	from Urtext.urtext.directive import UrtextDirective
 	import Urtext.urtext.syntax as syntax
 else:
@@ -17,11 +18,13 @@ class Log(UrtextDirective):
 			if k:
 				file = syntax.file_link_opening_wrapper + k + syntax.link_closing_wrapper
 			else:
-				file = '(no file) '
+				file = '(no file)'
 			for message in self.project.messages[k]:
 				output.append(''.join([
-	                'in file : ',
+	                'in file ',
 	                file,
-	                '\n']) + message)
-
+	                ' ',
+	                message,
+	                '\n'
+	                ]))
 		return '\n'.join(output) + '\n'

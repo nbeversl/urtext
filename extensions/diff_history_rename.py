@@ -1,5 +1,7 @@
+from ..context import CONTEXT
 import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+
+if CONTEXT == 'Sublime Text':
     from Urtext.urtext.extension import UrtextExtension
 else:
     from urtext.extension import UrtextExtension

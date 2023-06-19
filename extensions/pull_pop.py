@@ -1,6 +1,8 @@
 import os
 import re
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+from ..context import CONTEXT
+
+if CONTEXT == 'Sublime Text':
     from Urtext.urtext.extension import UrtextExtension
     import Urtext.urtext.syntax as syntax
 else:
@@ -12,6 +14,19 @@ class PopNode(UrtextExtension):
     name=['POP_NODE']
 
     def pop_node(self,
+        param_string, 
+        filename, 
+        file_pos=None,  
+        node_id=None):
+
+        self.project.execute(
+            self._pop_node,
+            param_string, 
+            filename, 
+            file_pos=file_pos,  
+            node_id=node_id)
+
+    def _pop_node(self,
         param_string, 
         filename, 
         file_pos=None,  
@@ -74,6 +89,19 @@ class PullNode(UrtextExtension):
     name=['PULL_NODE']
 
     def pull_node(self, 
+        string, 
+        destination_filename, 
+        file_pos=0,
+        col_pos=0):
+
+        self.project.execute(
+            self._pull_node,
+            string, 
+            destination_filename, 
+            file_pos=file_pos,
+            col_pos=col_pos)
+
+    def _pull_node(self, 
         string, 
         destination_filename, 
         file_pos=0,

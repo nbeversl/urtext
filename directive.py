@@ -1,5 +1,6 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+
+if CONTEXT == 'Sublime Text':
     import Urtext.urtext.syntax as syntax
     from .utils import force_list
 else:
@@ -19,8 +20,6 @@ class UrtextDirective():
         self.project = project
         self.argument_string = None
         self.dynamic_definition = None
-
-    """ command """
 
     def execute(self):
         return
@@ -64,7 +63,7 @@ class UrtextDirective():
         self.dynamic_definition = dynamic_definition
 
     def parse_argument_string(self, argument_string):
-        self.argument_string = argument_string
+        self.argument_string = argument_string.strip()
         self._parse_flags(argument_string)
         self._parse_keys(argument_string)
         

@@ -21,7 +21,9 @@ import os
 import re
 import logging
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+
+if CONTEXT == 'Sublime Text':    
     from Urtext.anytree import Node, PreOrderIter
     from .metadata import MetadataEntry
     from .metadata import NodeMetadata
@@ -153,6 +155,14 @@ class UrtextNode:
                 ]) 
             if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
                 return resolved_id
+            resolved_id = ''.join([
+                    title,
+                    ' ^ ',
+                    self.parent.metadata.get_oldest_timestamp().unwrapped_string
+                ])
+            if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
+                return resolved_id
+
         timestamp = self.metadata.get_oldest_timestamp()
         if timestamp:
             resolved_id = ''.join([
@@ -176,7 +186,6 @@ class UrtextNode:
         return stripped_contents
 
     def get_links(self, contents=None):
- 
         if contents == None:
             contents = self.content_only()
         links = syntax.node_link_or_pointer_c.finditer(contents)

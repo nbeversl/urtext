@@ -18,7 +18,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+
+if CONTEXT == 'Sublime Text':
     from .dynamic import UrtextDynamicDefinition
     from .timestamp import UrtextTimestamp, default_date
     import Urtext.urtext.syntax as syntax
@@ -189,7 +191,8 @@ class NodeMetadata:
     def get_values(self, 
         keyname,
         use_timestamp=False,
-        lower=False):
+        lower=False,
+        convert_nodes_to_links=False):
 
         values = []
         keyname = keyname.lower()
@@ -199,6 +202,13 @@ class NodeMetadata:
             values = [e.timestamps for e in entries]
         else:
             values = [e.value for e in entries]        
+        if convert_nodes_to_links:
+            for index, value in enumerate(values):
+                if not isinstance(value, str):
+                    values[index] = ''.join([
+                        syntax.link_opening_wrapper,
+                        value.id,
+                        syntax.link_closing_wrapper])
         if lower:
             return [v.lower() if isinstance(v, str) else v for v in values]
         return values

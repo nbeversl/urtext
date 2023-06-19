@@ -6,9 +6,9 @@
 import re
 import operator
 import concurrent.futures
-import os
+from ..context import CONTEXT
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+if CONTEXT == 'Sublime Text':
     from Urtext.urtext.node import strip_contents
     from Urtext.urtext.extension import UrtextExtension
 else:
@@ -54,8 +54,7 @@ class AddRakeKeywords(UrtextExtension):
     def get_assoc_nodes(self, string, filename, position):
         node_id = self.project.get_node_id_from_position(filename, position)
         if node_id:
-            r = Rake(strip_contents(string))
-            keywords = [t[0] for t in r.run(string)]
+            keywords = [t[0] for t in self.rake.run(string)]
             assoc_nodes = []
             for k in keywords:
                  assoc_nodes.extend(self.get_by_keyword(k))

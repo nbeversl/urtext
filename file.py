@@ -16,10 +16,11 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import os
 import re
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+
+if CONTEXT == 'Sublime Text':    
     from .buffer import UrtextBuffer
     import Urtext.urtext.syntax as syntax 
 else:
@@ -46,7 +47,7 @@ class UrtextFile(UrtextBuffer):
     def _read_file_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
-            with open(self.filename, 'r', encoding='utf-8',) as theFile:
+            with open(self.filename, 'r', encoding='utf-8') as theFile:
                 full_file_contents = theFile.read()
         except IsADirectoryError:
             return None
@@ -91,10 +92,12 @@ class UrtextFile(UrtextBuffer):
             self.messages = messages
 
         contents = self._get_file_contents()
-
+        timestamp = self.project.timestamp(as_string=True)
         messages = ''.join([ 
             syntax.urtext_message_opening_wrapper,
             '\n',
+            timestamp,
+            ' ',
             '\n'.join(self.messages),
             '\n',
             syntax.urtext_message_closing_wrapper,

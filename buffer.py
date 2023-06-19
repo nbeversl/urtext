@@ -1,7 +1,7 @@
-import os
 import re
+from .context import CONTEXT
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+if CONTEXT == 'Sublime Text':
     from .node import UrtextNode
     from .utils import strip_backtick_escape
     import Urtext.urtext.syntax as syntax
@@ -146,7 +146,8 @@ class UrtextBuffer:
                 
                 child_group.setdefault(nested,[])
                 child_group[nested].append(node)
-                del nested_levels[nested]
+                if nested in nested_levels:
+                    del nested_levels[nested]
                 nested -= 1
 
             if symbols[position]['type'] == 'EOB':

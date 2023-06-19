@@ -1,6 +1,6 @@
-import os
 import re
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+if CONTEXT == 'Sublime Text':
     import Urtext.urtext.syntax as syntax
 else:
     import urtext.syntax as syntax
@@ -16,8 +16,6 @@ def force_list(thing):
 	return thing
 
 def get_id_from_link(target):
-    target = re.sub(syntax.node_link_opening_wrapper_match, '', target)
-    target = target.strip(syntax.link_closing_wrapper)
-    target = target.replace('\\(', '(')
-    target = target.replace('\\)', ')')
-    return target.strip()
+    match = syntax.any_link_or_pointer_c.search(target)
+    if match: return match.group(6).strip()
+    return target

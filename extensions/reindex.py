@@ -1,5 +1,7 @@
 import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
+from ..context import CONTEXT
+
+if CONTEXT == 'Sublime Text':    
     from Urtext.urtext.extension import UrtextExtension
 else:
     from urtext.extension import UrtextExtension
@@ -12,11 +14,15 @@ class ReindexFiles(UrtextExtension):
     name=['REINDEX']        
     
     def rename_all_files(self):
-        return self.rename_file_nodes(self.project.all_files(), reindex=True)
+        return self.rename_file_nodes(self.project.all_files())
 
-    def rename_file_nodes(self, filenames, reindex=False):
+    def rename_file_nodes(self, filenames):
+        return self.project.execute(
+            self._rename_file_nodes,
+            filenames)
+
+    def _rename_file_nodes(self, filenames):
         """ Rename a file or list of files by metadata """
-
         if isinstance(filenames, str):
             filenames = [filenames]
        
@@ -98,7 +104,7 @@ class RenameSingleFile(ReindexFiles):
     name=['RENAME_SINGLE_FILE']
 
     def rename_single_file(self, filename):
-        return self.rename_file_nodes(filename, reindex=True) 
+        return self.rename_file_nodes(filename)
 
 def strip_illegal_characters(filename):
     for c in ['<', '>', ':', '"', '/', '\\', '|', '?','*', '.', ';']:

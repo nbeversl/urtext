@@ -17,10 +17,11 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-import os
 import re
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
+from .context import CONTEXT
+
+if CONTEXT == 'Sublime Text':
     import Urtext.urtext.syntax as syntax
 else:
     import urtext.syntax as syntax
@@ -100,7 +101,10 @@ class DynamicOutput():
         if contents_match:
             self.needs_contents = True
 
-        all_format_keys = re.findall( self.shah+'\$[\.A-Za-z0-9_-]*', self.item_format, re.DOTALL)                   
+        all_format_keys = re.findall(
+            self.shah+'\$[\.A-Za-z0-9_-]*', 
+            self.item_format, 
+            re.DOTALL)                   
         for match in all_format_keys:
             meta_key = match.strip(self.shah+'$') 
             if meta_key not in defined_list:
@@ -141,7 +145,7 @@ class DynamicOutput():
         for meta_key in self.other_format_keys:
             token = self.shah+'$'+meta_key
             value = ''.join(self.other_format_keys[meta_key])
-            self.item_format = self.item_format.replace(token, value );    
+            self.item_format = self.item_format.replace(token, value );
 
         return self.item_format
 
