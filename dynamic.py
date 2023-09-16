@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-from .context import CONTEXT
+import os
 
-if CONTEXT == 'Sublime Text':
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
 	from .directive import UrtextDirective
 	from .utils import force_list, get_id_from_link
 	import Urtext.urtext.syntax as syntax
@@ -57,7 +57,7 @@ class UrtextDynamicDefinition:
 		self.param_string = param_string
 		self.init_self(param_string)	
 		self.source_id = None # set by node once compiled
-		if not self.show: self.show = '$link\n'
+		if not self.show: self.show = '$_link\n'
 
 	def init_self(self, contents):
 
@@ -84,7 +84,8 @@ class UrtextDynamicDefinition:
 					target_id = get_id_from_link(argument_string)
 					if target_id:
 						self.target_ids.append(target_id)
-					self.targets.append(argument_string)
+					else:
+						self.targets.append(argument_string)
 				continue
 
 			if func == "SHOW":
@@ -118,7 +119,9 @@ class UrtextDynamicDefinition:
 
 		outcome = []
 		phases_to_process = [p for p in phases if p <= max_phase]
-		all_operations = sorted(list(self.operations), key = lambda op: op.phase)
+		all_operations = sorted(
+			list(self.operations), 
+			key = lambda op: op.phase)
 
 		for p in phases_to_process:	
 			if p == 200: 

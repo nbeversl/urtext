@@ -21,9 +21,7 @@ import os
 import re
 import logging
 
-from .context import CONTEXT
-
-if CONTEXT == 'Sublime Text':    
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from Urtext.anytree import Node, PreOrderIter
     from .metadata import MetadataEntry
     from .metadata import NodeMetadata
@@ -75,13 +73,13 @@ class UrtextNode:
         self.nested = nested
     
         contents = self.parse_dynamic_definitions(contents, self.dynamic_definitions)
-        contents = strip_dynamic_definitions(contents)
         contents = strip_wrappers(contents)
         contents = strip_errors(contents)
         contents = strip_embedded_syntaxes(contents)
         contents = strip_backtick_escape(contents)
-        
+
         self.get_links(contents=contents)
+        contents = strip_dynamic_definitions(contents)       
         contents = strip_links(contents)
 
         self.metadata = self.urtext_metadata(self, self.project)        
@@ -114,7 +112,11 @@ class UrtextNode:
     def contents(self, 
         preserve_length=False,
         strip_first_line_title=False,
-        do_strip_embedded_syntaxes=True):
+        do_strip_embedded_syntaxes=True,
+        reformat_and_keep_embedded_syntaxes=False,
+        do_strip_metadata=True,
+        do_strip_dynamic_definitions=True
+        ):
    
         file_contents = self.get_file_contents()
         node_contents = []
@@ -137,6 +139,17 @@ class UrtextNode:
                 preserve_length=preserve_length)
         if strip_first_line_title:
             node_contents = self.strip_first_line_title(node_contents)
+
+        node_contents = strip_contents(
+            node_contents,
+            preserve_length=False, 
+            include_backtick=True,
+            reformat_and_keep_embedded_syntaxes=False,
+            embedded_syntaxes=do_strip_embedded_syntaxes,
+            metadata=do_strip_metadata,
+            dynamic_definitions=do_strip_dynamic_definitions
+            )
+
         return node_contents
 
     def links_ids(self):
@@ -146,28 +159,29 @@ class UrtextNode:
         return self.metadata.get_date(self.project.settings['node_date_keyname'])
 
     def resolve_duplicate_id(self):
-        title = self.title.split(' ^ ')[0]
         if self.parent:
             resolved_id = ''.join([
-                    title,
-                    ' ^ ',
+                    self.title,
+                    syntax.parent_identifier,
                     self.parent.title
                 ]) 
             if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
                 return resolved_id
-            resolved_id = ''.join([
-                    title,
-                    ' ^ ',
-                    self.parent.metadata.get_oldest_timestamp().unwrapped_string
-                ])
+            parent_oldest_timestamp = self.parent.metadata.get_oldest_timestamp()
+            if parent_oldest_timestamp:
+                resolved_id = ''.join([
+                        self.title,
+                        syntax.parent_identifier,
+                        parent_oldest_timestamp.unwrapped_string
+                    ])
             if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
                 return resolved_id
 
         timestamp = self.metadata.get_oldest_timestamp()
         if timestamp:
             resolved_id = ''.join([
-                title,
-                ' ^ ',
+                self.title,
+                syntax.parent_identifier,
                 timestamp.unwrapped_string, 
                 ])
             if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
@@ -185,21 +199,10 @@ class UrtextNode:
             stripped_contents = stripped_contents.replace(inline_node.group(), r * len(inline_node.group()))
         return stripped_contents
 
-    def get_links(self, contents=None):
-        if contents == None:
-            contents = self.content_only()
+    def get_links(self, contents):
         links = syntax.node_link_or_pointer_c.finditer(contents)
         for link in links:
             self.links.append(link.group())
-
-    def content_only(self, 
-        contents=None, 
-        preserve_length=False):
-        return self.content_only_text
-
-        if contents == None:
-            contents = self.contents(preserve_length=preserve_length)
-        return strip_contents(contents, preserve_length=preserve_length)
 
     def set_title(self, contents):
         """
@@ -359,47 +362,55 @@ def get_extended_values(urtext_node, meta_keys):
     else:
         if not isinstance(meta_keys, list):
             meta_keys = [meta_keys]
+    values = []
     for index, k in enumerate(meta_keys):
-
         entries = urtext_node.metadata.get_entries(k)
-        if not entries:
-            return []
         for e in entries:
-
             if e.is_node:
-                if index == len(meta_keys) - 1:
-
-                    return ''.join([
-                            syntax.link_opening_wrapper,
-                            e.value.title,
-                            syntax.link_closing_wrapper
-                        ])
-                else:
-                    return get_extended_values(e.value, meta_keys[1:])
-
+                values.append(''.join([
+                        syntax.link_opening_wrapper,
+                        e.value.title,
+                        syntax.link_closing_wrapper
+                    ]))
+                continue
+            else:
+                values.append(e.value)
+                continue
             if index == len(meta_keys) - 1:
                 if k in urtext_node.project.settings['use_timestamp'] and e.timestamps:
-                    return [e.timestamps[0].unwrapped_string]
-                return [e.value]
+                    values.append(e.timestamps[0].unwrapped_string)
 
-            if meta_keys[index+1] in ['timestamp','timestamps'] or k in urtext_node.project.settings['use_timestamp']: 
-                if e.timestamps:
-                    if k == 'timestamp':
-                        return e.timestamps[0].unwrapped_string
-                    else:
-                        return ' - '.join([t.unwrapped_string for t in e.timestamps])
+            if len(meta_keys) < index and ( 
+                   meta_keys[index+1] in ['timestamp','timestamps']) or (
+                    k in urtext_node.project.settings['use_timestamp']): 
+                        if e.timestamps:
+                            if k == 'timestamp':
+                                values.append(e.timestamps[0].unwrapped_string)
+                            else:
+                                values.append(' - '.join([t.unwrapped_string for t in e.timestamps]))
+    return syntax.metadata_separator_syntax.join(values)
 
 def strip_contents(contents, 
     preserve_length=False, 
     include_backtick=True,
     reformat_and_keep_embedded_syntaxes=False,
+    embedded_syntaxes=True,
+    metadata=True,
+    dynamic_definitions=True
     ):
-    contents = strip_embedded_syntaxes(contents, 
-        preserve_length=preserve_length, 
-        include_backtick=include_backtick,
-        reformat_and_keep_contents=reformat_and_keep_embedded_syntaxes)
-    contents = strip_metadata(contents=contents, preserve_length=preserve_length)
-    contents = strip_dynamic_definitions(contents=contents, preserve_length=preserve_length)
+    if embedded_syntaxes:
+        contents = strip_embedded_syntaxes(contents, 
+            preserve_length=preserve_length, 
+            include_backtick=include_backtick,
+            reformat_and_keep_contents=reformat_and_keep_embedded_syntaxes)
+    if metadata:
+        contents = strip_metadata(
+            contents=contents, 
+            preserve_length=preserve_length)
+    if dynamic_definitions:
+        contents = strip_dynamic_definitions(
+            contents=contents, 
+            preserve_length=preserve_length)
     contents = contents.strip().strip('{}').strip()
     return contents
 
@@ -415,24 +426,21 @@ def strip_wrappers(contents):
         return contents
 
 def strip_metadata(contents, preserve_length=False):
-
-        r = ' ' if preserve_length else ''
-
-        for e in syntax.metadata_replacements.finditer(contents):
-            contents = contents.replace(e.group(), r*len(e.group()))       
-        contents = contents.replace('• ',r*2)
-        return contents.strip()
+    r = ' ' if preserve_length else ''
+    for e in syntax.metadata_replacements.finditer(contents):
+        contents = contents.replace(e.group(), r*len(e.group()))       
+    contents = contents.replace('• ',r*2)
+    return contents.strip()
 
 def strip_dynamic_definitions(contents, preserve_length=False):
-
-        r = ' ' if preserve_length else ''
-        if not contents:
-            return contents
-        stripped_contents = contents
-      
-        for dynamic_definition in syntax.dynamic_def_c.finditer(stripped_contents):
-            stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
-        return stripped_contents.strip()
+    r = ' ' if preserve_length else ''
+    if not contents:
+        return contents
+    stripped_contents = contents
+  
+    for dynamic_definition in syntax.dynamic_def_c.finditer(stripped_contents):
+        stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
+    return stripped_contents.strip()
 
 def strip_nested_links(title):
     nested_link = syntax.node_link_or_pointer_c.search(title)

@@ -1,7 +1,7 @@
+import os
 import re
-from .context import CONTEXT
 
-if CONTEXT == 'Sublime Text':
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from .node import UrtextNode
     from .utils import strip_backtick_escape
     import Urtext.urtext.syntax as syntax
@@ -10,9 +10,12 @@ else:
     from urtext.utils import strip_backtick_escape
     import urtext.syntax as syntax
 
+USER_DELETE_STRING = 'This message can be deleted.'
+
 class UrtextBuffer:
 
     urtext_node = UrtextNode
+    user_delete_string = USER_DELETE_STRING
 
     def __init__(self, project):
         
@@ -122,7 +125,7 @@ class UrtextBuffer:
     
                 if nested <= 0:
                     self.messages.append(
-                        'Removed stray closing wrapper at %s. This message can be deleted.' % str(position))
+                        'Removed stray closing wrapper at %s. ' % str(position))
                     contents = contents[:position] + contents[position + 1:]
                     self._set_file_contents(contents)
                     return self.lex_and_parse(contents)
@@ -183,7 +186,8 @@ class UrtextBuffer:
         
         if not from_compact and nested >= 0:
             self.messages.append(
-                'Appended closing bracket to close opening bracket at %s. This message can be deleted.' % str(position))
+                'Appended closing bracket to close opening bracket at %s. %s'  % 
+                ( str(position), self.user_delete_string) )
             contents = ''.join([contents[:position],
                  ' ',
                  syntax.node_closing_wrapper,
@@ -256,7 +260,8 @@ class UrtextBuffer:
             if node.id == node_id:
                 break
         if node:
-            self.project.editor_methods['replace'](
+            self.project.run_editor_method(
+                'replace',
                 filename=self.project.nodes[node_id].filename,
                 start=node.start_position(),
                 end=node.end_position(),

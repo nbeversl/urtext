@@ -1,6 +1,5 @@
-from .context import CONTEXT
-
-if CONTEXT == 'Sublime Text':
+import os
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     import Urtext.urtext.syntax as syntax
     from .utils import force_list
 else:
@@ -16,6 +15,7 @@ class UrtextDirective():
         self.keys = []
         self.flags = []
         self.params = []
+        self.arguments = []
         self.params_dict = {}
         self.project = project
         self.argument_string = None
@@ -67,17 +67,21 @@ class UrtextDirective():
         self._parse_flags(argument_string)
         self._parse_keys(argument_string)
         
-        for param in [r.strip() for r in syntax.metadata_arg_delimiter_c.split(argument_string)]:
+        for argument in [
+            r.strip() for r in syntax.metadata_arg_delimiter_c.split(
+                argument_string)]:
             key, value, operator = key_value(
-                param,
+                argument,
                 syntax.metadata_ops)
             if value:
                 for v in value:
                     self.params.append((key,v,operator))
-                        
+            else:
+                self.arguments.append(argument.strip())
+
         for param in self.params:
             self.params_dict.setdefault(param[0], [])
-            self.params_dict[param[0]].append(param[1:])
+            self.params_dict[param[0]].extend(param[1:])
         
     def _parse_flags(self, argument_string):
         for f in syntax.dd_flag_c.finditer(argument_string):

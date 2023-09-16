@@ -1,7 +1,5 @@
 import os
-from ..context import CONTEXT
-
-if CONTEXT == 'Sublime Text':    
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
     from Urtext.urtext.extension import UrtextExtension
 else:
     from urtext.extension import UrtextExtension
@@ -14,22 +12,20 @@ class ReindexFiles(UrtextExtension):
     name=['REINDEX']        
     
     def rename_all_files(self):
-        return self.rename_file_nodes(self.project.all_files())
+        return self.project.execute(
+            self.rename_file_nodes,
+            self.project.all_files())
 
     def rename_file_nodes(self, filenames):
-        return self.project.execute(
-            self._rename_file_nodes,
-            filenames)
-
-    def _rename_file_nodes(self, filenames):
         """ Rename a file or list of files by metadata """
         if isinstance(filenames, str):
             filenames = [filenames]
-       
+
         used_names = []
         renamed_files = {}
+        
         for old_filename in filenames:
-            
+
             if old_filename not in self.project.files:
                 print('%s not found in project files' % old_filename)
                 continue
@@ -91,7 +87,7 @@ class ReindexFiles(UrtextExtension):
             new_filename = test_filename
             renamed_files[old_filename] = new_filename
             used_names.append(new_filename)
-
+            
         for old_filename in renamed_files:
             new_filename = renamed_files[old_filename]
             os.rename(old_filename, new_filename)
@@ -103,8 +99,23 @@ class RenameSingleFile(ReindexFiles):
 
     name=['RENAME_SINGLE_FILE']
 
-    def rename_single_file(self, filename):
-        return self.rename_file_nodes(filename)
+    def __init__(self, project):
+        super().__init__(project)
+        self.file_to_rename = None
+
+    def set_file_to_rename(self, filename):
+        self.file_to_rename = filename
+
+    def on_file_modified(self, filename):
+        if filename == self.file_to_rename:
+            renamed_files = self.rename_file_nodes(filename)
+            self.file_to_rename = None
+            if renamed_files:
+                self.project.run_editor_method('close_current')
+                self.project.run_editor_method(
+                    'open_file_to_position',
+                    renamed_files[filename],
+                    0)
 
 def strip_illegal_characters(filename):
     for c in ['<', '>', ':', '"', '/', '\\', '|', '?','*', '.', ';']:

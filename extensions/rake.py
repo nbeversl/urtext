@@ -6,9 +6,9 @@
 import re
 import operator
 import concurrent.futures
-from ..context import CONTEXT
+import os
 
-if CONTEXT == 'Sublime Text':
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
     from Urtext.urtext.node import strip_contents
     from Urtext.urtext.extension import UrtextExtension
 else:
@@ -36,7 +36,7 @@ class AddRakeKeywords(UrtextExtension):
     def parse_keywords(self, node):
         if not node.dynamic:
             self.nodes[node.id] = self.rake.parse_keywords(
-                node.content_only())
+                node.contents())
 
     def get_keywords(self):
         keyword_list = []

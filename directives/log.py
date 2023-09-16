@@ -1,6 +1,5 @@
-from ..context import CONTEXT
-
-if CONTEXT == 'Sublime Text':
+import os 
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
 	from Urtext.urtext.directive import UrtextDirective
 	import Urtext.urtext.syntax as syntax
 else:
@@ -11,7 +10,7 @@ class Log(UrtextDirective):
 
 	name = ["LOG"]    
 	phase = 300
-			
+
 	def dynamic_output(self, node_list):
 		output = []
 		for k in self.project.messages:

@@ -19,9 +19,7 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import re
 
-from .context import CONTEXT
-
-if CONTEXT == 'Sublime Text':
+if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from .project import UrtextProject
     import Urtext.urtext.syntax as syntax
 else:
@@ -130,7 +128,7 @@ class ProjectList():
     def build_contextual_link(self, 
         node_id,
         project_title=None, 
-        pointer=False, 
+        pointer=False,
         include_project=False):
 
         if node_id:
@@ -138,13 +136,22 @@ class ProjectList():
                 project = self.current_project
             else:
                 project = self.get_project(project_title)
-            if node_id in project.nodes:
-                link = syntax.link_opening_wrapper + node_id + syntax.link_closing_wrapper
-                if pointer:
-                    link = link.replace(syntax.link_closing_wrapper, syntax.pointer_closing_wrapper)
-                if include_project or project != self.current_project:
-                    link = syntax.other_project_link_prefix+ '"' + project.settings['project_title'] +'"'+link
-                return link
+            link = ''.join([
+                syntax.link_opening_wrapper,
+                node_id,
+                syntax.link_closing_wrapper])
+            if pointer:
+                link = link.replace(
+                    syntax.link_closing_wrapper, 
+                    syntax.pointer_closing_wrapper)
+            if include_project or project != self.current_project:
+                link = ''.join([
+                    syntax.other_project_link_prefix,
+                    '"',
+                    project.settings['project_title'],
+                    '"',
+                    link])
+            return link
         
     def project_titles(self):
         titles = []
@@ -181,8 +188,9 @@ class ProjectList():
         node ID duplication in the new project location, and 
         optionally replacing links to every affected node.
         """
+        destination_project = self.get_project(
+            destination_project_name_or_path)
 
-        destination_project = self.get_project(destination_project_name_or_path)
         if not destination_project:
             print('Destination project `'+ destination_project_name_or_path +'` was not found.')
             return None
@@ -191,15 +199,14 @@ class ProjectList():
             print('File '+ filename +' not included in the current project.')
             return None
 
-        affected_nodes = self.current_project.files[filename].nodes.keys()
-        
-        self.current_project.drop_file(filename) # also updates the source project
-
+        affected_nodes = list(self.current_project.files[filename].nodes)        
+        self.current_project.drop_file(filename)
         os.rename(
-            os.path.join( self.current_project.settings['paths'][0], filename),
-            os.path.join( destination_project.settings['paths'][0], filename)
+            filename,
+            os.path.join(
+                destination_project.settings['paths'][0]['path'],
+                os.path.basename(filename))
             )
-
         """
         add_file() will raise an exception if the file makes
         duplicate nodes in the destination project
@@ -207,14 +214,15 @@ class ProjectList():
         try:
             destination_project.add_file(filename)    
         except:
+            #TODO handle
             return None
  
         if replace_links:
-            for node_id in affected_nodes:
+            for node in affected_nodes:
                 self.replace_links(
                     self.current_project.settings['project_title'],
                     destination_project.settings['project_title'],                   
-                    node_id)
+                    node.id)
 
         return True
 
@@ -251,8 +259,7 @@ class ProjectList():
             link = self.build_contextual_link(
                 node.id,
                 project_title=project_title)
-            if 'insert_text' in self.editor_methods:
-                self.editor_methods['insert_text'](link)
+            self.current_project.run_editor_method('insert_text', link)
 
     def delete_file(self, file_name, project=None, open_files=[]):
         if not project:
