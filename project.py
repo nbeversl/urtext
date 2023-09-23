@@ -77,6 +77,7 @@ class UrtextProject:
         self.files = {}
         self.exports = {}
         self.messages = {}
+        self.project_keys = {}
         self.dynamic_definitions = {}
         self.virtual_outputs = {}
         self.dynamic_metadata_entries = []
@@ -232,7 +233,12 @@ class UrtextProject:
                 self.dynamic_metadata_entries.append(entry)
 
         if self.compiled and changed_ids:
+            for node_id in changed_ids:
+                self._run_hook('on_node_id_changed',
+                    node_id,
+                    changed_ids[node_id])
             self._rewrite_changed_links(changed_ids)
+            self._build_meta_key_ref()
 
     def _verify_links_globally(self):
         links = self.get_all_links()
@@ -269,8 +275,9 @@ class UrtextProject:
                 contents = self.files[filename]._get_file_contents()
                 for old_link in rewrites:
                     contents = contents.replace(old_link, rewrites[old_link])
-                self.files[filename]._set_file_contents(contents)
-                self._parse_file(filename)
+                if self.files[filename]._set_file_contents(contents):
+                  self._parse_file(filename)
+                  self.run_editor_method('refresh_open_file', filename)
 
     def _collect_extensions_directives(self):
         
@@ -299,6 +306,7 @@ class UrtextProject:
                 for project_node in list(self.nodes):
                     links_to_change = {}
                     if project_node not in self.nodes: continue
+                    if self.nodes[project_node].dynamic: continue
                     for link in self.nodes[project_node].links:
                         link = get_id_from_link(link)
                         if link == old_id:
@@ -318,9 +326,10 @@ class UrtextProject:
                                     'on_node_id_changed',
                                     node_id,
                                     links_to_change[node_id])
-                                self.files[filename]._set_file_contents(
-                                    replaced_contents)
-                                self._parse_file(filename)
+                                if self.files[filename]._set_file_contents(
+                                    replaced_contents):
+                                  self._parse_file(filename)
+                                  self.run_editor_method('refresh_open_file', filename)
 
     def _check_file_for_duplicates(self, file_obj):
 
@@ -929,10 +938,6 @@ class UrtextProject:
                 'dest_position' : dest_position,
                 'full_match' : full_match,
                 }
-
-    def get_node_contents(self, node_id):
-        if node_id in self.nodes:
-            return self.nodes[node_id].contents()
             
     def _is_duplicate_id(self, node_id):
         return node_id in self.nodes
@@ -1102,8 +1107,8 @@ class UrtextProject:
                 links = re.findall(pattern + original_id, new_contents)
                 for link in links:
                     new_contents = new_contents.replace(link, replacement, 1)
-            if contents != new_contents:
-                self.files[filename]._set_file_contents(new_contents, compare=False)
+            if self.files[filename]._set_file_contents(
+                new_contents):
                 return self.execute(self._on_modified, filename)
 
     def on_modified(self, filename):    
@@ -1122,29 +1127,25 @@ class UrtextProject:
             self._sync_file_list()
             if filename in self.files:
                 self._run_hook('on_file_modified', filename)
-            self._refresh_modified_files(modified_files)
-            return modified_files
-        return []
         
     def visit_node(self, node_id):
         return self.execute(self._visit_node, node_id)
 
     def _visit_node(self, node_id):
-        self._run_hook('on_node_visited', node_id)
-        for dd in list(self.dynamic_definitions.values()):
-            for op in dd.operations:
-                op.on_node_visited(node_id)        
-        modified_files = self.visit_file(self.nodes[node_id].filename)
-        self._refresh_modified_files(modified_files)
-        return modified_files
+        if node_id:
+            filename = self.nodes[node_id].filename
+            self._run_hook('on_node_visited', node_id)
+            for dd in list(self.dynamic_definitions.values()):
+                for op in dd.operations:
+                    op.on_node_visited(node_id)
+            self._visit_file(filename)
 
     def visit_file(self, filename):
-        return self.execute(self._visit_file, filename)
+        return self.execute(
+            self._visit_file, 
+            filename)
 
     def _visit_file(self, filename):
-        """
-        Call whenever a file requires dynamic updating
-        """        
         if filename in self.files and self.compiled:
             modified_files = self._compile_file(
                 filename, 
@@ -1235,6 +1236,14 @@ class UrtextProject:
             )
         return list(set(keys))
 
+    def _build_meta_key_ref(self):
+        self.project_keys = {}
+        for n in list(self.nodes):
+            keys = self.nodes[n].metadata.get_keys()
+            for key in keys:
+                self.project_keys.setdefault(key, [])
+                self.project_keys[key].append(n)
+
     def get_all_values_for_key(self, key, lower=False):
         entries = []
         for node in self.nodes.values():
@@ -1279,7 +1288,8 @@ class UrtextProject:
 
             return set([])
 
-        if key == '_contents' and operator == '?': # `=` not currently implemented
+        if key == '_contents' and operator == '?': 
+            # `=` not currently implemented
             for node in list(self.nodes.values()):
                 if node.dynamic:
                     continue
@@ -1307,14 +1317,13 @@ class UrtextProject:
         
         if key == '*':
             keys = self.get_all_keys()
-        
         else:
             keys = [key]
 
         for k in keys:
             for value in values:
 
-                if value in ['*']:
+                if value == '*':
                     results = results.union(
                         set(n for n in list(self.nodes) if n in self.nodes 
                             and self.nodes[n].metadata.get_values(k))
@@ -1342,11 +1351,13 @@ class UrtextProject:
                 else:
                     if isinstance(value, str):
                         value = value.lower()
-                    results = results.union(set(
-                        n for n in list(self.nodes) if n in self.nodes and value in self.nodes[n].metadata.get_values(
-                            k,
-                            use_timestamp=use_timestamp, 
-                            lower=True)))
+
+                    if k in self.project_keys:
+                        results = results.union(set(
+                            n for n in self.project_keys[k] if value in self.nodes[n].metadata.get_values(
+                                k,
+                                use_timestamp=use_timestamp, 
+                                lower=True)))
         
         return results
 
@@ -1377,6 +1388,7 @@ class UrtextProject:
         for file in list(self.files):
             self._compile_file(file, events=events)
         self._add_all_sub_tags()
+        self._build_meta_key_ref()
 
     def _compile_file(self, filename, events=[]):
         modified_targets = []
@@ -1387,8 +1399,12 @@ class UrtextProject:
                 if output not in [False, None]:
                     for target in dd.targets + dd.target_ids:
                         targeted_output = dd.post_process(target, output)
-                        modified_target = self._direct_output(targeted_output, target, dd)
-                        modified_targets.append(modified_target)
+                        modified_target = self._direct_output(
+                            targeted_output, 
+                            target, 
+                            dd)
+                        if modified_target:
+                            modified_targets.append(modified_target)
 
         for target in modified_targets:
             if target in self.nodes:
@@ -1405,13 +1421,15 @@ class UrtextProject:
                 file)
 
     def _direct_output(self, output, target, dd):
-
         node_link = syntax.node_link_or_pointer_c.match(target)
         if node_link:
             node_id = get_id_from_link(node_link.group())
-            if node_id in self.nodes:
-                self._set_node_contents(node_id, output)
+        else:
+            node_id = target
+        if node_id in self.nodes:
+            if self._set_node_contents(node_id, output):
                 return node_id
+            return False
 
         target_file = syntax.file_link_c.match(target)
         if target_file:
