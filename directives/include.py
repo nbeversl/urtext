@@ -1,31 +1,19 @@
-import os
 import re
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-	from Urtext.urtext.directive import UrtextDirective
-	import Urtext.urtext.syntax as syntax
-else:
-	from urtext.directive import UrtextDirective
-	import urtext.syntax as syntax
 
-class NodeQuery(UrtextDirective):
+class NodeQuery:
 
 	name = ["QUERY"]
 	phase = 100
 
 	def build_list(self, passed_nodes):
-		added_nodes = []
-		
-		for arg in self.arguments:
-			node_link = syntax.node_link_c.match(self.argument_string)
-			if node_link:
-				added_nodes.append(node_link.group(2))
-				break
+		added_nodes = [l for l in self.links if l in self.project.nodes]		
 
-			if re.match(syntax.virtual_target_marker+'self', arg):
+		for arg in self.arguments:
+			if re.match(self.syntax.virtual_target_marker+'self', arg):
 				added_nodes.append(self.dynamic_definition.source_id)
 				break
 
-			if re.match(syntax.virtual_target_marker+'parent', arg):
+			if re.match(self.syntax.virtual_target_marker+'parent', arg):
 				if self.project.nodes[
 						self.dynamic_definition.source_id].parent:
 					added_nodes.append(
@@ -113,3 +101,5 @@ def _build_group_and(
 		new_group = new_group.intersection(this_set)
 	
 	return new_group
+
+urtext_directives=[Include, Exclude]

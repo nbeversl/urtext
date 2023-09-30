@@ -130,7 +130,12 @@ any_link_or_pointer = r''.join([
 compact_node = bullet + r'([^\r\n]*)(?=\n|$)'
 embedded_syntax_full = embedded_syntax_open + '.+?' + embedded_syntax_close
 hash_meta = r'(?:^|\s)'+ hash_key + r'[A-Z,a-z].*?\b'
-node_link = r'(\|\s)(' + id_pattern + ')\s>(?!>)'
+node_link = ''.join([
+    node_link_opening_wrapper_match,
+    '(',
+    id_pattern,
+    ')\s>(?!>)'
+    ])
 function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 node_link_or_pointer = node_link_opening_wrapper_match + '(' + id_pattern + ')\s(>{1,2})(\:\d{1,99})?(?!>)'
 node_action_link = r''.join([
@@ -140,7 +145,14 @@ node_action_link = r''.join([
     '(',
     id_pattern,
     ')\s>{1,2}(?!>)'])
-node_pointer = r'(\|\s)(' + id_pattern + ')\s>>(?!>)'
+node_pointer = r''.join([
+    node_link_opening_wrapper_match,
+    '(',
+    id_pattern,
+    ')',
+    pointer_closing_wrapper,
+    '(?!>)'
+    ]) 
 node_title = r'^'+ title_pattern +r'(?=' + title_marker  + pattern_break + ')'
 timestamp = r''.join([
     timestamp_opening_wrapper,

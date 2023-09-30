@@ -20,13 +20,11 @@ import os
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
     from Urtext.anytree import Node
     from Urtext.anytree import RenderTree
-    from Urtext.urtext.directive  import UrtextDirective
 else:
     from anytree import Node
     from anytree import RenderTree
-    from urtext.directive  import UrtextDirective
 
-class Interlinks(UrtextDirective):
+class Interlinks:
 
     name = ["INTERLINKS"]
     phase = 350
@@ -107,3 +105,5 @@ class Interlinks(UrtextDirective):
         render = render_upside_down + render
         render = render.split('\n')
         return '\n'.join(render)
+
+urtext_directives=[Interlinks]

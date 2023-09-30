@@ -39,7 +39,6 @@ if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sub
     from .extension import UrtextExtension
     import Urtext.urtext.syntax as syntax
     from Urtext.urtext.project_settings import *
-    import Urtext.urtext.directives     
     import Urtext.urtext.extensions
     from Urtext.urtext.utils import get_id_from_link
 else:
@@ -52,7 +51,6 @@ else:
     from urtext.extension import UrtextExtension
     import urtext.syntax as syntax
     from urtext.project_settings import *
-    import urtext.directives     
     import urtext.extensions
     from urtext.utils import get_id_from_link
 
@@ -61,7 +59,10 @@ class UrtextProject:
     urtext_file = UrtextFile
     urtext_node = UrtextNode
 
-    def __init__(self, entry_point, project_list=None, editor_methods={}):
+    def __init__(self, 
+        entry_point, 
+        project_list=None, 
+        editor_methods={}):
 
         self.settings = default_project_settings()
         self.project_list = project_list
@@ -70,14 +71,13 @@ class UrtextProject:
         self.settings['project_title'] = self.entry_point # default
         self.editor_methods = editor_methods
         self.is_async = True
-        self.is_async = False # development
+        #self.is_async = False # development
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
         self.files = {}
         self.exports = {}
         self.messages = {}
-        self.project_keys = {}
         self.dynamic_definitions = {}
         self.virtual_outputs = {}
         self.dynamic_metadata_entries = []
@@ -94,8 +94,17 @@ class UrtextProject:
     
     def _initialize_project(self):
 
-        self._collect_extensions_directives()
+        directives_folder = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'directives')
+        
+        extensions_folder = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            'extensions')
 
+        self._get_extensions_from_folder(extensions_folder)
+        self._get_directives_from_folder(directives_folder)
+        
         num_file_extensions = len(self.settings['file_extensions'])
         num_paths = len(self.settings['paths'])
         
@@ -127,15 +136,14 @@ class UrtextProject:
                     'To create one, press Ctrl-Shift-;'
                     ]))
 
-        for node_id in self.nodes:
-            self.nodes[node_id].metadata.convert_hash_keys()
-            self.nodes[node_id].metadata.convert_node_links()
+        for node in self.nodes.values():
+            node.metadata.convert_hash_keys()
+            node.metadata.convert_node_links()
 
         self._mark_dynamic_nodes()
         
         self._compile() ## TODO fix
         if len(self.extensions) > 0 or len(self.directives) > 0:
-            self._collect_extensions_directives()
             self._compile()
 
         self.compiled = True
@@ -238,7 +246,6 @@ class UrtextProject:
                     node_id,
                     changed_ids[node_id])
             self._rewrite_changed_links(changed_ids)
-            self._build_meta_key_ref()
 
     def _verify_links_globally(self):
         links = self.get_all_links()
@@ -279,22 +286,6 @@ class UrtextProject:
                   self._parse_file(filename)
                   self.run_editor_method('refresh_open_file', filename)
 
-    def _collect_extensions_directives(self):
-        
-        num_extensions = len(self.extensions)
-        num_directives = len(self.directives)
-
-        for c in all_subclasses(UrtextExtension):
-            for n in [x for x in c.name if x not in self.extensions]:
-                self.extensions[n] = c(self)
-
-        for c in all_subclasses(UrtextDirective):
-            for n in [x for x in c.name if x not in self.directives]:
-                self.directives[n] = c
-
-        if len(self.extensions) > num_extensions or len(self.directives) > num_directives:
-            self._collect_extensions_directives()
-
     def _add_all_sub_tags(self):
         for entry in self.dynamic_metadata_entries:
             self._add_sub_tags(entry)
@@ -333,24 +324,25 @@ class UrtextProject:
 
     def _check_file_for_duplicates(self, file_obj):
 
-        duplicate_nodes = {}
+        duplicate_nodes = []
         changed_ids = {}
         messages = []
         
-        # resolve duplicates in file
+        # resolve duplicates in same file
         file_node_ids = [n.id for n in file_obj.nodes]
         for node in list(file_obj.nodes):
-            if file_node_ids.count(node.id) > 1:
-                resolved_new_id = node.resolve_duplicate_id()
-                if not resolved_new_id:
-                    duplicate_nodes[node.id] = file_obj.filename
+            if node.id == '(untitled)' or file_node_ids.count(node.id) > 1:
+                resolved_id = node.resolve_duplicate_id()
+                if not resolved_id:
+                    duplicate_nodes.append(node.id)
                     messages.append(
                         'Cannot resolve duplicate ID in this file "%s"' % node.id)
                     del node
                     continue
-                changed_ids[node.id] = resolved_new_id
-                node.apply_id(resolved_new_id)
+                changed_ids[node.id] = resolved_id
+                node.apply_id(resolved_id)
 
+        # resolve duplicates in project
         for node in list(file_obj.nodes):
             if self._is_duplicate_id(node.id):
                 resolved_existing_id = None
@@ -364,28 +356,24 @@ class UrtextProject:
                 else:
                     resolved_id = node.resolve_duplicate_id()
                     if not resolved_id:
-                        duplicate_nodes[node.id] = file_obj.filename
+                        duplicate_nodes.append(node.id)
                         del node
                         continue
                     changed_ids[node.id] = resolved_id
                     node.apply_id(resolved_id)
 
         if duplicate_nodes:
-            for node_id in duplicate_nodes:
+            for duplicate in duplicate_nodes:
                 message = ''.join([
                         'Dropping duplicate node ID "',
-                        node_id,
-                        '", duplicated at ',
-                        syntax.link_opening_wrapper,
-                        ' ',
-                        node_id,
-                        ' ',
-                        syntax.link_closing_wrapper,
+                        duplicate,
+                        '"\n',
                         ])
                 self._log_item(file_obj.filename, message)
                 messages.append(message)
 
-        if messages: file_obj.write_messages(messages=messages)
+        if messages:
+            file_obj.write_messages(messages=messages)
         return changed_ids
 
     def _add_dynamic_definition(self, definition):
@@ -740,34 +728,33 @@ class UrtextProject:
     def handle_error_message(self, message):
         self.run_editor_method('error_message', message)
 
-    def all_nodes(self, as_nodes=False):
+    def all_nodes(self, 
+        as_nodes=False):
 
-        def sort(nid, return_type=False):
-            return self.nodes[nid].metadata.get_first_value(
+        def sort(node, return_type=False):
+            return node.metadata.get_first_value(
                 k, 
                 use_timestamp=use_timestamp,
                 return_type=return_type)
 
-        remaining_nodes = list(self.nodes)
+        remaining_nodes = list(self.nodes.values())
         sorted_nodes = []
         for k in self.settings['node_browser_sort']:
             use_timestamp = k in self.settings['use_timestamp']
             as_int = k in self.settings['numerical_keys']
             node_group = [
-                r for r in remaining_nodes if (
-                    r in self.nodes and self.nodes[r].metadata.get_first_value(k))]
+                r for r in remaining_nodes if r.metadata.get_first_value(k)]
             node_group = sorted(
                 node_group, 
-                key=lambda nid: sort(
-                    nid, 
+                key=lambda node: sort(
+                    node, 
                     return_type=True), 
                 reverse=k in self.settings['use_timestamp'])
             sorted_nodes.extend(node_group)
             remaining_nodes = list(set(remaining_nodes) - set(node_group))
         sorted_nodes.extend(remaining_nodes)
-        if as_nodes:
-            sorted_nodes = [
-            self.nodes[nid] for nid in sorted_nodes if nid in self.nodes]
+        if not as_nodes:
+            sorted_nodes = [n.id for node in sorted_nodes if n.id in self.nodes]
         return sorted_nodes
 
     def all_files(self):
@@ -1045,37 +1032,47 @@ class UrtextProject:
     def _get_directives_from_folder(self, folder):
         if os.path.exists(folder):
             sys.path.append(folder)
-            for module_file in os.listdir(folder):
-                if module_file in [".DS_Store", "__init__.py"] : continue
-                s = importlib.import_module(module_file.replace('.py',''))                   
-                for name, obj in inspect.getmembers(s):
-                    if inspect.isclass(obj):
-                        for name in obj.name: 
-                            self.directives[name] = make_directive(obj)
-            
+            for module_file in [f for f in os.listdir(folder) if f.endswith(".py")]:
+                s = importlib.import_module(module_file.replace('.py',''))
+                if 'urtext_directives' in dir(s):
+                    directives = s.urtext_directives
+                    if not isinstance(directives, list):
+                        directives = [directives]
+                    for d in directives:
+                        new_directive = make_directive(d)
+                        for n in d.name:                            
+                            self.directives[n] = new_directive
+                                                            
     def _get_extensions_from_folder(self, folder):
         if os.path.exists(folder):
             sys.path.append(folder)
-            for module_file in os.listdir(folder):
-                if module_file in [".DS_Store", "__init__.py"] : continue
+            for module_file in [f for f in os.listdir(folder) if f.endswith(".py")]:
                 s = importlib.import_module(module_file.replace('.py',''))
-                for name, obj in inspect.getmembers(s):
-                    if inspect.isclass(obj):
-                        self.extensions[name] = make_extension(obj)(self)
- 
+                if 'urtext_extensions' in dir(s):
+                    extensions = s.urtext_extensions
+                    if not isinstance(extensions, list):
+                        extensions = [extensions]
+                    for e in extensions:
+                        for n in e.name:
+                            self.extensions[n] = make_extension(e)(self)
+
     def get_home(self):
         if self.settings['home'] in self.nodes:
             return self.settings['home']
 
     def get_all_meta_pairs(self):
         pairs = []
-        for n in list(self.nodes):
-            for k in self.nodes[n].metadata.get_keys():
-               values = self.nodes[n].metadata.get_values(k)
+        for n in self.nodes.values():
+            for k in n.metadata.get_keys():
+               values = n.metadata.get_values(k)
                if k == '#':
                     k = self.settings['hash_key']
                for v in values:
-                    pairs.append(''.join([k, syntax.metadata_assignment_operator, str(v) ])  )
+                    pairs.append(''.join([
+                        k,
+                        syntax.metadata_assignment_operator,
+                        str(v)
+                        ]))
 
         return list(set(pairs))
 
@@ -1132,13 +1129,19 @@ class UrtextProject:
         return self.execute(self._visit_node, node_id)
 
     def _visit_node(self, node_id):
-        if node_id:
+        if node_id in self.nodes and self.compiled:
             filename = self.nodes[node_id].filename
             self._run_hook('on_node_visited', node_id)
             for dd in list(self.dynamic_definitions.values()):
                 for op in dd.operations:
                     op.on_node_visited(node_id)
             self._visit_file(filename)
+            self.run_editor_method('status_message',
+                ''.join([
+                    'UrtextProject:',
+                    self.title(),
+                    ' (compiled)' if self.compiled else ' (compiling)'
+                    ]))
 
     def visit_file(self, filename):
         return self.execute(
@@ -1235,14 +1238,6 @@ class UrtextProject:
             keys.extend(node.metadata.get_keys(exclude=exclude)
             )
         return list(set(keys))
-
-    def _build_meta_key_ref(self):
-        self.project_keys = {}
-        for n in list(self.nodes):
-            keys = self.nodes[n].metadata.get_keys()
-            for key in keys:
-                self.project_keys.setdefault(key, [])
-                self.project_keys[key].append(n)
 
     def get_all_values_for_key(self, key, lower=False):
         entries = []
@@ -1342,22 +1337,19 @@ class UrtextProject:
                 
                 if k in self.settings['case_sensitive']:
                     results = results.union(set(
-                        n for n in list(self.nodes) if (
-                            n in self.nodes) and (
-                            value in self.nodes[n].metadata.get_values(
+                        n for n in self.nodes.values() if (
+                            value in n.metadata.get_values(
                                 k,
                                 use_timestamp=use_timestamp))
                         ))
                 else:
                     if isinstance(value, str):
                         value = value.lower()
-
-                    if k in self.project_keys:
-                        results = results.union(set(
-                            n for n in self.project_keys[k] if value in self.nodes[n].metadata.get_values(
-                                k,
-                                use_timestamp=use_timestamp, 
-                                lower=True)))
+                    results = results.union(set(
+                        n for n in list(self.nodes) if n in self.nodes and value in self.nodes[n].metadata.get_values(
+                            k,
+                            use_timestamp=use_timestamp, 
+                            lower=True)))
         
         return results
 
@@ -1377,7 +1369,8 @@ class UrtextProject:
     def _run_hook(self, hook_name, *args):
         for ext in self.extensions.values():
             hook = getattr(ext, hook_name)
-            if callable(hook): hook(*args)
+            if callable(hook):
+                hook(*args)
 
     """ Project Compile """
 
@@ -1388,7 +1381,6 @@ class UrtextProject:
         for file in list(self.files):
             self._compile_file(file, events=events)
         self._add_all_sub_tags()
-        self._build_meta_key_ref()
 
     def _compile_file(self, filename, events=[]):
         modified_targets = []

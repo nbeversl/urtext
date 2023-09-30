@@ -1,10 +1,4 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-	from ..directive import  UrtextDirective
-else:
-	from urtext.directive import UrtextDirective
-
-class Sort(UrtextDirective):
+class Sort:
 
 	name = ["SORT","S"]
 	phase = 220
@@ -45,3 +39,5 @@ class Sort(UrtextDirective):
 				return tuple([])
 			return tuple(nt)
 		return tuple(t)
+
+urtext_directives=[Sort]

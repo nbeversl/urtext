@@ -1,4 +1,4 @@
-class FormatDirective:
+class Format:
 
 	phase = 800
 	name = ["FORMAT"]
@@ -19,3 +19,5 @@ class FormatDirective:
 				indented_contents.append(indentation + l)
 			contents = '\n'.join(indented_contents)
 		return contents
+
+urtext_directives=[Format]

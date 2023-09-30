@@ -1,12 +1,6 @@
-import os
 import sys
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-	from Urtext.urtext.directive import UrtextDirective
-else:
-	from urtext.directive import UrtextDirective
-
-class UrtextStats(UrtextDirective):
+class UrtextStats:
 
 	name = ["STATS"]
 	phase = 300
@@ -26,3 +20,5 @@ class UrtextStats(UrtextDirective):
 		contents.append('# dynamic defs : '+ str(len(self.project.dynamic_definitions)))
 		contents.append('compile time :' + str(self.project.last_compile_time))
 		return '\n'.join(contents)
+
+urtext_directives = UrtextStats

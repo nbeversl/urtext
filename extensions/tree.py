@@ -1,12 +1,10 @@
 import os
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-    from Urtext.urtext.extension import UrtextExtension
     from Urtext.anytree import Node
 else:
-    from urtext.extension import UrtextExtension
     from anytree import Node
 
-class UrtextAnyTree(UrtextExtension):
+class UrtextAnyTree:
 
     name = ["TREE_EXTENSION"]
 
@@ -69,3 +67,5 @@ class UrtextAnyTree(UrtextExtension):
                     entry,
                     next_node=node_to_tag, 
                     visited_nodes=visited_nodes)
+
+urtext_extensions = [UrtextAnyTree]

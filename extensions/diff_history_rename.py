@@ -1,11 +1,8 @@
 import os
 
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-    from Urtext.urtext.extension import UrtextExtension
-else:
-    from urtext.extension import UrtextExtension
+class UrtextHistoryDiffRename:
 
-class UrtextHistoryDiffRename(UrtextExtension):
+	name = ["DIFF_HISTORY_RENAME"]
 
 	def on_file_renamed(self, old_filename, new_filename):
 	    history_file = os.path.join(
@@ -20,3 +17,5 @@ class UrtextHistoryDiffRename(UrtextExtension):
 	                '_diff', 
 	                os.path.basename(new_filename) + '.diff')
 	           	)
+
+urtext_extensions = [UrtextHistoryDiffRename]
