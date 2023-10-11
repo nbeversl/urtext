@@ -35,20 +35,26 @@ class ReindexFiles:
             for i in range(0,len(filename_template)):
                 
                 if filename_template[i].lower() == 'title':
-                    filename_length = int(self.project.settings['filename_title_length'])
+                    filename_length = int(
+                        self.project.settings['filename_title_length'])
                     if filename_length > 255:
                         filename_length = 255
                     title = root_node.title
                     filename_template[i] = title[:filename_length]
                 
                 elif filename_template[i].lower() in self.project.settings['use_timestamp']:
-                    timestamp = root_node.metadata.get_first_value(filename_template[i], use_timestamp=True)
+                    timestamp = root_node.metadata.get_first_value(
+                        filename_template[i], 
+                        use_timestamp=True)
                     if timestamp:
-                        filename_template[i] = timestamp.strftime(self.project.settings['filename_datestamp_format'])
+                        filename_template[i] = timestamp.datetime.strftime(
+                            self.project.settings['filename_datestamp_format'])
                     else:
                         filename_template[i] = ''                
                 else:
-                    filename_template[i] = ' '.join([str(s) for s in root_node.metadata.get_values(filename_template[i])])
+                    filename_template[i] = ' '.join([
+                        str(s) for s in root_node.metadata.get_values(
+                            filename_template[i])])
 
             if filename_template in [ [], [''] ]:
                 return print('New filename(s) could not be made. Check project_settings')

@@ -11,7 +11,7 @@ class UrtextAnyTree:
     def on_file_added(self, filename):
         for node in self.project.files[filename].nodes:
             node.tree_node = Node(node.id)
-            node.tree_node.position = self.project.nodes[node.id].start_position()
+            node.tree_node.position = self.project.nodes[node.id].start_position
         for node in self.project.files[filename].nodes:
             for pointer in node.pointers:
                 alias_node = Node('ALIA$'+pointer['id']) # anytree Node, not UrtextNode 
@@ -53,15 +53,16 @@ class UrtextAnyTree:
             if uid not in visited_nodes and not self.project.nodes[node_to_tag].dynamic:
                 self.project.nodes[node_to_tag].metadata.add_entry(
                     entry.keyname, 
-                    entry.value, 
+                    entry.meta_values,
+                    self.project.nodes[node_to_tag],
                     from_node=entry.from_node, 
-                    recursive=entry.recursive)
+                    tag_descendants=entry.tag_descendants)
                 if node_to_tag not in self.project.nodes[entry.from_node].target_nodes:
                     self.project.nodes[entry.from_node].target_nodes.append(node_to_tag)
 
             visited_nodes.append(uid)        
             
-            if entry.recursive:
+            if entry.tag_descendants:
                 self.on_sub_tags_added(
                     pointer['id'],
                     entry,

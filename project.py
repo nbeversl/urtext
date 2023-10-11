@@ -153,21 +153,9 @@ class UrtextProject:
         self.handle_info_message(
             '"'+self.settings['project_title']+'" compiled')
     
-    def get_file_position(self, node_id, position): 
-        if node_id in self.nodes:
-            node_length = 0
-            offset_position = position
-            for r in self.nodes[node_id].ranges:
-                range_length = r[1] - r[0]
-                node_length += range_length
-                if position < node_length:
-                    break
-                offset_position -= range_length
-            file_position = r[0] + offset_position
-            return file_position
+
 
     def _parse_file(self, filename):
-    
         if self._filter_filenames(filename) == None:
             return self._add_to_excluded_files(filename)
 
@@ -224,6 +212,7 @@ class UrtextProject:
             self.nodes[source_node].metadata.add_entry(
                 keyname,
                 self.nodes[target_node],
+                self.nodes[source_node],
                 is_node=True)
             self.nodes[target_node].is_meta = True
 
@@ -235,10 +224,11 @@ class UrtextProject:
                 dd.source_id = node.id
                 self._add_dynamic_definition(dd)
 
-            for entry in node.metadata.dynamic_entries:
+            for entry in node.metadata.entries():
                 entry.from_node = node.id
-                self._add_sub_tags(entry)
-                self.dynamic_metadata_entries.append(entry)
+                if entry.tag_children:
+                    self._add_sub_tags(entry)
+                    self.dynamic_metadata_entries.append(entry)
 
         if self.compiled and changed_ids:
             for node_id in changed_ids:
@@ -253,7 +243,6 @@ class UrtextProject:
             self._reverify_links(filename)
 
     def _reverify_links(self, filename):
-        
         for node in self.files[filename].nodes:
             rewrites = {}
             for link in list(node.links):
@@ -283,8 +272,8 @@ class UrtextProject:
                 for old_link in rewrites:
                     contents = contents.replace(old_link, rewrites[old_link])
                 if self.files[filename]._set_file_contents(contents):
-                  self._parse_file(filename)
-                  self.run_editor_method('refresh_open_file', filename)
+                    self._parse_file(filename)
+                    self.run_editor_method('refresh_open_file', filename)
 
     def _add_all_sub_tags(self):
         for entry in self.dynamic_metadata_entries:
@@ -296,8 +285,10 @@ class UrtextProject:
             if new_id in list(self.nodes):
                 for project_node in list(self.nodes):
                     links_to_change = {}
-                    if project_node not in self.nodes: continue
-                    if self.nodes[project_node].dynamic: continue
+                    if project_node not in self.nodes:
+                        continue
+                    if self.nodes[project_node].dynamic:
+                        continue
                     for link in self.nodes[project_node].links:
                         link = get_id_from_link(link)
                         if link == old_id:
@@ -305,6 +296,7 @@ class UrtextProject:
                     if links_to_change:
                         filename = self.nodes[project_node].filename
                         contents = self.files[filename]._get_file_contents()
+                        
                         for node_id in list(links_to_change.keys()):
                             replaced_contents = contents
                             node_id_regex = re.escape(node_id)
@@ -320,7 +312,9 @@ class UrtextProject:
                                 if self.files[filename]._set_file_contents(
                                     replaced_contents):
                                   self._parse_file(filename)
-                                  self.run_editor_method('refresh_open_file', filename)
+                                  self.run_editor_method(
+                                    'refresh_open_file', 
+                                    filename)
 
     def _check_file_for_duplicates(self, file_obj):
 
@@ -435,7 +429,7 @@ class UrtextProject:
         points = self.nodes[exported_node_id].export_points
         if not points:
             return None, None
-        node_start_point = self.nodes[exported_node_id].start_position()
+        node_start_point = self.nodes[exported_node_id].start_position
 
         indexes = sorted(points)
         for index in range(0, len(indexes)):
@@ -651,7 +645,9 @@ class UrtextProject:
                 metadata_block = ' ' + metadata_block
             return '• ' + contents.strip() + metadata_block
 
-    def get_dynamic_defs(self, target=None, source=None):
+    def get_dynamic_defs(self, 
+        target=None, 
+        source=None):
         defs = []
         if target and target in self.dynamic_definitions:
             defs.append(self.dynamic_definitions[target])
@@ -694,7 +690,7 @@ class UrtextProject:
             self.nodes[node_id].ranges[-1][1])
         
         if position == None:
-            position = self.nodes[node_id].start_position()
+            position = self.nodes[node_id].start_position
 
         self.run_editor_method(
             'open_file_to_position',
@@ -731,30 +727,27 @@ class UrtextProject:
     def all_nodes(self, 
         as_nodes=False):
 
-        def sort(node, return_type=False):
-            return node.metadata.get_first_value(
-                k, 
-                use_timestamp=use_timestamp,
-                return_type=return_type)
-
         remaining_nodes = list(self.nodes.values())
         sorted_nodes = []
         for k in self.settings['node_browser_sort']:
             use_timestamp = k in self.settings['use_timestamp']
-            as_int = k in self.settings['numerical_keys']
             node_group = [
-                r for r in remaining_nodes if r.metadata.get_first_value(k)]
+                r for r in remaining_nodes if r.metadata.get_first_value(
+                    k,
+                    use_timestamp=use_timestamp)]
+            if not node_group:
+                continue
             node_group = sorted(
-                node_group, 
-                key=lambda node: sort(
-                    node, 
-                    return_type=True), 
-                reverse=k in self.settings['use_timestamp'])
+                node_group,
+                key=lambda node: node.metadata.get_first_value(
+                    k,
+                    use_timestamp=use_timestamp),
+                reverse=use_timestamp)
             sorted_nodes.extend(node_group)
             remaining_nodes = list(set(remaining_nodes) - set(node_group))
         sorted_nodes.extend(remaining_nodes)
         if not as_nodes:
-            sorted_nodes = [n.id for node in sorted_nodes if n.id in self.nodes]
+            sorted_nodes = [n.id for n in sorted_nodes if n.id in self.nodes]
         return sorted_nodes
 
     def all_files(self):
@@ -772,8 +765,7 @@ class UrtextProject:
             file_group = sorted(file_group,
                     key=lambda f: self.files[f].root_node.metadata.get_first_value(
                             k, 
-                            use_timestamp=use_timestamp,
-                            return_type=True),
+                            use_timestamp=use_timestamp),                            
                     reverse=use_timestamp)
             sorted_files.extend(file_group)
             files = list(set(files) - set(sorted_files))
@@ -891,9 +883,9 @@ class UrtextProject:
             link = get_id_from_link(full_match)
             if link in self.nodes:
                 if match.group(7):
-                    dest_position = self.nodes[link].start_position() + int(match.group(7)[1:])
+                    dest_position = self.nodes[link].start_position + int(match.group(7)[1:])
                 else:
-                    dest_position = self.nodes[link].start_position()
+                    dest_position = self.nodes[link].start_position
                 result = link
 
         node_id = ''
@@ -956,31 +948,33 @@ class UrtextProject:
     def _get_settings_from(self, node):
       
         replacements = {}
-        for entry in node.metadata.all_entries():
+        for entry in node.metadata.entries():
    
             if entry.keyname in replace_settings:
                 replacements.setdefault(entry.keyname, [])
-                replacements[entry.keyname].append(entry.value)
+                replacements[entry.keyname].extend(entry.text_values())
                 continue
 
             if entry.keyname == 'numerical_keys':
-                self.settings['numerical_keys'].append(entry.value)
+                self.settings['numerical_keys'].extend(entry.text_values())
                 continue
 
             if entry.keyname == 'file_extensions':
-                value = entry.value
-                if value[0] != '.':
-                    value = '.' + value
-                self.settings['file_extensions'] = ['.urtext'].append(value)
+                for value in entry.text_values():
+                    if value[0] != '.':
+                        value = '.' + value
+                    self.settings['file_extensions'] = ['.urtext'].append(value)
                 continue
 
             if entry.keyname == 'recurse_subfolders':
-                self.settings['paths'][0]['recurse_subfolders'] = True if entry.value.lower() in ['yes', 'true'] else False
+                values = entry.text_values()
+                if values:
+                    self.settings['paths'][0]['recurse_subfolders'] = to_boolean(values[0]) 
                 continue
 
             if entry.keyname == 'paths':
                 if entry.is_node:
-                    for n in entry.value.children:
+                    for n in entry.meta_values[0].children:
                         path = n.metadata.get_first_value('path')
                         recurse = n.metadata.get_first_value('recurse_subfolders')
                         if path and path not in [entry['path'] for entry in self.settings['paths']]:
@@ -991,36 +985,42 @@ class UrtextProject:
                 continue
 
             if entry.keyname == 'other_entry_points':
-                self.project_list.add_project(entry.value)
+                for v in entry.text_values():
+                    self.project_list.add_project(v)
                 continue
 
             if entry.keyname == 'extensions':
-                self._get_extensions_from_folder(entry.value)
+                for v in entry.text_values():
+                    self._get_extensions_from_folder(v)
                 continue
 
             if entry.keyname == 'directives':
-                self._get_directives_from_folder(entry.value)
+                for v in entry.text_values():
+                    self._get_directives_from_folder(v)
                 continue
  
             if entry.keyname in single_values_settings:
-                if entry.keyname in integers_settings:
-                    try:
-                        self.settings[entry.keyname] = int(entry.value)
-                    except:
-                        print(entry.value + ' not an integer')
-                else:
-                    self.settings[entry.keyname] = entry.value
+                for v in entry.text_values():
+                    if entry.keyname in integers_settings:
+                        try:
+                            self.settings[entry.keyname] = int(v)
+                        except:
+                            print(v + ' not an integer')
+                    else:
+                        self.settings[entry.keyname] = v
                 continue
 
 
             if entry.keyname in single_boolean_values_settings:
-                self.settings[entry.keyname] = True if entry.value.lower() in ['true','yes'] else False
-                continue          
+                values = entry.text_values()
+                if values:
+                    self.settings[entry.keyname] = to_boolean(values[0]) 
+                continue
 
             if entry.keyname not in self.settings:
                 self.settings[str(entry.keyname)] = []
 
-            self.settings[str(entry.keyname)].append(entry.value)
+            self.settings[str(entry.keyname)].extend(entry.text_values())
             self.settings[str(entry.keyname)] = list(set(self.settings[entry.keyname]))
 
         for k in replacements.keys():
@@ -1243,7 +1243,9 @@ class UrtextProject:
         entries = []
         for node in self.nodes.values():
             entries.extend(node.metadata.get_entries(key))
-        values = [e.value_as_string() for e in entries]
+        values = []
+        for e in entries:
+            values.extend(e.text_values())
         if lower:
             return list(set([v.lower() for v in values]))
         return list(set(values))
@@ -1253,17 +1255,15 @@ class UrtextProject:
             dd = self.dynamic_definitions[target_id]
             self.run_editor_method(
                 'open_file_to_position',
-                self.nodes[dd.source_id].filename, 
-                self.get_file_position(
-                    dd.source_id,
-                    dd.position))
+                self.nodes[dd.source_id].filename,
+                self.nodes[dd.source_id].get_file_position(dd.position))
             return self.visit_node(dd.source_id)        
         self.run_editor_method(
             'popup',
             'No dynamic definition for "%s"' % target_id
             )
 
-    def get_by_meta(self, key, values, operator):
+    def get_by_meta(self, key, values, operator, as_nodes=False):
         
         if isinstance(values,str):
             values = [values]
@@ -1279,89 +1279,78 @@ class UrtextProject:
                 if operator == 'after':
                     results = [n for n in self.nodes.values() if n.metadata.get_date(key) > compare_date != default_date ]
 
-                return set(results)
-
-            return set([])
-
         if key == '_contents' and operator == '?': 
             # `=` not currently implemented
             for node in list(self.nodes.values()):
                 if node.dynamic:
                     continue
                 matches = []
-                contents = node.contents()
+                contents = node.stripped_contents
                 lower_contents = contents.lower()           
 
                 for v in values:
                     if v.lower() in lower_contents:
                         results.append(node.id)
 
-            return results
-
-        if key == '_links_to':
+        elif key == '_links_to':
             for v in values:
                 results.extend(self.get_links_to(v))
-            return results
 
-        if key == '_links_from':
+        elif key == '_links_from':
             for v in values:
                 results.extend(self.get_links_from(v))
-            return results
 
-        results = set([])
-        
-        if key == '*':
-            keys = self.get_all_keys()
-        else:
-            keys = [key]
+        else:        
+            if key == '*':
+                keys = self.get_all_keys()
+            else:
+                keys = [key]
+            for k in keys:
+                for value in values:
+                    if value == '*':
+                        results.extend([n for n in self.nodes if 
+                                self.nodes[n].metadata.get_values(k)])
+                        continue
 
-        for k in keys:
-            for value in values:
+                    use_timestamp = False
+                    if isinstance(value, UrtextTimestamp):
+                        use_timestamp = True
 
-                if value == '*':
-                    results = results.union(
-                        set(n for n in list(self.nodes) if n in self.nodes 
-                            and self.nodes[n].metadata.get_values(k))
-                        ) 
-                    continue
-
-                use_timestamp = False
-                if isinstance(value, UrtextTimestamp):
-                    use_timestamp = True
-
-                if k in self.settings['numerical_keys']:
-                    try:
-                        value = float(value)
-                    except ValueError:
-                        value = 99999999
-                
-                if k in self.settings['case_sensitive']:
-                    results = results.union(set(
-                        n for n in self.nodes.values() if (
-                            value in n.metadata.get_values(
+                    if k in self.settings['numerical_keys']:
+                        try:
+                            value = float(value)
+                        except ValueError:
+                            value = 99999999
+ 
+                    if k in self.settings['case_sensitive']:
+                        results.extend([
+                            n for n in self.nodes if 
+                                value in [v.text for v in self.nodes[n].metadata.get_values(
+                                    k,
+                                    use_timestamp=use_timestamp) if v.text]])
+                    else:
+                        results.extend([
+                            n for n in self.nodes if value in [ 
+                            v.text for v in self.nodes[n].metadata.get_values(
                                 k,
-                                use_timestamp=use_timestamp))
-                        ))
-                else:
-                    if isinstance(value, str):
-                        value = value.lower()
-                    results = results.union(set(
-                        n for n in list(self.nodes) if n in self.nodes and value in self.nodes[n].metadata.get_values(
-                            k,
-                            use_timestamp=use_timestamp, 
-                            lower=True)))
-        
+                                use_timestamp=use_timestamp, 
+                                lower=True) if v.text]])
+
+        results=list(set(results))            
+        if as_nodes:
+            return [self.nodes[n] for n in results]
         return results
 
     def get_file_and_position(self, node_id):
         if node_id in self.nodes:
             filename = self.get_file_name(node_id)
-            position = self.nodes[node_id].start_position()
+            position = self.nodes[node_id].start_position
             return filename, position
         return None, None
 
     def execute(self, function, *args, **kwargs):
-        if self.compiled and not self.nodes: return
+        if self.compiled and not self.nodes:
+            return
         if self.is_async:
             return self.executor.submit(function, *args, **kwargs)
         return function(*args, **kwargs)
@@ -1385,18 +1374,28 @@ class UrtextProject:
     def _compile_file(self, filename, events=[]):
         modified_targets = []
         modified_files = []
+        processed_targets = []
         for node in self.files[filename].nodes:
             for dd in self.get_dynamic_defs(target=node.id, source=node.id):
-                output = dd.process(flags=events)
-                if output not in [False, None]:
-                    for target in dd.targets + dd.target_ids:
-                        targeted_output = dd.post_process(target, output)
-                        modified_target = self._direct_output(
-                            targeted_output, 
-                            target, 
-                            dd)
-                        if modified_target:
-                            modified_targets.append(modified_target)
+                new_targets = []
+                for d in dd.targets + dd.target_ids:
+                    if d in processed_targets:
+                        continue
+                    new_targets.append(d)
+                if new_targets:
+                    output = dd.process(flags=events)
+                    if output not in [False, None]:
+                        for target in new_targets:
+                            processed_targets.append(target)
+                            targeted_output = dd.post_process(
+                                target,
+                                output)
+                            modified_target = self._direct_output(
+                                targeted_output, 
+                                target, 
+                                dd)
+                            if modified_target:
+                                modified_targets.append(modified_target)
 
         for target in modified_targets:
             if target in self.nodes:
@@ -1464,10 +1463,9 @@ class UrtextProject:
 
         if visited_nodes == None:
             visited_nodes = []
+        source_node_id = entry.from_node
         if next_node:
-            source_node_id = next_node
-        else:
-            source_node_id = entry.from_node
+            source_node_id = next_node           
 
         if source_node_id not in self.nodes:
             return
@@ -1484,16 +1482,17 @@ class UrtextProject:
 
             if uid not in visited_nodes and not self.nodes[node_to_tag].dynamic:
                 self.nodes[node_to_tag].metadata.add_entry(
-                    entry.keyname, 
-                    entry.value, 
-                    from_node=entry.from_node, 
-                    recursive=entry.recursive)
+                    entry.keyname,
+                    entry.meta_values,
+                    self.nodes[node_to_tag],
+                    from_node=entry.from_node,
+                    tag_descendants=entry.tag_descendants)
                 if node_to_tag not in self.nodes[entry.from_node].target_nodes:
                     self.nodes[entry.from_node].target_nodes.append(node_to_tag)
             
             visited_nodes.append(uid)        
             
-            if entry.recursive:
+            if entry.tag_descendants:
                 self._add_sub_tags(
                     entry,
                     next_node=node_to_tag, 
@@ -1551,6 +1550,17 @@ class DuplicateIDs(Exception):
 """ 
 Helpers 
 """
+
+def to_boolean(text):
+    text=text.lower()
+    if text in [
+        'y', 
+        'yes', 
+        'true',
+        'on']:
+        return True
+    return False
+
 def all_subclasses(cls):
     return set(cls.__subclasses__()).union(
         [s for c in cls.__subclasses__() for s in all_subclasses(c)])

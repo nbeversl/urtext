@@ -84,7 +84,7 @@ metadata_assigner = r''+metadata_assignment_operator
 metadata_end_marker = r';'
 metadata_entry_modifiers = r'[+]?\*{0,2}'
 metadata_key = r'[\w_\?\!\#\d-]+?'
-metadata_values = r'[^\n;]*[\n;]?'
+metadata_values = r'[^\n;]*($|\n|;)'
 metadata_entry = r''.join([
     metadata_entry_modifiers, 
     metadata_key,
@@ -101,10 +101,11 @@ sub_node = r'(?<!\\){(?!.*(?<!\\){)(?:(?!}).)*}'
 virtual_target = r'' + virtual_target_marker + '[\w_]+'
 disallowed_title_characters = [
     r'\|',
-    r'>',
+    r'\>',
     r'@',
     r'\n',
     r'\r'
+    r'`'
 ]
 title_pattern = r'^([^' + r''.join(disallowed_title_characters) + ']+)'
 id_pattern = r'([^\|>\n\r]+)'
@@ -124,11 +125,11 @@ any_link_or_pointer = r''.join([
     '\s',
     '(',
     id_pattern,
-    ')',
+    ')?', # might be empty
     '\s>{1,2}(\:\d{1,99})?(?!>)'
     ])
-compact_node = bullet + r'([^\r\n]*)(?=\n|$)'
-embedded_syntax_full = embedded_syntax_open + '.+?' + embedded_syntax_close
+compact_node = '('+bullet+')' + r'([^\r\n]*)(?=\n|$)'
+embedded_syntax_full = embedded_syntax_open + '.*?' + embedded_syntax_close
 hash_meta = r'(?:^|\s)'+ hash_key + r'[A-Z,a-z].*?\b'
 node_link = ''.join([
     node_link_opening_wrapper_match,
@@ -137,7 +138,12 @@ node_link = ''.join([
     ')\s>(?!>)'
     ])
 function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
-node_link_or_pointer = node_link_opening_wrapper_match + '(' + id_pattern + ')\s(>{1,2})(\:\d{1,99})?(?!>)'
+node_link_or_pointer = r''.join([
+    node_link_opening_wrapper_match,
+    '(',
+    id_pattern,
+    ')\s(>{1,2})(\:\d{1,99})?(?!>)'])
+
 node_action_link = r''.join([
     link_opening_character_regex,
     link_modifiers_regex['action'],
@@ -152,7 +158,7 @@ node_pointer = r''.join([
     ')',
     pointer_closing_wrapper,
     '(?!>)'
-    ]) 
+    ])
 node_title = r'^'+ title_pattern +r'(?=' + title_marker  + pattern_break + ')'
 timestamp = r''.join([
     timestamp_opening_wrapper,

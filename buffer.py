@@ -5,10 +5,12 @@ if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sub
     from .node import UrtextNode
     from .utils import strip_backtick_escape, get_id_from_link
     import Urtext.urtext.syntax as syntax
+    from Urtext.urtext.metadata import MetadataValue
 else:
     from urtext.node import UrtextNode
     from urtext.utils import strip_backtick_escape, get_id_from_link
     import urtext.syntax as syntax
+    from urtext.metadata import MetadataValue
 
 USER_DELETE_STRING = 'This message can be deleted.'
 
@@ -53,15 +55,19 @@ class UrtextBuffer:
                 if symbol_type == 'meta_to_node':
                     self.meta_to_node.append(match)
                     continue
-                symbols[match.span()[0] + start_position] = {}
-                symbols[match.span()[0] + start_position]['type'] = symbol_type
 
                 if symbol_type == 'pointer':
+                    symbols[match.span()[0] + start_position] = {}
                     symbols[match.span()[0] + start_position]['contents'] = get_id_from_link(match.group())
-                if symbol_type == 'compact_node':
-                    symbols[match.span()[0] + start_position]['full_match'] = match.group()
-                    symbols[match.span()[0] + start_position]['contents'] = match.group(2)
-        
+                    symbols[match.span()[0] + start_position]['type'] = symbol_type
+                elif symbol_type == 'compact_node':
+                    symbols[match.span()[0] + start_position+ len(match.group(1))] = {}
+                    symbols[match.span()[0] + start_position + len(match.group(1))]['type'] = symbol_type
+                    symbols[match.span()[0] + start_position + len(match.group(1))]['contents'] = match.group(3)
+                else:
+                    symbols[match.span()[0] + start_position] = {}
+                    symbols[match.span()[0] + start_position]['type'] = symbol_type
+
         symbols[len(contents) + start_position] = { 'type': 'EOB' }
         return symbols
 
@@ -77,11 +83,6 @@ class UrtextBuffer:
         unstripped_contents = strip_backtick_escape(contents)
         last_position = start_position
         pointers = {}
-        if from_compact:
-            unstripped_contents = re.sub(
-                syntax.bullet, 
-                '', 
-                unstripped_contents)
 
         for position in sorted(symbols.keys()):
 
@@ -92,7 +93,6 @@ class UrtextBuffer:
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
             pointers[nested] = [] if nested not in pointers else pointers[nested]
-
             if symbols[position]['type'] == 'pointer':
                 pointers[nested].append({ 
                     'id' : symbols[position]['contents'],
@@ -100,32 +100,42 @@ class UrtextBuffer:
                     })
                 continue
 
-            if symbols[position]['type'] == 'opening_wrapper':
-                nested_levels[nested].append([last_position, position])
+            elif symbols[position]['type'] == 'opening_wrapper':
+                if position > 0:
+                    nested_levels[nested].append([last_position, position-1])
+                else:
+                    nested_levels[nested].append([0, 0])
+                position += 1 #wrappers exist outside range
                 nested += 1
 
-            if not from_compact and symbols[position]['type'] == 'compact_node':
-                nested_levels[nested].append([last_position, position])
-                
+            elif not from_compact and symbols[position]['type'] == 'compact_node':
+                if position > 0:
+                    nested_levels[nested].append([last_position, position-1])
+                else:
+                    nested_levels[nested].append([0, 0])
+
                 compact_symbols = self.lex(
                     symbols[position]['contents'], 
-                    start_position=position)
+                    start_position=position+1)
 
                 nested_levels, child_group, nested = self.parse(
-                    symbols[position]['full_match'], 
+                    symbols[position]['contents'],
                     compact_symbols,
                     nested_levels=nested_levels,
-                    nested=nested + 1,
+                    nested=nested+1,
                     child_group=child_group,
                     start_position=position,
                     from_compact=True)
-
-                last_position = position + len(symbols[position]['full_match'])
-                continue
+               
+                r = position + len(symbols[position]['contents'])
+                if r in symbols and symbols[r]['type'] == 'EOB':
+                    continue
+                else:
+                    last_position = position + 1 + len(symbols[position]['contents'])
+                    continue
  
-            if symbols[position]['type'] == 'closing_wrapper':
-                nested_levels[nested].append([last_position , position])
-    
+            elif symbols[position]['type'] == 'closing_wrapper':
+                nested_levels[nested].append([last_position, position - 1])
                 if nested <= 0:
                     self.messages.append(
                         'Removed stray closing wrapper at %s. ' % str(position))
@@ -133,11 +143,11 @@ class UrtextBuffer:
                     self._set_file_contents(contents)
                     return self.lex_and_parse(contents)
 
+                position += 1 #wrappers exist outside range
                 node = self.add_node(
                     nested_levels[nested],
-                    nested, 
+                    nested,
                     unstripped_contents,
-                    position,
                     start_position=start_position)
 
                 if nested + 1 in child_group:
@@ -156,19 +166,18 @@ class UrtextBuffer:
                     del nested_levels[nested]
                 nested -= 1
 
-            if symbols[position]['type'] == 'EOB':
+            elif symbols[position]['type'] == 'EOB':
                 # handle closing of buffer
                 nested_levels[nested].append([last_position, position])
                 root_node = self.add_node(
                     nested_levels[nested],
                     nested,
                     unstripped_contents,
-                    position,
                     root=True if not from_compact else False,
                     compact=from_compact,
                     start_position=start_position)
 
-                #TODO refactor
+                #TODO refactor?
                 if nested + 1 in child_group:
                     for child in child_group[nested+1]:
                         child.parent = root_node
@@ -187,7 +196,7 @@ class UrtextBuffer:
 
             last_position = position
         
-        if not from_compact and nested >= 0:
+        if not from_compact and nested > 0:
             self.messages.append(
                 'Appended closing bracket to close opening bracket at %s. %s'  % 
                 ( str(position), self.user_delete_string) )
@@ -205,7 +214,6 @@ class UrtextBuffer:
         ranges, 
         nested,
         contents,
-        position,
         root=None,
         compact=False,
         start_position=0):
@@ -217,7 +225,7 @@ class UrtextBuffer:
                 :
                 r[1] - start_position ]
             for r in ranges])
-        
+
         new_node = self.urtext_node(
             node_contents,
             self.project,
@@ -228,13 +236,16 @@ class UrtextBuffer:
         new_node.get_file_contents = self._get_file_contents
         new_node.set_file_contents = self._set_file_contents
         new_node.ranges = ranges
+        new_node.start_position = ranges[0][0]
+        new_node.end_position = ranges[-1][1]
+
         self.nodes.append(new_node)
         if new_node.root_node:
             self.root_node = new_node
         return new_node
 
     def _get_file_contents(self):
-          return self.contents
+        return self.contents
           
     def _set_file_contents(self, contents):
           return
@@ -242,7 +253,7 @@ class UrtextBuffer:
     def get_ordered_nodes(self):
         return sorted( 
             list(self.nodes),
-            key=lambda node :  node.start_position())
+            key=lambda node : node.start_position)
 
     def propagate_timestamps(self, start_node):
         oldest_timestamp = start_node.metadata.get_oldest_timestamp()
@@ -251,9 +262,11 @@ class UrtextBuffer:
                 child_oldest_timestamp = child.metadata.get_oldest_timestamp()
                 if not child_oldest_timestamp:
                     child.metadata.add_entry(
-                        'inline_timestamp', 
-                        oldest_timestamp.wrapped_string,
-                        from_node=start_node.title)
+                        'inline_timestamp',
+                        [MetadataValue(oldest_timestamp.wrapped_string)],
+                        child,
+                        from_node=start_node.title,
+                        )
                     child.metadata.add_system_keys()
                 self.propagate_timestamps(child)
 
@@ -266,8 +279,8 @@ class UrtextBuffer:
             self.project.run_editor_method(
                 'replace',
                 filename=self.project.nodes[node_id].filename,
-                start=node.start_position(),
-                end=node.end_position(),
+                start=node.start_position,
+                end=node.end_position,
                 replacement_text=replacement_text
                 )
 

@@ -19,11 +19,9 @@ along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
 import os
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-	from .directive import UrtextDirective
 	from .utils import force_list, get_id_from_link
 	import Urtext.urtext.syntax as syntax
 else:
-	from urtext.directive import UrtextDirective
 	from urtext.utils import force_list, get_id_from_link
 	import urtext.syntax as syntax
 
@@ -103,6 +101,13 @@ class UrtextDynamicDefinition:
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
 			self.phases.append(300)
+
+		if 'SORT' not in [op.name[0] for op in self.operations]:
+			op = self.project.directives['SORT'](self.project)
+			op.parse_argument_string('_oldest_timestamp')
+			op.set_dynamic_definition(self)
+			self.operations.append(op)
+			self.phases.append(220)
 
 		if all(i < 300 or i > 600 for i in self.phases):
 			self.returns_text = False
@@ -184,9 +189,12 @@ class UrtextDynamicDefinition:
 							syntax.link_closing_wrapper]))
 
 		output = self.process_output()
-		if output == False: return
-		if not self.returns_text: return
-		if self.spaces: output = indent(output, spaces=self.spaces)
+		if output == False:
+			return
+		if not self.returns_text:
+			return
+		if self.spaces:
+			output = indent(output, spaces=self.spaces)
 		return output
 
 	def post_process(self, target, output):
@@ -197,7 +205,6 @@ class UrtextDynamicDefinition:
 		for op in post_process_ops:
 			output = op._dynamic_output(output)
 		return output
-
 
 def has_text_output(operations):
 	for op in operations:
