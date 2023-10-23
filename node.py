@@ -189,13 +189,15 @@ class UrtextNode:
             if title in first_non_blank_line:
                 self.first_line_title = True 
         elif first_non_blank_line:
-                title = first_non_blank_line
-                self.first_line_title = True
+            title = first_non_blank_line
+            for character in syntax.disallowed_title_characters:
+                title = re.sub(character, ' ', title)
+            self.first_line_title = True
         if not title:
             title = '(untitled)'
             self.untitled = True
         if len(title) > 255:
-            title = title[:255]
+            title = title[:255].strip()
         self.metadata.add_entry('title', [MetadataValue(title)], self)
         return title
    
@@ -343,12 +345,10 @@ class UrtextNode:
         """
         from an extended key, returns all values
         """
-
         if '.' in meta_keys:
             meta_keys = meta_keys.split('.')
-        else:
-            if not isinstance(meta_keys, list):
-                meta_keys = [meta_keys]
+        elif not isinstance(meta_keys, list):
+            meta_keys = [meta_keys]
         values = []
 
         for index, k in enumerate(meta_keys):
@@ -391,7 +391,7 @@ class UrtextNode:
                 if v.text:
                     values.append(v.text)
 
-        return syntax.metadata_separator_syntax.join(values)
+        return syntax.metadata_separator_syntax.join(list(set(values)))
 
 def strip_contents(contents, 
     preserve_length=False, 

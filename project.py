@@ -71,7 +71,7 @@ class UrtextProject:
         self.settings['project_title'] = self.entry_point # default
         self.editor_methods = editor_methods
         self.is_async = True
-        #self.is_async = False # development
+        self.is_async = False
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
@@ -734,17 +734,16 @@ class UrtextProject:
             node_group = [
                 r for r in remaining_nodes if r.metadata.get_first_value(
                     k,
-                    use_timestamp=use_timestamp)]
-            if not node_group:
-                continue
-            node_group = sorted(
-                node_group,
-                key=lambda node: node.metadata.get_first_value(
-                    k,
-                    use_timestamp=use_timestamp),
-                reverse=use_timestamp)
-            sorted_nodes.extend(node_group)
-            remaining_nodes = list(set(remaining_nodes) - set(node_group))
+                    use_timestamp=use_timestamp) != None]
+            if node_group:
+                node_group = sorted(
+                    node_group,
+                    key=lambda node: node.metadata.get_first_value(
+                        k,
+                        use_timestamp=use_timestamp),
+                    reverse=use_timestamp)
+                sorted_nodes.extend(node_group)
+                remaining_nodes = list(set(remaining_nodes) - set(node_group))
         sorted_nodes.extend(remaining_nodes)
         if not as_nodes:
             sorted_nodes = [n.id for n in sorted_nodes if n.id in self.nodes]
@@ -1485,12 +1484,13 @@ class UrtextProject:
                     entry.keyname,
                     entry.meta_values,
                     self.nodes[node_to_tag],
+                    tag_self=True,
                     from_node=entry.from_node,
                     tag_descendants=entry.tag_descendants)
                 if node_to_tag not in self.nodes[entry.from_node].target_nodes:
                     self.nodes[entry.from_node].target_nodes.append(node_to_tag)
             
-            visited_nodes.append(uid)        
+            visited_nodes.append(uid)
             
             if entry.tag_descendants:
                 self._add_sub_tags(

@@ -1,4 +1,5 @@
 import re
+import os
 
 class PopNode:
 
@@ -25,7 +26,7 @@ class PopNode:
  
         if not node_id:
             node_id = self.project.get_node_id_from_position(
-                filename, 
+                filename,
                 file_pos)
  
         if not node_id:
@@ -37,12 +38,13 @@ class PopNode:
             return None
 
         self.project._parse_file(filename)
+    
         start = self.project.nodes[node_id].start_position
         end = self.project.nodes[node_id].end_position
         filename = self.project.nodes[node_id].filename
         file_contents = self.project.files[filename]._get_file_contents()
         popped_node_id = node_id
-        popped_node_contents = file_contents[start:end+1].strip()
+        popped_node_contents = file_contents[start:end].strip()
         parent_id = self.project.nodes[node_id].parent.id
         
         if self.project.settings['breadcrumb_key']:
@@ -58,14 +60,14 @@ class PopNode:
 
         remaining_node_contents = ''.join([
             file_contents[:start - 1],
-            '\n',
             self.syntax.link_opening_wrapper,
             popped_node_id,
             self.syntax.pointer_closing_wrapper,
+            '\n' if self.project.nodes[popped_node_id].compact else '',
             file_contents[end + 1:]
             ])
        
-        with open(os.path.join(self.project.entry_path, filename), 'w', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(remaining_node_contents)
         self.project._parse_file(filename) 
 
@@ -73,7 +75,6 @@ class PopNode:
         with open(new_file_name, 'w',encoding='utf-8') as f:
             f.write(popped_node_contents)
         self.project._parse_file(new_file_name) 
-        return filename
 
 class PullNode:
 
@@ -130,13 +131,14 @@ class PullNode:
                         
         self.project._parse_file(source_filename)
         start = self.project.nodes[source_id].start_position
-        end = self.project.nodes[source_id].ranges[-1][1]
+        end = self.project.nodes[source_id].end_position
         
         source_file_contents = self.project.files[source_filename]._get_file_contents()
 
         updated_source_file_contents = ''.join([
-            source_file_contents[0:start-1],
-            source_file_contents[end+1:len(source_file_contents)]])
+            source_file_contents[0:end],
+            source_file_contents[end:len(source_file_contents)]
+            ])
 
         root = False
         if not self.project.nodes[source_id].root_node:
@@ -169,7 +171,8 @@ class PullNode:
             self.project.files[destination_filename]._set_file_contents(replacement_contents)
             self.project._parse_file(destination_filename)
 
-        if root == True: return source_filename
+        if root == True: 
+            return source_filename
         return None
 
 urtext_extensions = [PullNode, PopNode]
