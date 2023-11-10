@@ -60,6 +60,7 @@ class UrtextNode:
         self.dynamic = False
         self.id = None
         self.pointers = []
+        self.display_detail = ''
         self.links = []
         self.root_node = root
         self.compact = compact
@@ -80,7 +81,7 @@ class UrtextNode:
         stripped_contents, replaced_contents = strip_embedded_syntaxes(replaced_contents)
 
         self.get_links(contents=replaced_contents)
-        self.metadata = self.urtext_metadata(self, self.project)        
+        self.metadata = self.urtext_metadata(self, self.project)    
         stripped_contents, replaced_contents = self.metadata.parse_contents(replaced_contents)
         self.title = self.set_title(stripped_contents)
         if not stripped_contents.strip().replace(self.title,'').strip(' _'):
@@ -108,13 +109,19 @@ class UrtextNode:
     def get_date(self, date_keyword):
         return self.metadata.get_date(date_keyword)
 
-    def contents(self, 
+    def contents(self,
+        stripped=True,
         strip_first_line_title=False):
 
+        if stripped:
+            contents = self.stripped_contents
+        else:
+            contents = self.full_contents
+
         if strip_first_line_title:
-            return self.strip_first_line_title(self.stripped_contents)
+            return self.strip_first_line_title(contents)
         
-        return self.stripped_contents
+        return contents
 
     def links_ids(self):
         return [get_id_from_link(link) for link in self.links]        
@@ -122,15 +129,16 @@ class UrtextNode:
     def date(self):
         return self.metadata.get_date(self.project.settings['node_date_keyname'])
 
-    def resolve_duplicate_id(self):
+    def resolve_duplicate_id(self, existing_nodes=[]):
         if self.parent:
             resolved_id = ''.join([
                     self.title,
                     syntax.parent_identifier,
                     self.parent.title
                 ])
-            if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
+            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
                 return resolved_id
+
             parent_oldest_timestamp = self.parent.metadata.get_oldest_timestamp()
             if parent_oldest_timestamp:
                 resolved_id = ''.join([
@@ -138,7 +146,7 @@ class UrtextNode:
                         syntax.parent_identifier,
                         parent_oldest_timestamp.unwrapped_string
                     ])
-            if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
+            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
                 return resolved_id
 
         timestamp = self.metadata.get_oldest_timestamp()
@@ -148,7 +156,7 @@ class UrtextNode:
                 syntax.parent_identifier,
                 timestamp.unwrapped_string, 
                 ])
-            if resolved_id not in self.project.nodes and resolved_id not in [n.id for n in self.file.nodes]:
+            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
                 return resolved_id
 
     def get_links(self, contents):
@@ -192,6 +200,7 @@ class UrtextNode:
             title = first_non_blank_line
             for character in syntax.disallowed_title_characters:
                 title = re.sub(character, ' ', title)
+            title = title.strip()
             self.first_line_title = True
         if not title:
             title = '(untitled)'
@@ -247,13 +256,30 @@ class UrtextNode:
             new_metadata += line_separator
         return new_metadata.strip()
 
-    def set_content(self, contents):
-        file_contents = self.get_file_contents()
+    def set_content(self, new_contents, preserve_title=True):
+        node_contents = self.strip_first_line_title(self.full_contents)
+        file_contents = self.file._get_contents()
+        
+        if preserve_title and self.first_line_title:
+            new_node_contents = ''.join([ 
+                ' ',
+                self.title,
+                new_contents,
+                node_contents,
+                ])
+        else: 
+            new_node_contents = ''.join([
+                new_contents,
+                node_contents
+                ])
+
+        file_contents = self.file._get_contents()
+
         new_file_contents = ''.join([
             file_contents[:self.start_position],
-            contents,
+            new_contents,
             file_contents[self.end_position:]])
-        return self.set_file_contents(new_file_contents)
+        return self.file._set_contents(new_file_contents)
 
     def replace_range(self,
         range_to_replace,
@@ -269,7 +295,7 @@ class UrtextNode:
         replacement_contents):
 
         self.project._parse_file(self.filename)
-        file_contents = self.get_file_contents()
+        file_contents = self.file._get_contents()
         file_range_to_replace = [
             self.get_file_position(range_to_replace[0]),
             self.get_file_position(range_to_replace[1])
@@ -279,21 +305,20 @@ class UrtextNode:
             file_contents[0:file_range_to_replace[0]],
             replacement_contents,
             file_contents[file_range_to_replace[1]:]])
-        self.set_file_contents(new_file_contents)
-        self.project._parse_file(self.filename)
+        self.file._set_contents(new_file_contents)
 
     def append_content(self, appended_content):
-        file_contents = self.get_file_contents()
+        file_contents = self.file._get_contents()
         new_file_contents = ''.join([
             file_contents[0:start_position],
             contents,
             appended_content,
             file_contents[self.end_position:]])         
-        return self.set_file_contents(new_file_contents)
+        return self.file._set_contents(new_file_contents)
 
     def prepend_content(self, prepended_content, preserve_title=True):
         node_contents = self.strip_first_line_title(self.full_contents)
-        file_contents = self.get_file_contents()
+        file_contents = self.file._get_contents()
         
         if preserve_title and self.first_line_title:
             new_node_contents = ''.join([ 
@@ -310,8 +335,8 @@ class UrtextNode:
         new_file_contents = ''.join([
             file_contents[:self.start_position], # omit opening
             new_node_contents,
-            file_contents[self.end_position:]])         
-        return self.set_file_contents(new_file_contents)
+            file_contents[self.end_position:]]) 
+        return self.file._set_contents(new_file_contents)
 
     def parse_dynamic_definitions(self, contents): 
         stripped_contents = contents
@@ -360,10 +385,10 @@ class UrtextNode:
                 'inline_timestamp']:
                 timestamp_entries = self.metadata.get_entries(k)
                 if timestamp_entries:
-                    values.append(timestamp_entries[0].unwrapped_string)
+                    values.append(timestamp_entries[0].meta_values[0].timestamp.unwrapped_string)
                 continue
 
-            entries = self.metadata.get_entries(k, use_timestamp=False)
+            entries = self.metadata.get_entries(k)
             for e in entries:
 
                 for v in e.meta_values:
@@ -384,7 +409,7 @@ class UrtextNode:
                 if e.is_node:
                     values.append(''.join([
                             syntax.link_opening_wrapper,
-                            e.title,
+                            e.meta_values[0].title,
                             syntax.link_closing_wrapper
                         ]))
                     continue

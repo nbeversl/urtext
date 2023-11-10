@@ -1,6 +1,4 @@
-import os
-import re
-
+import os 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from .buffer import UrtextBuffer
     import Urtext.urtext.syntax as syntax 
@@ -11,25 +9,20 @@ else:
 class UrtextFile(UrtextBuffer):
    
     def __init__(self, filename, project):
-        super().__init__(project)
         self.filename = filename
-        self.project = project
-        self.file_contents = self._read_file_contents()
-        if self.file_contents:
-            cleared_contents = self.clear_messages(self._get_file_contents())
-            if cleared_contents != self.file_contents:
-                self._set_file_contents(cleared_contents)
-                self.file_contents = cleared_contents
-            self.lex_and_parse(self.file_contents)
-            self.write_messages()
-            for node in self.nodes:
-                node.filename = filename
-                node.file = self
+        self.contents = None
+        super().__init__(project, self._get_contents())
+        self.clear_messages_and_parse()
+        for node in self.nodes:
+            node.filename = filename
+            node.file = self
 
-    def _get_file_contents(self):
-        return self.file_contents
+    def _get_contents(self):
+        if not self.contents:
+            self.contents = self._read_contents()
+        return self.contents
 
-    def _read_file_contents(self):
+    def _read_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
         try:
             with open(self.filename, 'r', encoding='utf-8') as theFile:
@@ -46,71 +39,45 @@ class UrtextFile(UrtextBuffer):
         return full_file_contents
 
     def _insert_contents(self, inserted_contents, position):
-        self._set_file_contents(''.join([
-            self.file_contents[:position],
+        self._set_contents(''.join([
+            self.contents[:position],
             inserted_contents,
-            self.file_contents[position:],
+            self.contents[position:],
             ]))
 
     def _replace_contents(self, inserted_contents, range):
-        self._set_file_contents(''.join([
-            self.file_contents[:range[0]],
+        self._set_contents(''.join([
+            self.contents[:range[0]],
             inserted_contents,
-            self.file_contents[range[1]:],
+            self.contents[range[1]:],
             ]))
 
-    def _set_file_contents(self, new_contents, compare=True): 
+    def _set_contents(self,
+        new_contents,
+        compare=True,
+        run_on_modified=True):
+
         new_contents = '\n'.join(new_contents.splitlines())
         if compare:
-            existing_contents = self._get_file_contents()
+            existing_contents = self._get_contents()
             if existing_contents == new_contents:
                 return False
+
+        self.contents = new_contents
+
+        buffer_updated = self.project.run_editor_method(
+            'set_buffer',
+            self.filename,
+            new_contents)
+
+        if buffer_updated and run_on_modified:
+            if self.project.run_editor_method(
+                'save_file',
+                self.filename):
+                    return True
+
         with open(self.filename, 'w', encoding='utf-8') as theFile:
             theFile.write(new_contents)
-        self.file_contents = new_contents
+        if run_on_modified:
+            self.project._on_modified(self.filename)
         return True
-
-    def write_messages(self, messages=None):
-        if not messages and not self.messages: return False
-        if messages: self.messages = messages
-        new_contents = self.clear_messages(self._get_file_contents())
-
-        if messages:
-            timestamp = self.project.timestamp(as_string=True)
-            messages = ''.join([ 
-                syntax.urtext_message_opening_wrapper,
-                '\n',
-                timestamp,
-                '\n',
-                '\n'.join(messages),
-                '\n',
-                syntax.urtext_message_closing_wrapper,
-                '\n'
-                ])
-
-            message_length = len(messages)
-            
-            for n in re.finditer('position \d{1,10}', messages):
-                old_n = int(n.group().strip('position '))
-                new_n = old_n + message_length
-                messages = messages.replace(str(old_n), str(new_n))
-                 
-            new_contents = ''.join([
-                messages,
-                new_contents,
-                ])
-
-        self._set_file_contents(new_contents, compare=False)
-        # TODO: make DRY
-        self.nodes = []
-        self.root_node = None
-        self.lex_and_parse(new_contents)
-        for node in self.nodes:
-            node.filename =self.filename
-            node.file = self
-
-    def clear_messages(self, contents):
-        for match in syntax.urtext_messages_c.finditer(contents):
-            if self.user_delete_string not in contents:
-                contents = contents.replace(match.group(),'')
-        return contents

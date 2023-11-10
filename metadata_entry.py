@@ -1,10 +1,7 @@
 import os
-
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .timestamp import UrtextTimestamp
     import Urtext.urtext.syntax as syntax
 else:
-    from urtext.timestamp import UrtextTimestamp
     import urtext.syntax as syntax
 
 class MetadataEntry:  # container for a single metadata entry
@@ -37,38 +34,34 @@ class MetadataEntry:  # container for a single metadata entry
             if not isinstance(values, list):
                 values = [values]
             self.meta_values = values
+        for v in self.meta_values:
+            v.entry = self
    
-    def ints(self):
-        parts = self.value.split[' ']
-        ints = []
-        for b in parts:
-            try:
-                ints.append(int(b))
-            except:
-                continue
-        return ints
-
     def text_values(self):
         if self.is_node:
-            return ''.join([
-                syntax.link_opening_wrapper,
-                self.value.title,
-                syntax.link_closing_wrapper ])
+            return make_node_link(self.value.title)
         return [v.text for v in self.meta_values if v.text]
 
-    def get_timestamps(self):
-        return sorted([
-            v.timestamp for v in self.meta_values if v.timestamp],
-            key=lambda t: t.datetime)
+    def values_with_timestamps(self, lower=False):
+        if self.is_node:
+            return make_node_link(self.value.title)
+        return [(v.text if not lower else v.text_lower, v.timestamp) for v in self.meta_values]
 
     def log(self):
-        print('from_node: %s' % self.from_node)
         print('key: %s' % self.keyname)
         print(self.start_position, self.end_position)
+        print('from_node: %s' % self.from_node)
         print('tag children: %s' % self.tag_children)
         print('tag descendats: %s' % self.tag_descendants)
         print('is node', self.is_node)
-        for value in self.meta_values:
-            value.log()
+        if not self.is_node:
+            for value in self.meta_values:
+                value.log()
         print('-------------------------')
 
+
+def make_node_link(title):
+    return ''.join([
+        syntax.link_opening_wrapper,
+        title,
+        syntax.link_closing_wrapper])

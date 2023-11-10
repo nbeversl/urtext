@@ -1,10 +1,10 @@
 import os
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .timestamp import UrtextTimestamp, default_date
+    from .timestamp import UrtextTimestamp
     import Urtext.urtext.syntax as syntax
 else:
-    from urtext.timestamp import UrtextTimestamp, default_date
+    from urtext.timestamp import UrtextTimestamp
     import urtext.syntax as syntax
 
 class MetadataValue:
@@ -13,8 +13,6 @@ class MetadataValue:
 
         self.timestamp = None
         self.unparsed_text = value_string
-        self.is_timestamp = False
-        self.text = None
         for ts in syntax.timestamp_c.finditer(value_string):
             dt_string = ts.group(0).strip()
             value_string = value_string.replace(dt_string, '').strip()
@@ -23,10 +21,19 @@ class MetadataValue:
                 start_position=ts.start())
             if t.datetime:
                 self.timestamp = t
-        if not value_string:
-            self.is_timestamp = True
-        else:
-            self.text = value_string
+        self.text = value_string
+        self.text_lower = value_string.lower()
+
+    def num(self):
+        try:
+            return float(self.text)
+        except:
+            return float('inf')
+
+    def __lt__(self, other):
+        if self.text:
+            return self.text < other.text
+        return self.num() < other.num()
 
     def log(self):
         print('text: %s' % ( 

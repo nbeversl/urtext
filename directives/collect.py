@@ -41,7 +41,7 @@ class Collect:
 				use_timestamp = k in self.project.settings['use_timestamp']
 				for v in keys[k]:
 					if v == '*':
-						entries = node.metadata.get_entries(k, use_timestamp=False)
+						entries = node.metadata.get_entries(k)
 					else:
 						entries = node.metadata.get_matching_entries(
 							k, 
@@ -77,7 +77,7 @@ class Collect:
 									try:
 										sort_value = float(value)
 									except ValueError: 
-										sort_value = 99999999
+										sort_value = float('inf')
 								else:
 									sort_value = str(sort_value)
 			

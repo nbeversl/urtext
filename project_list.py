@@ -59,8 +59,7 @@ class ProjectList():
             string, 
             filename, 
             col_pos=0,
-            file_pos=0,
-            return_target_only=False):
+            file_pos=0):
 
         """
         Given a line of text, looks for a link to a node or project
@@ -78,9 +77,7 @@ class ProjectList():
             if not self.set_current_project(project_name): return None
             return self.current_project.handle_link(
                 string, 
-                col_pos=col_pos,
-                file_pos=file_pos,
-                return_target_only=return_target_only)
+                col_pos=col_pos)
          
         """ Otherwise, set the project, search the link for a link in the current project """
         if filename:
@@ -88,16 +85,13 @@ class ProjectList():
             if self.current_project:
                 return self.current_project.handle_link( 
                     string,
-                    col_pos=col_pos,
-                    file_pos=file_pos,
-                    return_target_only=return_target_only)
+                    col_pos=col_pos)
 
     def on_modified(self, filename):
         project = self._get_project_from_path(
             os.path.dirname(filename))
         if project:
-            future = project.on_modified(filename)
-            return future
+            return project.on_modified(filename)
 
     def _get_project_from_path(self, path):
         if not os.path.isdir(path):
@@ -105,13 +99,11 @@ class ProjectList():
         for project in self.projects:
             if path in [entry['path'] for entry in project.settings['paths']]:
                 return project
-        return None
 
     def _get_project_from_title(self, title):
         for project in self.projects:
             if title == project.settings['project_title']:
                 return project
-        return None
 
     def get_project(self, title_or_path):
         project = self._get_project_from_title(title_or_path) 
@@ -267,9 +259,7 @@ class ProjectList():
                 project_title=project_title)
             self.current_project.run_editor_method('insert_text', link)
 
-    def delete_file(self, file_name, project=None, open_files=[]):
+    def delete_file(self, file_name, project=None):
         if not project:
             project = self.current_project
-        project.delete_file(
-            file_name, 
-            open_files=open_files)
+        project.delete_file(file_name)

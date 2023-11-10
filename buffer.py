@@ -19,24 +19,22 @@ class UrtextBuffer:
     urtext_node = UrtextNode
     user_delete_string = USER_DELETE_STRING
 
-    def __init__(self, project):
-        
+    def __init__(self, project, contents):
         self.nodes = []
+        self.contents = contents
         self.root_node = None
-        self.alias_nodes = [] #todo should be in tree extension
         self.messages = []
         self.project = project
         self.meta_to_node = []
-
-    def lex_and_parse(self, contents):
-        self.contents = contents
-        symbols = self.lex(contents)
-        self.parse(contents, symbols)
-        self.file_length = len(contents)
+    
+    def lex_and_parse(self):
+        symbols = self.lex(self._get_contents())
+        self.parse(self._get_contents(), symbols)
         self.propagate_timestamps(self.root_node)
+        for node in self.nodes:
+            node.buffer = self
 
     def lex(self, contents, start_position=0):
-       
         symbols = {}
         embedded_syntaxes = []
         contents = strip_backtick_escape(contents)
@@ -57,16 +55,16 @@ class UrtextBuffer:
                     continue
 
                 if symbol_type == 'pointer':
-                    symbols[match.span()[0] + start_position] = {}
-                    symbols[match.span()[0] + start_position]['contents'] = get_id_from_link(match.group())
-                    symbols[match.span()[0] + start_position]['type'] = symbol_type
+                    symbols[match.start() + start_position] = {}
+                    symbols[match.start() + start_position]['contents'] = get_id_from_link(match.group())
+                    symbols[match.start() + start_position]['type'] = symbol_type
                 elif symbol_type == 'compact_node':
-                    symbols[match.span()[0] + start_position+ len(match.group(1))] = {}
-                    symbols[match.span()[0] + start_position + len(match.group(1))]['type'] = symbol_type
-                    symbols[match.span()[0] + start_position + len(match.group(1))]['contents'] = match.group(3)
+                    symbols[match.start() + start_position + len(match.group(1))] = {}
+                    symbols[match.start() + start_position + len(match.group(1))]['type'] = symbol_type
+                    symbols[match.start() + start_position + len(match.group(1))]['contents'] = match.group(3)
                 else:
-                    symbols[match.span()[0] + start_position] = {}
-                    symbols[match.span()[0] + start_position]['type'] = symbol_type
+                    symbols[match.start() + start_position] = {}
+                    symbols[match.start() + start_position]['type'] = symbol_type
 
         symbols[len(contents) + start_position] = { 'type': 'EOB' }
         return symbols
@@ -101,10 +99,15 @@ class UrtextBuffer:
                 continue
 
             elif symbols[position]['type'] == 'opening_wrapper':
-                if position > 0:
-                    nested_levels[nested].append([last_position, position-1])
+                if from_compact:
+                    nested_levels[nested].append([last_position-1, position-1])
                 else:
-                    nested_levels[nested].append([0, 0])
+                    if position == 0:
+                        nested_levels[nested].append([0, 0])
+                        nested += 1 
+                        nested_levels[nested] = []
+                    else:
+                        nested_levels[nested].append([last_position, position-1])
                 position += 1 #wrappers exist outside range
                 nested += 1
 
@@ -124,7 +127,7 @@ class UrtextBuffer:
                     nested_levels=nested_levels,
                     nested=nested+1,
                     child_group=child_group,
-                    start_position=position,
+                    start_position=position+1,
                     from_compact=True)
                
                 r = position + len(symbols[position]['contents'])
@@ -136,13 +139,16 @@ class UrtextBuffer:
                 continue
  
             elif symbols[position]['type'] == 'closing_wrapper':
-                nested_levels[nested].append([last_position, position])
+                if from_compact:
+                    nested_levels[nested].append([last_position-1, position-1])
+                else:
+                    nested_levels[nested].append([last_position, position])
                 if nested <= 0:
                     self.messages.append(
                         'Removed stray closing wrapper at %s. ' % str(position))
                     contents = contents[:position] + contents[position + 1:]
-                    self._set_file_contents(contents)
-                    return self.lex_and_parse(contents)
+                    self._set_contents(contents)
+                    return self.lex_and_parse()
 
                 position += 1 #wrappers exist outside range
                 node = self.add_node(
@@ -197,17 +203,21 @@ class UrtextBuffer:
 
             last_position = position
         
-        if not from_compact and nested > 0:
+        if not from_compact and nested >= 0:
             self.messages.append(
                 'Appended closing bracket to close opening bracket at %s. %s'  % 
                 ( str(position), self.user_delete_string) )
             contents = ''.join([contents[:position],
-                 ' ',
-                 syntax.node_closing_wrapper,
-                 ' ',
-                 contents[position:]])
-            self._set_file_contents(contents)
-            return self.lex_and_parse(contents)
+                ' ',
+                syntax.node_closing_wrapper,
+                ' ',
+                contents[position:]])
+            self._set_contents(contents)
+            return self.lex_and_parse()
+
+        for node in self.nodes:
+            node.filename =self.filename
+            node.file = self
 
         return nested_levels, child_group, nested
 
@@ -234,8 +244,6 @@ class UrtextBuffer:
             compact=compact,
             nested=nested)
         
-        new_node.get_file_contents = self._get_file_contents
-        new_node.set_file_contents = self._set_file_contents
         new_node.ranges = ranges
         new_node.start_position = ranges[0][0]
         new_node.end_position = ranges[-1][1]
@@ -245,11 +253,63 @@ class UrtextBuffer:
             self.root_node = new_node
         return new_node
 
-    def _get_file_contents(self):
+    def clear_messages_and_parse(self):
+        cleared_contents = self.clear_messages(self._get_contents())
+        self._set_contents(cleared_contents, run_on_modified=False)
+        self.lex_and_parse()
+        self.write_messages()
+
+    def _get_contents(self):
         return self.contents
           
-    def _set_file_contents(self, contents):
-          return
+    def _set_contents(self, contents, compare=False, run_on_modified=False):
+        self.project.run_editor_method(
+            'set_buffer',
+            self.filename,
+            contents)
+        self.contents = contents
+
+    def write_messages(self, messages=None):
+        if not messages and not self.messages:
+            return False
+        if messages:
+            self.messages = messages
+        new_contents = self.clear_messages(self._get_contents())
+        timestamp = self.project.timestamp(as_string=True)
+        messages = ''.join([ 
+            syntax.urtext_message_opening_wrapper,
+            '\n',
+            timestamp,
+            '\n',
+            '\n'.join(self.messages),
+            '\n',
+            syntax.urtext_message_closing_wrapper,
+            '\n'
+            ])
+
+        message_length = len(messages)
+        
+        for n in re.finditer('position \d{1,10}', messages):
+            old_n = int(n.group().strip('position '))
+            new_n = old_n + message_length
+            messages = messages.replace(str(old_n), str(new_n))
+             
+        new_contents = ''.join([
+            messages,
+            new_contents,
+            ])
+
+        self._set_contents(new_contents, compare=False, run_on_modified=False)
+        # TODO: make DRY
+        self.nodes = []
+        self.root_node = None
+        self.lex_and_parse()
+        
+    def clear_messages(self, contents):
+        for match in syntax.urtext_messages_c.finditer(contents):
+            if self.user_delete_string not in contents:
+                contents = contents.replace(match.group(),'')
+        return contents
 
     def get_ordered_nodes(self):
         return sorted( 
@@ -289,7 +349,6 @@ class UrtextBuffer:
 
         self.nodes = {}
         self.root_node = None
-        self.file_length = 0
         self.messages.append(message +' at position '+ str(position))
 
         print(''.join([ 
