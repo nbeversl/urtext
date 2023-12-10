@@ -1,21 +1,3 @@
-single_values_settings = [
-    'home',
-    'project_title',
-    'node_date_keyname',
-    'timestamp_format',
-    'device_keyname',
-    'breadcrumb_key',
-    'title',
-    'new_file_node_format',
-    'hash_key',
-    'meta_browser_key',
-    'meta_browser_sort_keys_by',
-    'meta_browser_sort_values_by',
-    'filename_datestamp_format',
-    'new_file_line_pos',
-    'title_length',
-    'filename_title_length' ]
-
 evaluated_only_at_compile = [
     'paths',
     'file_extensions'
@@ -37,13 +19,32 @@ single_boolean_values_settings = [
     'contents_strip_internal_whitespace'
 ]
 
-replace_settings = [
-    'file_index_sort',
+single_values_settings = [
+    'home',
+    'filename_datestamp_format',
+    'filename_title_length',
+    'node_date_keyname',
+    'timestamp_format',
+    'device_keyname',
+    'breadcrumb_key',
+    'title',
+    'new_file_node_format',
+    'hash_key',
+    'meta_browser_key',
+    'meta_browser_sort_keys_by',
+    'meta_browser_sort_values_by',
+    'new_file_line_pos',
+    'project_title',
+    'title_length',
+    ] + single_boolean_values_settings
+
+replace_settings = [ #i.e. can be array, but replace, don't extend
     'filenames',
     'node_browser_sort',
     'meta_browser_sort',
     'filename_datestamp_format',
-    'exclude_files' ]
+    'exclude_files' 
+]
 
 integers_settings = [
     'new_file_line_pos',
@@ -80,7 +81,6 @@ def default_project_settings():
             'def'],
         'filenames': ['title'],
         'file_extensions' : ['.urtext'],
-        'file_index_sort': ['_oldest_timestamp'],
         'filename_datestamp_format':'%m-%d-%Y %I:%M %p',
         'file_node_timestamp' : True,
         'filename_title_length': 100,

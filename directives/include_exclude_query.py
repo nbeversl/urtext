@@ -10,15 +10,12 @@ class NodeQuery:
 
 		for arg in self.arguments:
 			if re.match(self.syntax.virtual_target_marker+'self', arg):
-				added_nodes.append(self.dynamic_definition.source_id)
+				added_nodes.append(self.dynamic_definition.source_node.id)
 				break
 
 			if re.match(self.syntax.virtual_target_marker+'parent', arg):
-				if self.project.nodes[
-						self.dynamic_definition.source_id].parent:
-					added_nodes.append(
-						self.project.nodes[
-							self.dynamic_definition.source_id].parent.id)
+				if self.dynamic_definition.source_node.parent:
+					added_nodes.append(self.dynamic_definition.source_node.parent.id)
 				break
 
 		if not added_nodes:	
@@ -26,7 +23,7 @@ class NodeQuery:
 			if self.have_flags('*'):
 				added_nodes = set([node_id for node_id in self.project.nodes])
 			added_nodes = added_nodes.union(_build_group_and(
-					self.project, 
+					self.project,
 					self.params, 
 					self.dynamic_definition,
 					include_dynamic=self.have_flags('-dynamic'))
@@ -65,7 +62,7 @@ class Exclude(NodeQuery):
 	def dynamic_output(self, nodes):
 		excluded_nodes = set(self.build_list([]))
 		if self.have_flags('-including_as_descendants'):
-			self.dynamic_definition.excluded_nodes = list(excluded_nodes)
+			self.dynamic_definition.excluded_nodes.extend(list(excluded_nodes))
 		return list(set(nodes) - excluded_nodes)
 
 class Include(NodeQuery):
@@ -90,8 +87,8 @@ def _build_group_and(
 			value = value.split('"')[1]
 			new_group = set([value])
 		else:
-			if value == "@parent" and project.nodes[dd.source_id].parent:
-				value = project.nodes[dd.source_id].parent.id
+			if value == "@parent" and dd.source_node.parent:
+				value = dd.source_node.parent.id
 			new_group = set(project.get_by_meta(key, value, operator))
 		found_sets.append(new_group)
 	

@@ -199,11 +199,13 @@ class NodeMetadata:
     def get_first_value(self, 
         keyname,
         order_by='default',
-        use_timestamp=False):
+        use_timestamp=False,
+        convert_nodes_to_links=False):
 
         values = self.get_values(
             keyname, 
-            order_by=order_by)
+            order_by=order_by,
+            convert_nodes_to_links=convert_nodes_to_links)
 
         if values:
             value = values[0]
@@ -211,16 +213,17 @@ class NodeMetadata:
             if use_timestamp or keyname in self.project.settings['use_timestamp']:
                 return value.timestamp if value.timestamp else default_date
 
-            return value.text
+            if keyname in self.project.settings['numerical_keys']:
+                return value.num()
+ 
+            return value
 
     def get_values_with_frequency(self, 
         keyname,
         convert_nodes_to_links=False):
 
         values = {}
-
         entries = self.get_entries(keyname)
-
         for e in entries:
             if e.is_node:
                 if convert_nodes_to_links:
@@ -234,7 +237,6 @@ class NodeMetadata:
             for v in e.meta_values:
                 values.setdefault(v, 0)
                 values[v] +=1 
-
         return values
 
     def get_values(self,
@@ -282,10 +284,10 @@ class NodeMetadata:
             return timestamp.datetime
         return default_date
       
-    def clear_from_source(self, source_node_id):
+    def clear_from_source(self, source_node):
         for k in self.entries_dict:
             for entry in self.entries_dict[k]:
-                if entry.from_node == source_node_id:
+                if entry.from_node == source_node:
                     self.entries_dict[k].remove(entry)
     
     def convert_hash_keys(self):

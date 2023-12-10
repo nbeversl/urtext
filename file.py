@@ -11,7 +11,7 @@ class UrtextFile(UrtextBuffer):
     def __init__(self, filename, project):
         self.filename = filename
         self.contents = None
-        super().__init__(project, self._get_contents())
+        super().__init__(project, filename, self._get_contents())
         self.clear_messages_and_parse()
         for node in self.nodes:
             node.filename = filename
@@ -52,12 +52,17 @@ class UrtextFile(UrtextBuffer):
             self.contents[range[1]:],
             ]))
 
+    def clear_messages_and_parse(self):
+        cleared_contents = self.clear_messages(self._get_contents())
+        self._set_contents(cleared_contents)
+        self.lex_and_parse()
+        self.write_messages()
+
     def _set_contents(self,
         new_contents,
         compare=True,
         run_on_modified=True):
 
-        new_contents = '\n'.join(new_contents.splitlines())
         if compare:
             existing_contents = self._get_contents()
             if existing_contents == new_contents:
@@ -70,7 +75,7 @@ class UrtextFile(UrtextBuffer):
             self.filename,
             new_contents)
 
-        if buffer_updated and run_on_modified:
+        if buffer_updated and run_on_modified and not self.errors:
             if self.project.run_editor_method(
                 'save_file',
                 self.filename):
@@ -78,6 +83,6 @@ class UrtextFile(UrtextBuffer):
 
         with open(self.filename, 'w', encoding='utf-8') as theFile:
             theFile.write(new_contents)
-        if run_on_modified:
+        if run_on_modified and not self.errors:
             self.project._on_modified(self.filename)
         return True

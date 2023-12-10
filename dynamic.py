@@ -54,7 +54,7 @@ class UrtextDynamicDefinition:
 		self.returns_text = True
 		self.param_string = param_string
 		self.init_self(param_string)	
-		self.source_id = None # set by node once compiled
+		self.source_node = None # set by node once compiled
 		if not self.show: self.show = '$_link\n'
 
 	def init_self(self, contents):
@@ -65,7 +65,7 @@ class UrtextDynamicDefinition:
 
 		for match in syntax.function_c.finditer(contents):
 			
-			func, argument_string = match.group(1), match.group().strip(match.group(1)).strip(')(')
+			func, argument_string = match.group(1), match.group().strip(match.group(1)).replace(')(','')
 			argument_string = match.group(2)
 			if func and func in self.project.directives:
 				op = self.project.directives[func](self.project)
@@ -114,8 +114,8 @@ class UrtextDynamicDefinition:
 			self.returns_text = False
 
 	def preserve_title_if_present(self, target):
-		if target == '@self' and self.source_id in self.project.nodes:
-			return ' ' + self.project.nodes[self.source_id].title + syntax.title_marker +'\n'
+		if target == '@self' and self.source_node.id in self.project.nodes:
+			return ' ' + self.project.nodes[self.source_node.id].title + syntax.title_marker +'\n'
 		node_id = get_id_from_link(target)
 		if node_id in self.target_ids and node_id in self.project.nodes and self.project.nodes[node_id].first_line_title:
 			return ' ' + self.project.nodes[node_id].title + syntax.title_marker +'\n'
@@ -177,14 +177,14 @@ class UrtextDynamicDefinition:
 		self.flags = flags
 
 		for target_id in self.target_ids:
-			if self.source_id not in self.project.nodes:
+			if self.source_node.id not in self.project.nodes:
 				continue
 			if target_id not in self.project.nodes:
-				filename = self.project.nodes[self.source_id].filename
+				filename = self.project.nodes[self.source_node.id].filename
 				self.project._log_item(filename, ''.join([
 							'Dynamic node definition in ',
 							syntax.link_opening_wrapper,
-							self.source_id,
+							self.source_node.id,
 							syntax.link_closing_wrapper,
 							'\n',
 							'points to nonexistent node ',

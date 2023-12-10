@@ -39,18 +39,18 @@ class MetadataEntry:  # container for a single metadata entry
    
     def text_values(self):
         if self.is_node:
-            return make_node_link(self.value.title)
+            return make_node_link(self.meta_values[0].id)
         return [v.text for v in self.meta_values if v.text]
 
     def values_with_timestamps(self, lower=False):
         if self.is_node:
-            return make_node_link(self.value.title)
+            return make_node_link(self.meta_values[0].id)
         return [(v.text if not lower else v.text_lower, v.timestamp) for v in self.meta_values]
 
     def log(self):
         print('key: %s' % self.keyname)
         print(self.start_position, self.end_position)
-        print('from_node: %s' % self.from_node)
+        print('from_node: %s' % self.from_node.id)
         print('tag children: %s' % self.tag_children)
         print('tag descendats: %s' % self.tag_descendants)
         print('is node', self.is_node)

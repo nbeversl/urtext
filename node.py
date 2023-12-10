@@ -55,6 +55,7 @@ class UrtextNode:
         self.position = 0
         self.ranges = []
         self.is_tree = False
+        self.is_node = True
         self.is_meta = False
         self.export_points = {}
         self.dynamic = False
@@ -74,27 +75,25 @@ class UrtextNode:
         self.first_line_title = False
         self.title_from_marker = False
         self.nested = nested
+        self.resolved = False
         
         contents = strip_errors(contents)
         self.full_contents = contents
+        stripped_contents, replaced_contents = strip_embedded_syntaxes(contents)
+        self.get_links(contents=stripped_contents)
         stripped_contents, replaced_contents = self.parse_dynamic_definitions(contents)
-        stripped_contents, replaced_contents = strip_embedded_syntaxes(replaced_contents)
-
-        self.get_links(contents=replaced_contents)
-        self.metadata = self.urtext_metadata(self, self.project)    
+        self.metadata = self.urtext_metadata(self, self.project)
         stripped_contents, replaced_contents = self.metadata.parse_contents(replaced_contents)
         self.title = self.set_title(stripped_contents)
-        if not stripped_contents.strip().replace(self.title,'').strip(' _'):
+        if not stripped_contents.strip().replace(self.title,'').replace(' _',''):
             self.title_only = True
-        self.apply_id(self.title)
-        self.stripped_contents = stripped_contents    
-
-    def apply_id(self, new_id):
-        self.id = new_id
+        self.id = self.title
         for d in self.dynamic_definitions:
-            d.source_id = new_id
+            d.source_node = self
         for entry in self.metadata.entries():
-            entry.from_node = new_id
+            entry.from_node = self
+
+        self.stripped_contents = stripped_contents    
 
     def get_file_position(self, node_position): 
         node_length = 0
@@ -129,34 +128,40 @@ class UrtextNode:
     def date(self):
         return self.metadata.get_date(self.project.settings['node_date_keyname'])
 
-    def resolve_duplicate_id(self, existing_nodes=[]):
+    def resolve_id(self, allocated_ids=None):
+        if self.resolved:
+           return self.id
+        if not allocated_ids:
+            allocated_ids = self.project.nodes
         if self.parent:
-            resolved_id = ''.join([
-                    self.title,
-                    syntax.parent_identifier,
-                    self.parent.title
-                ])
-            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
-                return resolved_id
-
+            if self.parent.title != '(untitled)':
+                resolved_id = ''.join([
+                        self.title,
+                        syntax.resolution_identifier,
+                        self.parent.title
+                    ])
+                if resolved_id not in allocated_ids:
+                    self.resolved = True
+                    return resolved_id
             parent_oldest_timestamp = self.parent.metadata.get_oldest_timestamp()
             if parent_oldest_timestamp:
                 resolved_id = ''.join([
                         self.title,
-                        syntax.parent_identifier,
+                        syntax.resolution_identifier,
                         parent_oldest_timestamp.unwrapped_string
                     ])
-            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
-                return resolved_id
-
+                if resolved_id not in allocated_ids:
+                    self.resolved = True
+                    return resolved_id
         timestamp = self.metadata.get_oldest_timestamp()
         if timestamp:
             resolved_id = ''.join([
                 self.title,
-                syntax.parent_identifier,
+                syntax.resolution_identifier,
                 timestamp.unwrapped_string, 
                 ])
-            if resolved_id not in existing_nodes and resolved_id not in [n.id for n in self.buffer.nodes]:
+            if resolved_id not in allocated_ids:
+                self.resolved = True
                 return resolved_id
 
     def get_links(self, contents):
@@ -181,7 +186,7 @@ class UrtextNode:
             return t
 
         first_non_blank_line = None
-        contents_lines = contents.strip().split('\n')       
+        contents_lines = contents.strip().split('\n')
         for line in contents_lines:
             first_non_blank_line = line.strip()
             first_non_blank_line = strip_nested_links(first_non_blank_line).strip()
@@ -256,7 +261,7 @@ class UrtextNode:
             new_metadata += line_separator
         return new_metadata.strip()
 
-    def set_content(self, new_contents, preserve_title=True):
+    def set_content(self, new_contents, run_on_modified=True, preserve_title=True):
         node_contents = self.strip_first_line_title(self.full_contents)
         file_contents = self.file._get_contents()
         
@@ -279,7 +284,7 @@ class UrtextNode:
             file_contents[:self.start_position],
             new_contents,
             file_contents[self.end_position:]])
-        return self.file._set_contents(new_file_contents)
+        return self.file._set_contents(new_file_contents, run_on_modified=run_on_modified)
 
     def replace_range(self,
         range_to_replace,
