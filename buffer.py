@@ -109,6 +109,11 @@ class UrtextBuffer:
                         nested += 1 
                         nested_levels[nested] = []
                     else:
+                        if position == last_position:
+                            nested += 1
+                            last_position += 1
+                            #consecutive bracket nodes, i.e. }{
+                            continue
                         nested_levels[nested].append([last_position, position-1])
                 position += 1 #wrappers exist outside range
                 nested += 1
@@ -284,11 +289,10 @@ class UrtextBuffer:
         timestamp = self.project.timestamp(as_string=True)
         messages = ''.join([ 
             syntax.urtext_message_opening_wrapper,
-            '\n',
-            timestamp,
-            '\n',
+            ' ',
             '\n'.join(self.messages),
-            '\n',
+            timestamp,
+            ' ',
             syntax.urtext_message_closing_wrapper,
             '\n'
             ])

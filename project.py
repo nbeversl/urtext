@@ -593,19 +593,20 @@ class UrtextProject:
             filename = os.path.join(path, filename)
         else:
             filename = os.path.join(self.entry_path, filename)
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write(contents)  
         self._parse_file(filename)
 
-        #possibly should be sent in a thread:
-        self._run_hook('on_new_file_node', 
-            self.files[filename].root_node.id)
+        if filename in self.files:
+            #TODO possibly should be sent in a thread:
+            self._run_hook('on_new_file_node', 
+                self.files[filename].root_node.id)
 
-        return { 
-                'filename' : filename, 
-                'id' : self.files[filename].root_node.id,
-                'cursor_pos' : cursor_pos
-                }
+            return { 
+                    'filename' : filename, 
+                    'id' : self.files[filename].root_node.id,
+                    'cursor_pos' : cursor_pos
+                    }
 
     def new_inline_node(self, 
         date=None, 
@@ -871,7 +872,7 @@ class UrtextProject:
                 self.handle_info_message(
                     'Project is still compiling')
             return self.handle_info_message( 
-                'Link is not is not in the project.')
+                'Link is not in the project.')
 
         if link['kind'] == 'NODE':
             return self.open_node(
@@ -897,12 +898,15 @@ class UrtextProject:
                             # TODO
                             # if modified_file:
                             #     modified_files.append(modified_file)
-        if link['kind'] == 'SYSTEM':
-            return self.run_editor_method('open_external_file', 
-                os.path.join(self.entry_path, link['link']))
-
-        if link['kind'] == 'EDITOR_LINK':
-            return self.run_editor_method('open_file_in_editor', link['link'])
+        if link['kind'] == 'FILE':
+            if os.path.exists(link['link']):
+                return self.run_editor_method(
+                    'open_external_file', 
+                    link['link'])            
+            else:
+                return self.run_editor_method(
+                    'open_external_file', 
+                    os.path.join(self.entry_path, link['link']))
         
         if link['kind'] == 'HTTP':
             return self.run_editor_method('open_http_link', link['link'])
@@ -969,10 +973,9 @@ class UrtextProject:
                 else:
                     kind = 'MISSING'
             if kind == 'FILE':
-                kind = 'EDITOR_LINK'
-                if os.path.splitext(return_link)[1][1:] in self.settings['open_with_system']:
-                    kind = 'SYSTEM'
                 return_link = return_link[2:-2].strip()
+                if return_link[0] == '~':
+                    return_link = os.path.expanduser(return_link)
 
         return {
             'kind' : kind, 
@@ -1121,7 +1124,6 @@ class UrtextProject:
             for setting in self.project_settings_nodes[node]:
                 if setting in not_cleared:
                     continue
-                
                 for value in self.project_settings_nodes[node][setting]:
                     if not self._setting_is_elsewhere(
                         setting,
@@ -1152,7 +1154,7 @@ class UrtextProject:
             del self.project_settings_nodes[node]
 
     def _setting_is_elsewhere(self, setting, omit_node):
-        for node in [n for n in self.project_settings_nodes if n != omit_node]:
+        for node_id in [n for n in self.project_settings_nodes if n != omit_node]:
             if setting in self.project_settings_nodes[node_id]:
                 return True
 
@@ -1277,7 +1279,7 @@ class UrtextProject:
         return self.execute(self._on_modified, filename, bypass=bypass)
     
     def _on_modified(self, filename, bypass=False):
-        if self.compiled:
+        if self.compiled and filename in self._get_included_files():
             if self._parse_file(filename):
                 modified_files = [filename]
                 if filename in self.files:
