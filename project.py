@@ -156,17 +156,23 @@ class UrtextProject:
         self._run_hook('after_project_initialized')
         self.handle_info_message('"%s" compiled' % self.settings['project_title'])
 
-    def _parse_file(self, filename, buffer_contents=None):
+    def _parse_file(self, filename, try_buffer=False):
         if self._filter_filenames(filename) == None:
             self._add_to_excluded_files(filename)
             return False
+
+        buffer_contents = None
+        if self.compiled and try_buffer:
+            buffer_contents = self.run_editor_method(
+                'get_buffer',
+                filename)
 
         existing_file_ids = []
         if filename in self.files:
             existing_file_ids = [n.id for n in self.files[filename].get_ordered_nodes()]
 
         allocated_ids = []
-        if buffer_contents != None:
+        if try_buffer and buffer_contents:
             new_file = UrtextBuffer(self, filename, buffer_contents)
             new_file.filename = filename
             new_file.clear_messages_and_parse()
@@ -219,7 +225,7 @@ class UrtextProject:
         for entry in new_file.meta_to_node:
             keyname = entry.group(1)
             source_node = self.get_node_id_from_position(
-                filename, 
+                filename,
                 entry.span()[0])
             target_node = self.get_node_id_from_position(
                 filename, 
@@ -228,7 +234,7 @@ class UrtextProject:
                 keyname,
                 [self.nodes[target_node]],
                 self.nodes[source_node],
-                start_position=self.nodes[target_node].start_position - (len(keyname) + 3),
+                start_position=self.nodes[target_node].start_position,
                 end_position=self.nodes[target_node].end_position,
                 is_node=True)
             self.nodes[target_node].is_meta = True
@@ -845,11 +851,13 @@ class UrtextProject:
         return links
 
     def handle_link(self, 
-        string, 
+        string,
+        filename,
         col_pos=0):
 
         link = self.parse_link(
             string,
+            filename,
             col_pos=col_pos)
 
         if not link:
@@ -913,7 +921,8 @@ class UrtextProject:
         return link
 
     def parse_link(self, 
-        string, 
+        string,
+        filename,
         col_pos=0,
         file_pos=None):
 
@@ -923,10 +932,11 @@ class UrtextProject:
         node_id = None
         dest_position = None
         full_match = None
-        filename = None
         return_link = None
         link_start = None
         link_end = None
+
+        self._parse_file(filename, try_buffer=True)
 
         http_link_present = False
         http_link = url_match(string)
@@ -1720,13 +1730,13 @@ class UrtextProject:
         self.run_editor_method('insert_text', self.timestamp(as_string=True))
 
     def editor_copy_link_to_node(self, 
-        buffer_contents, 
         position,
         filename,
         include_project=False):
 
-        self._parse_file(filename, buffer_contents=buffer_contents)
+        self._parse_file(filename, try_buffer=True)
 
+        node_id=None
         for node in self.files[filename].nodes:
             for r in node.ranges:
                 if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.

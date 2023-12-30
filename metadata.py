@@ -218,6 +218,7 @@ class NodeMetadata:
 
         values = {}
         entries = self.get_entries(keyname)
+
         for e in entries:
             if e.is_node:
                 if convert_nodes_to_links:
@@ -227,6 +228,9 @@ class NodeMetadata:
                         syntax.link_closing_wrapper])
                     values.setdefault(node_link, 0)
                     values[node_link] += 1
+                else:
+                    values.setdefault(e.meta_values[0].contents(), 0)
+                    values[e.meta_values[0].contents()] += 1
                 continue
             for v in e.meta_values:
                 values.setdefault(v, 0)
@@ -253,6 +257,18 @@ class NodeMetadata:
             return sorted(unique_values)
 
         return list(unique_values)
+
+    def get_extended_values(self, extended_key):
+        """
+        from an optionally extended key, returns the value(s) as a formatted string
+        """
+        if '.' not in extended_key:
+            extended_keyname = [extended_key]
+        else:
+            extended_keyname = extended_key.split('.')
+        values = get_extended_metadata(extended_keyname, self.node)        
+        values = list(set(values))
+        return syntax.metadata_separator_syntax.join(values)
 
     def get_matching_entries(self, keyname, value):
         entries = self.get_entries(keyname)
@@ -336,4 +352,29 @@ def determine_desc_tagging(string):
 
     return tag_self, tag_children, tag_descendants, string
 
-
+def get_extended_metadata(extended_keyname, node):
+    entries = node.metadata.get_entries(extended_keyname[0])
+    values = []
+    for e in entries:
+        for v in e.meta_values:
+            if len(extended_keyname) == 1:
+                if extended_keyname[0] in node.project.settings['use_timestamp']:
+                    if v.timestamp:
+                        values.append(v.timestamp.unwrapped_string)
+                elif v.is_node:
+                    values.append(v.contents())
+                else:
+                    values.append(v.text)
+                continue
+            if len(extended_keyname) == 2 and extended_keyname[1] in [
+                'timestamp',
+                'timestamps'
+                ] and v.timestamp:
+                values.append(v.timestamp.unwrapped_string) 
+                continue
+            if v.is_node:
+                values.extend(get_extended_metadata(
+                    extended_keyname[1:],
+                    v))
+    values = sorted(values)
+    return list(set(values))
