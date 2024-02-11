@@ -70,7 +70,7 @@ class UrtextProject:
         self.settings['project_title'] = self.entry_point # default
         self.editor_methods = editor_methods
         self.is_async = True
-        self.is_async = False # development
+        #self.is_async = False # development
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
@@ -564,7 +564,8 @@ class UrtextProject:
         path=None,
         contents=None,
         metadata={}, 
-        one_line=None):
+        one_line=None,
+        open_file=True):
 
         contents_format = None
         if contents == None:
@@ -608,6 +609,10 @@ class UrtextProject:
             #TODO possibly should be sent in a thread:
             self._run_hook('on_new_file_node', 
                 self.files[filename].root_node.id)
+
+            if open_file:
+                self.open_node(self.files[filename].root_node.id,
+                    position=cursor_pos)
 
             return { 
                     'filename' : filename, 
@@ -738,7 +743,6 @@ class UrtextProject:
             )
         return self.visit_node(node_id)
 
-    
     def open_home(self):
         if not self.get_home():
             if not self.compiled:
