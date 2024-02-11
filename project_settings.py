@@ -11,10 +11,7 @@ single_boolean_values_settings = [
     'always_oneline_meta',
     'preformat',
     'console_log',
-    'import',
     'atomic_rename',
-    'keyless_timestamp',
-    'file_node_timestamp',
     'contents_strip_outer_whitespace',
     'contents_strip_internal_whitespace'
 ]
@@ -37,7 +34,8 @@ single_values_settings = [
     'title_length',
     ] + single_boolean_values_settings
 
-replace_settings = [ #i.e. can be array, but replace, don't extend
+replace_settings = [
+    #i.e. can be array, but replace, don't extend
     'filenames',
     'node_browser_sort',
     'meta_browser_sort',
@@ -58,12 +56,9 @@ def default_project_settings():
         'breadcrumb_key' : '',
         'case_sensitive': [
             'title',
-            'notes',
-            'comments',
             'project_title',
             'timestamp_format',
             'filenames',
-            'weblink',
             'timestamp',],
         'console_log': False,
         'contents_strip_internal_whitespace' : True,
@@ -71,38 +66,33 @@ def default_project_settings():
         'device_keyname' : '',
         'exclude_files': [],
         'exclude_from_star': [
-            'title', 
+            'title',
             '_newest_timestamp', 
             '_oldest_timestamp', 
-            '_breadcrumb',
-            'def'],
+            '_inline_timestamp', 
+            ],
         'filenames': ['title'],
         'file_extensions' : ['.urtext'],
-        'filename_datestamp_format':'%m-%d-%Y %I:%M %p',
-        'file_node_timestamp' : True,
+        'filename_datestamp_format':'%m-%d-%Y %I-%M %p',
         'filename_title_length': 100,
-        'hash_key': '#',
+        'hash_key': 'keyword',
         'home': None,
-        'import': False,
-        'keyless_timestamp' : True,
-        'new_file_node_format' : '$timestamp\n$cursor',
+        'new_file_node_format' : '$timestamp\n$cursor ',
         'meta_browser_key': None,
         'meta_browser_sort_keys_by': 'alpha', # or 'frequency'
         'meta_browser_sort_values_by' : 'alpha', # 'or 'frequency'
         'meta_browser_sort' : ['_oldest_timestamp'],
         'node_browser_sort' : ['_oldest_timestamp'],
-        'node_date_keyname' : 'timestamp',
+        'node_date_keyname' : '_oldest_timestamp',
         'numerical_keys': ['_index' ,'index','title_length'],
-        'open_with_editor' : [],
-        'other_entry_points' : [],
+        'other_project_entry_points' : [],
         'paths': [],
         'project_title' : None,
-        'recurse_folders': False,
         'timestamp_format':'%a., %b. %d, %Y, %I:%M %p %Z', 
         'title_length':255,
         'use_timestamp': [ 
             'timestamp', 
-            'inline_timestamp', 
+            '_inline_timestamp', 
             '_oldest_timestamp', 
             '_newest_timestamp'],
     }

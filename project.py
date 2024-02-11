@@ -39,7 +39,6 @@ if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sub
     from .extension import UrtextExtension
     import Urtext.urtext.syntax as syntax
     from Urtext.urtext.project_settings import *
-    import Urtext.urtext.extensions
     import Urtext.urtext.utils as utils
 else:
     from anytree import Node, PreOrderIter, RenderTree
@@ -51,7 +50,6 @@ else:
     from urtext.extension import UrtextExtension
     import urtext.syntax as syntax
     from urtext.project_settings import *
-    import urtext.extensions
     import urtext.utils as utils
 
 class UrtextProject:
@@ -72,7 +70,7 @@ class UrtextProject:
         self.settings['project_title'] = self.entry_point # default
         self.editor_methods = editor_methods
         self.is_async = True
-        #self.is_async = False # development
+        self.is_async = False # development
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
@@ -98,20 +96,15 @@ class UrtextProject:
     def _initialize_project(self):
         self.handle_info_message('Compiling Urtext project from %s' % self.entry_point)
 
-        directives_folder = os.path.join(
+        self._get_features_from_folder(os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            'directives')
-        
-        extensions_folder = os.path.join(
+            'features'), None)
+        self._get_features_from_folder(os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            'extensions')
-
-        self._get_extensions_from_folder(extensions_folder, None)
-        self._get_directives_from_folder(directives_folder, None)
-        
+            'core'), None)
         num_file_extensions = len(self.settings['file_extensions'])
         num_paths = len(self.settings['paths'])
-        
+
         if os.path.exists(self.entry_point) and os.path.isdir(self.entry_point):
             self.entry_path = self.entry_point
             self.settings['paths'].append({
@@ -338,7 +331,7 @@ class UrtextProject:
         messages = []
         changed_ids = {}
 
-        # resolve untitled nodes
+        # resolve '(untitled)' nodes
         for node in [f for f in file_obj.nodes if f.title == '(untitled)']:
             resolved_id = node.resolve_id()
             if not resolved_id:
@@ -409,6 +402,7 @@ class UrtextProject:
     def _add_dynamic_definition(self, definition):
         for target_id in definition.target_ids:
             if target_id in self.dynamic_definitions:
+                print('REJECTING 1')
                 self._reject_definition(target_id, definition)
             else:
                 self.dynamic_definitions[target_id] = definition 
@@ -416,6 +410,7 @@ class UrtextProject:
         for target in definition.targets:
             if target in self.nodes: # allow not using link syntax
                 if target in self.dynamic_definitions:
+                    print('REJECTING 2')
                     self._reject_definition(target, definition)
                 else:
                     self.dynamic_definitions[target] = definition
@@ -425,6 +420,7 @@ class UrtextProject:
                 target = virtual_target.group()
                 if target == "@self":
                     if definition.source_node.id in self.dynamic_definitions:
+                        print('REJECTING 3')
                         self._reject_definition(definition.source_node.id, definition)
                     else:
                         self.dynamic_definitions[definition.source_node.id] = definition
@@ -441,6 +437,9 @@ class UrtextProject:
                 '\nalready has a definition in ', 
                 syntax.link_opening_wrapper,
                 self.dynamic_definitions[target_id].source_node.id,
+                '\n in file ',
+                syntax.file_link_opening_wrapper,
+                self.dynamic_definitions[target_id].source_node.filename,
                 syntax.link_closing_wrapper,
                 '\nskipping the definition in ',
                 syntax.link_opening_wrapper,
@@ -487,18 +486,7 @@ class UrtextProject:
                         return self.nodes[node_id].filename
         return False
 
-    def _adjust_ranges(self, filename, from_position, amount): # future
-        """ 
-        adjust the ranges of all nodes in the given file 
-        a given amount, from a given position
-        """
-        for node_id in self.files[filename].nodes:
-            number_ranges = len(self.nodes[node_id].ranges)
-            for index in range(number_ranges):
-                this_range = self.nodes[node_id].ranges[index]
-                if from_position >= this_range[0]:
-                    self.nodes[node_id].ranges[index][0] -= amount
-                    self.nodes[node_id].ranges[index][1] -= amount
+
 
     def _mark_dynamic_nodes(self):
         for target in self.dynamic_definitions:
@@ -527,8 +515,8 @@ class UrtextProject:
     def _drop_node(self, node):
         if node.id in self.nodes:
             self._remove_sub_tags(node.id)
-            self.remove_dynamic_defs(node.id)
-            self.remove_dynamic_metadata_entries(node.id)
+            self._remove_dynamic_defs(node.id)
+            self._remove_dynamic_metadata_entries(node.id)
             self._clear_settings_from(node)
             del self.nodes[node.id]
 
@@ -587,19 +575,33 @@ class UrtextProject:
 
         filename = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        contents, node_id, cursor_pos = self._new_node(
+        new_node_contents, node_id, cursor_pos = self._new_node(
             date=date,
             contents=contents,
             contents_format=contents_format,
-            metadata=metadata,
-            include_timestamp=self.settings['file_node_timestamp'])
+            metadata=metadata)
         
         filename = filename + '.urtext'
         if path:
             filename = os.path.join(path, filename)
         else:
             filename = os.path.join(self.entry_path, filename)
-        utils.write_file_contents(filename, contents)
+        utils.write_file_contents(filename, new_node_contents)
+        new_file = self.urtext_file(filename, self)
+        
+        duplicates = self._check_file_for_duplicates(new_file)
+        if new_file.errors and 'timestamp or parent title exists in another node' in new_file.messages[0]:
+            if contents == None:
+                new_node_contents, node_id, cursor_pos = self._new_node(
+                    date=date,
+                    contents=contents,
+                    add_seconds_to_timestamp=True,
+                    contents_format=contents_format,
+                    metadata=metadata)
+            utils.write_file_contents(filename, new_node_contents)
+            new_file = self.urtext_file(filename, self)
+            duplicates = self._check_file_for_duplicates(new_file)
+
         self._parse_file(filename)
 
         if filename in self.files:
@@ -637,18 +639,21 @@ class UrtextProject:
         contents=None,
         title='',
         contents_format=None,
+        add_seconds_to_timestamp=False,
         metadata=None,
-        one_line=None,
-        include_timestamp=False):
+        one_line=None):
 
         cursor_pos = 0
         if contents == None:
             contents = ''
 
         if contents_format:
-            new_node_contents = contents_format.replace('$timestamp', self.timestamp().wrapped_string)
-            new_node_contents = new_node_contents.replace('$device_keyname', platform.node() )
-
+            new_node_contents = contents_format.replace(
+                '$timestamp',
+                self.timestamp(add_seconds=add_seconds_to_timestamp).wrapped_string)
+            new_node_contents = new_node_contents.replace(
+                '$device_keyname',
+                platform.node())
             if '$cursor' in new_node_contents:
                 new_node_contents = new_node_contents.split('$cursor')
                 cursor_pos = len(new_node_contents[0]) -1
@@ -666,15 +671,6 @@ class UrtextProject:
                 metadata[self.settings['device_keyname']] = platform.node()
 
             new_node_contents = contents
-
-            if include_timestamp:
-                if date == None:
-                    date = datetime.datetime.now() 
-                if self.settings['keyless_timestamp'] == True:
-                    new_node_contents += ' ' + self.timestamp(date).wrapped_string + ' '
-                elif self.settings['node_date_keyname']:
-                    metadata[self.settings['node_date_keyname']] = self.timestamp(date)
-
             new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
 
         return new_node_contents, title, cursor_pos
@@ -705,7 +701,7 @@ class UrtextProject:
                     defs.append(dd)
         return defs
 
-    def remove_dynamic_defs(self, node_id):
+    def _remove_dynamic_defs(self, node_id):
         for target in list(self.dynamic_definitions):
             if self.dynamic_definitions[target].source_node.id == node_id:
                 del self.dynamic_definitions[target]
@@ -714,7 +710,7 @@ class UrtextProject:
                 if dd.source_node.id == node_id:
                     self.virtual_outputs[target].remove(dd)
 
-    def remove_dynamic_metadata_entries(self, node_id):
+    def _remove_dynamic_metadata_entries(self, node_id):
         for entry in list(self.dynamic_metadata_entries):
             if entry.from_node == self.nodes[node_id]:
                 self.dynamic_metadata_entries.remove(entry)
@@ -815,8 +811,7 @@ class UrtextProject:
                     else:
                         node.display_detail = k+'::'+str(detail)
                 sorted_nodes.extend(node_group)
-            remaining_nodes = list(set(remaining_nodes) - set(node_group))
-        sorted_nodes.extend(remaining_nodes)  
+        sorted_nodes.extend([r for r in remaining_nodes if r not in sorted_nodes])  
         if not as_nodes:
             return [n.id for n in sorted_nodes]      
         return sorted_nodes
@@ -846,7 +841,7 @@ class UrtextProject:
     def get_all_links(self):
         links = {}
         for node in self.nodes.values():
-            links.setdefault(node.filename, [])
+            links[node.filename] = links.get(node.filename, [])
             links[node.filename].extend(node.links)
         return links
 
@@ -902,9 +897,6 @@ class UrtextProject:
                                 for target in dd.targets:
                                     target_output = dd.preserve_title_if_present(target) + output
                                     self._direct_output(target_output, target, dd)
-                            # TODO
-                            # if modified_file:
-                            #     modified_files.append(modified_file)
         if link['kind'] == 'FILE':
             if os.path.exists(link['link']):
                 return self.run_editor_method(
@@ -924,6 +916,7 @@ class UrtextProject:
         string,
         filename,
         col_pos=0,
+        try_buffer=True,
         file_pos=None):
 
         kind = None
@@ -936,7 +929,7 @@ class UrtextProject:
         link_start = None
         link_end = None
 
-        self._parse_file(filename, try_buffer=True)
+        self._parse_file(filename, try_buffer=try_buffer)
 
         http_link_present = False
         http_link = url_match(string)
@@ -1012,7 +1005,7 @@ class UrtextProject:
         if self.compiled and self.settings['console_log']:
             print(str(filename)+' : '+ message)
 
-    def timestamp(self, date=None, as_string=False):
+    def timestamp(self, date=None, as_string=False, add_seconds=False):
         """ 
         Returns a timestamp in the format set in project_settings, or the default 
         """
@@ -1020,15 +1013,19 @@ class UrtextProject:
             date = datetime.datetime.now(
                 datetime.timezone.utc
                 ).astimezone()
+        ts_format = self.settings['timestamp_format']
+        if add_seconds:
+            if '%' in self.settings['timestamp_format'] and '%S' not in self.settings['timestamp_format']:
+                ts_format = ts_format.replace('%M', '%M:%S')
         if as_string:
             return ''.join([
                 syntax.timestamp_opening_wrapper,
-                date.strftime(self.settings['timestamp_format']),
+                date.strftime(ts_format),
                 syntax.timestamp_closing_wrapper,
                 ])
 
         return UrtextTimestamp(
-            date.strftime(self.settings['timestamp_format']))
+            date.strftime(ts_format))
 
     def _get_settings_from(self, node):
 
@@ -1061,7 +1058,7 @@ class UrtextProject:
             if entry.keyname == 'recurse_subfolders':
                 values = entry.text_values()
                 if values and self.settings['paths']:
-                    self.settings['paths'][0]['recurse_subfolders'] = to_boolean(values[0]) 
+                    self.settings['paths'][0]['recurse_subfolders'] = to_boolean(values[0])
                 continue
 
             if entry.keyname == 'paths':
@@ -1071,9 +1068,9 @@ class UrtextProject:
                         recurse = n.metadata.get_first_value('recurse_subfolders')
                         if path and path not in [entry['path'] for entry in self.settings['paths']]:
                             self.settings['paths'].append({
-                                'path' : path,
+                                'path': path,
                                 'recurse_subfolders': True if recurse.lower() in ['yes', 'true'] else False
-                                })
+                            })
                 continue
 
             if entry.keyname == 'other_entry_points':
@@ -1081,20 +1078,13 @@ class UrtextProject:
                     self.project_list.add_project(v)
                 continue
 
-            if entry.keyname == 'extensions':
+            if entry.keyname == 'features':
                 for v in entry.text_values():
-                    self._get_extensions_from_folder(
+                    self._get_features_from_folder(
                         v,
                         self.nodes[node.id].filename)
                 continue
 
-            if entry.keyname == 'directives':
-                for v in entry.text_values():
-                    self._get_directives_from_folder(
-                        v, 
-                        self.nodes[node.id].filename)
-                continue
- 
             if entry.keyname in single_values_settings:
                 for v in entry.text_values():
                     if entry.keyname in integers_settings:
@@ -1111,12 +1101,12 @@ class UrtextProject:
             if entry.keyname in single_boolean_values_settings:
                 values = entry.text_values()
                 if values:
-                    self.settings[entry.keyname] = to_boolean(values[0]) 
+                    self.settings[entry.keyname] = to_boolean(values[0])
                 continue
 
             if entry.keyname not in self.settings:
                 self.settings[str(entry.keyname)] = []
-                if entry.meta_values[0].is_node:                    
+                if entry.meta_values[0].is_node:
                     self.settings[str(entry.keyname)] = entry.meta_values[0]
                 else:
                     self.settings[str(entry.keyname)].extend(entry.text_values())
@@ -1139,23 +1129,16 @@ class UrtextProject:
                         node) and ( 
                         setting in self.settings):
                             if setting in single_values_settings:
-                                del self.settings[setting]
-                                continue                        
+                                del self.settings[setting]                     
                             elif type(value) not in [str, int, float]:
                                 del self.settings[setting]
-                                continue
                             elif isinstance(self.settings[setting], UrtextNode):
                                 del self.settings[setting]
                             elif value in self.settings[setting]:
                                 self.settings[setting].remove(value)                        
-                                continue
-                            if setting == 'extensions':
+                            if setting == 'features':
                                 for v in entry.text_values():
-                                    self._remove_extensions_from_folder(v)
-                                continue
-                            if setting == 'directives':
-                                self._remove_directives_from_folder(v)
-                                continue
+                                    self._remove_features_from_folder(v)
                             if (setting not in self.settings or 
                                 not self.settings[setting]) and (
                                 setting in default_project_settings().keys()):
@@ -1169,7 +1152,7 @@ class UrtextProject:
 
         return False
 
-    def _get_directives_from_folder(self, folder, filename):
+    def _get_features_from_folder(self, folder, filename):
         if os.path.exists(folder):
             sys.path.append(folder)
             for module_file in [f for f in os.listdir(folder) if f.endswith(".py")]:
@@ -1181,25 +1164,6 @@ class UrtextProject:
                             directives = [directives]
                         for d in directives:
                             self.add_directive(d, folder=folder)
-                except Exception as e:
-                    message = ''.join([
-                            '\nDirective in file ',
-                            syntax.file_link_opening_wrapper,
-                            os.path.join(folder, module_file),
-                            syntax.link_closing_wrapper,
-                            ' encountered the following error: \n', 
-                            str(e),
-                            ])
-                    self._log_item(
-                        filename, 
-                        message)
-                                
-    def _get_extensions_from_folder(self, folder, filename):
-        if os.path.exists(folder):
-            sys.path.append(folder)
-            for module_file in [f for f in os.listdir(folder) if f.endswith(".py")]:
-                try:
-                    s = importlib.import_module(module_file.replace('.py',''))
                     if 'urtext_extensions' in dir(s):
                         extensions = s.urtext_extensions
                         if not isinstance(extensions, list):
@@ -1208,7 +1172,7 @@ class UrtextProject:
                             self.add_extension(e, folder=folder)
                 except Exception as e:
                     message = ''.join([
-                            '\nExtension in file ',
+                            '\nFeature in file ',
                             syntax.file_link_opening_wrapper,
                             os.path.join(folder, module_file),
                             syntax.link_closing_wrapper,
@@ -1219,18 +1183,15 @@ class UrtextProject:
                         filename, 
                         message)
 
-    def _remove_directives_from_folder(self, folder):
+    def _remove_features_from_folder(self, folder):
         for directive in self.directives.values():
             if directive.folder == folder:
                 for n in directive.name:
                     self.directives.remove(n)
-
-    def _remove_extensions_from_folder(self, folder):
-        for extensions in self.extensions.values():
+        for extension in self.extensions.values():
             if extension.folder == folder:
                 for n in extension.name:
-                    self.directives.remove(n)
-
+                    self.extensions.remove(n)
 
     def get_home(self):
         if self.settings['home'] in self.nodes:
@@ -1244,13 +1205,16 @@ class UrtextProject:
                 assigner = syntax.metadata_assignment_operator
                 if k == self.settings['hash_key']:
                     k = '#'
-                    assigner = ''                   
+                    assigner = ''                 
                 for v in values:
-                    pairs.append(''.join([
-                        k,
-                        assigner,
-                        v.text, # num would need to be converted to text anyway
-                        ]))
+                    if v.is_node:
+                        pairs.append(make_link(v.id))
+                    else:
+                        pairs.append(''.join([
+                            k,
+                            assigner,
+                            v.text, # num would need to be converted to text anyway
+                            ]))
 
         return list(set(pairs))
 
@@ -1376,8 +1340,7 @@ class UrtextProject:
             self._log_item(
                 filename, 
                 'File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
-            raise DuplicateIDs()
-
+            return
         return self.execute(self._compile)
 
     def drop_file(self, filename):
@@ -1409,7 +1372,7 @@ class UrtextProject:
         for node in list(self.nodes.values()):
             node_keys = node.metadata.get_keys(exclude=exclude)
             for key in node_keys:
-                key_occurrences.setdefault(key,0)
+                key_occurrences[key] = key_occurrences.get(key, 0)
                 key_occurrences[key] += node_keys[key]
 
         return key_occurrences
@@ -1434,7 +1397,7 @@ class UrtextProject:
         for node in self.nodes.values():
             values_occurrences = node.metadata.get_values_with_frequency(key)
             for v in values_occurrences:
-                values.setdefault(v.text, 0)
+                values[v.text]= values.get(v.text, 0)
                 values[v.text] += values_occurrences[v]
 
         return values
@@ -1448,19 +1411,15 @@ class UrtextProject:
         return tuple of (value.text, value.timestamp)
         """
 
-        value_occurrences = self.get_all_values_for_key_with_frequency(
-            key,
-            lower=lower)
-
-        unique_values = value_occurrences.keys()
-
+        values_occurrences = self.get_all_values_for_key_with_frequency(key)
+        values = values_occurrences.keys()
         if self.settings['meta_browser_sort_values_by'] == 'frequency':
             return sorted(
-                unique_values,
-                key=lambda value: value_occurrences[value],
+                values,
+                key=lambda value: values_occurrences[value],
                 reverse=True)
 
-        return sorted(unique_values)
+        return sorted(values)
 
     def go_to_dynamic_definition(self, target_id):
         if target_id in self.dynamic_definitions:
@@ -1482,7 +1441,7 @@ class UrtextProject:
         
         if not isinstance(values, list):
             values = [values]
-        results = []
+        results = set()
 
         if operator in ['before','after']:            
             compare_date = date_from_timestamp(values[0][1:-1])
@@ -1503,16 +1462,15 @@ class UrtextProject:
 
                 for v in values:
                     if v.lower() in lower_contents:
-                        results.append(node.id)
+                        results.add(node.id)
 
         elif key == '_links_to':
             for v in values:
-                results.extend(self.get_links_to(v))
+                results.update(self.get_links_to(v))
 
         elif key == '_links_from':
             for v in values:
-                results.extend(self.get_links_from(v))
-
+                results.update(self.get_links_from(v))
         else:
             if key == '*':
                 keys = self.get_all_keys()
@@ -1521,7 +1479,7 @@ class UrtextProject:
             for k in keys:
                 for value in values:
                     if value == '*':
-                        results.extend([n for n in self.nodes if 
+                        results.update([n for n in self.nodes if 
                             self.nodes[n].metadata.get_values(
                                 k,
                                 convert_nodes_to_links=True)])
@@ -1538,7 +1496,7 @@ class UrtextProject:
                         use_timestamp = True
 
                     if k in self.settings['case_sensitive']:
-                        results.extend([
+                        results.update([
                             n for n in self.nodes if 
                                 value in [
                                 v.text for v in self.nodes[n].metadata.get_values(k) if v.text]])
@@ -1549,12 +1507,12 @@ class UrtextProject:
                             found_values = n.metadata.get_values(k)
                             if use_timestamp:
                                 if value in [v.timestamp for v in found_values]:
-                                    results.append(n.id)
+                                    results.udpate([n.id])
                             else:
                                 if value in [v.text_lower for v in found_values]:
-                                    results.append(n.id)
+                                    results.update([n.id])
 
-        results = list(set(results))
+        results = list(results)
         if as_nodes:
             return [self.nodes[n] for n in results]
         return results
@@ -1575,8 +1533,8 @@ class UrtextProject:
 
     def _run_hook(self, hook_name, *args):
         for ext in self.extensions.values():
-            hook = getattr(ext, hook_name)
-            if callable(hook):
+            hook = getattr(ext, hook_name, None)
+            if hook and callable(hook):
                 hook(*args)
 
     """ Project Compile """
@@ -1770,11 +1728,6 @@ class UrtextProject:
         newClass.folder = folder
         for n in newClass.name:
             self.extensions[n] = newClass(self)
-
-class DuplicateIDs(Exception):
-    """ duplicate IDS """
-    def __init__(self):
-        pass
 
 """ 
 Helpers 

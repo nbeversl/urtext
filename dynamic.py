@@ -58,7 +58,8 @@ class UrtextDynamicDefinition:
 		self.param_string = param_string
 		self.init_self(param_string)	
 		self.source_node = None # set by node once compiled
-		if not self.show: self.show = '$_link\n'
+		if not self.show:
+			self.show = '$_link\n'
 
 	def init_self(self, contents):
 
@@ -101,7 +102,7 @@ class UrtextDynamicDefinition:
 		if not has_text_output(self.operations):
 			# add simple list output if none supplied
 			op = self.project.directives['TREE'](self.project)
-			op.parse_argument_string('1')	
+			op.parse_argument_string('1')
 			op.set_dynamic_definition(self)
 			self.operations.append(op)
 			self.phases.append(300)
@@ -121,6 +122,8 @@ class UrtextDynamicDefinition:
 		phases_to_process=[],
 		outcome=[],
 		max_phase=800):
+
+		self.project._run_hook('on_dynamic_def_process_started', self)
 
 		if not len(phases_to_process):
 			phases_to_process = [p for p in phases if p <= max_phase]
@@ -167,6 +170,7 @@ class UrtextDynamicDefinition:
 					outcome = new_outcome
 
 		self.flags = []
+		self.project._run_hook('on_dynamic_def_process_ended', self)
 		return outcome		
 
 	def have_flags(self, flag):
