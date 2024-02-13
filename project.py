@@ -336,11 +336,8 @@ class UrtextProject:
             resolved_id = node.resolve_id()
             if not resolved_id:
                 message = ''.join([
-                    'Dropping untitled ID in ',
-                    syntax.file_link_opening_wrapper,
-                    file_obj.filename,
-                    syntax.link_closing_wrapper,
-                    '\nCannot be resolved; timestamp or parent title exists in another node',
+                    'Dropping untitled ID. ',
+                    'Cannot be resolved; timestamp or parent title exists in another node',
                     ])
                 self._log_item(file_obj.filename, message)
                 messages.append(message)
@@ -437,6 +434,7 @@ class UrtextProject:
                 '\nalready has a definition in ', 
                 syntax.link_opening_wrapper,
                 self.dynamic_definitions[target_id].source_node.id,
+                syntax.link_closing_wrapper,
                 '\n in file ',
                 syntax.file_link_opening_wrapper,
                 self.dynamic_definitions[target_id].source_node.filename,
@@ -998,7 +996,7 @@ class UrtextProject:
         return node_id in self.nodes
 
     def _find_duplicate_title(self, node):
-        for n in self.nodes:
+        for n in list(self.nodes):
             if n.title == node.title:
                 return node
 
