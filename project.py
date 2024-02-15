@@ -1,21 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-This file is part of Urtext.
-
-Urtext is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Urtext is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
-
-"""
 import re
 import datetime
 import platform
@@ -70,7 +52,7 @@ class UrtextProject:
         self.settings['project_title'] = self.entry_point # default
         self.editor_methods = editor_methods
         self.is_async = True
-        #self.is_async = False # development
+        self.is_async = False # development
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
@@ -265,16 +247,19 @@ class UrtextProject:
             for node in [n for n in self.files[filename].nodes if not n.dynamic]:
                 rewrites = {}
                 for link in node.links:
+                    if syntax.project_link_with_node_c.match(link):
+                        # skip links to other projects
+                        continue
                     node_id = utils.get_id_from_link(link)
                     suffix = ' ' +link[-2:].strip() # preserve link/pointer                        
                     if node_id not in self.nodes:
                         title_only = node_id.split(syntax.resolution_identifier)[0]                
                         if title_only not in self.nodes and link not in rewrites:
                             rewrites[link] = ''.join([
-                                    syntax.missing_link_opening_wrapper,
-                                    title_only,
-                                    suffix
-                                ])
+                                syntax.missing_link_opening_wrapper,
+                                title_only,
+                                suffix
+                            ])
                         elif link not in rewrites:
                             rewrites[link] = ''.join([
                                 syntax.link_opening_wrapper,
@@ -399,7 +384,6 @@ class UrtextProject:
     def _add_dynamic_definition(self, definition):
         for target_id in definition.target_ids:
             if target_id in self.dynamic_definitions:
-                print('REJECTING 1')
                 self._reject_definition(target_id, definition)
             else:
                 self.dynamic_definitions[target_id] = definition 
@@ -407,7 +391,6 @@ class UrtextProject:
         for target in definition.targets:
             if target in self.nodes: # allow not using link syntax
                 if target in self.dynamic_definitions:
-                    print('REJECTING 2')
                     self._reject_definition(target, definition)
                 else:
                     self.dynamic_definitions[target] = definition
@@ -417,7 +400,6 @@ class UrtextProject:
                 target = virtual_target.group()
                 if target == "@self":
                     if definition.source_node.id in self.dynamic_definitions:
-                        print('REJECTING 3')
                         self._reject_definition(definition.source_node.id, definition)
                     else:
                         self.dynamic_definitions[definition.source_node.id] = definition
@@ -1181,6 +1163,7 @@ class UrtextProject:
                             ' encountered the following error: \n', 
                             str(e),
                             ])
+                    print(message)
                     self._log_item(
                         filename, 
                         message)
@@ -1229,25 +1212,34 @@ class UrtextProject:
     def replace_links(self, original_id, new_id='', new_project=''):
         if not new_id and not new_project:
             return None
-        replacement = '>'+original_id
+        if not new_id:
+            new_id = original_id
+        pattern_to_replace = r''.join([
+                syntax.node_link_opening_wrapper_match,
+                original_id,
+                syntax.link_closing_wrapper
+            ])
         if new_id:
-            replacement = '>'+new_id
+            replacement = ''.join([
+                syntax.link_opening_wrapper,
+                new_id,
+                syntax.link_closing_wrapper
+                ])
         if new_project:
-            replacement = '=>"'+new_project+'"'+replacement
-        
-        #TODO factor regexes out into syntax.py
-        patterns_to_replace = [
-            r'\|.*?\s>{1,2}',   # replace title markers before anything else
-            r'[^\}]>>',         # then node pointers
-            r'[^\}]>' ]         # finally node links
-
+            replacement = ''.join([
+                syntax.other_project_link_prefix,
+                '"',new_project,'"',
+                syntax.link_opening_wrapper,
+                new_id,
+                syntax.link_closing_wrapper,
+            ])
         for filename in list(self.files):
-            contents = self.files[filename]._get_contents()
-            new_contents = contents
-            for pattern in patterns_to_replace:
-                links = re.findall(pattern + original_id, new_contents)
-                for link in links:
-                    new_contents = new_contents.replace(link, replacement, 1)
+            to_replace = pattern_to_replace
+            new_contents = self.files[filename]._get_contents()
+            for pointer in re.finditer(to_replace+'>', new_contents):
+                new_contents = new_contents.replace(pointer.group(), replacement, 1)
+            for link in re.finditer(to_replace, new_contents):
+                new_contents = new_contents.replace(link.group(), replacement, 1)
             self.files[filename]._set_contents(new_contents)
 
     def on_modified(self, filename, bypass=False):
@@ -1336,14 +1328,13 @@ class UrtextProject:
         parse syncronously so we can raise an exception
         if moving files between projects.
         """
-        any_duplicate_ids = self._parse_file(filename)
-        
+        any_duplicate_ids = self._parse_file(filename)        
         if any_duplicate_ids:
             self._log_item(
                 filename, 
                 'File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
             return
-        return self.execute(self._compile)
+        return self.execute(self._compile_file(filename))
 
     def drop_file(self, filename):
         self.execute(self._drop_file, filename)

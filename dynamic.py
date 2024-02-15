@@ -1,21 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-This file is part of Urtext.
-
-Urtext is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Urtext is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
-
-"""
 import os
 import datetime
 
@@ -32,7 +14,7 @@ phases = [
 	000, # Pre-checks, such as WHEN()
 	100, # Queries, building and sorting list of nodes included/excluded
 	200, # Expects list of node objects. Sorting, limiting, transforming the node list.
-	300, # Expects list of node objects. Convert selected nodes to text output
+	300, # Expects list of node objects. Outputs selected nodes to text output
 	400, # Adding header/footer, preserving other elements as needed
 	500, # Transform built text further (exports, etc.)
 	600, # currently unused

@@ -1,22 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-This file is part of Urtext.
-
-Urtext is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Urtext is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Urtext.  If not, see <https://www.gnu.org/licenses/>.
-
-"""
-
 import os
 import re
 import logging
@@ -80,8 +61,8 @@ class UrtextNode:
         contents = strip_errors(contents)
         self.full_contents = contents
         stripped_contents, replaced_contents = strip_embedded_syntaxes(contents)
-        self.get_links(contents=stripped_contents)
         stripped_contents, replaced_contents = self.parse_dynamic_definitions(replaced_contents)
+        stripped_contents, replaced_contents = self.get_links(replaced_contents)
         self.metadata = self.urtext_metadata(self, self.project)
         stripped_contents, replaced_contents = self.metadata.parse_contents(replaced_contents)
         self.title = self.set_title(stripped_contents)
@@ -92,7 +73,6 @@ class UrtextNode:
             d.source_node = self
         for entry in self.metadata.entries():
             entry.from_node = self
-
         self.stripped_contents = stripped_contents    
 
     def get_file_position(self, node_position): 
@@ -166,12 +146,20 @@ class UrtextNode:
 
     def get_links(self, contents):
         stripped_contents = contents
-        links = syntax.node_link_or_pointer_c.finditer(contents)
-        for link in links:
+        replaced_contents = contents
+        for link in syntax.node_link_or_pointer_c.finditer(contents):
             self.links.append(link.group())
             stripped_contents = stripped_contents.replace(
+                link.group(), '', 1)
+            replaced_contents = replaced_contents.replace(
+                link.group(), ' '*len(link.group()), 1)        
+        for link in syntax.project_link_with_node_c.finditer(contents):
+            self.links.append(link.group())
+            stripped_contents = stripped_contents.replace(
+                link.group(), '', 1)        
+            replaced_contents = replaced_contents.replace(
                 link.group(), ' '*len(link.group()), 1)
-        return stripped_contents
+        return stripped_contents, replaced_contents
 
     def set_title(self, contents):
         """

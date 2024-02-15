@@ -55,7 +55,14 @@ file_link_opening_wrapper = ''.join([
     link_opening_character,
     link_modifiers['file'],
     space])
+project_link=r''.join([other_project_link_prefix,'\"([^\"]+?)\"'])
 
+node_link_opening_wrapper_match = r''.join([
+    '(?<!")',
+    link_opening_character_regex,
+    node_link_modifier_group,
+    r'\s'
+    ])
 # Base Patterns
 bullet = r'^([^\S\n]*?)•'
 closing_wrapper = r'(?<!\\)' + re.escape(node_closing_wrapper)
@@ -78,11 +85,6 @@ dynamic_def = r'(?:\[\[)([^\]]*?)(?:\]\])'
 embedded_syntax_open = r'%%\w+'
 embedded_syntax_close = r'%%'+pattern_break
 format_key = r'\$_?[\.A-Za-z0-9_-]*'
-node_link_opening_wrapper_match = r''.join([
-    link_opening_character_regex,
-    node_link_modifier_group,
-    r'\s'
-    ])
 metadata_arg_delimiter = r';|\r'
 metadata_op_before = r'before'
 metadata_op_after = r'after'
@@ -162,11 +164,18 @@ hash_meta = r''.join([
     ])
 
 dd_hash_meta = hash_key + r'[A-Z,a-z].*'
-node_link = ''.join([
+node_link = r''.join([
     node_link_opening_wrapper_match,
     '(',
     id_pattern,
     ')\s>(?!>)'
+    ])
+project_link_with_node = r''.join([
+    project_link,
+    link_opening_character_regex,
+    node_link_modifier_group,
+    id_pattern,
+    link_closing_wrapper
     ])
 function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 node_link_or_pointer = r''.join([
@@ -247,8 +256,6 @@ hash_meta_c = re.compile(hash_meta)
 metadata_arg_delimiter_c = re.compile(metadata_arg_delimiter)
 metadata_entry_c = re.compile(metadata_entry, flags=re.DOTALL)
 metadata_key_only_c = re.compile(metadata_key_only, flags=re.DOTALL)
-
-
 metadata_ops_c = re.compile(metadata_ops)
 metadata_ops_or_c = re.compile(metadata_ops_or)
 metadata_separator_pattern_c = re.compile(metadata_separator_pattern)
@@ -264,6 +271,8 @@ node_link_or_pointer_c = re.compile(node_link_or_pointer)
 opening_wrapper_c = re.compile(opening_wrapper)
 pointer_closing_wrapper_c = re.compile(pointer_closing_wrapper)
 preformat_c = re.compile(preformat, flags=re.DOTALL)
+project_link_c = re.compile(project_link, flags=re.DOTALL)
+project_link_with_node_c = re.compile(project_link_with_node, flags=re.DOTALL)
 subnode_regexp_c = re.compile(sub_node, flags=re.DOTALL)
 timestamp_c = re.compile(timestamp)
 title_regex_c = re.compile(title_pattern)
