@@ -21,7 +21,10 @@ missing_link_opening_wrapper = ''.join([
     ])
 link_modifiers_regex = {}
 for modifier in link_modifiers:
-    link_modifiers_regex[modifier] = re.escape(link_modifiers[modifier])
+    link_modifiers_regex[modifier] = ''.join([
+        r'(?<=\|)',
+        re.escape(link_modifiers[modifier])
+        ])
 link_modifier_group = r'(' + '|'.join(
     ['(' + m + ')' for m in link_modifiers_regex.values()]
     ) + ')?'
@@ -141,11 +144,16 @@ sh_metadata_key_c = re.compile(sh_metadata_key)
 sh_metadata_values_c = re.compile(sh_metadata_values)
 metadata_flags = r'\+?\*{1,2}(?=' + metadata_key + ')' 
 metadata_flags_c = re.compile(metadata_flags)
+link_modifiers_regex_c = {
+    'action': re.compile(link_modifiers_regex['action']),
+    'missing': re.compile(link_modifiers_regex['missing']),
+    'file': re.compile(link_modifiers_regex['file']),
+}
 
 # Composite match patterns
 any_link_or_pointer = r''.join([
     link_opening_character_regex,
-    link_modifier_group,
+    '(', link_modifier_group, ')',
     '\s',
     '(',
     id_pattern,
