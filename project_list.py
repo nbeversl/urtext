@@ -4,11 +4,11 @@ import re
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     from .project import UrtextProject
     import Urtext.urtext.syntax as syntax
+    from Urtext.urtext.link import UrtextLink
 else:
     from urtext.project import UrtextProject
     import urtext.syntax as syntax
-
-project_link_r = re.compile(r'(=>\"(.*?)\")?.*?(\|.+>([0-9,a-z,A-Z,\s]+)\b)?')
+    from urtext.link import UrtextLink
 
 class ProjectList():
 
@@ -23,26 +23,31 @@ class ProjectList():
         self.extensions = {}
         self.current_project = None
         self.editor_methods = editor_methods
-        self.add_project(entry_point)
+        self.add_project(entry_point)            
+        for project in self.projects:
+            project.compile()
 
-    def add_project(self, path, new_file_node=False):
+    def add_project(self, path, new_file_node_created=False):
         """ recursively add folders """
-        paths = []
-        for p in self.projects:
-            paths.extend([entry['path'] for entry in p.settings['paths']])
-        if path not in paths:
-            if os.path.basename(path) not in ['urtext_files']:
+        if os.path.exists(path):
+            paths = []
+            for p in self.projects:
+                paths.extend([entry['path'] for entry in p.settings['paths']])
+            if path not in paths:
                 project = UrtextProject(path, 
                     project_list=self,
                     editor_methods=self.editor_methods,
-                    new_file_node=new_file_node)
-                self.projects.append(project)
+                    new_file_node_created=new_file_node_created)
+                project.initialize()
+                if project.title() not in [p.title() for p in self.projects]:
+                    self.projects.append(project)
+        else:
+            print('No path %s' % path )
 
     def handle_link(self, 
         string, 
         filename, 
-        col_pos=0,
-        file_pos=0):
+        col_pos=0):
 
         """
         Given a line of text, looks for a link to a node or project
@@ -50,36 +55,54 @@ class ProjectList():
         and returns the link information. Does not update navigation,
         this should be done by the calling method.
         """
-        node_id = None
-        string = string.strip()
-        link = project_link_r.search(string)
-        project_name = link.group(2)
-        node_id = link.group(4)
+        if not string.strip():
+            return
+        link = UrtextLink(string, filename, col_pos=col_pos)
+        if not link.is_usable:
+            return self.handle_unusable_link(link, '')
+
         """ If a project name has been specified, locate the project and node """
-        if project_name:
-            if not self.set_current_project(project_name):
+        if link.project_name:
+            if not self.set_current_project(link.project_name):
                 self.current_project.run_editor_method('popup',
                     'Project is not available.')
                 return None
+
+        elif filename:
+            self.set_current_project(os.path.dirname(filename))
+
+        if self.current_project and link.is_node:
             return self.current_project.handle_link(
-                string,
+                link,
                 filename,
                 col_pos=col_pos)
 
-        """ Otherwise, set the project, search the link for a link in the current project """
-        if filename:
-            self.set_current_project(os.path.dirname(filename))
-            if self.current_project:
-                return self.current_project.handle_link( 
-                    string,
-                    filename,
-                    col_pos=col_pos)
+        if link.is_file:
+            if os.path.exists(link.path):
+                return self.run_editor_method(
+                    'open_external_file', 
+                    link.path)            
+            elif self.current_project: # try as relative path
+                return self.run_editor_method(
+                    'open_external_file', 
+                    os.path.join(self.current_project.entry_path, link.path))
+        
+        if link.is_http:
+            return self.run_editor_method('open_http_link', link.url)
+
+    def handle_unusable_link(self, urtext_link, message):
+        if self.current_project and not self.current_project.compiled:
+            message = "Project is still compiling"
+        else:
+            message = "No link"
+        return self.run_editor_method('popup', message)
 
     def on_modified(self, filename):
         project = self._get_project_from_path(
             os.path.dirname(filename))
         if project:
-            return project.on_modified(filename)
+            self.current_project = project
+            project.on_modified(filename)
 
     def _get_project_from_path(self, path):
         if not os.path.isdir(path):
@@ -105,9 +128,10 @@ class ProjectList():
             return
         if ( not self.current_project ) or ( 
             project.title() != self.current_project.title() ) :
-           self.current_project = project
-           print('Switched to project: ' + self.current_project.title())
-        return project
+            self.current_project = project
+            self.current_project.run_editor_method('popup',
+                'Switched to project: %s ' % self.current_project.title())
+        return self.current_project
 
     def build_contextual_link(self, 
         node_id,
@@ -179,6 +203,7 @@ class ProjectList():
 
     def move_file(self, 
         old_filename, 
+        source_project_name_or_path,
         destination_project_name_or_path,
         replace_links=True):
 
@@ -187,6 +212,8 @@ class ProjectList():
         node ID duplication in the new project location, and 
         optionally replacing links to every affected node.
         """
+        source_project = self.get_project(
+            source_project_name_or_path)
         destination_project = self.get_project(
             destination_project_name_or_path)
 
@@ -194,12 +221,12 @@ class ProjectList():
             print('Destination project `'+ destination_project_name_or_path +'` was not found.')
             return None
 
-        if old_filename not in self.current_project.files:
+        if old_filename not in source_project.files:
             print('File '+ old_filename +' not included in the current project.')
             return None
 
-        affected_nodes = list(self.current_project.files[old_filename].nodes)        
-        self.current_project.drop_file(old_filename)
+        moved_nodes = list(source_project.files[old_filename].nodes)        
+        source_project.drop_file(old_filename)
         new_filename = os.path.join(
             destination_project.settings['paths'][0]['path'],
             os.path.basename(old_filename))
@@ -209,19 +236,25 @@ class ProjectList():
         duplicate nodes in the destination project
         """
         try:
-            destination_project.add_file(new_filename)    
+            changed_ids = destination_project.add_file(new_filename) 
         except Exception:
-            print('EXCEPTION project_list line 210 #todo handle')
-            print(Exception)
             return None
- 
+
         if replace_links:
-            for node in affected_nodes:
-                self.replace_links(
-                    self.current_project.title(),
-                    destination_project.title(),                   
-                    node.id)
-        return True
+            for moved_node in moved_nodes:
+                nodes_with_links = source_project.get_links_to(moved_node.id, as_nodes=True)
+                for node_with_link in nodes_with_links:
+                    node_with_link.replace_links(
+                        moved_node.id,
+                        new_project=destination_project.title())
+
+        source_project._run_hook('on_file_moved_to_other_project',
+            old_filename,
+            new_filename)
+
+        self.run_editor_method('retarget_view', old_filename, new_filename)
+
+        return changed_ids
 
     def get_all_meta_pairs(self):
         meta_values = []
@@ -267,3 +300,16 @@ class ProjectList():
         if not project:
             project = self.current_project
         project.delete_file(file_name)
+
+    def run_editor_method(self, method_name, *args, **kwargs):
+        if method_name in self.editor_methods:
+            return self.editor_methods[method_name](*args, **kwargs)
+        print('No editor method available for "%s"' % method_name)
+        return False
+
+    def can_use_extension(self, feature_name):
+        if self.current_project and feature_name in self.current_project.extensions:
+            return True
+        print('%s not available' % feature_name)
+        return False
+

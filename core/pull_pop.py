@@ -56,7 +56,7 @@ class PopNode:
 
         self._pop_node(popped_node_id, from_project=from_project)
 
-    def _pop_node(self, popped_node_id, rewrite_buffer=True, from_project=None):
+    def _pop_node(self, popped_node_id, rewrite_buffer=True, from_project=None, leave_pointer=True):
 
         source_filename = self.project.nodes[popped_node_id].filename
         start = self.project.nodes[popped_node_id].start_position
@@ -64,8 +64,10 @@ class PopNode:
         source_file_contents = self.project.files[source_filename]._get_contents()
         popped_node_contents = source_file_contents[start:end].strip()
         pre_offset = 2 if self.project.nodes[popped_node_id].compact else 1
+        post_offset = 0 if self.project.nodes[popped_node_id].compact else 1
         parent_id = self.project.nodes[popped_node_id].parent.id
-
+        popped_node_is_compact = self.project.nodes[popped_node_id].compact
+        
         if self.project.settings['breadcrumb_key']:
             if from_project:
                 popped_node_contents += ''.join([
@@ -97,13 +99,19 @@ class PopNode:
         new_file_node = self.project.new_file_node(
             contents=popped_node_contents,
             open_file=False)
+
+        insertion = ''
+        if leave_pointer:
+            insertion = ''.join([
+                self.syntax.link_opening_wrapper,
+                new_file_node['id'],
+                self.syntax.pointer_closing_wrapper,
+            ])
         remaining_node_contents = ''.join([
             source_file_contents[:start - pre_offset],
-            self.syntax.link_opening_wrapper,
-            new_file_node['id'],
-            self.syntax.pointer_closing_wrapper,
-            '\n' if self.project.nodes[new_file_node['id']].compact else '',
-            source_file_contents[end + 1:]
+            insertion,
+            '\n' if popped_node_is_compact else '',
+            source_file_contents[end + post_offset:]
             ])
         if os.path.exists(source_filename):
             os.remove(source_filename)
@@ -115,6 +123,7 @@ class PopNode:
                 source_filename,
                 remaining_node_contents)
         self.project._parse_file(source_filename)
+        return new_file_node['filename']
  
 class PullNode:
 

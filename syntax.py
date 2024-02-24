@@ -58,8 +58,8 @@ file_link_opening_wrapper = ''.join([
     link_opening_character,
     link_modifiers['file'],
     space])
-project_link=r''.join([other_project_link_prefix,'\"([^\"]+?)\"'])
-
+project_link=r''.join([
+    '(', other_project_link_prefix, ')', '\"([^\"]+?)\"'])
 node_link_opening_wrapper_match = r''.join([
     '(?<!")',
     link_opening_character_regex,
@@ -152,12 +152,11 @@ link_modifiers_regex_c = {
 
 # Composite match patterns
 any_link_or_pointer = r''.join([
+    '(', project_link, ')?',
     link_opening_character_regex,
     '(', link_modifier_group, ')',
     '\s',
-    '(',
-    id_pattern,
-    ')?', # might be empty
+    '(', id_pattern,')?',
     '\s>{1,2}(\:\d{1,99})?(?!>)'
     ])
 compact_node = '('+bullet+')' + r'([^\r\n]*)(?=\n|$)'
@@ -181,9 +180,10 @@ node_link = r''.join([
 project_link_with_node = r''.join([
     project_link,
     link_opening_character_regex,
-    node_link_modifier_group,
-    id_pattern,
-    link_closing_wrapper
+    '(', link_modifier_group, ')',
+    '\s',
+    '(', id_pattern,')?', # might be empty
+    '\s>{1,2}(\:\d{1,99})?(?!>)'
     ])
 function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 node_link_or_pointer = r''.join([

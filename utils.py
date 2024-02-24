@@ -17,8 +17,8 @@ def force_list(thing):
 
 def get_id_from_link(target):
     match = syntax.any_link_or_pointer_c.search(target)
-    if match:
-        return match.group(7).strip()
+    if match and match.group(9):
+        return match.group(9).strip()
     return target
 
 def write_file_contents(filename, contents):
@@ -26,3 +26,9 @@ def write_file_contents(filename, contents):
         os.remove(filename)    
     with open(filename, 'w', encoding='utf-8' ) as f:
         f.write(contents)    
+
+def get_path_from_link(link):
+    match = syntax.file_link_c.match(link)
+    if match:
+        return match.group(1)
+    return link

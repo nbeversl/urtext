@@ -147,6 +147,8 @@ class UrtextNode:
     def get_links(self, contents):
         stripped_contents = contents
         replaced_contents = contents
+        # bug here
+        # for link in syntax.any_link_or_pointer_c.finditer(contents):
         for link in syntax.node_link_or_pointer_c.finditer(contents):
             self.links.append(link.group())
             stripped_contents = stripped_contents.replace(
@@ -358,6 +360,46 @@ class UrtextNode:
         if self.title_from_marker:
             contents = contents.replace(syntax.title_marker,'',1)
         return contents
+
+    def descendants(self):
+        return node_descendants(self)
+
+    def replace_links(self, original_id, new_id='', new_project=''):
+        if not new_id and not new_project:
+            return None
+        if not new_id:
+            new_id = original_id
+        pattern_to_replace = r''.join([
+            syntax.node_link_opening_wrapper_match,
+            re.escape(original_id),
+            syntax.link_closing_wrapper
+        ])
+        if new_id:
+            replacement = ''.join([
+                syntax.link_opening_wrapper,
+                new_id,
+                syntax.link_closing_wrapper
+                ])
+        if new_project:
+            replacement = ''.join([
+                syntax.other_project_link_prefix,
+                '"', new_project,'"',
+                syntax.link_opening_wrapper,
+                new_id,
+                syntax.link_closing_wrapper,
+            ])
+        new_contents = self.contents(stripped=False)
+        for link in re.finditer(pattern_to_replace, new_contents):
+            new_contents = new_contents.replace(link.group(), replacement, 1)
+        self.set_content(new_contents)
+
+def node_descendants(node, known_descendants=[]):
+    # differentiate between pointer and "real" descendants
+    all_descendants = [n for n in node.children if n not in known_descendants]
+    for descendant in all_descendants:
+        all_descendants.extend(
+            node_descendants(descendant, known_descendants=all_descendants))
+    return all_descendants
 
 def strip_contents(contents, 
     preserve_length=False, 

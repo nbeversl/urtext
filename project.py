@@ -22,6 +22,7 @@ if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sub
     import Urtext.urtext.syntax as syntax
     from Urtext.urtext.project_settings import *
     import Urtext.urtext.utils as utils
+    from Urtext.urtext.link import UrtextLink
 else:
     from anytree import Node, PreOrderIter, RenderTree
     from urtext.file import UrtextFile, UrtextBuffer
@@ -33,6 +34,8 @@ else:
     import urtext.syntax as syntax
     from urtext.project_settings import *
     import urtext.utils as utils
+    from urtext.link import UrtextLink
+
 
 class UrtextProject:
 
@@ -44,7 +47,7 @@ class UrtextProject:
         entry_point, 
         project_list=None, 
         editor_methods={},
-        new_file_node=False):
+        new_file_node_created=False):
 
         self.settings = default_project_settings()
         self.project_list = project_list
@@ -74,11 +77,13 @@ class UrtextProject:
             max_workers=1)        
         self.message_executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=1)
-        self.execute(self._initialize_project, new_file_node=new_file_node)
+        self.new_file_node_created = new_file_node_created
     
-    def _initialize_project(self, new_file_node=False):
-        self.handle_info_message('Compiling Urtext project from %s' % self.entry_point)
+    def initialize(self):
+        self.execute(self._initialize)        
 
+    def _initialize(self):
+        self.handle_info_message('Compiling Urtext project from %s' % self.entry_point)
         self._get_features_from_folder(os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             'features'), None)
@@ -88,17 +93,26 @@ class UrtextProject:
         num_file_extensions = len(self.settings['file_extensions'])
         num_paths = len(self.settings['paths'])
 
-        if os.path.exists(self.entry_point) and os.path.isdir(self.entry_point):
-            self.entry_path = self.entry_point
-            self.settings['paths'].append({
-                'path' : self.entry_point,
-                'recurse' : False
-                })
-            for file in self._get_included_files():
-                self._parse_file(file)
-        elif os.path.exists(self.entry_point):
-            self.entry_path = os.path.dirname(self.entry_point)      
-            self._parse_file(self.entry_point)
+        if os.path.exists(self.entry_point):
+            if os.path.isdir(self.entry_point):
+                self.settings['paths'].append({
+                    'path' : self.entry_point,
+                    'recurse' : False
+                    })
+                self.entry_path = self.entry_point
+                for file in self._get_included_files():
+                    self._parse_file(file)
+            else:
+                self._parse_file(self.entry_point)
+                self.entry_path = os.path.dirname(self.entry_point)
+            if len(self.nodes):
+                self.settings['paths'].append({
+                    'path' : self.entry_path,
+                    'recurse' : False
+                    })
+            else:
+                print('NOPE!')
+                print(self.entry_point)
         else:
             return self.handle_error_message('Project path does not exist: %s' % self.entry_point)
 
@@ -109,7 +123,7 @@ class UrtextProject:
                 if file not in self.files:
                     self._parse_file(file)
 
-        if len(self.nodes) == 0 and not new_file_node:
+        if len(self.nodes) == 0 and not self.new_file_node_created:
             return self.handle_error_message(
                 '\n'.join([
                     'No Urtext files are in this folder.',
@@ -121,16 +135,10 @@ class UrtextProject:
             node.metadata.convert_node_links()
 
         self._mark_dynamic_nodes()
-        
-        self._compile() ## TODO fix
-        if len(self.extensions) > 0 or len(self.directives) > 0:
-            self._compile()
-
-        self.compiled = True
-        self.last_compile_time = time.time() - self.time
-        self.time = time.time()
         self._run_hook('after_project_initialized')
-        self.handle_info_message('"%s" compiled' % self.settings['project_title'])
+
+    def compile(self):
+        self.execute(self._compile, len(self.directives), len(self.extensions))
 
     def _parse_file(self, filename, try_buffer=False):
         if self._filter_filenames(filename) == None:
@@ -236,7 +244,7 @@ class UrtextProject:
                     changed_ids[node_id])
             self._rewrite_changed_links(changed_ids)
 
-        return new_file
+        return new_file, changed_ids
 
     def _verify_links_globally(self):
         links = self.get_all_links()
@@ -259,8 +267,7 @@ class UrtextProject:
                             rewrites[link] = ''.join([
                                 syntax.missing_link_opening_wrapper,
                                 title_only,
-                                suffix
-                            ])
+                                suffix])
                         elif link not in rewrites:
                             rewrites[link] = ''.join([
                                 syntax.link_opening_wrapper,
@@ -270,8 +277,7 @@ class UrtextProject:
                         rewrites[link] = ''.join([
                                 syntax.link_opening_wrapper,
                                 node_id,
-                                suffix
-                            ])
+                                suffix])
                 if rewrites:
                     contents = self.files[filename]._get_contents()
                     for old_link in rewrites:
@@ -467,8 +473,6 @@ class UrtextProject:
                         return self.nodes[node_id].filename
         return False
 
-
-
     def _mark_dynamic_nodes(self):
         for target in self.dynamic_definitions:
             if target in self.nodes:
@@ -501,7 +505,6 @@ class UrtextProject:
             self._clear_settings_from(node)
             del self.nodes[node.id]
 
-
     def delete_file(self, filename):
         return self.execute(
             self._delete_file, 
@@ -529,10 +532,7 @@ class UrtextProject:
                 'on_file_renamed', 
                 old_filename, 
                 new_filename)
-    
-    """ 
-    filtering files to skip 
-    """
+
     def _filter_filenames(self, filename):
         if filename in ['urtext_files','.git']:
             return None            
@@ -555,7 +555,7 @@ class UrtextProject:
                 "utf-8"
                 ).decode("unicode_escape")
 
-        filename = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        filename = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
         new_node_contents, node_id, cursor_pos = self._new_node(
             date=date,
@@ -563,11 +563,20 @@ class UrtextProject:
             contents_format=contents_format,
             metadata=metadata)
         
-        filename = filename + '.urtext'
+        filename += '.urtext'
         if path:
             filename = os.path.join(path, filename)
         else:
             filename = os.path.join(self.entry_path, filename)
+
+        if os.path.isfile(filename):
+            suffix = 2
+            resolved_filename = filename
+            while os.path.isfile(resolved_filename):
+                resolved_filename = filename.replace('.urtext', ' (dup name %s).urtext' % str(suffix))
+                suffix += 1
+            filename = resolved_filename
+
         utils.write_file_contents(filename, new_node_contents)
         new_file = self.urtext_file(filename, self)
         
@@ -812,7 +821,6 @@ class UrtextProject:
         links_to = [i for i in list(self.nodes) if to_id in self.nodes[i].links_ids()]
         if as_nodes:
             return [self.nodes[n] for n in links_to]
-        return links_to
 
     def get_links_from(self, from_id, as_nodes=False):
         if from_id in self.nodes:
@@ -831,69 +839,28 @@ class UrtextProject:
         return links
 
     def handle_link(self, 
-        string,
+        link,
         filename,
         col_pos=0):
 
-        link = self.parse_link(
-            string,
-            filename,
-            col_pos=col_pos)
-
-        if not link:
-            if not self.compiled:
-                message = "Project is still compiling"
+        link = self.parse_link(link.string, filename, col_pos=col_pos)
+        if link.is_node and link.node_id in self.nodes:
+            if link.is_action:
+                for dd in self.get_dynamic_defs(source_node=self.nodes[link.node_id]):
+                    if dd.source_node.id == link.node_id:
+                        output = dd.process(flags=['-link_clicked'])
+                        if output not in [False, None]:
+                            for target in dd.targets:
+                                target_output = dd.preserve_title_if_present(target) + output
+                                self._direct_output(target_output, target, dd)
             else:
-                message = "No link"
-            return self.handle_info_message(message)
+                return self.open_node(
+                    link.node_id,
+                    position=self.nodes[link.node_id].start_position + link.dest_node_position)
 
-        if not link['kind']:
-            if not self.compiled:
-                return self.handle_info_message(
-                    'Project is still compiling')
-            return self.handle_info_message(
-                'No link found')
-
-        if link['kind'] == 'MISSING':
-            if not self.compiled:
-                self.handle_info_message(
-                    'Project is still compiling')
-            return self.handle_info_message( 
-                'Link is not in the project.')
-
-        if link['kind'] == 'NODE':
-            return self.open_node(
-                link['node_id'],
-                position=link['dest_position'])
-
-        if link['kind'] == 'ACTION':
-            if link['node_id'] not in self.nodes:
-                if not self.compiled:
-                    return self.handle_info_message(
-                        'Project is still compiling')
-                return self.handle_info_message(
-                    'Node ' + link['node_id'] + ' is not in the project')
-            else:
-                if link['node_id'] in self.nodes:
-                    for dd in self.get_dynamic_defs(source_node=self.nodes[link['node_id']]):
-                        if dd.source_node.id == link['node_id']:
-                            output = dd.process(flags=['-link_clicked'])
-                            if output not in [False, None]:
-                                for target in dd.targets:
-                                    target_output = dd.preserve_title_if_present(target) + output
-                                    self._direct_output(target_output, target, dd)
-        if link['kind'] == 'FILE':
-            if os.path.exists(link['link']):
-                return self.run_editor_method(
-                    'open_external_file', 
-                    link['link'])            
-            else:
-                return self.run_editor_method(
-                    'open_external_file', 
-                    os.path.join(self.entry_path, link['link']))
-        
-        if link['kind'] == 'HTTP':
-            return self.run_editor_method('open_http_link', link['link'])
+        elif link.is_node:
+            link.is_missing = True
+            self.handle_info_message('Node is not in the project.')
 
         return link
 
@@ -901,80 +868,11 @@ class UrtextProject:
         string,
         filename,
         col_pos=0,
-        try_buffer=True,
-        file_pos=None):
-
-        kind = None
-        urtext_link = None
-        http_link = None
-        node_id = None
-        dest_position = None
-        full_match = None
-        return_link = None
-        link_start = None
-        link_end = None
+        try_buffer=True):
 
         self._parse_file(filename, try_buffer=try_buffer)
+        return UrtextLink(string, filename, col_pos=col_pos)
 
-        http_link_present = False
-        http_link = url_match(string)
-        if http_link:
-            if col_pos <= http_link.end():
-                http_link_present = True
-                link_start = http_link.start()
-                link_end = http_link.end()
-                http_link = full_match = http_link.group().strip()
-
-        for match in syntax.any_link_or_pointer_c.finditer(string):
-            if col_pos <= match.end():
-                if http_link_present and (
-                    link_end < match.end()) and (
-                    link_end < match.start()):
-                    break
-                urtext_link = match.group()
-                link_start = match.start()
-                link_end = match.end()
-                full_match = match.group()
-                break
-
-        if http_link and not urtext_link:
-            kind ='HTTP'
-            return_link = http_link
-
-        if urtext_link:
-            return_link = urtext_link
-            if urtext_link[1] in syntax.link_modifiers.values():
-                for kind in syntax.link_modifiers:
-                    if urtext_link[1] == syntax.link_modifiers[kind]:
-                        kind = kind.upper()
-                        break
-            else:
-                kind = 'NODE'
-                node_id = utils.get_id_from_link(full_match)
-                if node_id in self.nodes:
-                    if match.group(8):
-                        dest_position = self.nodes[node_id].start_position + int(match.group(8)[1:])
-                    else:
-                        dest_position = self.nodes[node_id].start_position
-                    filename = self.nodes[node_id].filename
-                else:
-                    kind = 'MISSING'
-            if kind == 'FILE':
-                return_link = return_link[2:-2].strip()
-                if return_link[0] == '~':
-                    return_link = os.path.expanduser(return_link)
-
-        return {
-            'kind' : kind, 
-            'link' : return_link, 
-            'filename' : filename,
-            'node_id' : node_id,
-            'link_start_position': link_start,
-            'link_end_position': link_end,
-            'dest_position' : dest_position,
-            'full_match' : full_match,
-            }
-            
     def _is_duplicate_id(self, node_id):
         return node_id in self.nodes
 
@@ -1046,27 +944,27 @@ class UrtextProject:
                     self.settings['paths'][0]['recurse_subfolders'] = to_boolean(values[0])
                 continue
 
-            if entry.keyname == 'paths':
-                if entry.is_node:
-                    for n in entry.meta_values[0].children:
-                        path = n.metadata.get_first_value('path')
-                        recurse = n.metadata.get_first_value('recurse_subfolders')
-                        if path and path not in [entry['path'] for entry in self.settings['paths']]:
-                            self.settings['paths'].append({
-                                'path': path,
-                                'recurse_subfolders': True if recurse.lower() in ['yes', 'true'] else False
-                            })
+            if entry.keyname == 'paths' and entry.is_node:
+                for n in entry.meta_values[0].children:
+                    path = n.metadata.get_first_value('path')
+                    recurse = n.metadata.get_first_value('recurse_subfolders')
+                    if path and path not in [entry['path'] for entry in self.settings['paths']]:
+                        self.settings['paths'].append({
+                            'path': path,
+                            'recurse_subfolders': True if recurse.lower() in ['yes', 'true'] else False
+                        })
                 continue
 
             if entry.keyname == 'other_entry_points':
                 for v in entry.text_values():
-                    self.project_list.add_project(v)
+                    self.project_list.add_project(
+                        utils.get_path_from_link(v))
                 continue
 
             if entry.keyname == 'features':
                 for v in entry.text_values():
                     self._get_features_from_folder(
-                        v,
+                        utils.get_path_from_link(v),
                         self.nodes[node.id].filename)
                 continue
 
@@ -1209,39 +1107,6 @@ class UrtextProject:
             node_id = random.choice(list(self.nodes))
             self.open_node(node_id)
         return None
-    
-    def replace_links(self, original_id, new_id='', new_project=''):
-        if not new_id and not new_project:
-            return None
-        if not new_id:
-            new_id = original_id
-        pattern_to_replace = r''.join([
-                syntax.node_link_opening_wrapper_match,
-                original_id,
-                syntax.link_closing_wrapper
-            ])
-        if new_id:
-            replacement = ''.join([
-                syntax.link_opening_wrapper,
-                new_id,
-                syntax.link_closing_wrapper
-                ])
-        if new_project:
-            replacement = ''.join([
-                syntax.other_project_link_prefix,
-                '"',new_project,'"',
-                syntax.link_opening_wrapper,
-                new_id,
-                syntax.link_closing_wrapper,
-            ])
-        for filename in list(self.files):
-            to_replace = pattern_to_replace
-            new_contents = self.files[filename]._get_contents()
-            for pointer in re.finditer(to_replace+'>', new_contents):
-                new_contents = new_contents.replace(pointer.group(), replacement, 1)
-            for link in re.finditer(to_replace, new_contents):
-                new_contents = new_contents.replace(link.group(), replacement, 1)
-            self.files[filename]._set_contents(new_contents)
 
     def on_modified(self, filename, bypass=False):
         return self.execute(self._on_modified, filename, bypass=bypass)
@@ -1329,13 +1194,9 @@ class UrtextProject:
         parse syncronously so we can raise an exception
         if moving files between projects.
         """
-        any_duplicate_ids = self._parse_file(filename)        
-        if any_duplicate_ids:
-            self._log_item(
-                filename, 
-                'File moved but not added to destination project. Duplicate Nodes IDs shoudld be printed above.')
-            return
-        return self.execute(self._compile_file(filename))
+        new_file, changed_ids = self._parse_file(filename)        
+        self.execute(self._compile_file, filename)
+        return changed_ids
 
     def drop_file(self, filename):
         self.execute(self._drop_file, filename)
@@ -1404,7 +1265,6 @@ class UrtextProject:
         """
         return tuple of (value.text, value.timestamp)
         """
-
         values_occurrences = self.get_all_values_for_key_with_frequency(key)
         values = values_occurrences.keys()
         if self.settings['meta_browser_sort_values_by'] == 'frequency':
@@ -1533,19 +1393,32 @@ class UrtextProject:
 
     """ Project Compile """
 
-    def _compile(self, events=['-project_compiled']):
-        self._verify_links_globally()
+    def _compile(self, 
+        num_directives,
+        num_extensions,
+        events=['-project_compiled']):
+        
         self._add_all_sub_tags()
-        for file in [f for f in self.files if not self.files[f].errors]:
+        for file in list([f for f in self.files if not self.files[f].errors]):
             self._compile_file(file, events=events)
         self._add_all_sub_tags()
+        if len(self.extensions) > num_extensions or len(self.directives) > num_directives:
+            return self._compile(len(self.directives), len(self.extensions))
+        else:
+            return self._after_compile()
 
+    def _after_compile(self):
+        self._verify_links_globally()
+        self.compiled = True
+        self.last_compile_time = time.time() - self.time
+        self.time = time.time()
+        self.handle_info_message('"%s" compiled' % self.settings['project_title'])
+   
     def _compile_file(self, filename, events=[]):
-        if self.files[filename].errors:
-            return []
         modified_targets = []
         modified_files = []
         processed_targets = []
+
         for node in self.files[filename].nodes:
             for dd in self.get_dynamic_defs(target_node=node, source_node=node):
                 new_targets = []
@@ -1565,14 +1438,14 @@ class UrtextProject:
                                 targeted_output, 
                                 target, 
                                 dd)
+                            if target in self.nodes:
+                                self.nodes[target].dynamic = True
                             if modified_target and modified_target not in modified_targets:
                                 modified_targets.append(modified_target)
 
-        for target in modified_targets:
-            if target in self.nodes:
-                self.nodes[target].dynamic = True
-                if self.nodes[target].filename not in modified_files:
-                    modified_files.append(self.nodes[target].filename)
+        for target in modified_targets:        
+            if self.nodes[target].filename not in modified_files:
+                modified_files.append(self.nodes[target].filename)
 
         return modified_files
 
@@ -1591,9 +1464,6 @@ class UrtextProject:
         if target_file:
             filename = utils.get_id_from_link(target_file)
             filename = os.path.join(self.entry_point, filename)
-            #? TODO -- If the file is an export, need to make sure it is remembered
-            # when parsed so duplicate titles can be avoided
-            #self.exports[filename] = dynamic_definition
             utils.write_file_contents(filename, output)
             return filename
         virtual_target = syntax.virtual_target_match_c.match(target)
@@ -1745,5 +1615,3 @@ def make_link(string):
 
 def match_compact_node(selection):
     return True if syntax.compact_node_c.match(selection) else False
-
-
