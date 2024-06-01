@@ -1,26 +1,19 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../sublime.txt')):
-	from Urtext.urtext.dynamic_output import DynamicOutput
-	from Urtext.anytree import Node, PreOrderIter, RenderTree
-	from Urtext.urtext.timestamp import UrtextTimestamp, default_date
-	import Urtext.urtext.syntax as syntax
-else:
-	from urtext.dynamic_output import DynamicOutput
-	from anytree import Node, PreOrderIter, RenderTree
-	from urtext.timestamp import UrtextTimestamp, default_date
-	import urtext.syntax as syntax
+Collect _ 
+
+Collects the specified metadata entries from included and outputs them as text using the parameters provided
+
+%%Python
 
 class Collect:
 
 	name = ["COLLECT"]
-	phase = 300
 
 	""" 
 	generates a collection of context-aware metadata 
 	anchors in list or tree format
 	"""
 
-	def dynamic_output(self, nodes):
+	def dynamic_output(self, text_contents):
 		m_format = self.dynamic_definition.show
 		keys = {}
 		
@@ -36,9 +29,9 @@ class Collect:
 				keys[k] = [v.lower()]
 
 		found_stuff = []
-		for node in nodes:
+		for node in self.dynamic_definition.included_nodes:
 			for k in keys:
-				use_timestamp = k in self.project.settings['use_timestamp']
+				use_timestamp = k in self.project.get_setting('use_timestamp')
 				for v in keys[k]:
 					if v == '*':
 						entries = node.metadata.get_entries(k)
@@ -95,16 +88,16 @@ class Collect:
 									break
 
 							found_item['context'] = line.strip().replace('_',' ')
-							while syntax.pointer_closing_wrapper in found_item['context']:
+							while self.syntax.pointer_closing_wrapper in found_item['context']:
 								found_item['context'] = found_item['context'].replace(
-									syntax.pointer_closing_wrapper,
-									syntax.node_closing_wrapper)
+									self.syntax.pointer_closing_wrapper,
+									self.syntax.node_closing_wrapper)
 
 							found_item['position'] = str(entry.start_position)
 							found_stuff.append(found_item)
 	
 		if not found_stuff:
-			 return ''
+			 return text_contents
 		
 		if '-tree' not in self.flags:
 
@@ -117,7 +110,7 @@ class Collect:
 
 			for item in sorted_stuff:
 
-				next_content = DynamicOutput(m_format, self.project.settings)
+				next_content = self.DynamicOutput(m_format, self.project)
 				next_content.title = item['title']
 				next_content.entry = item['keyname'] + ' :: ' +  str(item['value'])
 				next_content.key = item['keyname']
@@ -128,9 +121,9 @@ class Collect:
 					position_suffix = ''.join([':', item['position']])
 				
 				next_content.link =''.join([
-					syntax.link_opening_wrapper,
+					self.syntax.link_opening_wrapper,
 					item['node_id'],
-					syntax.link_closing_wrapper,
+					self.syntax.link_closing_wrapper,
 					position_suffix,
 					])
 
@@ -152,46 +145,49 @@ class Collect:
 
 				collection.extend([next_content.output()])
 
-			return ''.join(collection)
+			return text_contents + ''.join(collection)
 
 		if '-tree' in self.flags:
 			# TODO be able to pass an m_format for Dynamic Output here.
 
 			contents = ''
 			for k in sorted(keys.keys()):
-				root = Node(k)
-				if not contains_different_types(keys[k]):
-				   keys[k] = sorted(keys[k], key=meta_value_sort_criteria)
+				root = self.Node(k)
+				if not self.contains_different_types(keys[k]):
+				   keys[k] = sorted(keys[k], key=self.meta_value_sort_criteria)
 				
 				for v in keys[k]:
 					f = None
 					if isinstance(v, UrtextTimestamp):
-						t=Node(v.unwrapped_string)
+						t=self.Node(v.unwrapped_string)
 					else:
-						t = Node(v) 
-					for node in nodes:
+						t = self.Node(v) 
+					for node in self.dynamic_definition.included_nodes:
 						for n in node.metadata.get_matching_entries(k,value):
-							f = Node(node.id + ' >' + node.id) #?
+							f = self.Node(node.id + ' >' + node.id) #?
 							f.parent = t
 						if f:                        
 							t.parent = root
-				for pre, _, node in RenderTree(root):
+				for pre, _, node in self.RenderTree(root):
 					contents += "%s%s\n" % (pre, node.name)
 
-			return contents
+			return text_contents + contents
 
-def meta_value_sort_criteria(v):
-	if isinstance(v,UrtextTimestamp):
-		return v.datetime
-	return v
+	def meta_value_sort_criteria(self, v):
+		if isinstance(v,UrtextTimestamp):
+			return v.datetime
+		return v
 
-def contains_different_types(list_to_check):
-	if len(list_to_check) < 2:
+	def contains_different_types(self, list_to_check):
+		if len(list_to_check) < 2:
+			return False
+		i = type(list_to_check[0])
+
+
+		for y in list_to_check:
+			if type(y) != i:
+				return True
 		return False
-	i = type(list_to_check[0])
-	for y in list_to_check:
-		if type(y) != i:
-			return True
-	return False
 
-urtext_directives = [Collect]
+ThisProject.add_directive(Collect)
+%%

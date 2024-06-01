@@ -1,8 +1,5 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    import Urtext.urtext.syntax as syntax
-else:
-    import urtext.syntax as syntax
+import urtext.syntax as syntax
+import urtext.utils as utils
 
 class MetadataEntry:  # container for a single metadata entry
 
@@ -39,13 +36,17 @@ class MetadataEntry:  # container for a single metadata entry
    
     def text_values(self):
         if self.is_node:
-            return make_node_link(self.meta_values[0].id)
+            return utils.make_node_link(self.meta_values[0].id)
         return [v.text for v in self.meta_values if v.text]
 
     def values_with_timestamps(self, lower=False):
         if self.is_node:
-            return make_node_link(self.meta_values[0].id)
+            return utils.make_node_link(self.meta_values[0].id)
         return [(v.text if not lower else v.text_lower, v.timestamp) for v in self.meta_values]
+
+    def as_node(self):
+        if self.is_node:
+            return self.meta_values[0]
 
     def log(self):
         print('key: %s' % self.keyname)
@@ -58,10 +59,3 @@ class MetadataEntry:  # container for a single metadata entry
             for value in self.meta_values:
                 value.log()
         print('-------------------------')
-
-
-def make_node_link(title):
-    return ''.join([
-        syntax.link_opening_wrapper,
-        title,
-        syntax.link_closing_wrapper])

@@ -1,6 +1,9 @@
+Format Directive _
+
+%%Python
+
 class Format:
 
-	phase = 800
 	name = ["FORMAT"]
 
 	def dynamic_output(self, contents):
@@ -20,4 +23,5 @@ class Format:
 			contents = '\n'.join(indented_contents)
 		return contents
 
-urtext_directives=[Format]
+ThisProject.add_directive(Format)
+%%

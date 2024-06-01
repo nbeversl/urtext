@@ -1,11 +1,5 @@
-import os
-
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .timestamp import UrtextTimestamp
-    import Urtext.urtext.syntax as syntax
-else:
-    from urtext.timestamp import UrtextTimestamp
-    import urtext.syntax as syntax
+from urtext.timestamp import UrtextTimestamp
+import urtext.syntax as syntax
 
 class MetadataValue:
 

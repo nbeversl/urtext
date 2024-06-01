@@ -1,14 +1,8 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .timestamp import UrtextTimestamp, default_date
-    import Urtext.urtext.syntax as syntax
-    from .metadata_entry import MetadataEntry
-    from .metadata_value import MetadataValue
-else:
-    from urtext.timestamp import UrtextTimestamp, default_date
-    import urtext.syntax as syntax
-    from urtext.metadata_entry import MetadataEntry
-    from urtext.metadata_value import MetadataValue
+from urtext.timestamp import UrtextTimestamp, default_date
+import urtext.syntax as syntax
+from urtext.metadata_entry import MetadataEntry
+from urtext.metadata_value import MetadataValue
+import urtext.utils as utils
 
 class NodeMetadata:
 
@@ -67,7 +61,7 @@ class NodeMetadata:
 
             keyname = '#'
             if self.project.compiled:
-                keyname = self.project.settings['hash_key']
+                keyname = self.project.get_setting('hash_key')
 
             self.add_entry(
                 keyname,
@@ -145,9 +139,6 @@ class NodeMetadata:
             tag_children=tag_children,
             tag_descendants=tag_descendants)
 
-        # error catch in case the user tries to manually add one:
-        # if key == 'inline_timestamp' and not e.timestamps:
-        #     return False
         self.entries_dict[key] = self.entries_dict.get(key, [])        
         if e.is_node:
             # node values must be unique for the key
@@ -196,7 +187,6 @@ class NodeMetadata:
     def get_first_value(self, 
         keyname,
         order_by='default',
-        use_timestamp=False,
         convert_nodes_to_links=False):
 
         values = self.get_values(
@@ -205,15 +195,7 @@ class NodeMetadata:
             convert_nodes_to_links=convert_nodes_to_links)
 
         if values:
-            value = values[0]
-
-            if use_timestamp or keyname in self.project.settings['use_timestamp']:
-                return value.timestamp if value.timestamp else default_date
-
-            if keyname in self.project.settings['numerical_keys']:
-                return value.num()
- 
-            return value
+            return values[0]
 
     def get_values_with_frequency(self, 
         keyname,
@@ -225,13 +207,9 @@ class NodeMetadata:
         for e in entries:
             if e.is_node:
                 if convert_nodes_to_links:
-                    node_link = ''.join([
-                        syntax.link_opening_wrapper,
-                        e.meta_values[0].id,
-                        syntax.link_closing_wrapper])
-                    if node_link:
-                        values[node_link] = values.get(node_link, 0)
-                        values[node_link] += 1
+                    node_link = utils.make_node_link(e.meta_values[0].id)
+                    values[node_link] = values.get(node_link, 0)
+                    values[node_link] += 1
                 else:
                     values[e.meta_values[0].contents()] = values.get(
                         e.meta_values[0].contents(),
@@ -255,12 +233,8 @@ class NodeMetadata:
         for e in entries:
             if e.is_node:
                 if convert_nodes_to_links:
-                    node_link = ''.join([
-                        syntax.link_opening_wrapper,
-                        e.meta_values[0].id,
-                        syntax.link_closing_wrapper])
-                    if node_link:
-                        values.add(MetadataValue(node_link))
+                    node_link = utils.make_node_link(e.meta_values[0].id)
+                    values.add(MetadataValue(node_link))
                 else:
                     values.add(e.meta_values[0])
                 continue
@@ -307,9 +281,9 @@ class NodeMetadata:
         Returns the timestamp of the FIRST matching metadata entry with the given key.
         #TODO possibly remove
         """
-        timestamp = self.get_first_value(keyname, use_timestamp=True)
-        if timestamp:
-            return timestamp.datetime
+        value = self.get_first_value(keyname)
+        if value:
+            return value.timestamp
         return default_date
       
     def clear_from_source(self, source_node):
@@ -319,15 +293,18 @@ class NodeMetadata:
                     self.entries_dict[k].remove(entry)
     
     def convert_hash_keys(self):
-        if '#' in self.entries_dict:
-            for entry in self.get_entries('#'):
-                entry.keyname = self.project.settings['hash_key']
-            self.entries_dict.setdefault(self.project.settings['hash_key'], [])                
-            self.entries_dict[self.project.settings['hash_key']].extend(self.entries_dict['#'])
-            del self.entries_dict['#']
+        if self.project.get_setting('hash_key'):
+            if '#' in self.entries_dict:
+                for entry in self.get_entries('#'):
+                    entry.keyname = self.project.get_setting('hash_key')
+                self.entries_dict.setdefault(self.project.get_setting('hash_key'), [])                
+                self.entries_dict[self.project.get_setting('hash_key')].extend(self.entries_dict['#'])
+                del self.entries_dict['#']
 
     def get_oldest_timestamp(self):
-        return self.get_first_value('_oldest_timestamp')
+        value = self.get_first_value('_oldest_timestamp')
+        if value:
+            return value.timestamp
 
     def convert_node_links(self):
         for entry in self.entries():
@@ -376,7 +353,7 @@ def get_extended_metadata(extended_keyname, node):
     for e in entries:
         for v in e.meta_values:
             if len(extended_keyname) == 1:
-                if extended_keyname[0] in node.project.settings['use_timestamp']:
+                if extended_keyname[0] in node.project.get_setting('use_timestamp'):
                     if v.timestamp:
                         values.add(v.timestamp.unwrapped_string)
                 elif v.is_node:

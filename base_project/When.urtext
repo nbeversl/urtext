@@ -1,7 +1,11 @@
+When _
+
+Provides logic to determine whether an execution should continue, using flags.
+
+%%Python
 class When:
 
 	name = ["WHEN"]    
-	phase = 50
 	
 	def should_continue(self):
 		if self.have_flags('-never'):
@@ -11,4 +15,5 @@ class When:
 				return True
 		return False
 
-urtext_directives = [When]
+ThisProject.add_directive(When)
+%%

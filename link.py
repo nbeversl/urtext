@@ -1,98 +1,51 @@
-import os
-import pprint
-from .url import url_match
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-	import Urtext.urtext.syntax as syntax
-	import Urtext.urtext.utils as utils
-else:
-	import urtext.syntax as syntax
-	import urtext.utils as utils
+import urtext.syntax as syntax
 
 class UrtextLink:
 
-	def __init__(self, string, filename, col_pos=0):
-		self.string = string.strip()
-		self.filename = filename
-		self.col_pos = col_pos
+	def __init__(self, matching_string):
+		self.matching_string = matching_string
+		self.containing_node = None
+		self.filename = None
 		self.project_name = None
-		self.project_link = None
 		self.is_http = False
 		self.is_node = False
 		self.node_id = None
+		self.is_pointer = False
 		self.is_file = False
 		self.is_action = False
 		self.is_missing = False
+		self.position_in_string = None
 		self.dest_node_position = 0
 		self.url = None
 		self.path = None
-		self.is_usable = False
-		self._parse_string()
-		pprint.pprint(self.__dict__) # debugging
 
-	def _parse_string(self):
-		parse_string = self.string
-		project = syntax.project_link_c.search(parse_string)
-		if project:
-			self.is_usable = True
-			self.project_name = project.group(2)
-			self.project_link = project.group()
-			parse_string = parse_string.replace(self.project_link, '')
+	def rewrite(self, include_project=False):
+		link_modifier = ''
+		if self.is_action:
+			link_modifier = syntax.link_modifiers['action']
+		elif self.is_file:
+			link_modifier = syntax.link_modifiers['file']
+		return ''.join([
+			syntax.other_project_link_prefix,
+        	'"%s"' % self.project_name if self.project_name and include_project else '',
+			syntax.link_opening_wrapper,
+			link_modifier,
+			syntax.pointer_closing_wrapper if self.is_pointer else syntax.link_closing_wrapper,
+			(':%s' % dest_node_position) if self.dest_node_position else ''
+			])
 
-		urtext_link = None
-		http_link_present = False
+	def replace(self, replacement):
+		if self.containing_node:
+			node_contents = self.containing_node.contents(stripped=False)
+			replacement_contents = ''.join([
+				node_contents[:self.start_position],
+				replacement,
+				node_contents[self.start_position+len(self.matching_string):]
+				])
+			self.project._set_node_contents(
+				containing_node.id,
+				replacement_contents,
+				preserve_title=False)
 
-		http_link = url_match(parse_string)
-		if http_link:
-			if self.col_pos <= http_link.end():
-				http_link_present = True
-				link_start = http_link.start()
-				link_end = http_link.end()
-				http_link = in_project_link = http_link.group().strip()
-
-		for match in syntax.any_link_or_pointer_c.finditer(parse_string):
-			if self.col_pos <= match.end():
-				if http_link_present and (
-					link_end < match.end()) and (
-					link_end < match.start()):
-					break
-				urtext_link = match.group()
-				link_start = match.start()
-				link_end = match.end()
-				in_project_link = match.group()
-				break
-
-		if http_link and not urtext_link:
-			self.http = True
-			self.url = http_link
-			self.is_usable = True
-			return
-
-		kind = None
-		if urtext_link:
-			if urtext_link[1] in syntax.link_modifiers.values():
-				for kind in syntax.link_modifiers:
-					if urtext_link[1] == syntax.link_modifiers[kind]:
-						kind = kind.upper()
-						break
-
-			if kind == 'FILE':
-				self.is_file = True
-				path = urtext_link[2:-2].strip()
-				if path[0] == '~':
-					path = os.path.expanduser(path)
-				self.path = path  
-				self.is_usable = True
-				return True
-
-			if kind == 'ACTION':
-				self.is_action = True
-
-			if kind == 'MISSING':
-				self.missing = True
-
-			self.is_node = True
-			self.node_id = utils.get_id_from_link(in_project_link)
-			if match.group(11):
-				self.dest_node_position = int(match.group(11)[1:])
-			self.is_usable = True
-
+	def end_position(self):
+		return self.position_in_string + len(self.matching_string)

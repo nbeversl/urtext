@@ -1,42 +1,40 @@
-import os
 import re
-
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .node import UrtextNode
-    from .utils import strip_backtick_escape, get_id_from_link
-    import Urtext.urtext.syntax as syntax
-    from Urtext.urtext.metadata import MetadataValue
-else:
-    from urtext.node import UrtextNode
-    from urtext.utils import strip_backtick_escape, get_id_from_link
-    import urtext.syntax as syntax
-    from urtext.metadata import MetadataValue
-
-USER_DELETE_STRING = 'This message can be deleted.'
+from urtext.node import UrtextNode
+from urtext.utils import strip_backtick_escape, get_id_from_link
+import urtext.syntax as syntax
+from urtext.metadata import MetadataValue
 
 class UrtextBuffer:
 
     urtext_node = UrtextNode
-    user_delete_string = USER_DELETE_STRING
 
     def __init__(self, project, filename, contents):
-        self.nodes = []
         self.contents = contents
-        self.root_node = None
         self.messages = []
         self.project = project
         self.meta_to_node = []
-        self.errors = True
+        self.has_errors = False
         self.filename = filename
+        self.nodes = []
+        self.root_node = None
+        self.__clear_messages()
+        self._lex_and_parse()
+        if not self.root_node:
+            print('LOGGING NO ROOT NODE (DEBUGGING, buffer)')
+            self._log_error('No root node', 0)
     
-    def lex_and_parse(self):
-        symbols = self.lex(self._get_contents())
-        self.parse(self._get_contents(), symbols)
+    def _lex_and_parse(self):
+        self.nodes = []
+        self.root_node = None
+        symbols = self._lex(self._get_contents())
+        self._parse(self._get_contents(), symbols)
         self.propagate_timestamps(self.root_node)
         for node in self.nodes:
             node.buffer = self
+            node.filename = self.filename
+        self._assign_parents(self.root_node)
 
-    def lex(self, contents, start_position=0):
+    def _lex(self, contents, start_position=0):
         symbols = {}
         embedded_syntaxes = []
         contents = strip_backtick_escape(contents)
@@ -71,7 +69,7 @@ class UrtextBuffer:
         symbols[len(contents) + start_position] = { 'type': 'EOB' }
         return symbols
 
-    def parse(self, 
+    def _parse(self, 
         contents,
         symbols,
         nested_levels={},
@@ -124,11 +122,11 @@ class UrtextBuffer:
                 else:
                     nested_levels[nested].append([0, 0])
 
-                compact_symbols = self.lex(
+                compact_symbols = self._lex(
                     symbols[position]['contents'], 
                     start_position=position+1)
 
-                nested_levels, child_group, nested = self.parse(
+                nested_levels, child_group, nested = self._parse(
                     symbols[position]['contents'],
                     compact_symbols,
                     nested_levels=nested_levels,
@@ -152,8 +150,8 @@ class UrtextBuffer:
                     nested_levels[nested].append([last_position, position])
                 if nested <= 0:
                     contents = contents[:position] + contents[position + 1:]
-                    self._set_contents(contents)
-                    return self.lex_and_parse()
+                    self.set_buffer_contents(contents)
+                    return self._lex_and_parse()
 
                 position += 1 #wrappers exist outside range
                 node = self.add_node(
@@ -214,12 +212,20 @@ class UrtextBuffer:
                 syntax.node_closing_wrapper,
                 ' ',
                 contents[position:]])
-            self._set_contents(contents)
-            return self.lex_and_parse()
+            self.set_buffer_contents(contents)
+            return self._lex_and_parse()
 
         for node in self.nodes:
             node.filename =self.filename
             node.file = self
+
+        for match in self.meta_to_node:
+            # TODO optimize
+            for node in self.nodes:
+                for r in node.ranges:
+                    if match.span()[1] in r:
+                        node.is_meta = True
+                        node.meta_key = match.group()[:-3]
 
         return nested_levels, child_group, nested
 
@@ -255,76 +261,122 @@ class UrtextBuffer:
             self.root_node = new_node
         return new_node
 
-    def clear_messages_and_parse(self):
-        contents = self._get_contents()
-        if contents:
-            cleared_contents = self.clear_messages(contents)
-            if cleared_contents:
-                self._set_contents(cleared_contents, run_on_modified=False)
-                self.lex_and_parse()
-                self.write_messages()
-
     def _get_contents(self):
         return self.contents
-          
-    def _set_contents(self,
-        contents,
-        run_on_modified=False):
 
+    def set_buffer_contents(self, 
+        new_contents,
+        re_parse=True,
+        clear_messages=True,
+        re_parse_in_project=False,
+        run_hook=False,
+        update_buffer=False):
+
+        self.contents = new_contents
+        if clear_messages:
+            self.__clear_messages()
+        if re_parse:
+            self._lex_and_parse()
+        if re_parse_in_project:
+            self.project._parse_buffer(self)
+        if update_buffer:
+            self.__update_buffer_contents_from_buffer_obj()
+
+    def __update_buffer_contents_from_buffer_obj(self):
         self.project.run_editor_method(
             'set_buffer',
             self.filename,
-            contents)
-        self.contents = contents
+            self.contents)
 
-    def write_messages(self, messages=None):
+    def write_buffer_messages(self, messages=None):
         if not messages and not self.messages:
             return False
         if messages:
             self.messages = messages
-        new_contents = self.clear_messages(self._get_contents())
         timestamp = self.project.timestamp(as_string=True)
-        messages = ''.join([ 
+        
+        top_message = ''.join([
             syntax.urtext_message_opening_wrapper,
             ' ',
-            '\n'.join(self.messages),
+            '\n'.join([m['top_message'] for m in self.messages]),
             timestamp,
             ' ',
             syntax.urtext_message_closing_wrapper,
             '\n'
             ])
 
-        message_length = len(messages)
+        current_messages = self.__get_messages()
+        messaged_contents = self._get_contents()
+        for m in current_messages:
+            messaged_contents = messaged_contents.replace(m.group(), 
+                ''.join([
+                    m.group()[:2],
+                    'X',
+                    m.group()[3:],                   
+                    ]))
+
+        sorted_messages = sorted(self.messages, key=lambda m: m['position'])
+        insert_index = 0
+        for m in sorted_messages:
+            
+            insert_position = m['position'] + insert_index
+            messaged_contents = ''.join([
+                messaged_contents[:insert_position],
+                syntax.urtext_message_opening_wrapper,
+                ' ',
+                m['position_message'],
+                ' ',
+                syntax.urtext_message_closing_wrapper,
+                messaged_contents[insert_position:],
+                ])
+            insert_index += len(m['position_message']) + 6
         
-        for n in re.finditer('position \d{1,10}', messages):
-            old_n = int(n.group().replace('position ',''))
-            new_n = old_n + message_length
-            messages = messages.replace(str(old_n), str(new_n))
-             
+        for match in syntax.invalidated_messages_c.finditer(messaged_contents):
+            messaged_contents = messaged_contents.replace(match.group(), '')
         new_contents = ''.join([
-            messages,
-            new_contents,
+            top_message,
+            messaged_contents,
             ])
-
-        self._set_contents(
-            new_contents,
-            run_on_modified=False)
-
-        # TODO: make DRY
-        self.nodes = []
-        self.root_node = None
-        self.lex_and_parse()
+        self.messages = []
+        self.contents = new_contents
+        self.set_buffer_contents(new_contents, clear_messages=False, update_buffer=True)
         
-    def clear_messages(self, contents):
-        for match in syntax.urtext_messages_c.finditer(contents):
-            if self.user_delete_string not in contents:
-                contents = contents.replace(match.group(),'')
-        return contents
+    def __get_messages(self):
+        messages = []        
+        for match in syntax.urtext_messages_c.finditer(self._get_contents()):
+            messages.append(match)
+        return messages
+
+    def __clear_messages(self):
+        original_contents = self._get_contents()
+        if original_contents:
+            messages = self.__get_messages()
+            cleared_contents = original_contents
+            for match in messages:
+                cleared_contents = cleared_contents.replace(match.group(),'')
+            if cleared_contents != original_contents:
+                self.set_buffer_contents(cleared_contents)
+                return True
+        return False
 
     def get_ordered_nodes(self):
         return sorted( 
             list(self.nodes),
             key=lambda node : node.start_position)
+
+    def _insert_contents(self, inserted_contents, position):
+        self.set_buffer_contents(''.join([
+            self.contents[:position],
+            inserted_contents,
+            self.contents[position:],
+            ]))
+
+    def _replace_contents(self, inserted_contents, range):
+        self.set_buffer_contents(''.join([
+            self.contents[:range[0]],
+            inserted_contents,
+            self.contents[range[1]:],
+            ]))
 
     def propagate_timestamps(self, start_node):
         oldest_timestamp = start_node.metadata.get_oldest_timestamp()
@@ -336,31 +388,31 @@ class UrtextBuffer:
                         'inline_timestamp',
                         [MetadataValue(oldest_timestamp.wrapped_string)],
                         child,
-                        from_node=start_node.title,
+                        from_node=start_node.id,
                         )
                     child.metadata.add_system_keys()
                 self.propagate_timestamps(child)
 
-    def update_node_contents(self, node_id, replacement_text):
-        node = None
+    def _assign_parents(self, start_node):
+        for child in start_node.children:
+            child.parent = start_node
+            self._assign_parents(child)
+
+    def get_node_from_position(self, position):
         for node in self.nodes:
-            if node.id == node_id:
-                break
+            for r in node.ranges:       
+                if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.
+                    return node
+        print('NO NODE', self.contents[position-5:position])
+
+    def get_node_id_from_position(self, position):
+        node = self.get_node_from_position(position)
         if node:
-            self.project.run_editor_method(
-                'replace',
-                filename=self.project.nodes[node_id].filename,
-                start=node.start_position,
-                end=node.end_position,
-                replacement_text=replacement_text
-                )
+            return node.id
 
-    def log_error(self, message, position):
-
+    def _log_error(self, message, position):
         self.nodes = {}
         self.root_node = None
-        self.messages.append(message +' at position '+ str(position))
-
-        print(''.join([ 
-                message, ' in >f', self.filename, ' at position ',
-            str(position)]))
+        message = message +' at position '+ str(position)
+        if message not in messages:
+            self.messages.append()

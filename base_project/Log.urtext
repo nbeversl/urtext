@@ -1,9 +1,15 @@
+Log _ 
+
+Outputs messages from Urtext, dynamically updated as contents changes. Should be used once in every project.
+The base project log is | Log output >
+
+%%Python
+
 class Log:
 
 	name = ["LOG"]    
-	phase = 300
 
-	def dynamic_output(self, node_list):
+	def dynamic_output(self, text_contents):
 		output = []
 		for k in self.project.messages:
 			if k:
@@ -19,9 +25,11 @@ class Log:
 	                'in file ',
 	                file,
 	                ' ',
-	                message,
+	                message['top_message'],
 	                '\n'
 	                ]))
-		return '\n'.join(output) + '\n'
+		return text_contents + '\n'.join(output) + '\n'
 
-urtext_directives=[Log]
+ThisProject.add_directive(Log)
+
+%%

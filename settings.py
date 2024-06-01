@@ -1,10 +1,5 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    from .node import UrtextNode
-    import Urtext.urtext.syntax as syntax
-else:
-    from urtext.node import UrtextNode
-    import urtext.syntax as syntax
+from urtext.node import UrtextNode
+import urtext.syntax as syntax
 
 class UrtextSettings():
 	""" gets ProjectList settings from a single urtext file"""

@@ -1,14 +1,15 @@
-import sys
+Stats _
+
+%%Python
 
 class UrtextStats:
 
 	name = ["STATS"]
-	phase = 300
 
-	def dynamic_output(self, nodes):
+	def dynamic_output(self, text_contents):
 
 		contents = []
-		contents.append('Project Title : '+self.project.settings['project_title'])
+		contents.append('Project Title : '+self.project.get_setting('project_title'))
 		contents.append('project size in memory (bytes): '+ str(sys.getsizeof(self.project)))
 
 		n_memory = 0
@@ -19,6 +20,8 @@ class UrtextStats:
 		contents.append('# nodes : '+ str(len(self.project.nodes)))
 		contents.append('# dynamic defs : '+ str(len(self.project.dynamic_definitions)))
 		contents.append('compile time :' + str(self.project.last_compile_time))
-		return '\n'.join(contents)
+		return text_contents + '\n'.join(contents)
 
-urtext_directives = UrtextStats
+ThisProject.add_directive(UrtextStats)
+
+%%

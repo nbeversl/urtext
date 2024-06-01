@@ -1,6 +1,12 @@
+Max Length _ 
+
+Specifies a maximum length for the output as a fixed number of lines.
+To limit the output by nodes instead, see | Limit >
+
+%%Python
+
 class MaxLength:
 
-	phase = 800
 	name = ["MAX_LENGTH"]
 
 	def dynamic_output(self, contents):
@@ -18,4 +24,5 @@ class MaxLength:
 			return '\n'.join(contents[:length])
 		return contents
 
-urtext_directives=[MaxLength]
+ThisProject.add_directive(MaxLength)
+%%

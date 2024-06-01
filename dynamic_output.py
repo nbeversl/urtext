@@ -1,16 +1,9 @@
-import os
 import re
-
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    import Urtext.urtext.syntax as syntax
-else:
-    import urtext.syntax as syntax
+import urtext.syntax as syntax
 
 class DynamicOutput():
 
-    def __init__(self, 
-        format_string, 
-        project_settings):
+    def __init__(self, format_string, project):
 
         self.title = ''
         self.date = ''
@@ -21,7 +14,7 @@ class DynamicOutput():
         self.key = ''
         self.contents = ''
         self.other_format_keys = {}
-        self.project_settings = project_settings
+        self.project = project
         self.needs_contents = False
         self.needs_other_format_keys = []        
         self.format_string = format_string
@@ -104,9 +97,9 @@ class DynamicOutput():
 
         if contents_match:
             contents = self.contents
-            if self.project_settings['contents_strip_outer_whitespace']:
+            if self.project.get_setting('contents_strip_outer_whitespace'):
                 contents = contents.strip()
-            if self.project_settings['contents_strip_internal_whitespace']:
+            if self.project.get_setting('contents_strip_internal_whitespace'):
                 contents = strip_internal_whitespace(contents)
             suffix = ''
             if contents_match.group(1):

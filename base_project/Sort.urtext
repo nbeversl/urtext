@@ -1,15 +1,30 @@
+Sort _
+
+Sorts included nodes by the parameters provided.
+
+%%Python
+
 class Sort:
 
 	name = ["SORT","S"]
-	phase = 220
+
+	def strip_reverse(self, flags):
+			flags=list(flags)
+			while '-r' in flags:
+				flags.remove('-r')
+			while '-reverse' in flags:
+				flags.remove('-reverse')
+			return flags
 		
-	def dynamic_output(self, nodes):
+	def dynamic_output(self, text_contents):
+
 		sorted_nodes = []
+		nodes = self.dynamic_definition.included_nodes
 		if self.keys_with_flags:
 			for key_with_flags in self.keys_with_flags:
 				key, flags = key_with_flags
 				reverse = '-r' in flags or '-reverse' in flags
-				flags = strip_reverse(flags)
+				flags = self.strip_reverse(flags)
 				group_to_sort = [n for n in nodes if n.metadata.get_values(key)]
 				sorted_nodes.extend(
 					sorted(
@@ -23,8 +38,9 @@ class Sort:
 					)
 				nodes = [n for n in nodes if n not in group_to_sort]
 			sorted_nodes.extend(nodes)
-			return sorted_nodes
-		return nodes
+
+			self.dynamic_definition.included_nodes = sorted_nodes
+		self.dynamic_definition.sorted = True
 
 	def sort_values(self, 
 		node, 
@@ -42,13 +58,9 @@ class Sort:
 		use_timestamp=False
 		if ext == 'timestamp':
 			use_timestamp= True
-		value = node.metadata.get_first_value(
-			k,
-			order_by=order_by,
-			use_timestamp=use_timestamp)
-		
+		value = node.metadata.get_first_value(k, order_by=order_by)
 		if use_timestamp:
-			value = value.datetime
+			value = value.timestamp
 		if isinstance(value, str):
 			value = value.lower()			
 		t.append(value)
@@ -61,13 +73,6 @@ class Sort:
 			return tuple(nt)
 		return tuple(t)
 
-def strip_reverse(flags):
-	flags=list(flags)
-	while '-r' in flags:
-		flags.remove('-r')
-	while '-reverse' in flags:
-		flags.remove('-reverse')
-	return flags
 
-
-urtext_directives=[Sort]
+ThisProject.add_directive(Sort)
+%%

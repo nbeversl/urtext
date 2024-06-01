@@ -1,0 +1,60 @@
+Home _
+
+
+The base project includes all the core Urtext directives as nodes that can be executed. 
+The dynamic definition below executes them in order. Each node will include documentation on the feature it adds.
+
+[[
+EXEC(| Tree Manager >)
+EXEC(| Tree >)
+EXEC(| Sort >) 
+EXEC(| Text >) 
+EXEC(| Max Length >)
+EXEC(| Include and Exclude >)
+EXEC(| Limit >)
+EXEC(| Reindex >)
+EXEC(| Files >)
+EXEC(| Navigation >)
+EXEC(| Log >)
+EXEC(| Collect >)
+EXEC(| Pull >)
+EXEC(| Pop >)
+EXEC(| Files >)
+EXEC(| Show >)
+>(| results >)
++(*)
+TREE()
+]]
+
+{ results _
+| Collect >
+| Export Directive >
+| Files >
+| Format Directive >
+| Include and Exclude >
+| Interlinks >
+| Limit >
+| Log >
+| Max Length >
+| Navigation >
+| Pop >
+| Pull >
+| Reindex >
+| Request >
+| Show >
+| Sort >
+| Stats >
+| Text >
+| Tree >
+| When >
+| project_settings >
+| File List >
+| Home >
+| Log output >
+| Tree Manager >
+} 
+
+{ Log output _
+
+
+[[>(@self) LOG()]]}

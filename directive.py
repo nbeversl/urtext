@@ -1,80 +1,66 @@
-import os
-if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
-    import Urtext.urtext.syntax as syntax
-    from .utils import force_list, get_id_from_link
-    from Urtext.urtext.dynamic_output import DynamicOutput
-else:
-    import urtext.syntax as syntax
-    from urtext.utils import force_list, get_id_from_link
-    from urtext.dynamic_output import DynamicOutput
+import urtext.syntax as syntax
+from urtext.utils import force_list, get_id_from_link
+from urtext.dynamic_output import DynamicOutput
+import urtext.utils as utils
+from anytree import Node, RenderTree, PreOrderIter
+from anytree.render import ContStyle
+from urtext.timestamp import UrtextTimestamp
 
 class UrtextDirective:
 
-    phase = 0
     syntax = syntax
+    utils = utils
     DynamicOutput = DynamicOutput
     name = []
-
-    def __init__(self, project):
+    Node = Node
+    RenderTree = RenderTree
+    PreOrderIter = PreOrderIter
+    UrtextTimestamp = UrtextTimestamp
+    project_instance = False
+    project_list_instance = False
+    
+    def __init__(self, project_or_project_list):
         self.keys_with_flags = []
         self.flags = []
         self.links = []
         self.params = []
         self.arguments = []
         self.params_dict = {}
-        self.project = project
+        if self.project_list_instance:
+            self.project_list = project_or_project_list
+        else:
+            self.project = project_or_project_list
         self.argument_string = None
         self.dynamic_definition = None
-        self.folder = None
 
-    def execute(self):
-        return
+    def should_continue(self, event):
+        if event in self.on:
+            return True
+        return False
 
-    def should_continue(self):
-        return True
+    def run(self, *args, **kwargs):
+        pass
 
-    """ hooks """
-    def on_node_modified(self, node):
-        return
+    def trigger(self, *args, **kwargs):
+        self.run(*args, **kwargs)
 
-    def on_node_visited(self, node):
-        return
+    def on_added(self):
+        pass
 
-    def on_file_modified(self, file_name):
-        return
-
-    def on_any_file_modified(self, file_name):
-        return
-
-    def on_file_dropped(self, file_name):
-        return
-
-    def on_project_init(self):
-        return
-
-    def on_file_visited(self, file_name):
-        return
-
-    """ dynamic output """
+    def on_node_visited(self, node_id):
+        pass
+        
     def dynamic_output(self, input_contents):
-        # return string, or False leaves existing content unmodified
-        return ''
-
-    def _dynamic_output(self, input_contents):
         if self.should_continue():
             return self.dynamic_output(input_contents)
         return False
     
-    def set_dynamic_definition(self, dynamic_definition):
-        self.dynamic_definition = dynamic_definition
-
     def parse_argument_string(self, argument_string):
         self.argument_string = argument_string.strip()
         argument_string = self._parse_links(argument_string)
         arguments = self.syntax.metadata_arg_delimiter_c.split(argument_string)     
         for arg in arguments:
             arg = arg.strip()
-
             key_op_value = syntax.dd_key_op_value_c.match(arg)          
             if key_op_value:
                 key = key_op_value.group(1)
@@ -105,7 +91,7 @@ class UrtextDirective:
             if hash_value:
                 hash_value = hash_value.group()[1:]
                 self.params.append((
-                    self.project.settings['hash_key'],
+                    self.project.get_setting('hash_key'),
                     hash_value,
                     '='))
                 continue
@@ -118,11 +104,8 @@ class UrtextDirective:
             self.params_dict[param[0]].extend(param[1:])
         
     def _parse_links(self, argument_string):
-        for l in self.syntax.any_link_or_pointer_c.finditer(argument_string):
-            link = l.group().strip()
-            self.links.append(get_id_from_link(link))
-            argument_string = argument_string.replace(link, '')
-        return argument_string
+        self.links, remaining_contents = self.utils.get_all_links_from_string(argument_string)
+        return remaining_contents
 
     def have_flags(self, flags):
         for f in force_list(flags):

@@ -6,28 +6,24 @@ space = ' '
 # Syntax Elements
 node_opening_wrapper = '{'
 node_closing_wrapper = '}'
-link_opening_character = '|'
-link_opening_character_regex = re.escape(link_opening_character)
-link_opening_wrapper = link_opening_character + space
+link_opening_pipe = '|'
+link_opening_pipe_escaped = re.escape(link_opening_pipe)
+link_opening_wrapper = link_opening_pipe + space
 link_modifiers = {
     'file'          : '/',
     'action'        : '!',
     'missing'       : '?'
 }
 missing_link_opening_wrapper = ''.join([
-    link_opening_character,
+    link_opening_pipe,
     link_modifiers['missing'],
     space,
     ])
 link_modifiers_regex = {}
 for modifier in link_modifiers:
-    link_modifiers_regex[modifier] = ''.join([
-        r'(?<=\|)',
-        re.escape(link_modifiers[modifier])
-        ])
+    link_modifiers_regex[modifier] = ''.join([r'(?<=\|)', re.escape(link_modifiers[modifier])])
 link_modifier_group = r'(' + '|'.join(
-    ['(' + m + ')' for m in link_modifiers_regex.values()]
-    ) + ')?'
+    ['(' + m + ')' for m in link_modifiers_regex.values()]) + ')?'
 node_link_modifier_group = r'(' + '|'.join([
     '(' + m + ')' for m in [
         link_modifiers_regex['action'],
@@ -55,14 +51,14 @@ dynamic_def_closing_wrapper = ']]'
 resolution_identifier = ' ^ '
 virtual_target_marker = '@'
 file_link_opening_wrapper = ''.join([
-    link_opening_character,
+    link_opening_pipe,
     link_modifiers['file'],
     space])
 project_link=r''.join([
     '(', other_project_link_prefix, ')', '\"([^\"]+?)\"'])
 node_link_opening_wrapper_match = r''.join([
     '(?<!")',
-    link_opening_character_regex,
+    link_opening_pipe_escaped,
     node_link_modifier_group,
     r'\s'
     ])
@@ -151,14 +147,7 @@ link_modifiers_regex_c = {
 }
 
 # Composite match patterns
-any_link_or_pointer = r''.join([
-    '(', project_link, ')?',
-    link_opening_character_regex,
-    '(', link_modifier_group, ')',
-    '\s',
-    '(', id_pattern,')?',
-    '\s>{1,2}(\:\d{1,99})?(?!>)'
-    ])
+
 compact_node = '('+bullet+')' + r'([^\r\n]*)(?=\n|$)'
 embedded_syntax_full = embedded_syntax_open + '.*?' + embedded_syntax_close
 hash_meta = r''.join([
@@ -169,31 +158,32 @@ hash_meta = r''.join([
     timestamp,
     ')?'
     ])
-
 dd_hash_meta = hash_key + r'[A-Z,a-z].*'
-node_link = r''.join([
-    node_link_opening_wrapper_match,
-    '(',
-    id_pattern,
-    ')\s>(?!>)'
-    ])
-project_link_with_node = r''.join([
-    project_link,
-    link_opening_character_regex,
-    '(', link_modifier_group, ')',
-    '\s',
-    '(', id_pattern,')?', # might be empty
-    '\s>{1,2}(\:\d{1,99})?(?!>)'
-    ])
-function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 node_link_or_pointer = r''.join([
-    node_link_opening_wrapper_match,
-    '(',
-    id_pattern,
-    ')\s(>{1,2})(\:\d{1,99})?(?!>)'])
+    link_opening_pipe_escaped,
+    link_modifier_group,
+    '\s',
+    '(', id_pattern, ')',
+    '(\s>{1,2})(\:\d{1,99})?(?!>)',
+    ])
+
+node_link = r''.join([
+    link_opening_pipe_escaped,
+    link_modifier_group,
+    '(', id_pattern, ')',
+    '(\s>)(\:\d{1,99})?(?!>)',
+    ])
+
+
+cross_project_link_with_node = r''.join ([
+    project_link,
+    node_link_or_pointer,
+    ])
+
+function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 
 node_action_link = r''.join([
-    link_opening_character_regex,
+    link_opening_pipe_escaped,
     link_modifiers_regex['action'],
     '\s',
     '(',
@@ -210,9 +200,9 @@ node_pointer = r''.join([
 node_title = r'^'+ title_pattern +r'(?=' + title_marker  + pattern_break + ')'
 
 file_link = r''.join([
-    link_opening_character_regex,
+    link_opening_pipe_escaped,
     link_modifiers_regex['file'],
-    space,
+    '\s',
     r'([^;]+)',
     link_closing_wrapper])
 
@@ -222,6 +212,15 @@ urtext_messages = r''.join([
     re.escape(urtext_message_closing_wrapper),
     '\n?'
     ])
+
+invalidated_messages = r''.join([
+    re.escape(urtext_message_opening_wrapper),
+    'X',
+    r'.*?',
+    re.escape(urtext_message_closing_wrapper),
+    '\n?'
+    ])
+
 metadata_ops = r'(' + r'|'.join([
             metadata_op_before,
             metadata_op_after,
@@ -243,10 +242,11 @@ dd_key_op_value = r''.join([
     '))',
     ])
 # Compiled Patterns
-any_link_or_pointer_c = re.compile(any_link_or_pointer)
+node_link_or_pointer_c = re.compile(node_link_or_pointer)
 bullet_c = re.compile(bullet)
 compact_node_c = re.compile(compact_node, flags=re.MULTILINE)
 closing_wrapper_c = re.compile(closing_wrapper)
+cross_project_link_with_node_c = re.compile(cross_project_link_with_node)
 dd_flags_c = re.compile(dd_flags)
 dd_hash_meta_c = re.compile(dd_hash_meta)
 dd_key_with_opt_flags = re.compile(dd_key_with_opt_flags)
@@ -280,10 +280,10 @@ opening_wrapper_c = re.compile(opening_wrapper)
 pointer_closing_wrapper_c = re.compile(pointer_closing_wrapper)
 preformat_c = re.compile(preformat, flags=re.DOTALL)
 project_link_c = re.compile(project_link, flags=re.DOTALL)
-project_link_with_node_c = re.compile(project_link_with_node, flags=re.DOTALL)
 subnode_regexp_c = re.compile(sub_node, flags=re.DOTALL)
 timestamp_c = re.compile(timestamp)
 title_regex_c = re.compile(title_pattern)
+invalidated_messages_c = re.compile(invalidated_messages, flags=re.DOTALL)
 virtual_target_match_c = re.compile(virtual_target, flags=re.DOTALL)
 metadata_replacements = re.compile("|".join([
     r'(?:<)([^-/<\s`][^=<]+?)(?:>)', # timestamp
@@ -291,7 +291,6 @@ metadata_replacements = re.compile("|".join([
     r'\*{0,2}\w+\:\:\{[^\}]\}', # node as meta
     r'(?:^|\s)#[A-Z,a-z].*?(\b|$)', # shorthand_meta
     ]))
-
 compiled_symbols = {
     opening_wrapper_c : 'opening_wrapper',
     closing_wrapper_c : 'closing_wrapper',
@@ -299,7 +298,6 @@ compiled_symbols = {
     compact_node_c : 'compact_node',
     meta_to_node_c : 'meta_to_node'
     }
-
 embedded_syntax_symbols = {
     re.compile(embedded_syntax_open) : 'embedded_syntax_open', 
     re.compile(embedded_syntax_close) : 'embedded_syntax_close',
