@@ -14,7 +14,6 @@ import urtext.syntax as syntax
 import urtext.utils as utils
 from urtext.exec import Exec
 
-
 class UrtextProject:
     urtext_file = UrtextFile
     urtext_node = UrtextNode
@@ -48,7 +47,6 @@ class UrtextProject:
         self.project_instance_directives = {}
         self.initialized = False
         self.compiled = False
-        self.executor = None
         self.excluded_files = []
         self.home_requested = False
         self.running_on_modified = None
@@ -157,40 +155,43 @@ class UrtextProject:
 
     def _approve_new_path(self, path):
         if path in self.project_list.get_all_paths():
-            self.log_item('system', "%s is already in another project." % path)
+            self.log_item('system', {
+                'top_message':  "%s is already in another project." % path})
             return False
         return True
 
-    def _parse_file(self, filename, try_buffer=False, passed_contents=None):
+    def _parse_file(self, filename, try_buffer=False):
         if self._filter_filenames(filename) is None:
             self._add_to_excluded_files(filename)
             return False
 
         buffer = None
-        if self.compiled and not passed_contents and try_buffer:
+        existing_buffer_ids = []
+        if filename in self.files:
+            existing_buffer_ids = [n.id for n in self.files[filename].get_ordered_nodes()]
+        self.drop_file(filename)
+            
+        if self.compiled and try_buffer:
             buffer_contents = self.run_editor_method(
                 'get_buffer',
                 filename)
             if buffer_contents:
                 buffer = self._make_buffer(filename, buffer_contents)
-        elif passed_contents:
-            buffer = self._make_buffer(filename, passed_contents)
         else:
             buffer = self.urtext_file(filename, self)
-        return self._parse_buffer(buffer)
+        if buffer:
+            return self._parse_buffer(buffer, existing_buffer_ids=existing_buffer_ids)
 
-    def _parse_buffer(self, buffer):
-
-        existing_buffer_ids = []
-        if buffer.filename in self.files:
-            existing_buffer_ids = [n.id for n in self.files[buffer.filename].get_ordered_nodes()]
-
-        self.drop_buffer(buffer)
+    def _parse_buffer(self, buffer, existing_buffer_ids=[]):
+        if buffer.filename and buffer.filename in self.files:
+            existing_buffer_ids = [n.id for n in self.files[buffer.filename].get_ordered_nodes()]            
+            self.drop_file(buffer.filename)
 
         self._check_buffer_for_duplicates(buffer)
         if not buffer.root_node:
             buffer.write_buffer_messages()
-            self.log_item(buffer.filename, '%s has no root node, dropping' % buffer.filename)
+            self.log_item(buffer.filename, {
+                'top_message': '%s has no root node, dropping' % buffer.filename})
             return False
 
         self.messages[buffer.filename] = buffer.messages
@@ -420,8 +421,7 @@ class UrtextProject:
     def _add_dynamic_definition(self, definition):
         for target_id in definition.target_ids:
             if target_id in self.dynamic_definitions:
-                pass
-                # self._reject_definition(target_id, definition)
+                self._reject_definition(target_id, definition)
             else:
                 self.dynamic_definitions[target_id] = definition
 
@@ -436,27 +436,26 @@ class UrtextProject:
             if virtual_target:
                 target = virtual_target.group()
                 if target == "@self":
-                    if definition.source_node.id in self.dynamic_definitions:
-                        self._reject_definition(definition.source_node.id, definition)
-                    else:
-                        self.dynamic_definitions[definition.source_node.id] = definition
+                    self.dynamic_definitions[definition.source_node.id] = definition
                 else:
                     self.virtual_outputs.setdefault(target, [])
                     self.virtual_outputs[target].append(definition)
 
     def _reject_definition(self, target_id, definition):
-        message = ''.join([
-            '\nDynamic node ',
-            utils.make_node_link(target_id),
-            '\nalready has a definition in ',
-            self.dynamic_definitions[target_id].source_node.link(),
-            '\n in file ',
-            syntax.file_link_opening_wrapper,
-            self.dynamic_definitions[target_id].source_node.filename,
-            syntax.link_closing_wrapper,
-            '\nskipping the definition in ',
-            definition.source_node.link(),
-        ])
+        message = {
+            'top_message': ''.join([
+                '\nDynamic node ',
+                utils.make_node_link(target_id),
+                '\nalready has a definition in ',
+                self.dynamic_definitions[target_id].source_node.link(),
+                '\n in file ',
+                syntax.file_link_opening_wrapper,
+                self.dynamic_definitions[target_id].source_node.filename,
+                syntax.link_closing_wrapper,
+                '\nskipping the definition in ',
+                definition.source_node.link(),
+                ])
+            }
         self.log_item(
             self.nodes[definition.source_node.id].filename,
             message)
@@ -704,7 +703,7 @@ class UrtextProject:
                            has_not_run=False):
 
         defs = []
-        if target_node and target_node.id in self.dynamic_definitions:
+        if target_node and (target_node.id in self.dynamic_definitions):
             defs.append(self.dynamic_definitions[target_node.id])
         if source_node:
             for dd in self.dynamic_definitions.values():
@@ -736,7 +735,7 @@ class UrtextProject:
         for target in self.virtual_outputs:
             for dd in self.virtual_outputs[target]:
                 if dd.source_node.id == node_id:
-                    self.virtual_outputs[target].remove(dd)
+                    del dd
 
     def _remove_dynamic_metadata_entries(self, node_id):
         for entry in list(self.dynamic_metadata_entries):
@@ -817,8 +816,10 @@ class UrtextProject:
     def _sort_nodes(self, nodes, keys, as_nodes=False):
         remaining_nodes = nodes
         sorted_nodes = []
+        use_timestamp_setting = self.get_setting('use_timestamp')
+        detail_key = self.get_setting('node_browser_detail')
         for k in keys:
-            use_timestamp = k in self.get_setting('use_timestamp')
+            use_timestamp = k in use_timestamp_setting
             node_group = [r for r in remaining_nodes if r.metadata.get_first_value(k) is not None]
             remaining_nodes = [r for r in remaining_nodes if r not in node_group]
             if node_group:
@@ -833,12 +834,11 @@ class UrtextProject:
                         node_group,
                         key=lambda n: n.metadata.get_first_value(k))
                 for node in node_group:
-                    detail_key = self.get_setting('node_browser_detail')
                     if not detail_key:
                         detail_key = k
                     detail = node.metadata.get_first_value(detail_key)
                     if detail:
-                        if detail_key in self.get_setting('use_timestamp'):
+                        if detail_key in use_timestamp_setting:
                             detail = detail.timestamp.wrapped_string
                         else:
                             detail = detail.text
@@ -915,7 +915,7 @@ class UrtextProject:
         if message not in self.messages[filename]:
             self.messages[filename].append(message)
         if self.get_setting('console_log'):
-            print(str(filename) + ' : ' + message)
+            print(str(filename) + ' : ' + message['top_message'])
 
     def timestamp(self, date=None, as_string=False, add_seconds=False):
         """ 
@@ -1011,7 +1011,7 @@ class UrtextProject:
         for filename in [f for f in list(self.files) if f not in included_files]:
             self.log_item(
                 filename,
-                filename + ' no longer seen in project path. Dropping it from the project.')
+                { 'top_message ': filename + ' no longer seen in project path. Dropping it from the project.'})
             self.drop_file(filename)
 
     def _get_included_files(self):
@@ -1184,6 +1184,8 @@ class UrtextProject:
             for v in values:
                 results.update(self.get_links_from(v))
         else:
+            numerical_keys_setting = self.get_setting('numerical_keys')
+            case_sensitive_setting = self.get_setting('case_sensitive')
             if key == '*':
                 keys = self.get_all_keys()
             else:
@@ -1196,8 +1198,7 @@ class UrtextProject:
                                             k,
                                             convert_nodes_to_links=True)])
                         continue
-
-                    if k in self.get_setting('numerical_keys'):
+                    if k in numerical_keys_setting:
                         try:
                             value = float(value)
                         except ValueError:
@@ -1207,7 +1208,7 @@ class UrtextProject:
                     if isinstance(value, UrtextTimestamp):
                         use_timestamp = True
 
-                    if k in self.get_setting('case_sensitive'):
+                    if k in case_sensitive_setting:
                         results.update([
                             n for n in self.nodes if
                             value in [

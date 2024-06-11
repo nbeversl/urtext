@@ -26,7 +26,7 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        #self.is_async = False  # development
+        self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
@@ -52,7 +52,6 @@ class ProjectList:
                                 project_list=self,
                                 editor_methods=self.editor_methods,
                                 new_file_node_created=new_file_node_created)
-        project.executor = self.executor
         project.is_async = self.is_async
         project.initialize(callback=callback)
 
