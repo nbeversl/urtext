@@ -32,7 +32,6 @@ class UrtextProject:
         self.entry_path = None
         self.project_title = self.entry_point  # default
         self.editor_methods = editor_methods
-        self.is_async = None
         self.time = time.time()
         self.last_compile_time = 0
         self.nodes = {}
@@ -77,7 +76,11 @@ class UrtextProject:
         if setting in single_values_settings:
             return values[0].text
         if as_text:
-            return [v.text for v in values]
+            result = []
+            for v in values:
+                if v.text not in result:
+                    result.append(v.text)
+            return result
         return values
 
     def get_settings_keys(self):
@@ -92,7 +95,7 @@ class UrtextProject:
             return self.get_settings_keys()
         return propagated_settings
 
-    def initialize(self, callback=None):
+    def initialize(self):
         self.add_directive(Exec)
         for directive in self.project_list.directives.values():
             self.add_directive(directive)
@@ -101,13 +104,11 @@ class UrtextProject:
 
         num_file_extensions = len(self.get_setting('file_extensions'))
         if os.path.exists(self.entry_point):
-            if os.path.isdir(self.entry_point) and (
-                    self._approve_new_path(self.entry_point)):
+            if os.path.isdir(self.entry_point):
                 self.entry_path = self.entry_point
             elif self._include_file(self.entry_point):
                 self._parse_file(self.entry_point)
-                if self._approve_new_path(os.path.dirname(self.entry_point)):
-                    self.entry_path = os.path.dirname(self.entry_point)
+                self.entry_path = os.path.dirname(self.entry_point)
             if self.entry_path:
                 self.paths.append(self.entry_path)
             for file in self._get_included_files():
@@ -119,7 +120,7 @@ class UrtextProject:
         for p in self.get_settings_paths():
             if p not in self.paths:
                 if not self._approve_new_path(p):
-                    print(p, 'NOT ADDED (debugging)')
+                    print('FROM PROJECT', self.title(), p, 'NOT ADDED (debugging)')
                 else:
                     self.paths.append(p)
                     for file in self._get_included_files():
@@ -154,12 +155,12 @@ class UrtextProject:
                 urtext_links = value.links()
                 if urtext_links:
                     for path in [link.path for link in urtext_links if link.path]:
-                        self.project_list._add_project(path)
+                        self.project_list._add_project(os.path.abspath(path))
                     continue
-                self.project_list._add_project(utils.get_path_from_link(value.text))
+                self.project_list._add_project(os.path.abspath(utils.get_path_from_link(value.text)))
 
         self.initialized = True
-        callback(self)
+        self._compile()
 
     def _approve_new_path(self, path):
         if path in self.project_list.get_all_paths():
@@ -175,9 +176,6 @@ class UrtextProject:
 
         buffer = None
         existing_buffer_ids = []
-        if filename in self.files:
-            existing_buffer_ids = [n.id for n in self.files[filename].get_ordered_nodes()]
-        self.drop_file(filename)
             
         if self.compiled and try_buffer:
             buffer_contents = self.run_editor_method(
@@ -266,8 +264,7 @@ class UrtextProject:
             for old_node_id in changed_ids:
                 self.run_hook('on_node_id_changed',
                             old_node_id, # old id
-                            changed_ids[old_node_id], # new id
-                            ) 
+                            changed_ids[old_node_id]) # new id
             self._rewrite_changed_links(changed_ids)
         self._mark_dynamic_nodes()
         return buffer
@@ -518,8 +515,7 @@ class UrtextProject:
     """
 
     def drop_file(self, filename):
-        if filename in self.files:
-            self.drop_buffer(self.files[filename])
+        self.drop_buffer(self.files[filename])
 
     def drop_buffer(self, buffer):
         self.run_hook('on_buffer_dropped', buffer.filename)
@@ -573,7 +569,8 @@ class UrtextProject:
                       path=None,
                       contents=None,
                       metadata=None,
-                      open_file=True):
+                      open_file=True,
+                      add_seconds_to_timestamp=False):
 
         contents_format = None
         if contents is None:
@@ -583,14 +580,18 @@ class UrtextProject:
             ).decode("unicode_escape")
         if metadata is None:
             metadata = {}
-        filename = datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    
+        new_filename_setting = self.get_setting('new_filenames_template')
+        filename = self.fill_template(new_filename_setting,
+            filename_safe=True,
+            add_seconds_to_timestamp=add_seconds_to_timestamp) 
+        filename += '.urtext'
 
         new_node_contents, node_id, cursor_pos = self._new_node(
             contents=contents,
             contents_format=contents_format,
             metadata=metadata)
 
-        filename += '.urtext'
         if path:
             filename = os.path.join(path, filename)
         else:
@@ -622,14 +623,11 @@ class UrtextProject:
         self._parse_file(filename)
 
         if filename in self.files:
-            # TODO possibly should be sent in a thread:
             self.run_hook('on_new_file_node',
                           self.files[filename].root_node.id)
-
             if open_file:
                 self.open_node(self.files[filename].root_node.id,
                                position=cursor_pos)
-
             return {
                 'filename': filename,
                 'root_node': self.files[filename].root_node,
@@ -667,12 +665,7 @@ class UrtextProject:
             contents = ''
 
         if contents_format:
-            new_node_contents = contents_format.replace(
-                '$timestamp',
-                self.timestamp(add_seconds=add_seconds_to_timestamp).wrapped_string)
-            new_node_contents = new_node_contents.replace(
-                '$device_keyname',
-                platform.node())
+            new_node_contents = self.fill_template(contents_format)
             if '$cursor' in new_node_contents:
                 new_node_contents = new_node_contents.split('$cursor')
                 cursor_pos = len(new_node_contents[0]) - 1
@@ -694,6 +687,25 @@ class UrtextProject:
 
         return new_node_contents, title, cursor_pos
 
+    def fill_template(self,
+        template_string,
+        unwrap_timestamps=False,
+        filename_safe=False,
+        add_seconds_to_timestamp=False):
+    
+        if '$timestamp' in template_string:
+            if unwrap_timestamps:
+                timestamp = self.timestamp(add_seconds=add_seconds_to_timestamp).unwrapped_string
+            else:
+                timestamp = self.timestamp(add_seconds=add_seconds_to_timestamp).wrapped_string
+            template_string = template_string.replace('$timestamp', timestamp)
+        template_string = template_string.replace(
+            '$device_keyname',
+            platform.node())
+        if filename_safe:
+            template_string = utils.strip_illegal_file_characters(template_string)
+        return template_string
+        
     def add_compact_node(self,
                          contents='',
                          metadata=None):
@@ -982,18 +994,17 @@ class UrtextProject:
         if self.compiled and filename in self._get_included_files():
             if self.running_on_modified == filename:
                 print('(debugging) already visiting', filename)
-                return
             self.running_on_modified = filename
-            file_obj = self._parse_file(filename)
-            if file_obj:
-                self._compile_file(
-                    filename,
-                    flags=['-file_update'].extend(flags))
-                file_obj.set_buffer_contents(self._reverify_links(filename))
-                file_obj.write_file_contents(file_obj.contents, run_hook=True)
-                self._sync_file_list()
-                if filename in self.files:
-                    self.run_hook('after_on_file_modified', filename)
+            self._parse_file(filename)
+            self._compile_file(
+                filename,
+                flags=['-file_update'].extend(flags))
+            file_obj = self.files[filename]                
+            file_obj.set_buffer_contents(self._reverify_links(filename))
+            file_obj.write_file_contents(file_obj.contents, run_hook=True)
+            self._sync_file_list()
+            if filename in self.files:
+                self.run_hook('after_on_file_modified', filename)
         self.running_on_modified = None
 
     def visit_node(self, node_id):
@@ -1038,7 +1049,10 @@ class UrtextProject:
             for n in node.children:
                 pathname = n.metadata.get_first_value('path')
                 if pathname:
-                    path = utils.get_path_from_link(pathname.text)
+                    path = utils.get_path_from_link(pathname.text)                    
+                    path = os.path.abspath(os.path.join(
+                        os.path.dirname(n.filename), 
+                        path))
                     if os.path.exists(path):
                         paths.append(path)
                         recurse_subfolders = n.metadata.get_first_value('recurse_subfolders')
@@ -1049,7 +1063,7 @@ class UrtextProject:
                                         continue
                                     paths.append(dirpath)
                     else:
-                        print("NOT PATH FOR", pathname.text)
+                        print("NO PATH FOR", pathname.text)
         return paths
 
     def _include_file(self, filename):

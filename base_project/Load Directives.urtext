@@ -22,33 +22,34 @@ EXEC(| Files >)
 EXEC(| Show >)
 >(| results >)
 +(*)
+SORT(title)
 TREE()
 ]]
 
 { results _
-| Log output >
-| Include and Exclude >
-| Show >
 | Collect >
-| Text >
-| Log >
-| Limit >
+| Export Directive >
+| Files >
 | Format Directive >
 | Home >
-| Files >
-| Pull >
-| Max Length >
-| When >
-| Navigation >
-| Request >
-| Tree >
-| Export Directive >
-| Pop >
+| Include and Exclude >
 | Interlinks >
-| project_settings >
+| Limit >
+| Log >
+| Log output >
+| Max Length >
+| Navigation >
+| Pop >
+| Pull >
 | Reindex >
+| Request >
+| Show >
 | Sort >
 | Stats >
+| Text >
+| Tree >
+| When >
+| project_settings >
 } 
 
 { Log output _
