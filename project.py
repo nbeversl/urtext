@@ -105,12 +105,12 @@ class UrtextProject:
         num_file_extensions = len(self.get_setting('file_extensions'))
         if os.path.exists(self.entry_point):
             if os.path.isdir(self.entry_point):
-                self.entry_path = self.entry_point
+                self.entry_path = os.path.abspath(self.entry_point)
             elif self._include_file(self.entry_point):
                 self._parse_file(self.entry_point)
-                self.entry_path = os.path.dirname(self.entry_point)
+                self.entry_path = os.path.abspath(os.path.dirname(self.entry_point))
             if self.entry_path:
-                self.paths.append(self.entry_path)
+                self.paths.append(os.path.abspath(self.entry_path))
             for file in self._get_included_files():
                 self._parse_file(file)
         else:
@@ -118,14 +118,11 @@ class UrtextProject:
             return False
 
         for p in self.get_settings_paths():
-            if p not in self.paths:
-                if not self._approve_new_path(p):
-                    print('FROM PROJECT', self.title(), p, 'NOT ADDED (debugging)')
-                else:
-                    self.paths.append(p)
-                    for file in self._get_included_files():
-                        if file not in self.files:
-                            self._parse_file(file)
+            if self._approve_new_path(p):
+                self.paths.append(p)
+                for file in self._get_included_files():
+                    if file not in self.files:
+                        self._parse_file(file)
                                 
         num_paths = len(self.get_settings_paths())
         while len(self.get_settings_paths()) > num_paths or (
@@ -193,9 +190,9 @@ class UrtextProject:
             existing_buffer_ids = [n.id for n in self.files[buffer.filename].get_ordered_nodes()]            
             self.drop_file(buffer.filename)
 
-        self._check_buffer_for_duplicates(buffer)
         if not buffer.root_node:
             buffer.write_buffer_messages()
+            buffer.write_buffer_contents()
             self.log_item(buffer.filename, {
                 'top_message': '%s has no root node, dropping' % buffer.filename})
             return False
@@ -203,7 +200,7 @@ class UrtextProject:
         self.messages[buffer.filename] = buffer.messages
         if buffer.has_errors:
             buffer.write_buffer_messages()
-            self._check_buffer_for_duplicates(buffer)
+            # self._resolve_node_ids(buffer)
         changed_ids = {}
         if existing_buffer_ids:
             new_node_ids = [n.id for n in buffer.get_ordered_nodes()]
@@ -221,9 +218,6 @@ class UrtextProject:
                             changed_ids[existing_buffer_ids[index]] = new_node_ids[index]
                             # else:
                             # TODO try to map old to new.
-        for node in buffer.nodes:
-            if node.id == '(untitled)':
-                print('(DEBUGGING) - should not happen, untitled node', buffer.filename)
 
         for node in buffer.nodes:
             self._add_node(node)
@@ -266,6 +260,11 @@ class UrtextProject:
                             old_node_id, # old id
                             changed_ids[old_node_id]) # new id
             self._rewrite_changed_links(changed_ids)
+
+        for node in buffer.nodes:
+            if node.id == '(untitled)':
+                print('(DEBUGGING) - should not happen, untitled node', buffer.filename)
+
         self._mark_dynamic_nodes()
         return buffer
 
@@ -330,7 +329,7 @@ class UrtextProject:
                                 utils.make_node_link(links_to_change[node_id]), replaced_contents)
                             self.files[project_node.filename].set_buffer_contents(replaced_contents)
 
-    def _check_buffer_for_duplicates(self, buffer):
+    def _resolve_node_ids(self, buffer):
         messages = []
         changed_ids = {}
         allocated_ids = []
@@ -559,7 +558,7 @@ class UrtextProject:
                 new_filename)
 
     def _filter_filenames(self, filename):
-        if filename in ['urtext_files', '.git']:
+        if filename in ['urtext_files', '.git', '_versions']:
             return None
         if filename in self.get_setting('exclude_files'):
             return None
@@ -608,7 +607,6 @@ class UrtextProject:
         utils.write_file_contents(filename, new_node_contents)
         new_file = self.urtext_file(filename, self)
 
-        self._check_buffer_for_duplicates(new_file)
         if new_file.has_errors and 'timestamp or parent title exists in another node' in new_file.messages[0]:
             if contents is None:
                 new_node_contents, node_id, cursor_pos = self._new_node(
@@ -618,7 +616,7 @@ class UrtextProject:
                     metadata=metadata)
             utils.write_file_contents(filename, new_node_contents)
             new_file = self.urtext_file(filename, self)
-            self._check_buffer_for_duplicates(new_file)
+            self._resolve_node_ids(new_file)
 
         self._parse_file(filename)
 
@@ -999,9 +997,10 @@ class UrtextProject:
             self._compile_file(
                 filename,
                 flags=['-file_update'].extend(flags))
-            file_obj = self.files[filename]                
-            file_obj.set_buffer_contents(self._reverify_links(filename))
-            file_obj.write_file_contents(file_obj.contents, run_hook=True)
+            file_obj = self.files[filename]
+            file_obj.contents = self._reverify_links(filename)
+            file_obj.write_buffer_contents(run_hook=True)
+            self.files[filename] = file_obj
             self._sync_file_list()
             if filename in self.files:
                 self.run_hook('after_on_file_modified', filename)
@@ -1041,9 +1040,9 @@ class UrtextProject:
     def get_settings_paths(self):
         paths = []
         if self.entry_path is not None:
-            paths.append(self.entry_path)
+            paths.append(os.path.abspath(self.entry_path))
         if os.path.isdir(self.entry_point):
-            paths.append(self.entry_point)
+            paths.append(os.path.abspath(self.entry_point))
 
         for node in self.get_setting('paths'):
             for n in node.children:
@@ -1061,7 +1060,7 @@ class UrtextProject:
                                 for dirpath, dirnames, filenames in os.walk(path):
                                     if '/.git' in dirpath or '/_diff' in dirpath:
                                         continue
-                                    paths.append(dirpath)
+                                    paths.append(os.path.abspath(dirpath))
                     else:
                         print("NO PATH FOR", pathname.text)
         return paths
@@ -1501,4 +1500,4 @@ class UrtextProject:
             self.handle_info_message('Directive %s is not available' % directive_name)
             return None
         op = directive(self)
-        return op.run(*args, **kwargs)
+        return self.project_list.execute(op.run, *args, **kwargs)

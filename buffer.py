@@ -33,6 +33,7 @@ class UrtextBuffer:
             node.buffer = self
             node.filename = self.filename
         self._assign_parents(self.root_node)
+        self.project._resolve_node_ids(self)
 
     def _lex(self, contents, start_position=0):
         symbols = {}
@@ -268,21 +269,15 @@ class UrtextBuffer:
         new_contents,
         re_parse=True,
         clear_messages=True,
-        parse_into_project=False,
-        run_hook=False,
-        update_buffer=False):
+        run_hook=False):
 
         self.contents = new_contents
         if clear_messages:
             self.__clear_messages()
         if re_parse:
             self._lex_and_parse()
-        if parse_into_project:
-            self.project._parse_buffer(self)
-        if update_buffer:
-            self.__update_buffer_contents_from_buffer_obj()
 
-    def __update_buffer_contents_from_buffer_obj(self):
+    def write_buffer_contents(self, run_hook=None):
         self.project.run_editor_method(
             'set_buffer',
             self.filename,
@@ -339,7 +334,6 @@ class UrtextBuffer:
             ])
         self.messages = []
         self.contents = new_contents
-        self.set_buffer_contents(new_contents, clear_messages=False, update_buffer=True)
         
     def __get_messages(self):
         messages = []        
