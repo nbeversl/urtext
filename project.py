@@ -200,7 +200,7 @@ class UrtextProject:
         self.messages[buffer.filename] = buffer.messages
         if buffer.has_errors:
             buffer.write_buffer_messages()
-            # self._resolve_node_ids(buffer)
+
         changed_ids = {}
         if existing_buffer_ids:
             new_node_ids = [n.id for n in buffer.get_ordered_nodes()]
@@ -257,8 +257,8 @@ class UrtextProject:
         if self.compiled and changed_ids:
             for old_node_id in changed_ids:
                 self.run_hook('on_node_id_changed',
-                            old_node_id, # old id
-                            changed_ids[old_node_id]) # new id
+                            old_node_id,
+                            changed_ids[old_node_id])
             self._rewrite_changed_links(changed_ids)
 
         for node in buffer.nodes:
@@ -994,18 +994,19 @@ class UrtextProject:
                 print('(debugging) already visiting', filename)
             self.running_on_modified = filename
             self._parse_file(filename)
-            self._compile_file(
+            modified_files = self._compile_file(
                 filename,
                 flags=['-file_update'].extend(flags))
             file_obj = self.files[filename]
             file_obj.contents = self._reverify_links(filename)
-            contents_changed = file_obj.write_buffer_contents(run_hook=True)
+            if file_obj.write_buffer_contents(run_hook=True):
+                modified_files.append(filename)
             self.files[filename] = file_obj
             self._sync_file_list()
             if filename in self.files:
                 self.run_hook('after_on_file_modified', filename)
         self.running_on_modified = None
-        return contents_changed
+        return modified_files
 
     def visit_node(self, node_id):
         if self.compiled:
@@ -1289,13 +1290,16 @@ class UrtextProject:
     def _compile_file(self, filename, flags=None):
         if flags is None:
             flags = {}
+        modified_files = []
 
         for node in self.files[filename].nodes:
             for dd in self.__get_dynamic_defs(target_node=node, source_node=node):
-                self.__run_def(dd)
+                modified_files.extend(self.__run_def(dd))
+        return modified_files
 
     def __run_def(self, dd, flags=None):
         output = dd.process(flags=flags)
+        modified_files = []
         if output not in [False, None]:
             for target in dd.targets + dd.target_ids:
                 targeted_output = dd.post_process(
@@ -1307,6 +1311,8 @@ class UrtextProject:
                     dd)
                 if target in self.nodes:
                     self.nodes[target].dynamic = True
+                    modified_files.append(self.nodes[target].filename)
+        return modified_files
 
     def _direct_output(self, output, target, dd):
         node_link = syntax.node_link_or_pointer_c.match(target)
