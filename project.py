@@ -51,29 +51,34 @@ class UrtextProject:
         self.running_on_modified = None
         self.new_file_node_created = new_file_node_created
 
-    def get_setting(self, setting, _from_project_list=False, as_text=True):
+    def get_setting(self,
+            setting,
+            _called_from_project_list=False,
+            use_project_list=True,
+            as_text=True):
 
         values = []
         is_text = True
+
         for node in self.project_settings_nodes:
             values.extend(node.metadata.get_values(setting))
-        if not values and not _from_project_list:
+        if not values and not _called_from_project_list and use_project_list:
             return self.project_list.get_setting(setting, self)
         if values and values[0].is_node:
             return values
         if setting in ['boolean_settings', 'single_values_settings', 'numerical_settings']:
             return [v.text for v in values]
-        if setting in self.get_setting('boolean_settings', _from_project_list=_from_project_list):
+        if setting in self.get_setting('boolean_settings', _called_from_project_list=_called_from_project_list):
             values = [v.true() for v in values]
             is_text = False
-        elif setting in self.get_setting('numerical_settings', _from_project_list=_from_project_list):
+        elif setting in self.get_setting('numerical_settings', _called_from_project_list=_called_from_project_list):
             values = [v.num() for v in values]
             is_text = False
-        single_values_settings = self.get_setting('single_values_settings', _from_project_list=_from_project_list)
+        single_values_settings = self.get_setting('single_values_settings', _called_from_project_list=_called_from_project_list)
         if values and not is_text:
             if setting in single_values_settings:
                 return values[0]
-        if setting in single_values_settings:
+        if values and setting in single_values_settings:
             return values[0].text
         if as_text:
             result = []
@@ -89,8 +94,8 @@ class UrtextProject:
             keys.extend(n.metadata.get_keys())
         return keys
 
-    def get_propagated_settings(self, _from_project_list=False):
-        propagated_settings = self.get_setting('propagate_settings', _from_project_list=_from_project_list)
+    def get_propagated_settings(self, _called_from_project_list=False):
+        propagated_settings = self.get_setting('propagate_settings', _called_from_project_list=_called_from_project_list)
         if '_all' in propagated_settings:
             return self.get_settings_keys()
         return propagated_settings
@@ -327,7 +332,7 @@ class UrtextProject:
                                     syntax.link_closing_wrapper
                                     ]),
                                 utils.make_node_link(links_to_change[node_id]), replaced_contents)
-                            self.files[project_node.filename].set_buffer_contents(replaced_contents)
+                            self.files[project_node.filename].set_buffer_contents(replaced_contents, clear_messages=False)
 
     def _resolve_node_ids(self, buffer):
         messages = []
@@ -357,14 +362,13 @@ class UrtextProject:
                 node.id = resolution['resolved_id']
                 changed_ids[node.id] = resolution['resolved_id']
                 allocated_ids.append(node.id)
-
         # resolve duplicate titles within file/buffer
         new_file_node_ids = [file_node.id for file_node in buffer.nodes]
         nodes_to_resolve = [n for n in buffer.nodes if new_file_node_ids.count(n.id) > 1]
-        allocated_ids.extend([file_node.id for file_node in buffer.nodes])
         for n in nodes_to_resolve:
+            unresolved_id = n.id
             resolution = n.resolve_id(allocated_ids=allocated_ids)
-            if not resolution['resolved_id'] or n.id in changed_ids:
+            if not resolution['resolved_id'] or resolution['resolved_id'] in changed_ids:
                 message = {
                     'top_message' :''.join([
                                 'Dropping duplicate node title "',
@@ -383,7 +387,7 @@ class UrtextProject:
                 buffer.nodes.remove(n)
                 del n
                 continue
-            changed_ids[n.id] = resolution['resolved_id']
+            changed_ids[unresolved_id] = resolution['resolved_id']
             n.id = resolution['resolved_id']
 
         # resolve duplicate titles in project
@@ -1410,7 +1414,7 @@ class UrtextProject:
                 self.nodes[target_id].metadata.clear_from_source(source_node)
 
     def title(self):
-        title_setting = self.get_setting('project_title')
+        title_setting = self.get_setting('project_title', use_project_list=False)
         if title_setting:
             return title_setting
         return self.entry_point
