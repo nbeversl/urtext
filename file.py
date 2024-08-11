@@ -1,4 +1,3 @@
-import os 
 from urtext.buffer import UrtextBuffer
 import urtext.syntax as syntax
 import urtext.utils as utils
@@ -26,7 +25,7 @@ class UrtextFile(UrtextBuffer):
                 'UnicodeDecode Error: ',
                 syntax.file_link_opening_wrapper,
                 self.filename,
-                syntax.file_link_closing_wrapper]), 0)
+                syntax.link_closing_wrapper]), 0)
             return None
         except TimeoutError:
             return print('Timed out reading %s' % self.filename)
@@ -37,10 +36,16 @@ class UrtextFile(UrtextBuffer):
     def write_buffer_contents(self, run_hook=False):
         if run_hook: # for last modification only
             self.project.run_hook('on_write_file_contents', self)
-        
         existing_contents = self._read_contents()
         if existing_contents == self.contents:
             return False
         utils.write_file_contents(self.filename, self.contents)
-        self.project._parse_file(self.filename)
+        self.project._parse_buffer(self)
         return True
+
+    def contents_did_change(self):
+        current_contents = self.contents
+        disk_contents = self._read_contents()
+        if current_contents != disk_contents:
+            return True
+        return False

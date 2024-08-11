@@ -22,16 +22,10 @@ class Navigation:
 			return self.reverse()
 
 	def forward(self):
+		if self.nav_index + 1 > (len(self.navigation) - 1):
+			return print('index is already at the end')
 
-		if self.nav_index == -1:
-			self.nav_index = 1
-		else: 
-			self.nav_index += 1
-
-		if self.nav_index >= len(self.navigation):
-				self.nav_index -= 1			
-				return print('index is already at the end')
-
+		self.nav_index += 1
 		project, next_node = self.navigation[self.nav_index]
 		self.project_list.set_current_project(project)
 		self.triggered_node_visit = True
@@ -49,42 +43,37 @@ class Navigation:
 		self.triggered_node_visit = True
 		self.project_list.current_project.open_node(previous_node)
 
-	def on_node_visited(self, node_id):
-
+	def on_node_visited(self, project, node_id):
 		if self.triggered_node_visit:
 			self.triggered_node_visit = False
 			return
 	
-		if node_id in self.project_list.current_project.nodes:
-			if self.navigation:
-				project, last_id = self.navigation[self.nav_index]
-			else:
-				project = self.project_list.current_project
-				last_id = None
-
+		if self.navigation:
+			last_project, last_id = self.navigation[self.nav_index]
 			# don't re-remember consecutive duplicate links
-			if (-1 < self.nav_index < len(self.navigation) and node_id == last_id): 
+			if (-1 < self.nav_index < len(self.navigation) - 1 and node_id == last_id): 
+				print('returning')
 				return
-			# add the newly opened file as the new "HEAD"
-			self.nav_index += 1
-			del self.navigation[self.nav_index:]
-			self.navigation.append((
-				self.project_list.current_project.get_setting('project_title'),
-				node_id))
 
-	def on_file_deleted(self, filename):
-		for node_id in self.navigation:
-			if node_id not in self.project_list.current_project.nodes:
-				if self.navigation.index(node_id) <= self.nav_index:
+		# add the newly opened file as the new "HEAD"
+		self.nav_index += 1
+		del self.navigation[self.nav_index:]
+		self.navigation.append((project, node_id))
+
+	def before_file_deleted(self, project, filename):
+		for item in list(self.navigation):
+			project, node_id = item
+			if filename in project.files and node_id in project.files[filename].node_ids():				
+				if self.navigation.index(item) <= self.nav_index:
 					self.nav_index -= 1
-				self.navigation.remove(node_id)
+				self.navigation.remove(item)
 
-	def on_node_id_changed(self, new_node_id, old_id):
+	def on_node_id_changed(self, project, new_node_id, old_id):
 		for index, item in enumerate(self.navigation):
-			project = item[0]
+			nav_project = item[0]
 			old_nav_id = item[1]
-			if project == self.project_list.current_project.get_setting('project_title') and (old_nav_id == old_id):
-					self.navigation[index] = (project, new_node_id)
-					
+			if project == nav_project and (old_nav_id == old_id):
+				self.navigation[index] = (project, new_node_id)
+
 ProjectList.add_directive(Navigation)
 %%

@@ -11,7 +11,6 @@ from urtext.directive import UrtextDirective
 import urtext.syntax as syntax
 import urtext.utils as utils
 
-
 class ProjectList:
     utils = utils
 
@@ -36,6 +35,7 @@ class ProjectList:
         self.projects = []
         self.entry_points = []
         self.current_project = None
+        self.node_opened = False
         if base_project:
             self.add_project(os.path.abspath(base_project))
         if os.path.abspath(base_project) != os.path.abspath(self.entry_point):
@@ -50,13 +50,13 @@ class ProjectList:
         project = UrtextProject(entry_point,
                                 project_list=self,
                                 editor_methods=self.editor_methods,
+                                initial=initial,
                                 new_file_node_created=new_file_node_created)
         self.projects.append(project)
         self.entry_points.append(project.entry_point)
         project.initialize()
         if initial:
             self.current_project = project
-            self.current_project.on_project_activated()
 
     def execute(self, function, *args, **kwargs):
         if self.is_async:
@@ -89,7 +89,7 @@ class ProjectList:
         if not link:
             return self.handle_unusable_link()
         link.filename = filename
-
+        
         """ If a project name has been specified, locate the project and node """
         if link.project_name:
             if not self.set_current_project(link.project_name):
@@ -165,8 +165,11 @@ class ProjectList:
             project = self._get_project_from_path(title_or_path)
         return project
 
-    def set_current_project(self, title_or_path, notify=True):
-        project = self.get_project(title_or_path)
+    def set_current_project(self, project_or_title_or_path, notify=True, run_hook=False):
+        if isinstance(project_or_title_or_path, UrtextProject):
+            project = project_or_title_or_path
+        else:
+            project = self.get_project(project_or_title_or_path)
         if not project:
             return
         if (not self.current_project) or (
@@ -176,8 +179,8 @@ class ProjectList:
                 self.run_editor_method('popup',
                    'Switched to project: %s ' % self.current_project.title())
             project_paths = self.current_project.get_settings_paths()
-            if project_paths:
-                self.current_project.on_project_activated()
+            if project_paths and run_hook:
+                self.current_project.on_activated()
         return self.current_project
 
     def build_contextual_link(self,
@@ -227,6 +230,7 @@ class ProjectList:
     def visit_file(self, filename):
         self.set_current_project(filename)
         if self.current_project:
+            self.notify_node_opened()
             return self.execute(self.current_project.visit_file, filename)
 
     def visit_node(self, filename, node_id):
@@ -367,10 +371,11 @@ class ProjectList:
             pass
             
         if Directive.project_list_instance:
-            instance_directive = Directive(self)
-            instance_directive.on_added()
-            self.project_list_instance_directives[Directive.name[0]] = instance_directive
-            return
+            if Directive.name[0] not in self.project_list_instance_directives:
+                instance_directive = Directive(self)
+                instance_directive.on_added()
+                self.project_list_instance_directives[Directive.name[0]] = instance_directive
+                return
 
         if Directive.project_instance:
             self.project_instance_directives[n[0]] = directive
@@ -393,3 +398,13 @@ class ProjectList:
             hook = getattr(directive, hook_name, None)
             if hook and callable(hook):
                 hook(*args)
+
+    def make_file_link(self, path):
+        if path:
+            return utils.make_file_link(path)
+
+    def notify_node_opened(self):
+        self.node_opened = True
+
+    def node_has_been_opened(self):
+        return self.node_opened

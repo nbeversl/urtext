@@ -18,6 +18,7 @@ class UrtextDynamicDefinition:
         self.project = project
         self.preformat = False
         self.show = None
+        self.enabled = True
         self.param_string = param_string
         self.system_contents = []
         self.init_self(param_string)
@@ -90,12 +91,17 @@ class UrtextDynamicDefinition:
                 return oldest_timestamp.wrapped_string
         return ''
 
-    def process_output(self):
-        
+    def process_output(self, target):
+        if target in self.target_ids and target in self.project.nodes:
+            existing_contents = self.project.nodes[target].full_contents
+            if existing_contents.strip() and existing_contents.strip()[0] == '~':
+                existing_contents = existing_contents.replace('~','',1)
+        else:
+            existing_contents = ''
+
         self.included_nodes = []
         self.excluded_nodes = []
         self.sorted = False
-
         self.project.run_hook('on_dynamic_def_process_started', self)
         accumulated_text = ''
 
@@ -129,7 +135,7 @@ class UrtextDynamicDefinition:
                 ])
                 continue
             if transformed_text is False:  # not None
-                return current_text
+                return existing_contents
             if transformed_text is None:
                 accumulated_text = current_text
                 continue
@@ -154,7 +160,7 @@ class UrtextDynamicDefinition:
             syntax.dynamic_def_closing_wrapper
         ])
 
-    def process(self, flags=None):
+    def process(self, target, flags=None):
         if flags is None:
             flags = []
         self.flags = flags
@@ -169,17 +175,17 @@ class UrtextDynamicDefinition:
                         self.source_node.link(),
                         '\n',
                         'points to nonexistent node ',
-                        syntax.missing_link_opening_wrapper,
+                        syntax.missing_node_link_opening_wrapper,
                         target_id,
                         syntax.link_closing_wrapper])
                 })
-        output = self.process_output()
+        output = self.process_output(target)
         self.ran = True
         return output
 
     def post_process(self, target, output):
-        output = ''.join([
-            self.preserve_timestamp_if_present(target),
+        output = '~' + ''.join([
+            # self.preserve_timestamp_if_present(target),
             self.preserve_title_if_present(target),
             output])
         if target == '@self':

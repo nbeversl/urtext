@@ -105,7 +105,6 @@ class UrtextBuffer:
                 else:
                     if position == 0:
                         nested_levels[nested].append([0, 0])
-                        nested += 1 
                         nested_levels[nested] = []
                     else:
                         if position == last_position:
@@ -215,10 +214,6 @@ class UrtextBuffer:
                 contents[position:]])
             return self.set_buffer_contents(contents)
 
-        for node in self.nodes:
-            node.filename = self.filename
-            node.file = self
-
         for match in self.meta_to_node:
             # TODO optimize
             for node in self.nodes:
@@ -255,6 +250,8 @@ class UrtextBuffer:
         new_node.ranges = ranges
         new_node.start_position = ranges[0][0]
         new_node.end_position = ranges[-1][1]
+        new_node.filename = self.filename
+        new_node.file = self
 
         self.nodes.append(new_node)
         if new_node.root_node:
@@ -381,7 +378,9 @@ class UrtextBuffer:
             for r in node.ranges:       
                 if position in range(r[0],r[1]+1): # +1 in case the cursor is in the last position of the node.
                     return node
-        print('NO NODE', self.contents[position-5:position])
+
+    def node_ids(self):
+        return [n.id for n in self.nodes]
 
     def get_node_id_from_position(self, position):
         node = self.get_node_from_position(position)
@@ -392,5 +391,7 @@ class UrtextBuffer:
         self.nodes = {}
         self.root_node = None
         message = message +' at position '+ str(position)
-        if message not in messages:
-            self.messages.append()
+        # if message not in self.messages:
+        #     self.messages.append()
+
+        

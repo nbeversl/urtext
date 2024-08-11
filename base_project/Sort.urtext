@@ -55,11 +55,11 @@ class Sort:
 		order_by=None
 		if flags:
 			order_by = flags[0]
-		use_timestamp=False
+		use_timestamp = False
 		if ext == 'timestamp':
-			use_timestamp= True
-		if key in self.project.get_setting('use_timestamp'):
-			use_timestamp= True			
+			use_timestamp = True
+		if key in self.project.get_setting_as_text('use_timestamp'):
+			use_timestamp = True
 		value = node.metadata.get_first_value(k, order_by=order_by)
 		if use_timestamp:
 			value = value.timestamp

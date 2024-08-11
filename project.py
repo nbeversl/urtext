@@ -23,6 +23,7 @@ class UrtextProject:
                  entry_point,
                  project_list=None,
                  editor_methods=None,
+                 initial=False,
                  new_file_node_created=False):
 
         if editor_methods is None:
@@ -39,7 +40,6 @@ class UrtextProject:
         self.files = {}
         self.paths = []
         self.messages = {}
-        self.dynamic_definitions = {}
         self.virtual_outputs = {}
         self.dynamic_metadata_entries = []
         self.directives = {}
@@ -50,43 +50,49 @@ class UrtextProject:
         self.home_requested = False
         self.running_on_modified = None
         self.new_file_node_created = new_file_node_created
+        self.initial_project = initial
 
     def get_setting(self,
             setting,
             _called_from_project_list=False,
-            use_project_list=True,
-            as_text=True):
+            use_project_list=True):
 
         values = []
-        is_text = True
-
         for node in self.project_settings_nodes:
             values.extend(node.metadata.get_values(setting))
         if not values and not _called_from_project_list and use_project_list:
             return self.project_list.get_setting(setting, self)
         if values and values[0].is_node:
             return values
-        if setting in ['boolean_settings', 'single_values_settings', 'numerical_settings']:
-            return [v.text for v in values]
-        if setting in self.get_setting('boolean_settings', _called_from_project_list=_called_from_project_list):
-            values = [v.true() for v in values]
-            is_text = False
-        elif setting in self.get_setting('numerical_settings', _called_from_project_list=_called_from_project_list):
+        elif setting != 'numerical_settings' and setting in self.get_setting('numerical_settings',
+            _called_from_project_list=_called_from_project_list,
+            use_project_list=use_project_list):
             values = [v.num() for v in values]
-            is_text = False
-        single_values_settings = self.get_setting('single_values_settings', _called_from_project_list=_called_from_project_list)
-        if values and not is_text:
-            if setting in single_values_settings:
-                return values[0]
-        if values and setting in single_values_settings:
-            return values[0].text
-        if as_text:
-            result = []
-            for v in values:
-                if v.text not in result:
-                    result.append(v.text)
-            return result
         return values
+
+    def get_single_setting(self, 
+            setting,
+            _called_from_project_list=False,
+            use_project_list=True):
+        values = self.get_setting(
+            setting, 
+            _called_from_project_list=_called_from_project_list,
+            use_project_list=use_project_list)
+        if values:
+            return values[0]
+
+    def setting_is_true(self, setting):
+        setting = self.get_single_setting(setting)
+        if setting and setting.true():
+            return True
+        return False
+
+    def get_setting_as_text(self, 
+            setting,
+            _called_from_project_list=False,
+            use_project_list=True):
+        setting = self.get_setting(setting, _called_from_project_list=_called_from_project_list)
+        return [v.text for v in setting]
 
     def get_settings_keys(self):
         keys = []
@@ -95,7 +101,7 @@ class UrtextProject:
         return keys
 
     def get_propagated_settings(self, _called_from_project_list=False):
-        propagated_settings = self.get_setting('propagate_settings', _called_from_project_list=_called_from_project_list)
+        propagated_settings = self.get_setting_as_text('propagate_settings', _called_from_project_list=_called_from_project_list)
         if '_all' in propagated_settings:
             return self.get_settings_keys()
         return propagated_settings
@@ -149,9 +155,13 @@ class UrtextProject:
             node.metadata.convert_node_links()
         self._add_all_sub_tags()
         self._mark_dynamic_nodes()
-        self.run_hook('after_project_initialized')
+        self.initialized = True
+        if self.initial_project:
+            self.on_initialized()
+        self.run_hook('on_initialized')
+        self._compile()
 
-        other_entry_points = self.get_setting('other_entry_points', as_text=False)
+        other_entry_points = self.get_setting('other_entry_points')
         if other_entry_points:
             for value in other_entry_points:
                 urtext_links = value.links()
@@ -160,9 +170,7 @@ class UrtextProject:
                         self.project_list._add_project(os.path.abspath(path))
                     continue
                 self.project_list._add_project(os.path.abspath(utils.get_path_from_link(value.text)))
-
-        self.initialized = True
-        self._compile()
+        return True
 
     def _approve_new_path(self, path):
         if path in self.project_list.get_all_paths():
@@ -225,6 +233,9 @@ class UrtextProject:
                             # TODO try to map old to new.
 
         for node in buffer.nodes:
+            for dd in node.dynamic_definitions:
+                dd.source_node = node
+                self._verify_dynamic_definition(dd)
             self._add_node(node)
 
         self.files[buffer.filename] = buffer
@@ -248,10 +259,8 @@ class UrtextProject:
                     is_node=True)
                 self.nodes[target_node].is_meta = True
                 self.nodes[target_node].meta_key = keyname
+       
         for node in buffer.nodes:
-            for dd in node.dynamic_definitions:
-                dd.source_node = node
-                self._add_dynamic_definition(dd)
 
             for entry in node.metadata.entries():
                 entry.from_node = node
@@ -262,6 +271,7 @@ class UrtextProject:
         if self.compiled and changed_ids:
             for old_node_id in changed_ids:
                 self.run_hook('on_node_id_changed',
+                            self,
                             old_node_id,
                             changed_ids[old_node_id])
             self._rewrite_changed_links(changed_ids)
@@ -284,7 +294,19 @@ class UrtextProject:
             for node in [n for n in self.files[filename].nodes if not n.dynamic]:
                 rewrites = {}
                 for link in node.links:
-                    if link.is_file or not link.node_id or link.project_name:
+                    if link.is_file:
+                        if link.is_missing and link.exists():
+                            rewrites[link] = ''.join([
+                                syntax.file_link_opening_wrapper,
+                                link.path,
+                                syntax.link_closing_wrapper])
+                        if not link.exists():
+                            rewrites[link] = ''.join([
+                                syntax.missing_file_link_opening_wrapper,
+                                link.path,
+                                syntax.link_closing_wrapper])
+                        continue
+                    if not link.node_id or link.project_name:
                         continue
                     node_id = link.node_id
                     suffix = ' >>' if link.is_pointer else ' >'
@@ -292,7 +314,7 @@ class UrtextProject:
                         title_only = node_id.split(syntax.resolution_identifier)[0]
                         if title_only not in self.nodes and link.node_id not in rewrites:
                             rewrites[link] = ''.join([
-                                syntax.missing_link_opening_wrapper,
+                                syntax.missing_node_link_opening_wrapper,
                                 title_only,
                                 suffix])
                     elif link.is_missing and link not in rewrites:  # node marked missing but is there
@@ -336,7 +358,6 @@ class UrtextProject:
 
     def _resolve_node_ids(self, buffer):
         messages = []
-        changed_ids = {}
         allocated_ids = []
 
         for node in list([n for n in buffer.nodes if n.title == '(untitled)']):
@@ -360,15 +381,15 @@ class UrtextProject:
                 continue
             else:
                 node.id = resolution['resolved_id']
-                changed_ids[node.id] = resolution['resolved_id']
                 allocated_ids.append(node.id)
+        
         # resolve duplicate titles within file/buffer
         new_file_node_ids = [file_node.id for file_node in buffer.nodes]
         nodes_to_resolve = [n for n in buffer.nodes if new_file_node_ids.count(n.id) > 1]
         for n in nodes_to_resolve:
             unresolved_id = n.id
             resolution = n.resolve_id(allocated_ids=allocated_ids)
-            if not resolution['resolved_id'] or resolution['resolved_id'] in changed_ids:
+            if not resolution['resolved_id'] or resolution['resolved_id'] in allocated_ids:
                 message = {
                     'top_message' :''.join([
                                 'Dropping duplicate node title "',
@@ -387,7 +408,7 @@ class UrtextProject:
                 buffer.nodes.remove(n)
                 del n
                 continue
-            changed_ids[unresolved_id] = resolution['resolved_id']
+            allocated_ids.append(resolution['resolved_id'])
             n.id = resolution['resolved_id']
 
         # resolve duplicate titles in project
@@ -417,56 +438,71 @@ class UrtextProject:
                     self.log_item(buffer.filename, message)
                     messages.append(message)
                     continue
-                changed_ids[node.id] = resolution['resolved_id']
                 node.id = resolution['resolved_id']
 
         if messages:
             buffer.messages = messages
             buffer.has_errors = True
 
-        return changed_ids
+    def _verify_dynamic_definition(self, new_definition):
+        all_definitions = self.__get_all_dynamic_defs()
+        targets = []
+        target_ids = []
+        for d in all_definitions:
+            targets.extend(d.targets)
+            target_ids.extend(d.target_ids)
 
-    def _add_dynamic_definition(self, definition):
-        for target_id in definition.target_ids:
-            if target_id in self.dynamic_definitions:
-                self._reject_definition(target_id, definition)
-            else:
-                self.dynamic_definitions[target_id] = definition
+        for dd in all_definitions:
+            for target_id in new_definition.target_ids:
+                if target_id in target_ids:
+                    new_definition.enabled = False
+                    self._reject_definition(target_id, dd, new_definition)
+            for target in new_definition.targets:
+                if target in targets:
+                    new_definition.enabled = False
+                virtual_target = syntax.virtual_target_match_c.match(target)
+                if virtual_target:
+                    target = virtual_target.group()
+                    # if target == "@self":
+                    #     self.dynamic_definitions[definition.source_node.id] = definition
+                    # else:
+                    #     self.virtual_outputs.setdefault(target, [])
+                    #     self.virtual_outputs[target].append(definition)
 
-        for target in definition.targets:
-            if target in self.nodes:  # allow not using link syntax
-                if target in self.dynamic_definitions:
-                    self._reject_definition(target, definition)
-                else:
-                    self.dynamic_definitions[target] = definition
-                    continue
-            virtual_target = syntax.virtual_target_match_c.match(target)
-            if virtual_target:
-                target = virtual_target.group()
-                if target == "@self":
-                    self.dynamic_definitions[definition.source_node.id] = definition
-                else:
-                    self.virtual_outputs.setdefault(target, [])
-                    self.virtual_outputs[target].append(definition)
-
-    def _reject_definition(self, target_id, definition):
+    def _verify_definition_present_if_marked(self, node):
+        if node.full_contents.strip() and node.full_contents.strip()[0] == '~':
+            if len(node.full_contents) == 1:
+                return True
+            all_definitions = self.__get_all_dynamic_defs()
+            targets = []
+            target_ids = []
+            for d in all_definitions:
+                targets.extend(d.targets)
+                target_ids.extend(d.target_ids)
+            if node.id in target_ids:
+                return True
+            if len(node.full_contents.strip()) > 1 and node.full_contents.strip()[1] == '?':
+                return True
+            self._set_node_contents(node.id, node.full_contents.replace('~', '~?', 1))
+        return True
+            
+    def _reject_definition(self, target_id, good_definition, duplicate_definition):
         message = {
             'top_message': ''.join([
                 '\nDynamic node ',
                 utils.make_node_link(target_id),
                 '\nalready has a definition in ',
-                self.dynamic_definitions[target_id].source_node.link(),
+                good_definition.source_node.link(),
                 '\n in file ',
                 syntax.file_link_opening_wrapper,
-                self.dynamic_definitions[target_id].source_node.filename,
+                good_definition.source_node.filename,
                 syntax.link_closing_wrapper,
                 '\nskipping the definition in ',
-                definition.source_node.link(),
+                duplicate_definition.source_node.link(),
                 ])
             }
-        self.log_item(
-            self.nodes[definition.source_node.id].filename,
-            message)
+        # move this 
+        # self.log_item(self.nodes[duplicate_definition.source_node.id].filename, message)
 
     def _add_node(self, new_node):
         new_node.project = self
@@ -493,25 +529,24 @@ class UrtextProject:
                 return node, target_position + offset
 
     def _set_node_contents(self, node_id, contents, preserve_title=False):
-        """ 
-        project-aware alias for the Node _set_contents() method 
-        parses the file before and after;
-        returns filename if contents changed.
-        """
+        """ project-aware alias for the Node _set_contents() method """
         if node_id in self.nodes:
             self._parse_buffer(self.nodes[node_id].file)
             if node_id in self.nodes:
-                if self.nodes[node_id]._set_contents(
-                        contents,
-                        preserve_title=preserve_title):
-                    if node_id in self.nodes:
-                        return self.nodes[node_id].filename
+                self.nodes[node_id]._set_contents(
+                    contents,
+                    preserve_title=preserve_title)
+                if node_id not in self.nodes:
+                    print('DEBUGGING -- node lost after setting contents', node_id)
+                    return
+                return self.nodes[node_id].filename
         return False
 
     def _mark_dynamic_nodes(self):
-        for target in self.dynamic_definitions:
-            if target in self.nodes:
-                self.nodes[target].dynamic = True
+        for dd in self.__get_all_dynamic_defs():
+            for node_id in dd.target_ids:
+                if node_id in self.nodes:
+                    self.nodes[node_id].dynamic = True
 
     """
     Removing and renaming files
@@ -532,7 +567,6 @@ class UrtextProject:
     def _drop_node(self, node):
         if node.id in self.nodes:  # might not be if it's an incompletely parsed buffer
             self._remove_sub_tags(node.id)
-            self._remove_dynamic_defs(node.id)
             self._remove_dynamic_metadata_entries(node.id)
             if node in self.project_settings_nodes:
                 self.project_settings_nodes.remove(node)
@@ -542,12 +576,13 @@ class UrtextProject:
         """
         Deletes a file, removes it from the project,
         """
+        self.run_hook('before_file_deleted', self, filename)
         self.run_editor_method('close_file', filename)
         self.drop_file(filename)
         os.remove(filename)
         if filename in self.messages:
             del self.messages[filename]
-        self.run_hook('on_file_deleted', filename)
+        self.run_hook('after_file_deleted', self, filename)
 
     def _handle_renamed(self, old_filename, new_filename):
         if new_filename != old_filename:
@@ -564,7 +599,7 @@ class UrtextProject:
     def _filter_filenames(self, filename):
         if filename in ['urtext_files', '.git', '_versions']:
             return None
-        if filename in self.get_setting('exclude_files'):
+        if filename in self.get_setting_as_text('exclude_files'):
             return None
         return filename
 
@@ -578,13 +613,13 @@ class UrtextProject:
         contents_format = None
         if contents is None:
             contents_format = bytes(
-                self.get_setting('new_file_node_format'),
+                self.get_single_setting('new_file_node_format').text,
                 "utf-8"
             ).decode("unicode_escape")
         if metadata is None:
             metadata = {}
     
-        new_filename_setting = self.get_setting('new_filenames_template')
+        new_filename_setting = self.get_single_setting('new_filenames_template').text
         filename = self.fill_template(new_filename_setting,
             filename_safe=True,
             add_seconds_to_timestamp=add_seconds_to_timestamp) 
@@ -676,13 +711,14 @@ class UrtextProject:
                     new_node_contents += ' '
         else:
             if one_line is None:
-                one_line = self.get_setting('always_oneline_meta')
+                one_line = self.setting_is_true('always_oneline_meta')
 
             if not metadata:
                 metadata = {}
 
-            if self.get_setting('device_keyname'):
-                metadata[self.get_setting('device_keyname')] = platform.node()
+            device_keyname = self.get_single_setting('device_keyname')
+            if device_keyname:
+                metadata[device_keyname.text] = platform.node()
 
             new_node_contents = contents
             new_node_contents += self.urtext_node.build_metadata(metadata, one_line=one_line)
@@ -718,51 +754,54 @@ class UrtextProject:
             metadata_block = ' ' + metadata_block
         return '• ' + contents.strip() + metadata_block
 
+    def __get_all_dynamic_defs(self):
+        defs = []
+        for node in list(self.nodes.values()):
+            defs.extend(node.dynamic_definitions)
+        return defs
+
+    def __get_all_dynamic_targets(self):
+        targets = []
+        for dd in self.__get_dynamic_defs():
+            targets.extend(dd.target_ids)
+        return targets
+
     def __get_dynamic_defs(self,
                            target_node=None,
                            source_node=None,
-                           flags=None,
-                           has_not_run=False):
-
+                           flags=None):
+        
         defs = []
-        if target_node and (target_node.id in self.dynamic_definitions):
-            defs.append(self.dynamic_definitions[target_node.id])
-        if source_node:
-            for dd in self.dynamic_definitions.values():
-                if dd.source_node.id == source_node.id:
+        for node in [n for n in self.nodes.values() if n.dynamic_definitions]:
+            for dd in node.dynamic_definitions:
+                if target_node and (target_node.id in dd.target_ids):
                     defs.append(dd)
-        for target in self.virtual_outputs:
-            for dd in self.virtual_outputs[target]:
-                if source_node and dd.source_node.id == source_node.id:
-                    defs.append(dd)
-                elif not source_node:
-                    defs.append(dd)
-        if flags:
-            if not isinstance(flags, list):
-                flags = [flags]
-            for f in flags:
-                for dd in self.dynamic_definitions.values():
-                    if dd.have_flags(f) and dd not in defs:
+                if source_node:
+                    if dd.source_node.id == source_node.id:
                         defs.append(dd)
-        if has_not_run:
-            for dd in self.dynamic_definitions.values():
-                if not dd.ran:
-                    defs.append(dd)
+                for target in self.virtual_outputs:
+                    if source_node and dd.source_node.id == source_node.id:
+                        defs.append(dd)
+                    elif not source_node:
+                        defs.append(dd)
+                if flags:
+                    if not isinstance(flags, list):
+                        flags = [flags]
+                    for f in flags:
+                        if dd.have_flags(f) and dd not in defs:
+                            defs.append(dd)
         return defs
-
-    def _remove_dynamic_defs(self, node_id):
-        for target in list(self.dynamic_definitions):
-            if self.dynamic_definitions[target].source_node.id == node_id:
-                del self.dynamic_definitions[target]
-        for target in self.virtual_outputs:
-            for dd in self.virtual_outputs[target]:
-                if dd.source_node.id == node_id:
-                    del dd
 
     def _remove_dynamic_metadata_entries(self, node_id):
         for entry in list(self.dynamic_metadata_entries):
             if entry.from_node == self.nodes[node_id]:
                 self.dynamic_metadata_entries.remove(entry)
+
+    def _remove_sub_tags(self, source_id):
+        source_node = self.nodes[source_id]
+        for target_id in source_node.target_nodes:
+            if target_id in self.nodes:
+                self.nodes[target_id].metadata.clear_from_source(source_node)
 
     def open_node(self, node_id, position=None):
         if node_id not in self.nodes:
@@ -785,6 +824,7 @@ class UrtextProject:
             self.nodes[node_id].filename,
             position,
             node_range=node_range)
+        self.project_list.notify_node_opened()
         return self.visit_node(node_id)
 
     def open_home(self):
@@ -802,8 +842,13 @@ class UrtextProject:
                     'No home node for this project')
                 return False
         self.home_requested = False
-        self.open_node(self.get_setting('home'))
-        return True
+        home_node_id = self.get_single_setting('home')
+        if home_node_id and home_node_id.text in self.nodes:
+            self.open_node(home_node_id.text)
+            return True
+        self.handle_info_message(
+                    'Home node set as "%s" but not in project' % home_node_id.text)
+        return False
 
     def handle_info_message(self, message):
         print(message)
@@ -818,12 +863,13 @@ class UrtextProject:
             nodes = list(self.nodes.values())
         return self._sort_nodes(
             nodes,
-            self.get_setting('node_browser_sort'),
+            self.get_setting_as_text('node_browser_sort'),
             as_nodes=as_nodes)
 
     def sort_for_meta_browser(self, nodes, as_nodes=False):
-        meta_browser_key = self.get_setting('meta_browser_key')
+        meta_browser_key = self.get_single_setting('meta_browser_key')
         if meta_browser_key:
+            meta_browser_key = meta_browser_key.text
             nodes = [n for n in nodes if n.metadata.get_first_value(meta_browser_key)]
             return self._sort_nodes(
                 nodes,
@@ -831,14 +877,16 @@ class UrtextProject:
                 as_nodes=as_nodes)
         return self._sort_nodes(
             nodes,
-            self.get_setting('meta_browser_sort'),
+            self.get_setting_as_text('meta_browser_sort'),
             as_nodes=as_nodes)
 
     def _sort_nodes(self, nodes, keys, as_nodes=False):
         remaining_nodes = nodes
         sorted_nodes = []
-        use_timestamp_setting = self.get_setting('use_timestamp')
-        detail_key = self.get_setting('node_browser_detail')
+        use_timestamp_setting = self.get_setting_as_text('use_timestamp')
+        detail_key_setting = self.get_single_setting('node_browser_detail')
+        if detail_key_setting:
+            detail_key = detail_key_setting.text
         for k in keys:
             use_timestamp = k in use_timestamp_setting
             node_group = [r for r in remaining_nodes if r.metadata.get_first_value(k) is not None]
@@ -903,12 +951,11 @@ class UrtextProject:
         return links
 
     def handle_link(self, link):
-
         if link.is_node and link.node_id in self.nodes:
             if link.is_action:
                 for dd in self.__get_dynamic_defs(source_node=self.nodes[link.node_id]):
                     if dd.source_node.id == link.node_id:
-                        output = dd.process(flags=['-link_clicked'])
+                        output = dd.process(link.node_id, flags=['-link_clicked'])
                         if output not in [False, None]:
                             for target in dd.targets:
                                 target_output = dd.preserve_title_if_present(target) + output
@@ -935,7 +982,7 @@ class UrtextProject:
         self.messages.setdefault(filename, [])
         if message not in self.messages[filename]:
             self.messages[filename].append(message)
-        if self.get_setting('console_log'):
+        if self.setting_is_true('console_log'):
             print(str(filename) + ' : ' + message['top_message'])
 
     def timestamp(self, date=None, as_string=False, add_seconds=False):
@@ -946,7 +993,7 @@ class UrtextProject:
             date = datetime.datetime.now(
                 datetime.timezone.utc
             ).astimezone()
-        ts_format = self.get_setting('timestamp_format')
+        ts_format = self.get_single_setting('timestamp_format').text
         if add_seconds:
             if '%' in ts_format and '%S' not in ts_format:
                 ts_format = ts_format.replace('%M', '%M:%S')
@@ -956,14 +1003,13 @@ class UrtextProject:
                 date.strftime(ts_format),
                 syntax.timestamp_closing_wrapper,
             ])
-
         return UrtextTimestamp(
             date.strftime(ts_format))
 
     def get_home(self):
-        home_node_id = self.get_setting('home')
-        if home_node_id in self.nodes:
-            return home_node_id
+        home_node_id = self.get_single_setting('home')
+        if home_node_id:
+            return home_node_id.text
 
     def get_all_meta_pairs(self):
         pairs = []
@@ -971,7 +1017,8 @@ class UrtextProject:
             for k in n.metadata.get_keys().keys():
                 values = n.metadata.get_values(k)
                 assigner = syntax.metadata_assignment_operator
-                if k == self.get_setting('hash_key'):
+                hash_key_setting = self.get_single_setting('hash_key')
+                if k == hash_key_setting.text:
                     k = '#'
                     assigner = ''
                 for v in values:
@@ -994,28 +1041,33 @@ class UrtextProject:
 
     def on_modified(self, filename, flags=[]):
         if self.compiled and filename in self._get_included_files():
-            if self.running_on_modified == filename:
-                print('(debugging) already visiting', filename)
-            self.running_on_modified = filename
-            self._parse_file(filename)
-            modified_files = self._compile_file(
-                filename,
-                flags=['-file_update'].extend(flags))
-            file_obj = self.files[filename]
-            file_obj.contents = self._reverify_links(filename)
-            if file_obj.write_buffer_contents(run_hook=True):
-                modified_files.append(filename)
-            self.files[filename] = file_obj
-            self._sync_file_list()
             if filename in self.files:
-                self.run_hook('after_on_file_modified', filename)
-        self.running_on_modified = None
-        return modified_files
+                if self.running_on_modified == filename:
+                    print('(debugging) already visiting', filename)
+                self.running_on_modified = filename
+                self._parse_file(filename)
+                modified_files = self._compile_file(
+                    filename,
+                    flags=['-file_update'].extend(flags))
+                file_obj = self.files[filename]
+                verified_contents = self._reverify_links(filename)
+                file_obj.set_buffer_contents(verified_contents)
+                if file_obj.write_buffer_contents(run_hook=True):
+                    modified_files.append(filename)
+                self.files[filename] = file_obj
+                self._sync_file_list()
+                if filename in self.files:
+                    self.run_hook('after_on_file_modified', filename)
+                self.run_hook(
+                    'file_contents_were_modified',
+                    filename)
+                self.running_on_modified = None
+                return modified_files
 
     def visit_node(self, node_id):
+        self.run_hook('on_node_visited', self, node_id)
         if self.compiled:
             filename = self.nodes[node_id].filename
-            self.run_hook('on_node_visited', node_id)
             self.visit_file(filename)
             self.run_editor_method('status_message',
                                    ''.join([
@@ -1054,7 +1106,7 @@ class UrtextProject:
             for n in node.children:
                 pathname = n.metadata.get_first_value('path')
                 if pathname:
-                    path = utils.get_path_from_link(pathname.text)                    
+                    path = utils.get_path_from_link(pathname.text)           
                     path = os.path.abspath(os.path.join(
                         os.path.dirname(n.filename), 
                         path))
@@ -1074,12 +1126,12 @@ class UrtextProject:
     def _include_file(self, filename):
         if filename in self.excluded_files:
             return False
-        file_extensions = self.get_setting('file_extensions')
+        file_extensions = self.get_setting_as_text('file_extensions')
         if '.urtext' not in file_extensions or 'urtext' not in file_extensions:
             file_extensions.append('.urtext')  # for bootstrapping
-        if os.path.splitext(filename)[1] not in file_extensions:
-            return False
-        return True
+        if os.path.splitext(filename)[1] in file_extensions and len(os.path.splitext(filename)) == 2:
+            return True
+        return False
 
     def _add_to_excluded_files(self, filename):
         if filename not in self.excluded_files:
@@ -1108,7 +1160,7 @@ class UrtextProject:
 
     def get_keys_with_frequency(self):
         key_occurrences = {}
-        exclude = self.get_setting('exclude_from_star')
+        exclude = self.get_setting_as_text('exclude_from_star')
         exclude.extend(self.get_settings_keys())
         for node in list(self.nodes.values()):
             node_keys = node.metadata.get_keys(exclude=exclude)
@@ -1121,8 +1173,8 @@ class UrtextProject:
     def get_all_keys(self):
         key_occurrences = self.get_keys_with_frequency()
         unique_keys = key_occurrences.keys()
-
-        if self.get_setting('meta_browser_sort_keys_by') == 'frequency':
+        meta_browser_sort_keys_by_setting = self.get_single_setting('meta_browser_sort_keys_by')
+        if meta_browser_sort_keys_by_setting and meta_browser_sort_keys_by_setting.text == 'frequency':
             return sorted(
                 unique_keys,
                 key=lambda key: key_occurrences[key],
@@ -1150,7 +1202,8 @@ class UrtextProject:
         """
         values_occurrences = self.get_all_values_for_key_with_frequency(key)
         values = values_occurrences.keys()
-        if self.get_setting('meta_browser_sort_values_by') == 'frequency':
+        meta_browser_sort_values_by_setting = self.get_single_setting('meta_browser_sort_values_by')
+        if meta_browser_sort_values_by_setting and meta_browser_sort_values_by_setting.text == 'frequency':
             return sorted(
                 values,
                 key=lambda value: values_occurrences[value],
@@ -1159,13 +1212,14 @@ class UrtextProject:
         return sorted(values)
 
     def go_to_dynamic_definition(self, target_id):
-        if target_id in self.dynamic_definitions:
-            dd = self.dynamic_definitions[target_id]
-            self.run_editor_method(
-                'open_file_to_position',
-                self.nodes[dd.source_node.id].filename,
-                self.nodes[dd.source_node.id].get_file_position(dd.position))
-            return self.visit_node(dd.source_node.id)
+        dynamic_defs = self.__get_all_dynamic_defs()
+        for dd in dynamic_defs:
+            if target_id in dd.target_ids:
+                self.run_editor_method(
+                    'open_file_to_position',
+                    self.nodes[dd.source_node.id].filename,
+                    self.nodes[dd.source_node.id].get_file_position(dd.position))
+                return self.visit_node(dd.source_node.id)
         self.handle_info_message(
             'No dynamic definition for "%s"' % target_id
         )
@@ -1210,8 +1264,8 @@ class UrtextProject:
             for v in values:
                 results.update(self.get_links_from(v))
         else:
-            numerical_keys_setting = self.get_setting('numerical_keys')
-            case_sensitive_setting = self.get_setting('case_sensitive')
+            numerical_keys_setting = self.get_setting_as_text('numerical_keys')
+            case_sensitive_setting = self.get_setting_as_text('case_sensitive')
             if key == '*':
                 keys = self.get_all_keys()
             else:
@@ -1263,15 +1317,16 @@ class UrtextProject:
             return filename, position
         return None, None
 
-    def run_hook(self, hook_name, *args):
-        for dd in self.dynamic_definitions.values():
-            hook = getattr(dd, hook_name, None)
-            if hook and callable(hook):
-                hook(*args)
+    def run_hook(self, hook_name, *args, **kwargs):
+        for dd in self.__get_all_dynamic_defs():
+            for op in dd.operations:
+                hook = getattr(op, hook_name, None)
+                if hook and callable(hook):
+                    hook(*args, **kwargs)
         for directive in self.project_instance_directives.values():
             hook = getattr(directive, hook_name, None)
             if hook and callable(hook):
-                hook(*args)
+                hook(*args, **kwargs)
         self.project_list.run_hook(hook_name, *args)
 
     """ Project Compile """
@@ -1280,7 +1335,7 @@ class UrtextProject:
         self.handle_info_message('Compiling Urtext project from %s' % self.entry_point)
         num_directives = len(list(self.directives.values()))
         num_project_directives = len(list(self.project_instance_directives.values()))
-        for dd in list(self.dynamic_definitions.values()):
+        for dd in self.__get_all_dynamic_defs():
             directives = self.__run_def(dd)
         while len(self.directives.values()) > num_directives: # directives can add directives
             return self._compile()
@@ -1299,13 +1354,14 @@ class UrtextProject:
         for node in self.files[filename].nodes:
             for dd in self.__get_dynamic_defs(target_node=node, source_node=node):
                 modified_files.extend(self.__run_def(dd))
+            self._verify_definition_present_if_marked(node)
         return modified_files
 
     def __run_def(self, dd, flags=None):
-        output = dd.process(flags=flags)
         modified_files = []
-        if output not in [False, None]:
-            for target in dd.targets + dd.target_ids:
+        for target in dd.targets + dd.target_ids:
+            output = dd.process(target, flags=flags)
+            if output not in [False, None]:
                 targeted_output = dd.post_process(
                     target,
                     output)
@@ -1407,29 +1463,30 @@ class UrtextProject:
             source_node_id,
             entry)
 
-    def _remove_sub_tags(self, source_id):
-        source_node = self.nodes[source_id]
-        for target_id in source_node.target_nodes:
-            if target_id in self.nodes:
-                self.nodes[target_id].metadata.clear_from_source(source_node)
 
     def title(self):
-        title_setting = self.get_setting('project_title', use_project_list=False)
+        title_setting = self.get_single_setting('project_title', use_project_list=False)
         if title_setting:
-            return title_setting
+            return title_setting.text
         return self.entry_point
 
-    def on_project_activated(self):
-        if self.get_setting('on_project_activated'):
-            #TODO add hooks 
-            for action in self.get_setting('on_project_activated'):
-                if action == 'open_home':
-                    if self.open_home():
-                        return
-        elif not self.compiled:
-            timer = threading.Timer(.5, self.on_project_activated)
-            timer.start()
-            return timer
+    def on_initialized(self):
+        on_loaded_setting = self.get_setting_as_text('on_loaded')
+        for action in on_loaded_setting:
+            if action == 'open_home' and not self.project_list.node_has_been_opened():
+                if self.open_home():
+                    return
+
+    def on_activated(self):
+        on_activated_setting = self.get_setting_as_text('on_activated')
+        for action in on_activated_setting:
+            if action == 'open_home':
+                if self.open_home():
+                    return
+                elif not self.compiled:
+                    timer = threading.Timer(.5, self.on_activated)
+                    timer.start()
+                    return timer
 
     def has_folder(self, folder):
         included_paths = self.get_settings_paths()
@@ -1478,7 +1535,7 @@ class UrtextProject:
         return False
 
     def add_directive(self, directive):
-        propagated_directives = self.get_setting('propagate_directives')
+        propagated_directives = self.get_setting_as_text('propagate_directives')
         propagate_all_directives = '_all' in propagated_directives
 
         class Directive(directive, UrtextDirective):

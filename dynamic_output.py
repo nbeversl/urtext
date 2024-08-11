@@ -97,9 +97,9 @@ class DynamicOutput():
 
         if contents_match:
             contents = self.contents
-            if self.project.get_setting('contents_strip_outer_whitespace'):
-                contents = contents.strip()
-            if self.project.get_setting('contents_strip_internal_whitespace'):
+            if self.project.setting_is_true('contents_strip_outer_whitespace'):
+                contents = contents.strip()            
+            if self.project.setting_is_true('contents_strip_internal_whitespace'):
                 contents = strip_internal_whitespace(contents)
             suffix = ''
             if contents_match.group(1):

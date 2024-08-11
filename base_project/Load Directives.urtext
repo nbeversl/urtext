@@ -1,4 +1,4 @@
-EHome _
+Home _
 
 
 The base project includes all the core Urtext directives as nodes that can be executed. 
@@ -26,12 +26,12 @@ SORT(title)
 TREE()
 ]]
 
-{ results _
+{~ results _
 | Collect >
-| EHome >
 | Export Directive >
 | Files >
 | Format Directive >
+| Home >
 | Include and Exclude >
 | Interlinks >
 | Limit >
@@ -52,7 +52,7 @@ TREE()
 | project_settings >
 } 
 
-{ Log output _
+{~ Log output _
 
 
 [[>(@self) LOG()]]}

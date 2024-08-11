@@ -9,27 +9,41 @@ node_closing_wrapper = '}'
 link_opening_pipe = '|'
 link_opening_pipe_escaped = re.escape(link_opening_pipe)
 link_opening_wrapper = link_opening_pipe + space
-link_modifiers = {
-    'file'          : '/',
+node_link_modifiers = {
     'action'        : '!',
     'missing'       : '?'
 }
-missing_link_opening_wrapper = ''.join([
+file_link_modifiers = {
+    'file': '/',
+    'missing': '?'
+}
+missing_node_link_opening_wrapper = ''.join([
     link_opening_pipe,
-    link_modifiers['missing'],
+    node_link_modifiers['missing'],
     space,
     ])
-link_modifiers_regex = {}
-for modifier in link_modifiers:
-    link_modifiers_regex[modifier] = ''.join([r'(?<=\|)', re.escape(link_modifiers[modifier])])
-link_modifier_group = r'(' + '|'.join(
-    ['(' + m + ')' for m in link_modifiers_regex.values()]) + ')?'
+
+missing_file_link_opening_wrapper = ''.join([
+    link_opening_pipe,
+    file_link_modifiers['file'],
+    file_link_modifiers['missing'],
+    space,
+    ])
+
+node_link_modifiers_regex = {}
+for modifier in node_link_modifiers:
+    node_link_modifiers_regex[modifier] = ''.join([r'(?<=\|)', re.escape(node_link_modifiers[modifier])])
+node_link_modifier_group = r'(' + '|'.join(
+    ['(' + m + ')' for m in node_link_modifiers_regex.values()]) + ')?'
+
 node_link_modifier_group = r'(' + '|'.join([
     '(' + m + ')' for m in [
-        link_modifiers_regex['action'],
-        link_modifiers_regex['missing'],
+        node_link_modifiers_regex['action'],
+        node_link_modifiers_regex['missing'],
         ]
     ]) + ')?'
+
+file_link_modifier_group = r'(' + re.escape(file_link_modifiers['missing']) + ')?'
 link_closing_wrapper = ' >'
 pointer_closing_wrapper = ' >>'
 urtext_message_opening_wrapper = '<!'
@@ -52,7 +66,7 @@ resolution_identifier = ' ^ '
 virtual_target_marker = '@'
 file_link_opening_wrapper = ''.join([
     link_opening_pipe,
-    link_modifiers['file'],
+    file_link_modifiers['file'],
     space])
 project_link=r''.join([
     '(', other_project_link_prefix, ')', '\"([^\"]+?)\"'])
@@ -128,7 +142,7 @@ disallowed_title_characters = [
     r'\]\]',
     r'#',
     r'\{',
-    r'\}'
+    r'\}',
 ]
 title_pattern = r'^([^' + r''.join(disallowed_title_characters) + ']+)'
 id_pattern = r'([^\|>\n\r]+)'
@@ -140,10 +154,9 @@ sh_metadata_key_c = re.compile(sh_metadata_key)
 sh_metadata_values_c = re.compile(sh_metadata_values)
 metadata_flags = r'\+?\*{1,2}(?=' + metadata_key + ')' 
 metadata_flags_c = re.compile(metadata_flags)
-link_modifiers_regex_c = {
-    'action': re.compile(link_modifiers_regex['action']),
-    'missing': re.compile(link_modifiers_regex['missing']),
-    'file': re.compile(link_modifiers_regex['file']),
+node_link_modifiers_regex_c = {
+    'action': re.compile(node_link_modifiers_regex['action']),
+    'missing': re.compile(node_link_modifiers_regex['missing']),
 }
 
 # Composite match patterns
@@ -161,7 +174,7 @@ hash_meta = r''.join([
 dd_hash_meta = hash_key + r'[A-Z,a-z].*'
 node_link_or_pointer = r''.join([
     link_opening_pipe_escaped,
-    link_modifier_group,
+    node_link_modifier_group,
     '\s',
     '(', id_pattern, ')',
     '(\s>{1,2})(\:\d{1,99})?(?!>)',
@@ -169,7 +182,7 @@ node_link_or_pointer = r''.join([
 
 node_link = r''.join([
     link_opening_pipe_escaped,
-    link_modifier_group,
+    node_link_modifier_group,
     '(', id_pattern, ')',
     '(\s>)(\:\d{1,99})?(?!>)',
     ])
@@ -184,7 +197,7 @@ function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
 
 node_action_link = r''.join([
     link_opening_pipe_escaped,
-    link_modifiers_regex['action'],
+    node_link_modifiers_regex['action'],
     '\s',
     '(',
     id_pattern,
@@ -201,10 +214,21 @@ node_title = r'^'+ title_pattern +r'(?=' + title_marker  + pattern_break + ')'
 
 file_link = r''.join([
     link_opening_pipe_escaped,
-    link_modifiers_regex['file'],
-    '\s',
-    r'([^;]+)',
+    file_link_modifiers['file'],
+    file_link_modifier_group,
+    space,
+    r'([^;\n\r]+)',
     link_closing_wrapper])
+
+not_metadata_separator = r'([^\s]*(\s([^-]|$)|\s-([^\s]|$)|))' 
+
+special_metadata_patterns = r''.join([
+    '(', 
+    file_link, 
+    ')|(',
+    node_link_or_pointer,
+    ')'
+])
 
 urtext_messages = r''.join([
     re.escape(urtext_message_opening_wrapper),
@@ -266,6 +290,7 @@ metadata_entry_c = re.compile(metadata_entry, flags=re.DOTALL)
 metadata_key_only_c = re.compile(metadata_key_only, flags=re.DOTALL)
 metadata_ops_c = re.compile(metadata_ops)
 metadata_ops_or_c = re.compile(metadata_ops_or)
+special_metadata_patterns_c = re.compile(special_metadata_patterns)
 metadata_separator_pattern_c = re.compile(metadata_separator_pattern)
 meta_to_node_c = re.compile(meta_to_node, flags=re.DOTALL)
 metadata_tag_self_c = re.compile(metadata_tag_self)

@@ -39,7 +39,7 @@ class TreeDirective:
                     tree_render += "%s%s" % (
                         indented_pre, 
                         ''.join([
-                            self.syntax.missing_link_opening_wrapper,
+                            self.syntax.missing_node_link_opening_wrapper,
                             this_node.name,
                             self.syntax.link_closing_wrapper,
                             '\n']

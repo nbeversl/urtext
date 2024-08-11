@@ -1,4 +1,5 @@
 import urtext.syntax as syntax
+import os
 
 class UrtextLink:
 
@@ -20,19 +21,35 @@ class UrtextLink:
 		self.path = None
 
 	def rewrite(self, include_project=False):
+		# not currently used
 		link_modifier = ''
 		if self.is_action:
-			link_modifier = syntax.link_modifiers['action']
+			link_opening_wrapper = ''.join([
+					syntax.link_opening_wrapper,
+					syntax.node_link_modifiers['action']
+				])
 		elif self.is_file:
-			link_modifier = syntax.link_modifiers['file']
+			link_opening_wrapper = ''.join([
+					syntax.link_opening_wrapper,
+					file_link_modifiers['file']
+				])
 		return ''.join([
 			syntax.other_project_link_prefix,
-        	'"%s"' % self.project_name if self.project_name and include_project else '',
-			syntax.link_opening_wrapper,
-			link_modifier,
-			syntax.pointer_closing_wrapper if self.is_pointer else syntax.link_closing_wrapper,
-			(':%s' % dest_node_position) if self.dest_node_position else ''
+	        	'"%s"' % self.project_name if self.project_name and include_project else '',
+				link_opening_wrapper,
+				link_modifier,
+				syntax.pointer_closing_wrapper if self.is_pointer else syntax.link_closing_wrapper,
+				(':%s' % dest_node_position) if self.dest_node_position else ''
 			])
+
+	def exists(self):
+		if self.is_file and self.path:
+			if os.path.exists(self.path):
+				return True
+			if os.path.exists(os.path.abspath(
+				os.path.join(os.path.dirname(self.containing_node.filename), self.path))):
+				return True
+			return False
 
 	def replace(self, replacement):
 		if self.containing_node:

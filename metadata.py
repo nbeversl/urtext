@@ -23,11 +23,14 @@ class NodeMetadata:
                 syntax.metadata_end_marker).split(
                     syntax.metadata_assigner, 
                     1)
-            value_list = syntax.metadata_separator_pattern_c.split(contents)
-        
-            tag_self, tag_children, tag_descendants, keyname = determine_desc_tagging(keyname)
 
-            value_list = [v.strip() for v in value_list]
+            value_list = []
+            for pattern in list(syntax.special_metadata_patterns_c.finditer(contents)):
+                value_list.append(pattern.group())
+                contents = contents.replace(pattern.group(),'')
+            value_list.extend(syntax.metadata_separator_pattern_c.split(contents))       
+            value_list = [v.strip() for v in value_list if v.strip()]
+            tag_self, tag_children, tag_descendants, keyname = determine_desc_tagging(keyname)
 
             self.add_entry(
                 keyname,
@@ -61,7 +64,9 @@ class NodeMetadata:
 
             keyname = '#'
             if self.project.compiled:
-                keyname = self.project.get_setting('hash_key')
+                hash_key_setting = self.project.get_single_setting('hash_key')
+                if hash_key_setting:
+                    keyname = hash_key_setting.text
 
             self.add_entry(
                 keyname,
@@ -293,8 +298,9 @@ class NodeMetadata:
                     self.entries_dict[k].remove(entry)
     
     def convert_hash_keys(self):
-        hash_key_setting = self.project.get_setting('hash_key')
+        hash_key_setting = self.project.get_single_setting('hash_key')
         if hash_key_setting:
+            hash_key_setting = hash_key_setting.text
             if '#' in self.entries_dict:
                 for entry in self.get_entries('#'):
                     entry.keyname = hash_key_setting
@@ -351,7 +357,7 @@ def determine_desc_tagging(string):
 def get_extended_metadata(extended_keyname, node):
     entries = node.metadata.get_entries(extended_keyname[0])
     values = set()
-    use_timestamp_setting = node.project.get_setting('use_timestamp')
+    use_timestamp_setting = node.project.get_setting_as_text('use_timestamp')
     for e in entries:
         for v in e.meta_values:
             if len(extended_keyname) == 1:

@@ -14,7 +14,16 @@ class PopNode:
         source_filename, 
         file_pos,
         from_project=None):
+    
+        if not self.project.compiled:
+            return self.project.handle_info_message(
+                'Project not yet compiled.')
 
+        if source_filename not in self.project.files:
+            return self.project.handle_info_message(
+                '%s not in project' % source_filename)
+
+        self.project.run_editor_method('save_file', source_filename)
         return self.project.project_list.execute(
             self._pop_node_from_editor,
             source_filename, 
@@ -26,15 +35,7 @@ class PopNode:
         file_pos,
         from_project=None):
 
-        if not self.project.compiled:
-            return self.project.handle_info_message(
-                'Project not yet compiled.')
-
-        if source_filename not in self.project.files:
-            return self.project.handle_info_message(
-                '%s not in project' % source_filename)
-
-        self.project.run_editor_method('save_file', source_filename)
+        
         self.project._parse_file(source_filename)
 
         popped_node_id = self.project.get_node_id_from_position(source_filename, file_pos) 
@@ -60,7 +61,6 @@ class PopNode:
         include_project=False):
         
         source_filename = self.project.nodes[popped_node_id].filename
-        self.project.run_editor_method('save_file', source_filename)
         start = self.project.nodes[popped_node_id].start_position
         end = self.project.nodes[popped_node_id].end_position
         source_file_contents = self.project.files[source_filename]._get_contents()
@@ -70,23 +70,27 @@ class PopNode:
         parent_id = self.project.nodes[popped_node_id].parent.id
         popped_node_is_compact = self.project.nodes[popped_node_id].compact
         
-        if self.project.get_setting('breadcrumb_key'):
-            if from_project:
-                popped_node_contents += ''.join([
+        breadcrumb_key = self.project.get_single_setting('breadcrumb_key')
+        if breadcrumb_key:
+            breadcrumb_key = breadcrumb_key.text
+        else:
+            breadcrumb_key = ''
+        if from_project:
+            popped_node_contents += ''.join([
+            '\n',
+            breadcrumb_key,
+            self.syntax.metadata_assignment_operator,
+            self.project.nodes[popped_node_id].link(include_project=True),
+            ' ',
+            self.project.timestamp().wrapped_string if breadcrumb_key else '']);
+        else:
+            popped_node_contents += ''.join([
                 '\n',
-                self.project.get_setting('breadcrumb_key'),
+                breadcrumb_key,
                 self.syntax.metadata_assignment_operator,
-                self.project.nodes[popped_node_id].link(include_project=True),
+                self.project.nodes[popped_node_id].parent.link(),
                 ' ',
-                self.project.timestamp().wrapped_string]);
-            else:
-                popped_node_contents += ''.join([
-                    '\n',
-                    self.project.get_setting('breadcrumb_key'),
-                    self.syntax.metadata_assignment_operator,
-                    self.project.nodes[popped_node_id].parent.link(),
-                    ' ',
-                    self.project.timestamp().wrapped_string]);
+                self.project.timestamp().wrapped_string if breadcrumb_key else '']);
 
         self.project.drop_file(source_filename) #important
 

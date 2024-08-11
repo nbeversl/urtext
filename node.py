@@ -1,8 +1,5 @@
 import re
-from anytree import Node, PreOrderIter
-from urtext.metadata import MetadataEntry
 from urtext.metadata import NodeMetadata, MetadataValue
-from anytree.exporter import JsonExporter
 from urtext.dynamic_definition import UrtextDynamicDefinition
 import urtext.utils as utils
 import urtext.syntax as syntax
@@ -98,7 +95,7 @@ class UrtextNode:
         return [link.node_id for link in self.links]
 
     def date(self):
-        return self.metadata.get_date(self.project.get_setting('node_date_keyname'))
+        return self.metadata.get_date(self.project.get_single_setting('node_date_keyname'))
 
     def resolve_id(self, allocated_ids=None):
         return_value = {
@@ -206,7 +203,7 @@ class UrtextNode:
         for line in contents_lines:
             first_non_blank_line = line.strip()
             first_non_blank_line = strip_nested_links(first_non_blank_line).strip()
-            if first_non_blank_line and first_non_blank_line != '_':
+            if first_non_blank_line and first_non_blank_line not in ['_', '~']:
                 break
 
         title = syntax.node_title_c.search(contents)
@@ -221,13 +218,15 @@ class UrtextNode:
             title = first_non_blank_line
             for character in syntax.disallowed_title_characters:
                 title = re.sub(character, ' ', title)
-            title = title.strip()
             self.first_line_title = True
         if not title:
             title = '(untitled)'
             self.untitled = True
         if len(title) > 255:
             title = title[:255].strip()
+        title = title.replace('~?','')
+        title = title.replace('~','')
+        title = title.strip()
         self.metadata.add_entry('title', [MetadataValue(title)], self)
         return title
    
@@ -284,24 +283,19 @@ class UrtextNode:
         file should be parsed before this, in case the content
         has been modified manually by a directive
         """
-
-        node_contents = self.strip_first_line_title(self.full_contents)
-        file_contents = self.file._get_contents()
         if preserve_title and self.first_line_title:
             new_node_contents = ''.join([ 
-                ' ',
                 self.title,
+                self.syntax.title_marker,
+                '\n',
                 new_contents,
-                node_contents,
                 ])
         else: 
-            new_node_contents = ''.join([
-                new_contents,
-                node_contents
-                ])
+            new_node_contents = new_contents
+        file_contents = self.file._get_contents()
         new_file_contents = ''.join([
             file_contents[:self.start_position],
-            new_contents,
+            new_node_contents,
             file_contents[self.end_position:]])
         self.file.set_buffer_contents(new_file_contents, clear_messages=False)
         # does not re-parse into project
@@ -430,7 +424,7 @@ def node_descendants(node, known_descendants=[]):
 def node_ancestors(node, known_ancestors=[]):
     # differentiate between pointer and "real" descendants
     if node.parent:
-        known_ancestors.extend(node.parent)
+        known_ancestors.append(node.parent)
         return node_ancestors(node.parent, known_ancestors)
     return known_ancestors
 

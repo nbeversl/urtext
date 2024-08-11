@@ -33,11 +33,6 @@ class UrtextDirective:
         self.argument_string = None
         self.dynamic_definition = None
 
-    def should_continue(self, event):
-        if event in self.on:
-            return True
-        return False
-
     def run(self, *args, **kwargs):
         pass
 
@@ -47,12 +42,10 @@ class UrtextDirective:
     def on_added(self):
         pass
 
-    def on_node_visited(self, node_id):
+    def on_node_visited(self, project, node_id):
         pass
         
     def dynamic_output(self, input_contents):
-        if self.should_continue():
-            return self.dynamic_output(input_contents)
         return False
     
     def parse_argument_string(self, argument_string):
@@ -91,7 +84,7 @@ class UrtextDirective:
             if hash_value:
                 hash_value = hash_value.group()[1:]
                 self.params.append((
-                    self.project.get_setting('hash_key'),
+                    self.project.get_single_setting('hash_key').text,
                     hash_value,
                     '='))
                 continue

@@ -53,7 +53,7 @@ class PullNode:
         source_filename = self.project.nodes[source_node.id].filename
 
         for ancestor in self.project.nodes[destination_node].ancestors():
-            if ancestor.name == source_node.id:
+            if ancestor.id == source_node.id:
                 return self.project.handle_info_message('Cannot pull a node into its own child or descendant.')
         self.project._parse_file(source_filename)
 

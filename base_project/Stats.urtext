@@ -9,7 +9,7 @@ class UrtextStats:
 	def dynamic_output(self, text_contents):
 
 		contents = []
-		contents.append('Project Title : '+self.project.get_setting('project_title'))
+		contents.append('Project Title : '+self.project.get_single_setting('project_title').text)
 		contents.append('project size in memory (bytes): '+ str(sys.getsizeof(self.project)))
 
 		n_memory = 0
@@ -18,7 +18,7 @@ class UrtextStats:
 		contents.append('nodes size in memory (kB): '+ str(n_memory / 1000))
 		contents.append('# files : '+ str(len(self.project.files)))
 		contents.append('# nodes : '+ str(len(self.project.nodes)))
-		contents.append('# dynamic defs : '+ str(len(self.project.dynamic_definitions)))
+		contents.append('# dynamic defs : '+ str(len(self.project.__get_all_dynamic_defs())))
 		contents.append('compile time :' + str(self.project.last_compile_time))
 		return text_contents + '\n'.join(contents)
 
