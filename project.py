@@ -170,6 +170,11 @@ class UrtextProject:
                         self.project_list._add_project(os.path.abspath(path))
                     continue
                 self.project_list._add_project(os.path.abspath(utils.get_path_from_link(value.text)))
+
+        self.compiled = True
+        self.last_compile_time = time.time() - self.time
+        self.time = time.time()
+        self.handle_info_message('"%s" compiled' % self.title())
         return True
 
     def _approve_new_path(self, path):
@@ -884,9 +889,7 @@ class UrtextProject:
         remaining_nodes = nodes
         sorted_nodes = []
         use_timestamp_setting = self.get_setting_as_text('use_timestamp')
-        detail_key_setting = self.get_single_setting('node_browser_detail')
-        if detail_key_setting:
-            detail_key = detail_key_setting.text
+        detail_key = self.get_single_setting('node_browser_detail').text
         for k in keys:
             use_timestamp = k in use_timestamp_setting
             node_group = [r for r in remaining_nodes if r.metadata.get_first_value(k) is not None]
@@ -1341,10 +1344,6 @@ class UrtextProject:
             return self._compile()
         self._add_all_sub_tags()
         self._verify_links_globally()
-        self.compiled = True
-        self.last_compile_time = time.time() - self.time
-        self.time = time.time()
-        self.handle_info_message('"%s" compiled' % self.title())
 
     def _compile_file(self, filename, flags=None):
         if flags is None:
