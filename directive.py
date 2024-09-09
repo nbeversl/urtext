@@ -18,6 +18,7 @@ class UrtextDirective:
     UrtextTimestamp = UrtextTimestamp
     project_instance = False
     project_list_instance = False
+    is_manual = False
     
     def __init__(self, project_or_project_list):
         self.keys_with_flags = []
@@ -103,6 +104,12 @@ class UrtextDirective:
     def have_flags(self, flags):
         for f in force_list(flags):
             if f in self.flags:
+                return True
+        return False
+
+    def check_param(self, keyname, operator, value):
+        if keyname in self.params_dict:
+            if self.params_dict[keyname] == (keyname, value, operator):
                 return True
         return False
 

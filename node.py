@@ -91,6 +91,11 @@ class UrtextNode:
         
         return contents
 
+    def contents_with_contained_nodes(self):
+        file_contents = self.file._get_contents()
+        full_contents = file_contents[self.start_position:self.end_position+1]
+        return full_contents
+
     def links_ids(self):
         return [link.node_id for link in self.links]
 
@@ -205,7 +210,6 @@ class UrtextNode:
             first_non_blank_line = strip_nested_links(first_non_blank_line).strip()
             if first_non_blank_line and first_non_blank_line not in ['_', '~']:
                 break
-
         title = syntax.node_title_c.search(contents)
         if title:
             title = title.group().strip()
@@ -224,8 +228,6 @@ class UrtextNode:
             self.untitled = True
         if len(title) > 255:
             title = title[:255].strip()
-        title = title.replace('~?','')
-        title = title.replace('~','')
         title = title.strip()
         self.metadata.add_entry('title', [MetadataValue(title)], self)
         return title
@@ -286,11 +288,11 @@ class UrtextNode:
         if preserve_title and self.first_line_title:
             new_node_contents = ''.join([ 
                 self.title,
-                self.syntax.title_marker,
+                syntax.title_marker,
                 '\n',
                 new_contents,
                 ])
-        else: 
+        else:
             new_node_contents = new_contents
         file_contents = self.file._get_contents()
         new_file_contents = ''.join([
@@ -412,6 +414,17 @@ class UrtextNode:
 
         return ranges_with_embedded_syntaxes
 
+    def append_child_node(self, contents, kind='bracket'):
+        full_contents = self.contents_with_contained_nodes()
+        self.project._set_node_contents(
+            self.id,
+            ''.join([
+                full_contents,
+                syntax.node_opening_wrapper,
+                ' ',
+                contents, ' \n',
+                syntax.node_closing_wrapper, '\n',
+                ]))
 
 def node_descendants(node, known_descendants=[]):
     # differentiate between pointer and "real" descendants
@@ -427,8 +440,6 @@ def node_ancestors(node, known_ancestors=[]):
         known_ancestors.append(node.parent)
         return node_ancestors(node.parent, known_ancestors)
     return known_ancestors
-
-
 
 def strip_contents(contents, 
     preserve_length=False, 
@@ -488,6 +499,10 @@ def strip_embedded_syntaxes(
     include_backtick=True):
 
     ranges = []
+    if len(stripped_contents) > 1 and stripped_contents[:2] == '~?':
+        stripped_contents = stripped_contents[2:]
+    elif len(stripped_contents) and stripped_contents[0] == '~':
+        stripped_contents = stripped_contents[1:]
     if include_backtick:
         stripped_contents = utils.strip_backtick_escape(stripped_contents)
     replaced_contents = stripped_contents

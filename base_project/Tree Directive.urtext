@@ -102,7 +102,7 @@ class TreeDirective:
     def _tree_node_is_excluded(self, tree_node):
 
         node_id = tree_node.name
-        if node_id in self.dynamic_definition.target_ids:
+        if node_id in self.dynamic_definition.target_ids():
             return True
 
         if self.dynamic_definition.excluded_nodes:

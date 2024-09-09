@@ -214,6 +214,10 @@ class UrtextBuffer:
                 contents[position:]])
             return self.set_buffer_contents(contents)
 
+        for node in self.nodes:
+            node.filename = self.filename
+            node.file = self
+
         for match in self.meta_to_node:
             # TODO optimize
             for node in self.nodes:
@@ -250,8 +254,6 @@ class UrtextBuffer:
         new_node.ranges = ranges
         new_node.start_position = ranges[0][0]
         new_node.end_position = ranges[-1][1]
-        new_node.filename = self.filename
-        new_node.file = self
 
         self.nodes.append(new_node)
         if new_node.root_node:
@@ -264,13 +266,11 @@ class UrtextBuffer:
     def set_buffer_contents(self, 
         new_contents,
         re_parse=True,
-        clear_messages=True,
-        run_hook=False):
+        clear_messages=True):
 
         self.contents = new_contents
         if clear_messages:
             self.__clear_messages()
-            return
         if re_parse:
             self._lex_and_parse()
 
@@ -331,6 +331,7 @@ class UrtextBuffer:
             ])
         self.messages = []
         self.set_buffer_contents(new_contents, clear_messages=False)
+        self.write_buffer_contents()
         
     def __get_messages(self):
         messages = []        
@@ -391,7 +392,7 @@ class UrtextBuffer:
         self.nodes = {}
         self.root_node = None
         message = message +' at position '+ str(position)
-        # if message not in self.messages:
-        #     self.messages.append()
+        if message not in self.messages:
+            self.messages.append()
 
         
