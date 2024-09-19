@@ -46,7 +46,7 @@ class NodeQuery:
 		if self.have_flags('-is_meta'):
 			added_nodes = set([node_id for node_id in added_nodes if self.project.nodes[node_id].is_meta])
 		
-		for target_id in self.dynamic_definition.target_ids:
+		for target_id in self.dynamic_definition.target_ids():
 			added_nodes.discard(target_id)  
 
 		return list(added_nodes)

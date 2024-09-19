@@ -68,7 +68,7 @@ class Navigation:
 					self.nav_index -= 1
 				self.navigation.remove(item)
 
-	def on_node_id_changed(self, project, new_node_id, old_id):
+	def on_node_id_changed(self, project, old_id, new_node_id):
 		for index, item in enumerate(self.navigation):
 			nav_project = item[0]
 			old_nav_id = item[1]

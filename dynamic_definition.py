@@ -1,7 +1,6 @@
 import datetime
-from urtext.utils import get_id_from_link
+from urtext.utils import get_id_from_link, get_all_targets_from_string
 import urtext.syntax as syntax
-
 
 class UrtextDynamicDefinition:
 
@@ -9,7 +8,6 @@ class UrtextDynamicDefinition:
 
         self.position = position
         self.contents = None
-        self.target_ids = []
         self.targets = []
         self.included_nodes = []
         self.excluded_nodes = []
@@ -36,16 +34,8 @@ class UrtextDynamicDefinition:
             func, argument_string = match.group(1), match.group().strip(match.group(1)).replace(')(', '')
             argument_string = match.group(2)
 
-            if func in ['TARGET', '>']:
-                output_target = syntax.virtual_target_match_c.match(argument_string)
-                if output_target:
-                    self.targets.append(output_target.group())
-                else:
-                    target_id = get_id_from_link(argument_string)
-                    if target_id:
-                        self.target_ids.append(target_id)
-                    else:
-                        self.targets.append(argument_string)
+            if func in ['TARGET', '>']:    
+                self.targets = get_all_targets_from_string(argument_string)
                 continue
 
             elif func in ['WHEN']:
@@ -67,38 +57,43 @@ class UrtextDynamicDefinition:
                     op.dynamic_definition = self
                     op.parse_argument_string(argument_string)
                     self.operations.append(op)
-                else:
+                elif self.project.compiled:
                     self.system_contents.append('directive "%s" not found' % func)
 
+    def is_manual(self):
+        for op in self.operations:
+            if op.is_manual:
+                return True
+        return False
+
     def preserve_title_if_present(self, target):
-        if target == '@self' and self.source_node.id in self.project.nodes:
+        if target.is_virtual and target.matching_string == '@self' and self.source_node.id in self.project.nodes:
             return ' ' + self.project.nodes[self.source_node.id].title + syntax.title_marker + '\n'
-        node_id = get_id_from_link(target)
-        if node_id in self.target_ids and node_id in self.project.nodes and (
-                self.project.nodes[node_id].first_line_title):
-            return ' ' + self.project.nodes[node_id].title + syntax.title_marker + '\n'
+        if target.is_node and target.node_id in self.project.nodes and (
+                self.project.nodes[target.node_id].first_line_title):
+            return ' ' + self.project.nodes[target.node_id].title + syntax.title_marker + '\n'
         return ''
 
     def preserve_timestamp_if_present(self, target):
-        if target == '@self' and self.source_node.id in self.project.nodes:
+        if target.is_virtual and target.matching_string == '@self' and self.source_node.id in self.project.nodes:
             oldest_timestamp = self.project.nodes[self.source_node.id].metadata.get_oldest_timestamp()
             if oldest_timestamp:
                 return oldest_timestamp.wrapped_string
-        node_id = get_id_from_link(target)
-        if node_id in self.target_ids and node_id in self.project.nodes:
-            oldest_timestamp = self.project.nodes[node_id].metadata.get_oldest_timestamp()
+        if target.is_node and target.node_id in self.project.nodes:
+            oldest_timestamp = self.project.nodes[target.node_id].metadata.get_oldest_timestamp()
             if oldest_timestamp:
                 return oldest_timestamp.wrapped_string
         return ''
 
     def process_output(self, target):
-        if target in self.target_ids and target in self.project.nodes:
-            existing_contents = self.project.nodes[target].full_contents
+        if not len(self.operations):
+            return False
+        if target.is_node and target.node_id in self.project.nodes:
+            existing_contents = self.project.nodes[target.node_id].contents_with_contained_nodes()
             if existing_contents.strip() and existing_contents.strip()[0] == '~':
-                existing_contents = existing_contents.replace('~','',1)
+                existing_contents = existing_contents[1:]
         else:
             existing_contents = ''
-
         self.included_nodes = []
         self.excluded_nodes = []
         self.sorted = False
@@ -160,25 +155,30 @@ class UrtextDynamicDefinition:
             syntax.dynamic_def_closing_wrapper
         ])
 
+    def target_ids(self):
+        return [t.node_id for t in self.targets if t.is_node and t.node_id is not None]
+
+    def target_files(self):
+        return [t.filename for t in self.targets if t.is_file and t.filename is not None]
+
     def process(self, target, flags=None):
         if flags is None:
             flags = []
         self.flags = flags
-        for target_id in self.target_ids:
-            if self.source_node.id not in self.project.nodes:
-                continue
-            if target_id not in self.project.nodes:
-                filename = self.project.nodes[self.source_node.id].filename
-                self.project.log_item(filename, {
-                    'top_message': ''.join([
-                        'Dynamic node definition in ',
-                        self.source_node.link(),
-                        '\n',
-                        'points to nonexistent node ',
-                        syntax.missing_node_link_opening_wrapper,
-                        target_id,
-                        syntax.link_closing_wrapper])
-                })
+        if target.is_node and target.node_id not in self.project.nodes:
+            # if self.source_node.id not in self.project.nodes:
+            #     continue # ?? <Fri., Sep. 06, 2024, 12:29 PM CEST>
+            filename = self.project.nodes[self.source_node.id].filename
+            self.project.log_item(filename, {
+                'top_message': ''.join([
+                    'Dynamic node definition in ',
+                    self.source_node.link(),
+                    '\n',
+                    'points to nonexistent node ',
+                    syntax.missing_node_link_opening_wrapper,
+                    target.node_id,
+                    syntax.link_closing_wrapper])
+            })
         output = self.process_output(target)
         self.ran = True
         return output

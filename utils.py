@@ -3,6 +3,7 @@ import re
 import urtext.syntax as syntax
 from urtext.url import url_match_c
 from urtext.link import UrtextLink
+from urtext.target import UrtextTarget
 
 def strip_backtick_escape(contents):
     for e in syntax.preformat_c.findall(contents):
@@ -64,6 +65,32 @@ def make_node_pointer(node_id):
         syntax.link_opening_wrapper,
         node_id,
         syntax.pointer_closing_wrapper])
+
+def get_all_targets_from_string(string):
+    targets = []
+    links, replaced_contents = get_all_links_from_string(string)
+    for link in links:
+        target = UrtextTarget(link.matching_string)
+        target.is_link = True
+        target.link = link
+        target.is_node = link.is_node
+        target.filename = link.filename
+        target.path = link.path
+        target.node_id = link.node_id
+        target.is_file = link.is_file
+        target.is_missing = link.is_missing
+        targets.append(target)
+    for match in syntax.virtual_target_match_c.finditer(replaced_contents):
+        target = UrtextTarget(match.group())
+        target.is_virtual = True
+        targets.append(target)
+        replaced_contents = replaced_contents.replace(match.group(),'', 1)
+    if replaced_contents.strip():
+        target = UrtextTarget(replaced_contents.strip())
+        target.is_raw_string = True
+        target.node_id = replaced_contents.strip()
+        targets.append(target)
+    return targets
 
 def get_all_links_from_string(string, include_http=False):
     links = []
