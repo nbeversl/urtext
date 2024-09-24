@@ -1383,8 +1383,6 @@ class UrtextProject:
             if target.matching_string == '@self':
                 if self._set_node_contents(dd.source_node.id, output):
                     f = self.nodes[dd.source_node.id].filename
-                    # print("FILE CONTENSTS IS NOTW")
-                    # print(self.files[f].contents)
                     return dd.source_node.id
             if target.matching_string == '@clipboard':
                 return self.run_editor_method('set_clipboard', output)

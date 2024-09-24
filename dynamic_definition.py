@@ -160,9 +160,7 @@ class UrtextDynamicDefinition:
         for t in self.targets:
             if t.is_virtual and t.matching_string == "@self":
                 target_ids.append(self.source_node.id)
-                print(target_ids)
                 break
-
         return target_ids
 
     def target_files(self):
