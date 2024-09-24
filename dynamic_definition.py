@@ -156,7 +156,14 @@ class UrtextDynamicDefinition:
         ])
 
     def target_ids(self):
-        return [t.node_id for t in self.targets if t.is_node and t.node_id is not None]
+        target_ids = [t.node_id for t in self.targets if t.is_node and t.node_id is not None]
+        for t in self.targets:
+            if t.is_virtual and t.matching_string == "@self":
+                target_ids.append(self.source_node.id)
+                print(target_ids)
+                break
+
+        return target_ids
 
     def target_files(self):
         return [t.filename for t in self.targets if t.is_file and t.filename is not None]
@@ -188,7 +195,7 @@ class UrtextDynamicDefinition:
             # self.preserve_timestamp_if_present(target),
             self.preserve_title_if_present(target),
             output])
-        if target == '@self':
+        if target.is_virtual and target.matching_string == '@self':
             output += self.get_definition_text()
         return output
 

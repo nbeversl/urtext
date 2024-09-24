@@ -297,7 +297,7 @@ class UrtextProject:
     def _reverify_links(self, filename):
         if filename in self.files:
             contents = self.files[filename]._get_contents()
-            for node in [n for n in self.files[filename].nodes if not n.dynamic]:
+            for node in [n for n in self.files[filename].nodes if not n.is_dynamic]:
                 rewrites = {}
                 for link in node.links:
                     if link.is_file:
@@ -341,7 +341,7 @@ class UrtextProject:
         for old_id in list(changed_ids.keys()):
             new_id = changed_ids[old_id]
             if new_id in self.nodes:
-                for project_node in [n for n in self.nodes.values() if not n.dynamic]:
+                for project_node in [n for n in self.nodes.values() if not n.is_dynamic]:
                     if project_node.id not in self.nodes:
                         continue
                     links_to_change = {}
@@ -482,18 +482,11 @@ class UrtextProject:
         return target_ids, target_files
 
     def _verify_definition_present_if_marked(self, node):
-        dynamic_contents = node.contents_with_contained_nodes().strip()
-        if dynamic_contents and dynamic_contents[0] == '~':
-            if len(dynamic_contents) == 1:
-                return True
-            target_ids, target_files = self._get_all_targets()
-            if node.id in target_ids:
-                return True
-            if len(dynamic_contents) > 1 and dynamic_contents[1] == '?':
-                return True
-            self._set_node_contents(node.id, node.contents_with_contained_nodes().replace('~', '~?', 1))
-        return True
-            
+        if node.marked_dynamic and not node.is_dynamic:
+            dynamic_contents = node.contents_with_contained_nodes().strip()
+            if len(dynamic_contents) > 1 and dynamic_contents[:2] != "~?":
+                self._set_node_contents(node.id, dynamic_contents.replace('~', '~?', 1))
+
     def _reject_definition(self, target_id, good_definition, duplicate_definition):
         message = {
             'top_message': ''.join([
@@ -551,7 +544,7 @@ class UrtextProject:
         for dd in self.__get_all_dynamic_defs():
             for node_id in dd.target_ids():
                 if node_id in self.nodes:
-                    self.nodes[node_id].dynamic = True
+                    self.nodes[node_id].is_dynamic = True
 
     """
     Removing and renaming files
@@ -932,7 +925,7 @@ class UrtextProject:
     def get_links_to(self, to_id, as_nodes=False, include_dynamic=True):
         links_to = [n for n in self.nodes.values() if to_id in n.links_ids()]
         if not include_dynamic:
-            links_to = [n for n in links_to if not n.dynamic]
+            links_to = [n for n in links_to if not n.is_dynamic]
         if not as_nodes:
             return [n.id for n in links_to]
         return links_to
@@ -942,7 +935,7 @@ class UrtextProject:
             links = self.nodes[from_id].links_ids()
             links_from = [l for l in links if l in self.nodes]
             if not include_dynamic:
-                links_from = [link for link in links_from if not self.nodes[link].dynamic]
+                links_from = [link for link in links_from if not self.nodes[link].is_dynamic]
             if as_nodes:
                 return [self.nodes[n] for n in links_from]
             return links_from
@@ -1047,9 +1040,6 @@ class UrtextProject:
     def on_modified(self, filename, flags=[]):
         if self.compiled and filename in self._get_included_files():
             if filename in self.files:
-                if self.running_on_modified == filename:
-                    print('(debugging) already visiting', filename)
-                self.running_on_modified = filename
                 self._parse_file(filename)
                 modified_files = self._compile_file(
                     filename,
@@ -1066,7 +1056,6 @@ class UrtextProject:
                 self._sync_file_list()
                 if filename in self.files:
                     self.run_hook('after_on_file_modified', filename)                
-                self.running_on_modified = None
                 return modified_files
 
     def visit_node(self, node_id):
@@ -1252,7 +1241,7 @@ class UrtextProject:
 
         if key == '_contents' and operator == '?':
             for node in list(self.nodes.values()):
-                if node.dynamic:
+                if node.is_dynamic:
                     continue
                 contents = node.stripped_contents
                 lower_contents = contents.lower()
@@ -1354,8 +1343,9 @@ class UrtextProject:
         modified_files = []
 
         for node in self.files[filename].nodes:
-            for dd in self.__get_dynamic_defs(target_node=node, source_node=node):
+            for dd in list(self.__get_dynamic_defs(target_node=node, source_node=node)):
                 modified_files.extend(self.__run_def(dd))
+            # HERE IS THE BUG
             self._verify_definition_present_if_marked(node)
         return modified_files
 
@@ -1363,6 +1353,7 @@ class UrtextProject:
         modified_files = []
         if dd.is_manual():
             return modified_files
+        visited = []
         for target in dd.targets:
             output = dd.process(target, flags=flags)
             if output not in [False, None]:
@@ -1373,9 +1364,14 @@ class UrtextProject:
                     targeted_output,
                     target,
                     dd)
-                if target in self.nodes:
-                    self.nodes[target].dynamic = True
-                    modified_files.append(self.nodes[target].filename)
+                if target.is_node and target.node_id in self.nodes:
+                    self.nodes[target.node_id].is_dynamic = True
+                    modified_files.append(self.nodes[target.node_id].filename)
+                    visited.append(target.node_id)
+                elif target.is_virtual and target.matching_string == "@self" and dd.source_node.id in self.nodes:
+                    self.nodes[dd.source_node.id].is_dynamic = True
+                    modified_files.append(self.nodes[dd.source_node.id].filename)                    
+                    visited.append(dd.source_node.id)
         return modified_files
 
     def _direct_output(self, output, target, dd):
@@ -1386,6 +1382,9 @@ class UrtextProject:
         if target.is_virtual:
             if target.matching_string == '@self':
                 if self._set_node_contents(dd.source_node.id, output):
+                    f = self.nodes[dd.source_node.id].filename
+                    # print("FILE CONTENSTS IS NOTW")
+                    # print(self.files[f].contents)
                     return dd.source_node.id
             if target.matching_string == '@clipboard':
                 return self.run_editor_method('set_clipboard', output)
@@ -1432,7 +1431,7 @@ class UrtextProject:
                 visited_nodes.append(uid)
                 continue
 
-            if uid not in visited_nodes and not self.nodes[node_to_tag].dynamic:
+            if uid not in visited_nodes and not self.nodes[node_to_tag].is_dynamic:
                 self.nodes[node_to_tag].metadata.add_entry(
                     entry.keyname,
                     entry.meta_values,

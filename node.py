@@ -22,7 +22,8 @@ class UrtextNode:
         self.is_meta = False
         self.meta_key = None
         self.export_points = {}
-        self.dynamic = False
+        self.marked_dynamic = False
+        self.is_dynamic = False
         self.id = None
         self.pointers = []
         self.display_detail = ''
@@ -47,6 +48,11 @@ class UrtextNode:
         contents = strip_errors(contents)
         self.full_contents = contents
         self.embedded_syntax_ranges, stripped_contents, replaced_contents = strip_embedded_syntaxes(contents)
+        if len(replaced_contents) and replaced_contents[0] == '~':
+            replaced_contents = replaced_contents[1:]
+            self.marked_dynamic = True
+            if len(replaced_contents) and replaced_contents[0] == '?':
+                replaced_contents = replaced_contents[1:]
         self._get_links(replaced_contents)
         self.dd_ranges, stripped_contents, replaced_contents = self.parse_dynamic_definitions(replaced_contents)
         self.metadata = self.urtext_metadata(self, self.project)        
@@ -92,8 +98,9 @@ class UrtextNode:
         return contents
 
     def contents_with_contained_nodes(self):
+        self.project._parse_file(self.filename)
         file_contents = self.file._get_contents()
-        full_contents = file_contents[self.start_position:self.end_position+1]
+        full_contents = file_contents[self.start_position:self.end_position-1]
         return full_contents
 
     def links_ids(self):
@@ -355,7 +362,7 @@ class UrtextNode:
         return node_descendants(self)
 
     def replace_links(self, original_id, new_id='', new_project=''):
-        if self.dynamic:
+        if self.is_dynamic:
             return
         if not new_id and not new_project:
             return None
@@ -498,10 +505,6 @@ def strip_embedded_syntaxes(
     include_backtick=True):
 
     ranges = []
-    if len(stripped_contents) > 1 and stripped_contents[:2] == '~?':
-        stripped_contents = stripped_contents[2:]
-    elif len(stripped_contents) and stripped_contents[0] == '~':
-        stripped_contents = stripped_contents[1:]
     if include_backtick:
         stripped_contents = utils.strip_backtick_escape(stripped_contents)
     replaced_contents = stripped_contents
