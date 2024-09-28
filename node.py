@@ -98,7 +98,6 @@ class UrtextNode:
         return contents
 
     def contents_with_contained_nodes(self):
-        self.project._parse_file(self.filename)
         file_contents = self.file._get_contents()
         full_contents = file_contents[self.start_position:self.end_position-1]
         return full_contents
