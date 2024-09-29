@@ -1070,7 +1070,11 @@ class UrtextProject:
 
     def visit_file(self, filename):
         if filename in self.files and self.compiled:
-            return self.on_modified(filename, flags=['-file_visited'])
+            modified_files = self.on_modified(filename, flags=['-file_visited'])
+            self.run_editor_method(
+                'refresh_files',
+                modified_files)
+            return modified_files
 
     def _sync_file_list(self):
         included_files = self._get_included_files()
@@ -1213,11 +1217,7 @@ class UrtextProject:
                     'open_file_to_position',
                     self.nodes[dd.source_node.id].filename,
                     self.nodes[dd.source_node.id].get_file_position(dd.position))
-                modified_files = self.visit_node(dd.source_node.id)
-                self.run_editor_method(
-                    'refresh_files',
-                    modified_files)
-                return modified_files
+                return self.visit_node(dd.source_node.id)
         self.handle_info_message('No dynamic definition for "%s"' % target_id)
 
     def get_by_meta(self,
@@ -1355,7 +1355,6 @@ class UrtextProject:
         modified_files = []
         if dd.is_manual():
             return modified_files
-        visited = []
         for target in dd.targets:
             output = dd.process(target, flags=flags)
             if output not in [False, None]:
@@ -1369,11 +1368,9 @@ class UrtextProject:
                 if target.is_node and target.node_id in self.nodes:
                     self.nodes[target.node_id].is_dynamic = True
                     modified_files.append(self.nodes[target.node_id].filename)
-                    visited.append(target.node_id)
                 elif target.is_virtual and target.matching_string == "@self" and dd.source_node.id in self.nodes:
                     self.nodes[dd.source_node.id].is_dynamic = True
                     modified_files.append(self.nodes[dd.source_node.id].filename)                    
-                    visited.append(dd.source_node.id)
         return modified_files
 
     def _direct_output(self, output, target, dd):
