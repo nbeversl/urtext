@@ -1213,10 +1213,12 @@ class UrtextProject:
                     'open_file_to_position',
                     self.nodes[dd.source_node.id].filename,
                     self.nodes[dd.source_node.id].get_file_position(dd.position))
-                return self.visit_node(dd.source_node.id)
-        self.handle_info_message(
-            'No dynamic definition for "%s"' % target_id
-        )
+                modified_files = self.visit_node(dd.source_node.id)
+                self.run_editor_method(
+                    'refresh_files',
+                    modified_files)
+                return modified_files
+        self.handle_info_message('No dynamic definition for "%s"' % target_id)
 
     def get_by_meta(self,
                     key,
