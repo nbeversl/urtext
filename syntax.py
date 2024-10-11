@@ -95,6 +95,8 @@ dd_key_with_opt_flags = r''.join([
     ')?',
     ])
 dynamic_def = r'(?:\[\[)([^\]]*?)(?:\]\])'
+dynamic_marker = '~'
+dynamic_def_missing_marker = '?'
 embedded_syntax_open = r'%%\w+'
 embedded_syntax_close = r'%%'+pattern_break
 format_key = r'\$_?[\.A-Za-z0-9_-]*'
@@ -217,7 +219,7 @@ file_link = r''.join([
     file_link_modifiers['file'],
     file_link_modifier_group,
     space,
-    r'([^;\n\r]+)',
+    r'([^;\n\r]+?)',
     link_closing_wrapper])
 
 not_metadata_separator = r'([^\s]*(\s([^-]|$)|\s-([^\s]|$)|))' 
@@ -276,6 +278,7 @@ dd_hash_meta_c = re.compile(dd_hash_meta)
 dd_key_with_opt_flags = re.compile(dd_key_with_opt_flags)
 dd_key_op_value_c = re.compile(dd_key_op_value)
 dynamic_def_c = re.compile(dynamic_def, flags=re.DOTALL)
+dynamic_marker_c = re.compile(dynamic_marker)
 file_link_c = re.compile(file_link)
 embedded_syntax_open_c = re.compile(embedded_syntax_open, flags=re.DOTALL)
 embedded_syntax_c = re.compile(embedded_syntax_full, flags=re.DOTALL)

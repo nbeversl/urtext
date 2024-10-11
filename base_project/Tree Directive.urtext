@@ -124,7 +124,8 @@ class TreeDirective:
         for pointer in urtext_node.pointers:
             if pointer['id'] not in ancestors:
                 if pointer['id'] not in self.project.nodes:
-                    alias_node = self.Node('< Not in project: ' + pointer['id'] + ' >')
+                    alias_node = self.Node(pointer['id'])
+                    alias_node.position = pointer['position']
                     alias_node.parent = from_tree_node
                     ancestors.append(pointer['id'])
                     continue

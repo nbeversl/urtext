@@ -37,8 +37,6 @@ def make_project_link(project_name):
         ])
 
 def write_file_contents(filename, contents):
-    if os.path.exists(filename):
-        os.remove(filename)    
     with open(filename, 'w', encoding='utf-8' ) as f:
         f.write(contents)
 
@@ -88,6 +86,7 @@ def get_all_targets_from_string(string):
     if replaced_contents.strip():
         target = UrtextTarget(replaced_contents.strip())
         target.is_raw_string = True
+        target.is_node = True
         target.node_id = replaced_contents.strip()
         targets.append(target)
     return targets
@@ -97,12 +96,15 @@ def get_all_links_from_string(string, include_http=False):
     replaced_contents = string
     
     for match in syntax.cross_project_link_with_node_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())        
+        link = UrtextLink(match.group())
         link.project_name = match.group(2)
-        link.node_id = match.group(4)
+        link.node_id = match.group(6)
         link.is_node = True
-        if match.group(7):
-            link.dest_node_position = match.group(7)[1:]
+        if match.group(9):
+            try:
+                link.dest_node_position = int(match.group(9)[1:])
+            except:
+                pass
         link.position_in_string = match.start()
         links.append(link)
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
@@ -135,8 +137,10 @@ def get_all_links_from_string(string, include_http=False):
         link.node_id = match.group(5).strip()
         link.is_node = True
         if match.group(7):
-            link.dest_node_position = int(match.group(7)[1:])
-
+            try:
+                link.dest_node_position = int(match.group(7)[1:])
+            except:
+                pass
         if match.group(6) == syntax.pointer_closing_wrapper:
             link.is_pointer = True  
         link.position_in_string = match.start()

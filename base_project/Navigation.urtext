@@ -75,5 +75,25 @@ class Navigation:
 			if project == nav_project and (old_nav_id == old_id):
 				self.navigation[index] = (project, new_node_id)
 
+	def on_selected(self, project):
+		on_selected_setting = project.get_setting_as_text('on_selected')
+		if on_selected_setting:
+			for action in on_selected_setting:
+				if action == 'last_nav':
+					reversed_navs = list(self.navigation)
+					reversed_navs.reverse()
+					for index, item in enumerate(reversed_navs):
+						nav_project, node_id = item
+						if nav_project == project:
+							return project.open_node(node_id)
+
+				if action == 'open_home':
+					if project.open_home():
+						return
+					elif not project.compiled:
+						timer = threading.Timer(.5, self.on_selected)
+						timer.start()
+						return timer
+
 ProjectList.add_directive(Navigation)
 %%

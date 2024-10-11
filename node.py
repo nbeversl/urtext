@@ -48,11 +48,7 @@ class UrtextNode:
         contents = strip_errors(contents)
         self.full_contents = contents
         self.embedded_syntax_ranges, stripped_contents, replaced_contents = strip_embedded_syntaxes(contents)
-        if len(replaced_contents) and replaced_contents[0] == '~':
-            replaced_contents = replaced_contents[1:]
-            self.marked_dynamic = True
-            if len(replaced_contents) and replaced_contents[0] == '?':
-                replaced_contents = replaced_contents[1:]
+        replaced_contents, self.marked_dynamic = check_and_sanitize_dynamic_marker(replaced_contents)
         self._get_links(replaced_contents)
         self.dd_ranges, stripped_contents, replaced_contents = self.parse_dynamic_definitions(replaced_contents)
         self.metadata = self.urtext_metadata(self, self.project)        
@@ -525,3 +521,21 @@ def strip_embedded_syntaxes(
             replaced_contents = replaced_contents.replace(contents, ' '*len(contents))
         ranges.append([e.start(), e.end()])
     return ranges, stripped_contents, replaced_contents
+
+def check_and_sanitize_dynamic_marker(text):
+    marked_dynamic = False
+    missing = False
+    while True:
+        text = text.lstrip()
+        if not len(text):
+            break
+        if text[0] == syntax.dynamic_marker:
+            marked_dynamic = True
+            text = text[1:]
+        else:
+            break
+    if len(text) and text[0] == syntax.dynamic_def_missing_marker:
+        text = text[1:]
+    return text, marked_dynamic
+
+

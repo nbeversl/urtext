@@ -120,12 +120,11 @@ class UrtextProject:
             elif self._include_file(self.entry_point):
                 self._parse_file(self.entry_point)
                 self.entry_path = os.path.abspath(os.path.dirname(self.entry_point))
-            if self.entry_path:
-                self.paths.append(os.path.abspath(self.entry_path))
+            self.paths.append(os.path.abspath(self.entry_point))          
             for file in self._get_included_files():
                 self._parse_file(file)
         else:
-            self.handle_error_message('Project path does not exist: %s' % self.entry_point)
+            self.run_editor_method('popup', 'Project path does not exist: %s' % self.entry_point)
             return False
 
         for p in self.get_settings_paths():
@@ -159,7 +158,7 @@ class UrtextProject:
         if self.initial_project:
             self.on_initialized()
         self.run_hook('on_initialized')
-        self.handle_info_message('Compiling Urtext project from %s' % self.entry_point)
+        self.handle_info_message('Compiling Urtext project from %s' % os.path.basename(self.entry_point))
         self._compile()
 
         other_entry_points = self.get_setting('other_entry_points')
@@ -964,8 +963,7 @@ class UrtextProject:
                     position=self.nodes[link.node_id].start_position + link.dest_node_position)
 
         elif link.is_node:
-            return self.project_list.handle_link_using_all_projects(link)
-           
+            return  self.run_editor_method('popup', 'Node cannot be found in the current project.')
         return link
 
     def _is_duplicate_id(self, node_id):
@@ -1055,26 +1053,18 @@ class UrtextProject:
                 self.files[filename] = file_obj
                 self._sync_file_list()
                 if filename in self.files:
-                    self.run_hook('after_on_file_modified', filename)                
+                    self.run_hook('after_on_file_modified', filename)  
+                self.run_editor_method('refresh_files', modified_files)
                 return modified_files
 
     def visit_node(self, node_id):
         self.run_hook('on_node_visited', self, node_id)
         if self.compiled:
-            filename = self.nodes[node_id].filename
-            self.run_editor_method('status_message',
-                                   ''.join([
-                                       self.title(),
-                                       ' (compiled)']))
-            return self.visit_file(filename)
+            self.run_editor_method('status_message', ''.join([self.title(),' (compiled)']))
+            return self.visit_file(self.nodes[node_id].filename)
 
     def visit_file(self, filename):
-        if filename in self.files and self.compiled:
-            modified_files = self.on_modified(filename, flags=['-file_visited'])
-            self.run_editor_method(
-                'refresh_files',
-                modified_files)
-            return modified_files
+        return self.on_modified(filename, flags=['-file_visited'])
 
     def _sync_file_list(self):
         included_files = self._get_included_files()
@@ -1090,7 +1080,10 @@ class UrtextProject:
     def _get_included_files(self):
         files = []
         for pathname in self.paths:
-            files.extend([os.path.join(pathname, f) for f in os.listdir(pathname)])
+            if os.path.isdir(pathname):
+                files.extend([os.path.join(pathname, f) for f in os.listdir(pathname)])
+            else:
+                files.extend([os.path.join(os.path.dirname(pathname), f) for f in os.listdir(os.path.dirname(pathname))])
         return [f for f in files if self._include_file(f)]
 
     def get_settings_paths(self):
@@ -1117,8 +1110,6 @@ class UrtextProject:
                                     if '/.git' in dirpath or '/_diff' in dirpath:
                                         continue
                                     paths.append(os.path.abspath(dirpath))
-                    else:
-                        print("NO PATH FOR", pathname.text)
         return paths
 
     def _include_file(self, filename):
@@ -1370,6 +1361,8 @@ class UrtextProject:
                     modified_files.append(self.nodes[target.node_id].filename)
                 elif target.is_virtual and target.matching_string == "@self" and dd.source_node.id in self.nodes:
                     self.nodes[dd.source_node.id].is_dynamic = True
+                    target.is_node = True
+                    target.node_id = dd.source_node.id
                     modified_files.append(self.nodes[dd.source_node.id].filename)                    
         return modified_files
 
@@ -1399,8 +1392,9 @@ class UrtextProject:
             utils.write_file_contents(os.path.join(self.entry_path, target.path), output)
             return target.filename
         if target.is_raw_string and target.matching_string in self.nodes:  # fallback
-            self._set_node_contents(target.matching_string, output)
-            return target.node_id
+            if self._set_node_contents(target.matching_string, output):
+                return target.matching_string
+            return False
 
     """ Metadata Handling """
 
@@ -1466,16 +1460,8 @@ class UrtextProject:
                 if self.open_home():
                     return
 
-    def on_activated(self):
-        on_activated_setting = self.get_setting_as_text('on_activated')
-        for action in on_activated_setting:
-            if action == 'open_home':
-                if self.open_home():
-                    return
-                elif not self.compiled:
-                    timer = threading.Timer(.5, self.on_activated)
-                    timer.start()
-                    return timer
+    def on_selected(self):
+        self.run_hook('on_selected', self)
 
     def has_folder(self, folder):
         included_paths = self.get_settings_paths()

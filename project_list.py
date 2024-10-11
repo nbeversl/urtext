@@ -95,7 +95,6 @@ class ProjectList:
             if not self.set_current_project(link.project_name):
                 self.run_editor_method('popup', 'Project is not available.')
                 return None
-
         elif filename:
             self.set_current_project(os.path.dirname(filename))
 
@@ -105,11 +104,11 @@ class ProjectList:
                     'open_external_file',
                     link.path)
             elif self.current_project and os.path.exists(
-                os.path.join(self.current_project.entry_path, link.path)):
+                os.path.abspath(os.path.join(self.current_project.entry_path, link.path))):
                 # try as relative path
                 return self.run_editor_method(
                     'open_external_file',
-                    os.path.join(self.current_project.entry_path, link.path))
+                    os.path.abspath(os.path.join(self.current_project.entry_path, link.path)))
             else:
                 self.handle_message('Path does not exist')
 
@@ -119,14 +118,6 @@ class ProjectList:
 
         elif link.is_http:
             return self.run_editor_method('open_http_link', link.url)
-
-    def handle_link_using_all_projects(self, link):
-        for project in self.projects:
-            if link.node_id in project.nodes:
-                self.set_current_project(project.title())
-                return self.current_project.handle_link(link)
-        self.handle_message('Node cannot be found in any active project.')
-        link.is_missing=True
 
     def handle_unusable_link(self):
         if self.current_project and not self.current_project.compiled:
@@ -165,6 +156,9 @@ class ProjectList:
             project = self._get_project_from_path(title_or_path)
         return project
 
+    def select_project(self, project_or_title_or_path, notify=True, run_hook=False):
+        self.set_current_project(project_or_title_or_path, notify=True, run_hook=True)    
+
     def set_current_project(self, project_or_title_or_path, notify=True, run_hook=False):
         if isinstance(project_or_title_or_path, UrtextProject):
             project = project_or_title_or_path
@@ -180,7 +174,7 @@ class ProjectList:
                    'Switched to project: %s ' % self.current_project.title())
             project_paths = self.current_project.get_settings_paths()
             if project_paths and run_hook:
-                self.current_project.on_activated()
+                self.current_project.on_selected()
         return self.current_project
 
     def build_contextual_link(self,

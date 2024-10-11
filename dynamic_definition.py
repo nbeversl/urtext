@@ -20,7 +20,6 @@ class UrtextDynamicDefinition:
         self.param_string = param_string
         self.system_contents = []
         self.init_self(param_string)
-        self.sorted = False
         self.source_node = None  # set by node once compiled
         if not self.show:
             self.show = '$_link\n'
@@ -96,27 +95,10 @@ class UrtextDynamicDefinition:
             existing_contents = ''
         self.included_nodes = []
         self.excluded_nodes = []
-        self.sorted = False
         self.project.run_hook('on_dynamic_def_process_started', self)
         accumulated_text = ''
-
+        
         for operation in self.operations:
-
-            # if not self.sorted:
-            #     # TODO this should not happen on every iteration.
-            #     self.included_nodes = sorted(
-            #         self.included_nodes,
-            #         key=lambda node: node.title)
-            #     self.included_nodes = sorted(
-            #         self.included_nodes,
-            #         key=lambda node: node.metadata.get_first_value(
-            #             '_oldest_timestamp').timestamp.datetime if (
-            #             node.metadata.get_first_value('_oldest_timestamp')) else (
-            #             datetime.datetime(
-            #                 1, 1, 1,
-            #                 tzinfo=datetime.timezone.utc)),
-            #         reverse=True)
-
             current_text = accumulated_text
             try:
                 transformed_text = operation.dynamic_output(current_text)

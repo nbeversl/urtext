@@ -8,6 +8,7 @@ See also | Pull >
 class PopNode:
 
     name=['POP_NODE']
+    is_running = False
     import os
     
     def run(self,
@@ -23,9 +24,12 @@ class PopNode:
             return self.project.handle_info_message(
                 '%s not in project' % source_filename)
 
+        if self.project.directives['PULL_NODE'].is_running:
+            return
+
+        self.is_running = True
         self.project.run_editor_method('save_file', source_filename)
-        return self.project.project_list.execute(
-            self._pop_node_from_editor,
+        return self._pop_node_from_editor(
             source_filename, 
             file_pos,
             from_project=from_project)
@@ -35,22 +39,24 @@ class PopNode:
         file_pos,
         from_project=None):
 
-        
         self.project._parse_file(source_filename)
 
         popped_node_id = self.project.get_node_id_from_position(source_filename, file_pos) 
         if not popped_node_id:
+            self.is_running = False
             return self.project.handle_info_message(
                 'No node ID or duplicate Node ID')        
         if popped_node_id not in self.project.nodes:
+            self.is_running = False
             return self.project.handle_info_message(
                 '%s not in project' % popped_node_id)
 
         if self.project.nodes[popped_node_id].root_node:
+            self.is_running = False
             return self.project.handle_info_message(
                 '%s is already a root node.' % popped_node_id)
 
-        self._pop_node(popped_node_id, from_project=from_project)
+        return self._pop_node(popped_node_id, from_project=from_project)
 
     def _pop_node(self,
         popped_node_id,
@@ -121,6 +127,7 @@ class PopNode:
                 source_filename,
                 remaining_node_contents)
         self.project._parse_file(source_filename)
+        self.is_running = False
         return new_file_node['filename']
 
 ThisProject.add_directive(PopNode)
