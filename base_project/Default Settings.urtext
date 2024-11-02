@@ -9,28 +9,29 @@ case_sensitive::title - project_title - timestamp_format - filenames - timestamp
 console_log::False
 contents_strip_internal_whitespace::True
 contents_strip_outer_whitespace::True
+exclude_files::
 exclude_from_star::title - _newest_timestamp - _oldest_timestamp - _inline_timestamp
-filenames::title
+filenames::title - _oldest_timestamp
 file_extensions::.urtext
 filename_datestamp_format::%m-%d-%Y %I-%M %p
 filename_title_length::100
 hash_key::keyword
 home::Home
 new_file_node_format::$timestamp\n$cursor
-meta_browser_sort_keys_by::alpha
-meta_browser_sort_values_by::alpha
-meta_browser_sort::_oldest_timestamp
-node_browser_sort::_oldest_timestamp - title
-node_date_keyname::_oldest_timestamp
-numerical_settings::_index - index - title_length - filename_title_length
-on_loaded::open_home
-on_activated::open_last_nav
 new_filenames_template::$device_keyname $timestamp 
 node_browser_detail::_newest_timestamp
-timestamp_format::%a., %b. %d, %Y, %I:%M %p %Z
-title_length::255,
-use_timestamp::timestamp - _inline_timestamp - _oldest_timestamp - _newest_timestamp
+meta_browser_sort_keys_by::alpha
+meta_browser_sort_values_by::alpha
+meta_browser_key::
+meta_browser_sort_nodes_by::_oldest_timestamp
+node_browser_sort::_oldest_timestamp - title
+numerical_settings::_index - index - title_length - filename_title_length
+on_loaded::open_home
+on_selected::open_last_nav - open_home - open_any
+on_activated::open_last_nav - open_home - open_any
 project_title::Urtext Base Project & Documentation
 propagate_settings::_all
 propagate_directives::_all
-as_node_settings::paths
+timestamp_format::%a., %b. %d, %Y, %I:%M %p %Z
+title_length::255,
+use_timestamp::timestamp - _inline_timestamp - _oldest_timestamp - _newest_timestamp

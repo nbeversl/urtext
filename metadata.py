@@ -174,14 +174,13 @@ class NodeMetadata:
         if inline_timestamp_entries:
             inline_timestamps = sorted(
                 inline_timestamp_entries,
-                key=lambda t: t.meta_values[0].timestamp.datetime
-                )
+                key=lambda t: t.meta_values[0].timestamp)
             self.add_entry(
                 '_oldest_timestamp', 
                 [MetadataValue(inline_timestamps[0].meta_values[0].timestamp.wrapped_string)],
                 self.node,
                 start_position=inline_timestamps[0].start_position,
-                end_position=inline_timestamps[-1].end_position)
+                end_position=inline_timestamps[0].end_position)
             self.add_entry(
                 '_newest_timestamp',
                 [MetadataValue(inline_timestamps[-1].meta_values[0].timestamp.wrapped_string)],

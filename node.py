@@ -101,9 +101,6 @@ class UrtextNode:
     def links_ids(self):
         return [link.node_id for link in self.links]
 
-    def date(self):
-        return self.metadata.get_date(self.project.get_single_setting('node_date_keyname'))
-
     def resolve_id(self, allocated_ids=None):
         return_value = {
             'resolved_id': None,

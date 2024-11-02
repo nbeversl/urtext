@@ -51,6 +51,7 @@ class UrtextProject:
         self.running_on_modified = None
         self.new_file_node_created = new_file_node_created
         self.initial_project = initial
+        self.visible = None
 
     def get_setting(self,
             setting,
@@ -58,8 +59,8 @@ class UrtextProject:
             use_project_list=True):
 
         values = []
-        for node in self.project_settings_nodes:
-            values.extend(node.metadata.get_values(setting))
+        for node_id in self.project_settings_nodes:
+            values.extend(self.nodes[node_id].metadata.get_values(setting))
         if not values and not _called_from_project_list and use_project_list:
             return self.project_list.get_setting(setting, self)
         if values and values[0].is_node:
@@ -96,8 +97,8 @@ class UrtextProject:
 
     def get_settings_keys(self):
         keys = []
-        for n in self.project_settings_nodes:
-            keys.extend(n.metadata.get_keys())
+        for nid in self.project_settings_nodes:
+            keys.extend(self.nodes[nid].metadata.get_keys())
         return keys
 
     def get_propagated_settings(self, _called_from_project_list=False):
@@ -106,7 +107,8 @@ class UrtextProject:
             return self.get_settings_keys()
         return propagated_settings
 
-    def initialize(self):
+    def initialize(self, callback=None, initial=True, visible=True):
+        self.visible = visible
         self.add_directive(Exec)
         for directive in self.project_list.directives.values():
             self.add_directive(directive)
@@ -115,17 +117,23 @@ class UrtextProject:
 
         num_file_extensions = len(self.get_setting('file_extensions'))
         if os.path.exists(self.entry_point):
-            if os.path.isdir(self.entry_point):
+            if os.path.isdir(self.entry_point) and self._approve_new_path(self.entry_point):
                 self.entry_path = os.path.abspath(self.entry_point)
+                self.paths.append(os.path.abspath(self.entry_point))          
             elif self._include_file(self.entry_point):
                 self._parse_file(self.entry_point)
                 self.entry_path = os.path.abspath(os.path.dirname(self.entry_point))
-            self.paths.append(os.path.abspath(self.entry_point))          
+                self.paths.append(os.path.abspath(self.entry_point))
             for file in self._get_included_files():
                 self._parse_file(file)
-        else:
-            self.run_editor_method('popup', 'Project path does not exist: %s' % self.entry_point)
+        if not self.files:
             return False
+
+        if visible:
+            self.handle_info_message('Initializing Urtext project from %s' % os.path.basename(self.entry_point))
+
+        if callback:
+            callback(self, initial=initial)
 
         for p in self.get_settings_paths():
             if self._approve_new_path(p):
@@ -158,7 +166,6 @@ class UrtextProject:
         if self.initial_project:
             self.on_initialized()
         self.run_hook('on_initialized')
-        self.handle_info_message('Compiling Urtext project from %s' % os.path.basename(self.entry_point))
         self._compile()
 
         other_entry_points = self.get_setting('other_entry_points')
@@ -167,14 +174,15 @@ class UrtextProject:
                 urtext_links = value.links()
                 if urtext_links:
                     for path in [link.path for link in urtext_links if link.path]:
-                        self.project_list._add_project(os.path.abspath(path))
+                        self.project_list._init_project(os.path.abspath(path))
                     continue
-                self.project_list._add_project(os.path.abspath(utils.get_path_from_link(value.text)))
+                self.project_list._init_project(os.path.abspath(utils.get_path_from_link(value.text)))
 
         self.compiled = True
         self.last_compile_time = time.time() - self.time
         self.time = time.time()
-        self.handle_info_message('"%s" compiled' % self.title())
+        if visible:
+            self.handle_info_message('"%s" compiled' % self.title())
         return True
 
     def _approve_new_path(self, path):
@@ -182,7 +190,13 @@ class UrtextProject:
             self.log_item('system', {
                 'top_message':  "%s is already in another project." % path})
             return False
-        return True
+        if os.path.isdir(path):
+            for f in os.listdir(path):
+                if self.is_project_file(f):
+                    return True
+        if self.is_project_file(path):
+            return True
+        return False
 
     def _parse_file(self, filename, try_buffer=False):
         if self._filter_filenames(filename) is None:
@@ -480,11 +494,13 @@ class UrtextProject:
             target_files.extend(d.target_files())
         return target_ids, target_files
 
-    def _verify_definition_present_if_marked(self, node):
-        if node.marked_dynamic and not node.is_dynamic:
+    def _verify_definition_present_if_marked(self, node_id):
+        if self.nodes[node_id].marked_dynamic and not self.nodes[node_id].is_dynamic:
             dynamic_contents = node.contents_with_contained_nodes().strip()
             if len(dynamic_contents) > 1 and dynamic_contents[:2] != "~?":
-                self._set_node_contents(node.id, dynamic_contents.replace('~', '~?', 1))
+                self._set_node_contents(self.nodes[node_id], dynamic_contents.replace('~', '~?', 1))
+                return False
+        return True
 
     def _reject_definition(self, target_id, good_definition, duplicate_definition):
         message = {
@@ -510,7 +526,7 @@ class UrtextProject:
         if self.compiled:
             new_node.metadata.convert_node_links()
         if new_node.title == 'project_settings':
-            self.project_settings_nodes.append(new_node)
+            self.project_settings_nodes.append(new_node.id)
         self.run_hook('on_node_added', new_node)
 
     def get_source_node(self, filename, position):  # future
@@ -565,8 +581,8 @@ class UrtextProject:
         if node.id in self.nodes:  # might not be if it's an incompletely parsed buffer
             self._remove_sub_tags(node.id)
             self._remove_dynamic_metadata_entries(node.id)
-            if node in self.project_settings_nodes:
-                self.project_settings_nodes.remove(node)
+            if node.id in self.project_settings_nodes:
+                self.project_settings_nodes.remove(node.id)
             del self.nodes[node.id]
 
     def delete_file(self, filename):
@@ -863,7 +879,8 @@ class UrtextProject:
         return self._sort_nodes(
             nodes,
             self.get_setting_as_text('node_browser_sort'),
-            as_nodes=as_nodes)
+            as_nodes=as_nodes,
+            reverse=True)
 
     def sort_for_meta_browser(self, nodes, as_nodes=False):
         meta_browser_key = self.get_single_setting('meta_browser_key')
@@ -876,10 +893,10 @@ class UrtextProject:
                 as_nodes=as_nodes)
         return self._sort_nodes(
             nodes,
-            self.get_setting_as_text('meta_browser_sort'),
+            self.get_setting_as_text('meta_browser_sort_nodes_by'),
             as_nodes=as_nodes)
 
-    def _sort_nodes(self, nodes, keys, as_nodes=False):
+    def _sort_nodes(self, nodes, keys, as_nodes=False, reverse=False):
         remaining_nodes = nodes
         sorted_nodes = []
         use_timestamp_setting = self.get_setting_as_text('use_timestamp')
@@ -894,11 +911,11 @@ class UrtextProject:
                         node_group,
                         key=lambda node: node.metadata.get_first_value(k).timestamp if node.metadata.get_first_value(
                             k) else None,
-                        reverse=True)
+                        reverse=reverse)
                 else:
                     node_group = sorted(
                         node_group,
-                        key=lambda n: n.metadata.get_first_value(k))
+                        key=lambda n: n.metadata.get_first_value(k), reverse=reverse)
                 for node in node_group:
                     if not detail_key:
                         detail_key = k
@@ -1115,6 +1132,11 @@ class UrtextProject:
     def _include_file(self, filename):
         if filename in self.excluded_files:
             return False
+        if self.is_project_file(filename):
+            return True
+        return False
+
+    def is_project_file(self, filename):
         file_extensions = self.get_setting_as_text('file_extensions')
         if '.urtext' not in file_extensions or 'urtext' not in file_extensions:
             file_extensions.append('.urtext')  # for bootstrapping
@@ -1338,8 +1360,15 @@ class UrtextProject:
         for node in self.files[filename].nodes:
             for dd in list(self.__get_dynamic_defs(target_node=node, source_node=node)):
                 modified_files.extend(self.__run_def(dd))
-            # HERE IS THE BUG
-            self._verify_definition_present_if_marked(node)
+
+        node_ids = []
+        while len(node_ids) < len(self.files[filename].nodes):
+            for node_id in [n.id for n in self.files[filename].nodes]:
+                if node_id in node_ids:
+                    continue
+                node_ids.append(node_id)
+                if self._verify_definition_present_if_marked(node_id) is False:
+                    break
         return modified_files
 
     def __run_def(self, dd, flags=None):
@@ -1517,11 +1546,12 @@ class UrtextProject:
             pass
 
         if Directive.project_instance:
-            global_directive = Directive(self)
-            global_directive.on_added()
-            self.project_instance_directives[Directive.name[0]] = (Directive(self))
-            if Directive.name in propagated_directives or propagate_all_directives:
-                self.project_list.add_directive(directive)
+            if Directive.name[0] not in self.project_instance_directives:
+                global_directive = Directive(self)
+                global_directive.on_added()
+                self.project_instance_directives[Directive.name[0]] = (Directive(self))
+                if Directive.name in propagated_directives or propagate_all_directives:
+                    self.project_list.add_directive(directive)
         else:
             for n in directive.name:
                 self.directives[n] = directive

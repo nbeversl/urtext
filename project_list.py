@@ -37,14 +37,14 @@ class ProjectList:
         self.current_project = None
         self.node_opened = False
         if base_project:
-            self.add_project(os.path.abspath(base_project))
+            self.init_project(os.path.abspath(base_project), visible=False)
         if os.path.abspath(base_project) != os.path.abspath(self.entry_point):
-            self.add_project(os.path.abspath(self.entry_point), initial=True)
+            self.init_project(os.path.abspath(self.entry_point), initial=True, visible=True)
 
-    def add_project(self, entry_point, new_file_node_created=False, initial=False):
-        self.execute(self._add_project, entry_point, new_file_node_created=False, initial=initial)
+    def init_project(self, entry_point, new_file_node_created=False, initial=False, visible=True):
+        self.execute(self._init_project, entry_point, new_file_node_created=False, initial=initial, visible=visible)
 
-    def _add_project(self, entry_point, new_file_node_created=False, initial=None):
+    def _init_project(self, entry_point, new_file_node_created=False, initial=None, visible=True):
         if self.get_project(entry_point):
             return
         project = UrtextProject(entry_point,
@@ -52,9 +52,11 @@ class ProjectList:
                                 editor_methods=self.editor_methods,
                                 initial=initial,
                                 new_file_node_created=new_file_node_created)
+        project.initialize(callback=self.add_project, initial=initial, visible=visible)
+
+    def add_project(self, project, initial=False):
         self.projects.append(project)
         self.entry_points.append(project.entry_point)
-        project.initialize()
         if initial:
             self.current_project = project
 
@@ -136,7 +138,7 @@ class ProjectList:
             self.current_project = project
             return project.on_modified(filename)
         else:
-            self._add_project(filename)
+            self._init_project(filename)
 
     def _get_project_from_path(self, path):
         if not os.path.isdir(path):
@@ -156,10 +158,10 @@ class ProjectList:
             project = self._get_project_from_path(title_or_path)
         return project
 
-    def select_project(self, project_or_title_or_path, notify=True, run_hook=False):
-        self.set_current_project(project_or_title_or_path, notify=True, run_hook=True)    
+    def select_project(self, project_or_title_or_path, visible=True, run_hook=False):
+        self.set_current_project(project_or_title_or_path, visible=True, run_hook=True)    
 
-    def set_current_project(self, project_or_title_or_path, notify=True, run_hook=False):
+    def set_current_project(self, project_or_title_or_path, visible=True, run_hook=False):
         if isinstance(project_or_title_or_path, UrtextProject):
             project = project_or_title_or_path
         else:
@@ -169,7 +171,7 @@ class ProjectList:
         if (not self.current_project) or (
                 project.title() != self.current_project.title()):
             self.current_project = project
-            if notify:
+            if visible:
                 self.run_editor_method('popup',
                    'Switched to project: %s ' % self.current_project.title())
             project_paths = self.current_project.get_settings_paths()
@@ -199,10 +201,7 @@ class ProjectList:
             return link
 
     def project_titles(self):
-        titles = []
-        for project in self.projects:
-            titles.append(project.title())
-        return titles
+        return [p.title() for p in self.projects if p.visible]
 
     def get_project_title_from_link(self, target):
         match = syntax.project_link_c.search(target)
