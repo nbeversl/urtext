@@ -1,0 +1,38 @@
+TEXT() _ #directive
+
+Outputs arbitrary/freeform text. Can be used at any location in a dynamic output.
+
+Example:
+
+[[	>(| Example Use of TEXT() >)
+	TEXT(This text appears at thasdasde top)
+	INCLUDE(*)
+	LIMIT(5)
+	TREE()
+	TEXT(This text appears in the middle)
+	INCLUDE(*)
+	SORT(title -r)
+	LIMIT(5)
+	TREE()
+	TEXT(This text appears at the end) ]]
+
+
+Output:
+
+{~ Example Use of TEXT() _
+This text appears at thasdasde top
+| AND/OR >
+| About Urtext >
+| All Directives >
+| Arguments >
+| Bracket Node Wrappers >
+This text appears in the middle
+| self >
+| project_settings >
+| popup _ >
+| metadata is not getting pulled from hash keys >
+| log _ >
+This text appears at the end
+}
+
+See next: | MAX_LENGTH() >

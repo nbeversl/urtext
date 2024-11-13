@@ -1,6 +1,7 @@
 import os
 import concurrent.futures
 import sys
+import shutil
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     custom_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
@@ -25,7 +26,7 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        #self.is_async = False  # development
+        self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
@@ -262,7 +263,7 @@ class ProjectList:
             return None
 
         moved_nodes = list(source_project.files[old_filename].nodes)
-        source_project.drop_file(old_filename)
+        source_project.drop_buffer(source.project.files[old_filename])
         new_filename = os.path.join(
             destination_project.get_settings_paths()[0],
             os.path.basename(old_filename))
@@ -401,3 +402,15 @@ class ProjectList:
 
     def node_has_been_opened(self):
         return self.node_opened
+
+    @classmethod
+    def make_starter_project(self, folder):
+        if os.path.isdir(folder):
+            starter_proj_dir = os.path.join(os.path.dirname(__file__), 'starter_project')
+            for f in os.listdir(os.path.join(os.path.dirname(__file__), 'starter_project')):
+                file_path = os.path.join(starter_proj_dir, f)
+                if not os.path.isdir(file_path):
+                    if len(os.path.splitext(file_path)) == 2 and os.path.splitext(file_path)[1] == '.urtext':
+                        shutil.copyfile(file_path, os.path.join(folder, f))
+        else:
+            print(folder, 'is not a folder')

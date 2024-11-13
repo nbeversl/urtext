@@ -15,5 +15,8 @@ class When:
 				return True
 		return False
 
+	def dynamic_output(self, existing_text):
+		return None
+
 ThisProject.add_directive(When)
 %%

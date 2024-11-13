@@ -1,0 +1,32 @@
+MAX_LENGTH() _ #directive
+
+Arbitrarily limits the dynamic output to the specific number of lines. An alternative to LIMIT().
+
+{ Parameters _
+
+	Accepts a single integer.
+}
+
+Example:
+
+[[ 
+	+(| Urtext Starter Project >)
+	Includes the home node of this project
+
+	SHOW($_contents)
+	Shows the contents of the node. See | SHOW() > for more information.
+
+	MAX_LENGTH(4)
+	Limits the output to four lines.
+
+	>(| Example Use of MAX_LENGTH >) 
+	Sets the node below as the output target. ]]
+
+
+{~ Example Use of MAX_LENGTH _
+Urtext Starter Project _
+
+Urtext /ˈʊrtekst/ is an open-source plaintext library for writing, research, documentation, knowledge bases, journaling, Zettelkasten, project/personal organization, note taking, a lightweight database substitute, or any other writing or information management that can be done in text format.
+}
+
+See next: | POP and PULL >

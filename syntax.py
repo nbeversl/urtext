@@ -195,7 +195,7 @@ cross_project_link_with_node = r''.join ([
     node_link_or_pointer,
     ])
 
-function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)'
+function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)(?![^\S\r\n]>)'
 
 node_action_link = r''.join([
     link_opening_pipe_escaped,

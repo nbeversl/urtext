@@ -31,6 +31,7 @@ class UrtextProject:
         self.project_list = project_list
         self.entry_point = entry_point
         self.entry_path = None
+        self.running_on_modified = False
         self.project_title = self.entry_point  # default
         self.editor_methods = editor_methods
         self.time = time.time()
@@ -124,13 +125,13 @@ class UrtextProject:
                 self._parse_file(self.entry_point)
                 self.entry_path = os.path.abspath(os.path.dirname(self.entry_point))
                 self.paths.append(os.path.abspath(self.entry_point))
-            for file in self._get_included_files():
+            included_files = self._get_included_files()
+            if included_files and visible:
+                self.handle_info_message('Initializing Urtext project from %s' % os.path.basename(self.entry_point))
+            for file in included_files:
                 self._parse_file(file)
         if not self.files:
             return False
-
-        if visible:
-            self.handle_info_message('Initializing Urtext project from %s' % os.path.basename(self.entry_point))
 
         if callback:
             callback(self, initial=initial)
@@ -202,10 +203,9 @@ class UrtextProject:
         if self._filter_filenames(filename) is None:
             self._add_to_excluded_files(filename)
             return False
-
+        if filename in self.files:
+            self.drop_buffer(self.files[filename])
         buffer = None
-        existing_buffer_ids = []
-            
         if self.compiled and try_buffer:
             buffer_contents = self.run_editor_method(
                 'get_buffer',
@@ -215,12 +215,16 @@ class UrtextProject:
         else:
             buffer = self.urtext_file(filename, self)
         if buffer:
-            return self._parse_buffer(buffer, existing_buffer_ids=existing_buffer_ids)
+            return self.__parse_buffer(buffer)
 
-    def _parse_buffer(self, buffer, existing_buffer_ids=[]):
+    def __parse_buffer(self, buffer):
+        for n in buffer.nodes:
+            self._resolve_duplicate_titles(n)
+
+        self.drop_buffer(buffer) # here it tries to drop but nodes are not resolved.
+        existing_buffer_ids=[]
         if buffer.filename and buffer.filename in self.files:
             existing_buffer_ids = [n.id for n in self.files[buffer.filename].get_ordered_nodes()]            
-            self.drop_file(buffer.filename)
 
         if not buffer.root_node:
             buffer.write_buffer_messages()
@@ -232,6 +236,13 @@ class UrtextProject:
         self.messages[buffer.filename] = buffer.messages
         if buffer.has_errors:
             buffer.write_buffer_messages()
+            buffer.write_buffer_contents()
+            return False
+
+        if buffer.has_errors:
+            buffer.write_buffer_messages()
+            buffer.write_buffer_contents()
+            return False
 
         changed_ids = {}
         if existing_buffer_ids:
@@ -252,10 +263,12 @@ class UrtextProject:
                             # TODO try to map old to new.
 
         for node in buffer.nodes:
-            for dd in node.dynamic_definitions:
-                dd.source_node = node
-                self._verify_dynamic_definition(dd)
-            self._add_node(node)
+            if not node.errors:
+                self._add_node(node)
+                for dd in node.dynamic_definitions:
+                    dd.source_node = node
+                    self._verify_dynamic_definition(dd)
+
 
         self.files[buffer.filename] = buffer
         self.run_hook('on_buffer_added', buffer)
@@ -280,7 +293,6 @@ class UrtextProject:
                 self.nodes[target_node].meta_key = keyname
        
         for node in buffer.nodes:
-
             for entry in node.metadata.entries():
                 entry.from_node = node
                 if entry.tag_children:
@@ -294,10 +306,6 @@ class UrtextProject:
                             old_node_id,
                             changed_ids[old_node_id])
             self._rewrite_changed_links(changed_ids)
-
-        for node in buffer.nodes:
-            if node.id == '(untitled)':
-                print('(DEBUGGING) - should not happen, untitled node', buffer.filename)
 
         self._mark_dynamic_nodes()
         return buffer
@@ -375,95 +383,7 @@ class UrtextProject:
                                 utils.make_node_link(links_to_change[node_id]), replaced_contents)
                             self.files[project_node.filename].set_buffer_contents(replaced_contents, clear_messages=False)
                             self.files[project_node.filename].write_buffer_contents()
-
-    def _resolve_node_ids(self, buffer):
-        messages = []
-        allocated_ids = []
-
-        for node in list([n for n in buffer.nodes if n.title == '(untitled)']):
-            resolution = node.resolve_id(allocated_ids=allocated_ids)
-            if not resolution['resolved_id']:
-                message = {
-                    'top_message': ''.join([
-                                'Dropping (untitled) ID at position ',
-                                str(node.start_position),
-                                '. ',
-                                resolution['reason'],
-                                ' ',
-                            ]),
-                    'position_message': 'Dropped (untitled, cannot resolve)',
-                    'position' : node.start_position
-                    }
-                self.log_item(buffer.filename, message)
-                messages.append(message)
-                buffer.nodes.remove(node)
-                del node
-                continue
-            else:
-                node.id = resolution['resolved_id']
-                allocated_ids.append(node.id)
-        
-        # resolve duplicate titles within file/buffer
-        new_file_node_ids = [file_node.id for file_node in buffer.nodes]
-        nodes_to_resolve = [n for n in buffer.nodes if new_file_node_ids.count(n.id) > 1]
-        for n in nodes_to_resolve:
-            unresolved_id = n.id
-            resolution = n.resolve_id(allocated_ids=allocated_ids)
-            if not resolution['resolved_id'] or resolution['resolved_id'] in allocated_ids:
-                message = {
-                    'top_message' :''.join([
-                                'Dropping duplicate node title "',
-                                n.title,
-                                '"',
-                                ' at position ',
-                                str(n.start_position),
-                                '; duplicated in the same file.'
-                            ]),
-                    'position_message': 'Dropped (duplicate title in file)',
-                    'position': n.start_position
-                    }
-
-                self.log_item(buffer.filename, message)
-                messages.append(message)
-                buffer.nodes.remove(n)
-                del n
-                continue
-            allocated_ids.append(resolution['resolved_id'])
-            n.id = resolution['resolved_id']
-
-        # resolve duplicate titles in project
-        new_file_node_ids = [file_node.id for file_node in buffer.nodes]
-        allocated_ids = [n for n in self.nodes if n not in new_file_node_ids]
-        for node in buffer.get_ordered_nodes():
-            duplicate_titled_node = self._find_duplicate_title(node)
-            if duplicate_titled_node:
-                resolution = node.resolve_id(
-                    allocated_ids=allocated_ids)
-                if not resolution['resolved_id']:
-                    message = {
-                        'top_message' : ''.join([
-                                'Dropping duplicate node ID "',
-                                node.id,
-                                '"',
-                                ' already exists in file ',
-                                syntax.file_link_opening_wrapper,
-                                duplicate_titled_node.filename,
-                                syntax.link_closing_wrapper,
-                            ]),
-                        'position_message': 'Dropped (node ID already exists in file)',
-                        'position': node.id.start_position,
-                    }
-                    buffer.nodes.remove(node)
-                    del node
-                    self.log_item(buffer.filename, message)
-                    messages.append(message)
-                    continue
-                node.id = resolution['resolved_id']
-
-        if messages:
-            buffer.messages = messages
-            buffer.has_errors = True
-
+                            
     def _verify_dynamic_definition(self, new_definition):
         all_definitions = self.__get_all_dynamic_defs()
 
@@ -477,15 +397,7 @@ class UrtextProject:
                 if target_file in target_files:
                     new_definition.enabled = False                    
                     self._reject_definition(target_file, dd, new_definition)
-                # virtual_target = syntax.virtual_target_match_c.match(target_file)
-                # if virtual_target:
-                #     target = virtual_target.group()
-                # if target == "@self":
-                #     self.dynamic_definitions[definition.source_node.id] = definition
-                # else:
-                #     self.virtual_outputs.setdefault(target, [])
-                #     self.virtual_outputs[target].append(definition)
-
+ 
     def _get_all_targets(self):
         target_ids = []
         target_files = []
@@ -496,7 +408,7 @@ class UrtextProject:
 
     def _verify_definition_present_if_marked(self, node_id):
         if self.nodes[node_id].marked_dynamic and not self.nodes[node_id].is_dynamic:
-            dynamic_contents = node.contents_with_contained_nodes().strip()
+            dynamic_contents = self.nodes[node_id].contents_with_contained_nodes().strip()
             if len(dynamic_contents) > 1 and dynamic_contents[:2] != "~?":
                 self._set_node_contents(self.nodes[node_id], dynamic_contents.replace('~', '~?', 1))
                 return False
@@ -517,10 +429,58 @@ class UrtextProject:
                 duplicate_definition.source_node.link(),
                 ])
             }
-        # move this 
-        # self.log_item(self.nodes[duplicate_definition.source_node.id].filename, message)
+
+    def _resolve_duplicate_titles(self, node):
+        duplicate_titled_nodes = self._find_duplicate_title(node)
+        if duplicate_titled_nodes:
+            for d in duplicate_titled_nodes:
+                if d.resolution:
+                    continue
+                old_id = d.id
+                resolution = d.resolve_id(allocated_ids=self.nodes)
+                if not resolution['resolved_id']:
+                    message = {
+                    'top_message' : ''.join([
+                            'Dropping node ID "',
+                            node.id,
+                            '", ',
+                            resolution['reason'],
+                        ]),
+                    'position_message': 'ANOTHER NODE HAS THE SAME ID',
+                    'position': node.start_position,
+                    }
+                    node.errors = True
+                    self.log_item(node.filename, message)
+                    node.buffer.messages.append(message)
+                    return
+                else:
+                    d.id = resolution['resolved_id']
+                    self.nodes[resolution['resolved_id']] = d
+                    del self.nodes[old_id]
+                    self.run_hook('on_node_id_changed',
+                            self,
+                            old_id,
+                            resolution['resolved_id'])
+            resolution = node.resolve_id(allocated_ids=list(self.nodes))
+            if not resolution['resolved_id']:
+                message = {
+                    'top_message' : ''.join([
+                            'Dropping node ID "',
+                            node.id,
+                            '", ',
+                            resolution['reason'],
+                        ]),
+                    'position_message': resolution['reason'],
+                    'position': node.start_position,
+                }
+                node.errors = True
+                self.log_item(node.filename, message)
+                return
+            else:
+                node.id = resolution['resolved_id']
 
     def _add_node(self, new_node):
+   
         new_node.project = self
         self.nodes[new_node.id] = new_node
         if self.compiled:
@@ -547,12 +507,12 @@ class UrtextProject:
     def _set_node_contents(self, node_id, contents, preserve_title=False):
         """ project-aware alias for the Node _set_contents() method """
         if node_id in self.nodes:
-            self._parse_buffer(self.nodes[node_id].file)
+            filename = self.nodes[node_id].filename
+            self._parse_file(filename)
             if node_id in self.nodes:
                 self.nodes[node_id]._set_contents(
                     contents,
                     preserve_title=preserve_title)
-                return self.nodes[node_id].filename
         return False
 
     def _mark_dynamic_nodes(self):
@@ -565,12 +525,10 @@ class UrtextProject:
     Removing and renaming files
     """
 
-    def drop_file(self, filename):
-        self.drop_buffer(self.files[filename])
-
     def drop_buffer(self, buffer):
         self.run_hook('on_buffer_dropped', buffer.filename)
-        for node in list(buffer.nodes):
+        file_nodes = [n for n in self.nodes.values() if n.filename == buffer.filename]
+        for node in file_nodes:
             self._drop_node(node)
         if buffer.filename in self.files:
             del self.files[buffer.filename]
@@ -578,12 +536,13 @@ class UrtextProject:
             self.messages[buffer.filename] = []
 
     def _drop_node(self, node):
-        if node.id in self.nodes:  # might not be if it's an incompletely parsed buffer
-            self._remove_sub_tags(node.id)
+        if node.id in self.nodes and self.nodes[node.id].filename == node.filename:
             self._remove_dynamic_metadata_entries(node.id)
             if node.id in self.project_settings_nodes:
                 self.project_settings_nodes.remove(node.id)
+            self._remove_sub_tags(node.id)
             del self.nodes[node.id]
+            del node
 
     def delete_file(self, filename):
         """
@@ -591,7 +550,7 @@ class UrtextProject:
         """
         self.run_hook('before_file_deleted', self, filename)
         self.run_editor_method('close_file', filename)
-        self.drop_file(filename)
+        self.drop_buffer(self.files[filename])
         os.remove(filename)
         if filename in self.messages:
             del self.messages[filename]
@@ -610,7 +569,7 @@ class UrtextProject:
                 new_filename)
 
     def _filter_filenames(self, filename):
-        if filename in ['urtext_files', '.git', '_versions']:
+        if filename in ['urtext_files', '.git']:
             return None
         if filename in self.get_setting_as_text('exclude_files'):
             return None
@@ -668,16 +627,16 @@ class UrtextProject:
                     contents_format=contents_format,
                     metadata=metadata)
             utils.write_file_contents(filename, new_node_contents)
+            self.drop_buffer(self.files[filename])
             new_file = self.urtext_file(filename, self)
             self._parse_file(filename)
-            self._resolve_node_ids(new_file)
 
         if filename in self.files:
             self.run_hook('on_new_file_node',
                           self.files[filename].root_node.id)
             if open_file:
                 self.open_node(self.files[filename].root_node.id,
-                               position=cursor_pos)
+                              position=cursor_pos)
             return {
                 'filename': filename,
                 'root_node': self.files[filename].root_node,
@@ -967,13 +926,10 @@ class UrtextProject:
     def handle_link(self, link):
         if link.is_node and link.node_id in self.nodes:
             if link.is_action:
-                for dd in self.__get_dynamic_defs(source_node=self.nodes[link.node_id]):
-                    if dd.source_node.id == link.node_id:
-                        output = dd.process(link.node_id, flags=['-link_clicked'])
-                        if output not in [False, None]:
-                            for target in dd.targets:
-                                target_output = dd.preserve_title_if_present(target) + output
-                                self._direct_output(target_output, target, dd)
+                for dd in self.__get_dynamic_defs(target_node=self.nodes[link.node_id]):
+                    modified_files = self.__run_def(dd, flags=['-link_clicked'])
+                    for f in modified_files:
+                        self.files[f].write_buffer_contents()
             else:
                 return self.open_node(
                     link.node_id,
@@ -983,13 +939,8 @@ class UrtextProject:
             return  self.run_editor_method('popup', 'Node cannot be found in the current project.')
         return link
 
-    def _is_duplicate_id(self, node_id):
-        return node_id in self.nodes
-
     def _find_duplicate_title(self, node):
-        for n in list(self.nodes):
-            if n.title == node.title:
-                return node
+        return [n for n in self.nodes.values() if n.title == node.title]
 
     def log_item(self, filename, message):
         self.messages.setdefault(filename, [])
@@ -1053,26 +1004,29 @@ class UrtextProject:
         return None
 
     def on_modified(self, filename, flags=[]):
+        modified_files = []
         if self.compiled and filename in self._get_included_files():
-            if filename in self.files:
-                self._parse_file(filename)
-                modified_files = self._compile_file(
-                    filename,
-                    flags=['-file_update'].extend(flags))
-                file_obj = self.files[filename]
-                verified_contents = self._reverify_links(filename)
-                file_obj.set_buffer_contents(verified_contents)
-                if file_obj.write_buffer_contents(run_hook=True):
-                    modified_files.append(filename)
-                self.run_hook(
-                    'file_contents_were_modified',
-                    filename)
-                self.files[filename] = file_obj
-                self._sync_file_list()
+            if not self.running_on_modified:                
+                self.running_on_modified = True
                 if filename in self.files:
-                    self.run_hook('after_on_file_modified', filename)  
-                self.run_editor_method('refresh_files', modified_files)
-                return modified_files
+                    modified_files = self._compile_file(
+                        filename,
+                        flags=['-file_update'] + flags)
+                    file_obj = self.files[filename]
+                    verified_contents = self._reverify_links(filename)
+                    file_obj.set_buffer_contents(verified_contents)
+                    if file_obj.write_buffer_contents(run_hook=True):
+                        modified_files.append(filename)
+                    self.run_hook(
+                        'file_contents_were_modified',
+                        filename)
+                    self.files[filename] = file_obj
+                    self._sync_file_list()
+                    if filename in self.files:
+                        self.run_hook('after_on_file_modified', filename)  
+                    self.run_editor_method('refresh_files', modified_files)
+                self.running_on_modified = False
+        return modified_files
 
     def visit_node(self, node_id):
         self.run_hook('on_node_visited', self, node_id)
@@ -1085,14 +1039,13 @@ class UrtextProject:
 
     def _sync_file_list(self):
         included_files = self._get_included_files()
-        for filename in included_files:
-            if filename not in self.files:
-                self._parse_file(filename)
+        for filename in [f for f in included_files if f not in self.files]:
+            self._parse_file(filename)
         for filename in [f for f in list(self.files) if f not in included_files]:
             self.log_item(
                 filename,
                 {'top_message': filename + ' no longer seen in project path. Dropping it from the project.'})
-            self.drop_file(filename)
+            self.drop_buffer(self.files[filename])
 
     def _get_included_files(self):
         files = []
@@ -1354,16 +1307,17 @@ class UrtextProject:
 
     def _compile_file(self, filename, flags=None):
         if flags is None:
-            flags = {}
+            flags = []
         modified_files = []
-
         for node in self.files[filename].nodes:
             for dd in list(self.__get_dynamic_defs(target_node=node, source_node=node)):
-                modified_files.extend(self.__run_def(dd))
-
+                modified_files.extend(self.__run_def(dd, flags=flags))
+        for f in modified_files:
+            self.files[f].write_buffer_contents()
+        self._parse_file(filename)
         node_ids = []
-        while len(node_ids) < len(self.files[filename].nodes):
-            for node_id in [n.id for n in self.files[filename].nodes]:
+        while len(node_ids) < len([n for n in self.files[filename].nodes if not n.errors]):
+            for node_id in [n.id for n in self.files[filename].nodes if not n.errors]:
                 if node_id in node_ids:
                     continue
                 node_ids.append(node_id)
@@ -1397,22 +1351,22 @@ class UrtextProject:
 
     def _direct_output(self, output, target, dd):
         if target.is_node and target.node_id in self.nodes:
-            if self._set_node_contents(target.node_id, output):
+            if self._set_node_contents(target.node_id,
+                ''.join([syntax.dynamic_marker, output])):
                 return target.node_id
             return False
         if target.is_virtual:
             if target.matching_string == '@self':
-                if self._set_node_contents(dd.source_node.id, output):
-                    f = self.nodes[dd.source_node.id].filename
+                if self._set_node_contents(dd.source_node.id,
+                        ''.join([syntax.dynamic_marker, output])):
                     return dd.source_node.id
             if target.matching_string == '@clipboard':
                 return self.run_editor_method('set_clipboard', output)
-            if target.matching_string == '@next_line':
-                return self.run_editor_method('insert_at_next_line', output)
             if target.matching_string == '@log':
-                return self.log_item(
-                    self.nodes[dd.source_node.id].filename,
-                    output)
+                self.log_item(
+                    self.nodes[dd.source_node.id].filename, {
+                        'top_message': output
+                    })
             if target.matching_string == '@console':
                 return self.run_editor_method('write_to_console', output)
             if target.matching_string == '@popup':
@@ -1421,7 +1375,7 @@ class UrtextProject:
             utils.write_file_contents(os.path.join(self.entry_path, target.path), output)
             return target.filename
         if target.is_raw_string and target.matching_string in self.nodes:  # fallback
-            if self._set_node_contents(target.matching_string, output):
+            if self._set_node_contents(target.matching_string, ''.join([syntax.dynamic_marker, output])):
                 return target.matching_string
             return False
 
@@ -1499,11 +1453,10 @@ class UrtextProject:
         return included_paths
 
     def _make_buffer(self, filename, buffer_contents):
-        new_file = UrtextBuffer(self, filename, buffer_contents)
-        new_file.filename = filename
-        for node in new_file.nodes:
+        new_buffer = UrtextBuffer(self, filename, buffer_contents)
+        for node in new_buffer.nodes:
             node.filename = filename
-        return new_file
+        return new_buffer
 
     """ Editor Methods """
 
@@ -1516,21 +1469,17 @@ class UrtextProject:
                                  include_project=False):
 
         self._parse_file(filename, try_buffer=True)
-
-        node_id = None
-        for node in self.files[filename].nodes:
-            for r in node.ranges:
-                if position in range(r[0], r[1] + 1):  # +1 in case the cursor is in the last position of the node.
-                    node_id = node.id
-                    break
-        if node_id:
-            link = self.project_list.build_contextual_link(
-                node_id,
-                include_project=include_project)
-            if link:
-                self.run_editor_method('set_clipboard', link)
-        else:
-            self.handle_info_message('No Node found here')
+        if filename in self.files:
+            node_id = None
+            for node in self.files[filename].nodes:
+                for r in node.ranges:
+                    if position in range(r[0], r[1] + 1):  # +1 in case the cursor is in the last position of the node.
+                        node_id = node.id
+                        break
+            if node_id:
+                link = self.project_list.build_contextual_link(node_id, include_project=include_project)
+                return self.run_editor_method('set_clipboard', link)
+        self.handle_info_message('No Node found here')
 
     def run_editor_method(self, method_name, *args, **kwargs):
         if method_name in self.editor_methods:

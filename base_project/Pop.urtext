@@ -3,6 +3,8 @@ Pop  _
 Pops a node from a file and leaves a pointer in its place.
 See also | Pull >
 
+<Fri., Nov. 08, 2024, 02:34 PM CET> Bug is that on_modified is now running due to use of retarget_file triggering save and the new node is not yet there.
+
 %%Python
 
 class PopNode:
@@ -24,10 +26,10 @@ class PopNode:
             return self.project.handle_info_message(
                 '%s not in project' % source_filename)
 
-        if self.project.directives['PULL_NODE'].is_running:
+        if self.project.directives['PULL_NODE'].is_running or self.project.directives['POP_NODE'].is_running:
             return
 
-        self.is_running = True
+        self.project.directives['POP_NODE'].is_running = True
         self.project.run_editor_method('save_file', source_filename)
         return self._pop_node_from_editor(
             source_filename, 
@@ -43,16 +45,16 @@ class PopNode:
 
         popped_node_id = self.project.get_node_id_from_position(source_filename, file_pos) 
         if not popped_node_id:
-            self.is_running = False
+            self.project.directives['POP_NODE'].is_running = False
             return self.project.handle_info_message(
                 'No node ID or duplicate Node ID')        
         if popped_node_id not in self.project.nodes:
-            self.is_running = False
+            self.project.directives['POP_NODE'].is_running = False
             return self.project.handle_info_message(
                 '%s not in project' % popped_node_id)
 
         if self.project.nodes[popped_node_id].root_node:
-            self.is_running = False
+            self.project.directives['POP_NODE'].is_running = False
             return self.project.handle_info_message(
                 '%s is already a root node.' % popped_node_id)
 
@@ -60,7 +62,6 @@ class PopNode:
 
     def _pop_node(self,
         popped_node_id,
-        rewrite_buffer=True,
         from_project=None,
         leave_link=False,
         leave_pointer=True,
@@ -98,36 +99,27 @@ class PopNode:
                 ' ',
                 self.project.timestamp().wrapped_string if breadcrumb_key else '']);
 
-        self.project.drop_file(source_filename) #important
-
-        new_file_node = self.project.new_file_node(
-            contents=popped_node_contents,
-            open_file=False)
-
         insertion = ''
         if leave_pointer:
-            insertion = new_file_node['root_node'].pointer()
+            insertion = self.utils.make_node_pointer(popped_node_id)
         elif leave_link:
             # is it easier to leave a link to another project here than go back and rewrite them
             # from MOVE_TO_PROJECT?
-            insertion = new_file_node['root_node'].link() #include_project=include_project
+            insertion = self.utils.make_node_link(popped_node_id)
         remaining_node_contents = ''.join([
             source_file_contents[:start - pre_offset],
             insertion,
             '\n' if popped_node_is_compact else '',
             source_file_contents[end + post_offset:]
             ])
-        if self.os.path.exists(source_filename):
-            self.os.remove(source_filename)
-        with open(source_filename, 'w', encoding='utf-8') as f:
-            f.write(remaining_node_contents)
-        if rewrite_buffer:
-            self.project.run_editor_method(
-                'set_buffer',
-                source_filename,
-                remaining_node_contents)
-        self.project._parse_file(source_filename)
-        self.is_running = False
+        self.project.files[source_filename].set_buffer_contents(remaining_node_contents)
+        self.project.files[source_filename].write_buffer_contents()
+
+        new_file_node = self.project.new_file_node(
+            contents=popped_node_contents,
+            open_file=False)
+
+        self.project.directives['POP_NODE'].is_running = False
         return new_file_node['filename']
 
 ThisProject.add_directive(PopNode)

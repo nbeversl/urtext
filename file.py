@@ -40,6 +40,10 @@ class UrtextFile(UrtextBuffer):
         if existing_contents == self.contents:
             return False
         utils.write_file_contents(self.filename, self.contents)
+        buffer_setting = self.project.get_single_setting('use_buffer')
+        # if buffer_setting and buffer_setting.true():
+        #     self.project.run_editor_method('set_buffer', self.filename, self.contents)
+        # else:
         self.project.run_editor_method('refresh_files', self.filename)
         self.project._parse_file(self.filename)
         return True

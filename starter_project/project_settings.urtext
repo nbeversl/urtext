@@ -1,0 +1,123 @@
+project_settings _
+
+Any node with the title "project_settings" provides special metadata keys that affect the project globally. To create one, make a node and title it "project_settings". (The other text content of the node does not matter.) You can have more than one "project_settings" node.
+
+True/false values can be written as on/off or yes/no, case-insensitive.
+
+The settings included in this starter project are equivalent to the defaults.
+
+always_oneline_meta::False
+When creating a new node, sets whether the metadata will appear on one line separated by semicolon,	or on separate lines.
+
+atomic_rename::False
+Specifies whether to rename files, if necessary, on each save. Takes true/false values.
+
+breadcrumb_key::popped_from
+When popping nodes, optionally adds a breadcrumb showing which node the popped node was popped from, and the timestamp. See |? PULL and POP > for more information.
+
+case_sensitive::title - project_title - timestamp_format - filenames - timestamp
+Specifies which keys’ values should be parsed case-sensitively. The defaults are not overwritten when additional values added, but supplemented.
+
+console_log::no
+Sets whether Urtext will log updates, errors, messages to the Python console. (Press Control-backtick to open the console in Sublime Text)
+
+contents_strip_internal_whitespace::yes
+When including contents in dynamic nodes, determines whether internal multiline whitespace gets stripped from the dynamic output.
+
+contents_strip_outer_whitespace::yes
+When including contents in dynamic nodes, determines whether leading or trailing whitespace gets stripped from the dynamic output.
+
+exclude_files::
+Sets filenames in the project folder(s) to be excluded from the project, if any. (Default is empty.)
+
+exclude_from_star::title - _newest_timestamp - _oldest_timestamp - _breadcrumb - def
+When marking metadata using the * and ** syntax, these keys will get omitted, if present. For more information see | Propagating metadata to descendents >  The defaults are not overwritten when additional values added, but supplemented.
+
+filename_datestamp_format::%m-%d-%Y %I-%M %p
+Specifies how dates will be formatted in filenames when the timestamp is included in the filename. Provided because some characters common in dates and times are not valid in filenames on certain platforms. Accepts the Python strftime format, see https://strftime.org/
+
+filename_title_length::100
+Sets a maximum title length (in characters) for filenames. See | REINDEX() >
+
+file_extensions::urtext
+In project_settings, specifies file extensions for Urtext to compile in addition to .urtext. Only evaluated once, so reload the project if you change it. The dot is optional and is added if not supplied.
+
+filenames::title - _oldest_timestamp
+Specifies format for filenames when using | REINDEX() >. Any metadata key used in the project is valid, in addition to the PREFIX placeholder, which will apply a numerical prefix to the outputted filename.
+
+filename_datestamp_format::%m-%d-%Y
+Specifies how dates will be formatted in filenames when using | REINDEX() >
+
+hash_key::keyword
+The keyname to use for the hash metadata shortcut. See | Hash >
+
+home::Urtext Starter Project
+Identifies the home node for the project, connected to the "Home" key
+Press Ctrl-Shift-H to go to the Home node of this documentation, | Urtext Starter Project >
+
+meta_browser_key::
+When browsing metadata, auto-selects a key so the first menu stage is skipped. Useful if you do not have many metadata keys or use only the hash key for metadata.
+
+meta_browser_sort_keys_by::alpha
+When using the metadata browser dropdown, specifies how to sort the options. Accepts 'alpha' or 'frequency'
+
+meta_browser_sort_nodes_by::_oldest_timestamp
+When using the metadata browser, specifies how to sort the nodes displayed. Accepts any metadata keys in the project, including system keys.
+
+meta_browser_sort_values_by::alpha
+Specifies how to sort the values in the metadata browser. Accepts 'alpha' or 'frequency'.
+
+new_filenames_template::$device_keyname $timestamp
+Specifies a template for naming newly created file nodes. Accepts format strings and arbitrary text.
+
+new_file_node_format::$timestamp\n$device_name $cursor
+Specifies the template for new file nodes. The following values can be strung together in any way:
+- $timestamp
+- $device_keyname
+- $cursor
+- any other Unicode characters are valid, including \n or \r for newlines, arbitrary text,  etc.
+
+node_browser_sort::_oldest_timestamp - title
+When browsing nodes, specifies how to sort the nodes. Accepts any metadata key in the project, including system keys. Sorts outer to inner in order left to right.
+
+numerical_settings::_index - index - title_length - filename_title_length
+Sets keys that should always be interpreted numerically for sorting and processing in dynamic output.
+
+other_entry_points::
+Specifies entry points for other projects to compile. Accepts a relative or absolute file path. Only evaluated once -- reload the project if you change it. 
+
+paths::{ 
+	{ Some Directive
+	path::|/? /directives/lint >
+	recursive::yes
+	}
+
+	{ Some Other included folder
+	path::|/? ../some other included folder >
+	recursive::yes
+	}
+}
+
+project_title::Starter Project
+Provides a title for the entire project
+
+timestamp_format::%a., %b. %d, %Y, %I:%M %p %Z
+Set the format for timestamps globally. Accepts Python `strftime` and arbitrary text. For format strings, see https://strftime.org/
+
+timezone::US/Eastern
+Specifices a timezone to which the timestamp keys should be localized, or, if including a timezone in the `timestamp_format`, what timezone to include.
+
+
+new_file_node_format::$timestamp $cursor
+	Spcifies the default format for new file nodes. The following values can be string together in any way:
+	$timestamp
+	$device_keyname
+	$cursor - where to position the cursor
+
+timestamp_format::%a., %b. %d, %Y, %I:%M %p %Z
+	Set the format of the timestamp when using Timestamps. This accepts a Python `strftime` directive. For possible format strings, see https://strftime.org/
+
+use_buffer::yes
+
+use_timestamp::
+	Specifies keys for which the timestamp should be returned as output instead of the text or numeric value.

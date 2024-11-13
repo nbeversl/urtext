@@ -54,8 +54,7 @@ class TreeDirective:
                 
                 this_node.children = sorted(
                     this_node.children,
-                    key=lambda n: self.project.nodes[n.name].start_position if (
-                        n.name in self.project.nodes ) else n.position)
+                    key=lambda n: n.position)
 
                 indented_pre = '  ' + pre
 
@@ -117,14 +116,9 @@ class TreeDirective:
         urtext_node = self.project.nodes[from_tree_node.name]
         for pointer in urtext_node.pointers:
             if pointer['id'] not in ancestors:
-                if pointer['id'] not in self.project.nodes:
-                    alias_node = self.Node(pointer['id'])
-                    alias_node.position = pointer['position']
-                    alias_node.parent = from_tree_node
-                    ancestors.append(pointer['id'])
-                    continue
                 alias_node = self.Node(pointer['id'])
                 alias_node.parent = from_tree_node
+                alias_node.position = pointer['position']
                 ancestors.append(pointer['id'])
                 new_pointer_tree_node = self._duplicate_tree(alias_node, ancestors=ancestors)
                 new_pointer_tree_node.parent = from_tree_node

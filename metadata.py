@@ -90,7 +90,7 @@ class NodeMetadata:
         # inline timestamps:
         for m in syntax.timestamp_c.finditer(parsed_contents):
             self.add_entry(
-                'inline_timestamp',
+                '_inline_timestamp',
                 [MetadataValue(m.group())],
                 self.node,
                 start_position=m.start(),
@@ -170,7 +170,7 @@ class NodeMetadata:
         return all_entries
 
     def add_system_keys(self):
-        inline_timestamp_entries = self.get_entries('inline_timestamp')
+        inline_timestamp_entries = self.get_entries('_inline_timestamp')
         if inline_timestamp_entries:
             inline_timestamps = sorted(
                 inline_timestamp_entries,

@@ -113,6 +113,9 @@ class UrtextDirective:
                 return True
         return False
 
+    def should_continue(self):
+        return True
+
     def have_keys(self, keys):
         #TODO disambiguate "keys" from params dict keys
         #(terminology)

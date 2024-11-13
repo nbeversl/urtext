@@ -1,0 +1,60 @@
+TREE() _ #directive
+
+Shows a tree representation of each included node and its nested or pointer descendants, to the depth specified.
+(See also |? Pointers >)
+
+{ Parameters _
+
+	Accepts an integer representation the depth to show (until recursion, if present).
+	Or to show unlimited depth, use the wildcard: TREE(*)
+}
+
+Example:
+
+[[
+	+(*)
+	Includes all nodes in the project
+
+	LIMIT(10)
+	Limits included nodes to 10 as example
+
+	TREE(*)
+	Show unlimited nesting depth. Add nodes or change the limit to see the change in output
+
+	>(| Example Use of TREE() >)
+]]
+
+Output:
+
+{~ Example Use of TREE() _
+| AND/OR >
+| About Urtext >
+  ├── | Features and Philosophy >
+  │   ├── | Plain Text >
+  │   ├── | Freeform, Flexible Syntax >
+  │   ├── | Open source >
+  │   ├── | Extensible >
+  │   ├── | Future Proof >
+  │   └── | Local >
+  └── | Features >
+| All Directives >
+| Arguments >
+| Bracket Node Wrappers >
+| Bracket Nodes >
+  ├── | One node >
+  │   └── | another node >
+  │       └── | another node ... >
+  │           └── | etc. >
+  ├── | Bullet Nodes >
+  ├── | Node Titles >
+  └── | Node IDs >
+| Bugs >
+| Bullet >
+| Bullet Nodes >
+| COLLECT() >
+  ├── | Parameters ^ COLLECT() >
+  ├── | again collecting timestamps by using the parent cuases issues here. Also this node does not always get included in dynamic output >
+  └── | Example Use of COLLECT() >
+}
+
+See next: | COLLECT() >

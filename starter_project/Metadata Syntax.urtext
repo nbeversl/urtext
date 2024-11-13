@@ -1,0 +1,63 @@
+Metadata Syntax  _
+
+Every node can have unlimited metadata.
+Metadata is assigned using double-colon-separated key/value(s), with the value(s) containing optional timestamps. Example:
+
+purpose::This node describes Metadata in Urtext <Thu., Dec. 15, 2022, 12:50 PM>
+audience::Urtext user
+
+Metadata entries "remember" their location, allowing them to double as contextual bookmarks.
+
+Keys cannot contain whitespace but dash and underscore are allowed. Values may contain anything except a semicolon. The metadata entry terminates either with a semicolon or at the next linebreak. Using the semicolon option, several entries may be strung together on a single line:
+
+one_key::some value; another_key::some_other_value <Tue., Dec. 12, 2023, 01:11 PM>;
+
+Note that the timestamp syntax and the node link syntax are both evaluated inside metadata values.
+
+{ Title Key _
+
+  The `title` metadata key overrides the node title, which is by default the full first non-whitespace line, or | Space-Underscore > 
+   
+}
+
+{ `#`
+
+  Hash _
+
+  The hash is an assignable metadata shorthand. It may be followed immediately be any value containing no whitepsace.
+  A timestamp can be appended with a hypen.
+  Examples:
+
+    #some_value
+    #some_other_value-<Wed., Nov. 06, 2024, 08:18 PM CET>
+
+  By default the hash is assigned the keyname "keyword" but can be modified by setting `hash_key` in | project_settings >.
+
+}
+
+{ 
+  `+` and `*`
+
+  Propagating metadata to descendents _
+
+  To assign the entry to all children (but not the node containing the metadata entry):
+  *key::value
+
+  To include also the node containing the metadata entry:
+  +*key::value
+
+  To assign the entry to all descendants (but not the node containing the metadata entry):
+  **key::value
+
+  To include also the node containing the metadata entry:
+  +**key::value
+} 
+ 
+
+{  Case-sensitivity _
+
+  Metadata values are not case-sensitive by default. To change this, set the key(s) you wish case sensitive with the `case_sensitive` key in | project_settings >
+
+}
+
+See next: | Dynamic Output >

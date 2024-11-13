@@ -1,0 +1,61 @@
+Links _
+
+{ Node Link _
+
+    To link from one node to another, use the pipe and a space (`| `) followed immediately by a node ID, followed by a space and the right angle bracket (` >`). Examples of links are throughout this starter project.
+
+    {  Sublime Text Commands for Linking _
+    
+        Two Sublime Command Palette commands can make linking quick and easy:
+     
+        Urtext : Link To ...
+            Links FROM the currently viewed node to another node which you can select in the selection panel. When you select a node in the quick panel, a link to that node will be inserted at the cursor.
+ 
+        Urtext: Link From ...
+            Links TO the current node FROM another node. When you select this command, a link to the current node will be copied to the clipboard. You can then paste the reference into the node you open in the quick panel.
+    }  
+
+}
+
+{ Dynamic IDs _
+
+    Whenever the title of a node is edited/changed, Urtext will attempt to update all links to that node to the new title.
+}
+
+{ Link to Character Location _
+    
+    Node links may link to specific locations by following the closing wrapper with a colon and a character number.
+
+    Example:
+    | File Links >:50 (links to character 50 in | File Links >, below)
+
+    Since character locations on every edit, this syntax is most useful when outputted dynamically.
+    See the | COLLECT() > directive for an example use.
+
+
+}
+
+{ File Links _
+            
+        Links to files can be made by writing `|/ `, followed immediately with a relative or absolute file path, and ending with a right angle bracket ` >`:
+        Example: |/ README.md >
+} 
+
+{ Web/HTTP(S) Links _
+
+    HTTP(S) links are recognized automatically and will open in the default browser.    
+    Example: pressing `Ctrl+Shift+/` on the HTML link will open it in your system's default browser,
+    Example: click https://urtext.co/
+}
+
+{ Missing Links _
+
+    When any syntax links to a node or file not found, a question mark will immediately follow the opening wrapper. Examples:
+
+    |? Link to a node that does not exist in this project >
+    |/? link/to/file-that-does-not-exist >
+
+    The question mark will disappear if the node or file is created.
+}
+
+

@@ -33,5 +33,5 @@ project_title::Urtext Base Project & Documentation
 propagate_settings::_all
 propagate_directives::_all
 timestamp_format::%a., %b. %d, %Y, %I:%M %p %Z
-title_length::255,
+title_length::255
 use_timestamp::timestamp - _inline_timestamp - _oldest_timestamp - _newest_timestamp

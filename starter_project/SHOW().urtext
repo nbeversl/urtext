@@ -1,0 +1,108 @@
+SHOW() _ #directive
+
+By default, dynamic nodes output a link for every node included. SHOW modifies the output by supplying a custom template.
+
+Supplies a template to customize output of each result. 
+Accepts keynames, denoted with `$`, arbitrary text, and Unicode characters including \n, \r, \t.
+
+Words preceded by `$` are are evaluated as metadata keys, replaced in the output by their value(s).
+Note that key names themselves are not displayed in the output. Add keynames manually if you want them included.
+
+{ Parameters _
+
+	SHOW accepts metadata keys, including | System Keys >, preceded by the dollar sign `$`.
+	SORT can also accept arbitrary text or Unicode, such as newlines, tabs, and so on.
+
+	`$title`
+	Displays the node title, default or via the `title` meta key
+
+	`$_link`
+	Displays a link to the node
+
+	`$_pointer`
+	Displays a link to the node
+
+	`$date` 
+	Displays the node's date in the project's default timestamp format
+
+	`$meta`
+	Shorthand to show all metadata for every node, formatted as by "consolidate metadata"
+
+	`$_contents`
+	Displays the contents of the node.
+
+	`$_contents:120`
+	Displays the contents of the node, specifiying maximum length after the colon in characers.
+
+	`$any_other_metadata_key`
+	The `$` sign may be followed by any other metadata key in the project.
+}
+
+
+Example:
+
+	[[
+		>(| Example Use of SHOW() >)
+		
+		+(_inline_timestamp=*) 
+		includes all nodes in the project that have an inline timestamp
+		
+		LIMIT(10)
+		limits the results to 10 as an example
+
+		SHOW(Link: $_link\nLast updated: $_newest_timestamp\nExcerpt:\n$_contents:40\n)
+		Provides an output template for each included node
+
+	]]
+
+
+{~ Example Use of SHOW() _
+Link: | Commands can be accecesed through the Sublime Text Command Pallete, Command-Shift-P. >
+Last updated: Tue., Dec. 12, 2023, 01:19 PM CET
+Excerpt:
+Commands can be accecesed through the Su (...)
+
+Link: | Node browser shows the base project >
+Last updated: Wed., Nov. 13, 2024, 02:37 PM CET
+Excerpt:
+Node browser shows the base project
+
+Link: | Time Zones >
+Last updated: 1066
+Excerpt:
+Time Zones _
+
+Time zones are not require (...)
+
+Link: | Timestamp Wrappers >
+Last updated: Tue., Jul. 28, 2020, 07:43 PM
+Excerpt:
+and
+
+Timestamp Wrappers _
+Parses datetim (...)
+
+Link: | Timestamps >
+Last updated: Fri., Oct. 09, 2020, 09:59 AM
+Excerpt:
+Timestamps _
+
+Text between two angled br (...)
+
+Link: | Tracking Node Dates and Times >
+Last updated: 1066
+Excerpt:
+Tracking Node Dates and Times _
+
+Relianc (...)
+
+Link: | metadata is not getting pulled from hash keys >
+Last updated: Wed., Nov. 13, 2024, 02:37 PM CET
+Excerpt:
+metadata is not getting pulled from hash (...)
+
+}
+
+{ #bug _newest_timestamp is returning the _oldest_timestamp if it's retrieved from the parent }
+
+See next: | TREE() >

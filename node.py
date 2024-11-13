@@ -19,6 +19,7 @@ class UrtextNode:
         self.ranges = []
         self.is_tree = False
         self.is_node = True
+        self.errors = False
         self.is_meta = False
         self.meta_key = None
         self.export_points = {}
@@ -172,7 +173,6 @@ class UrtextNode:
                 ])
             if resolved_id not in allocated_ids:
                 self.resolution = timestamp.unwrapped_string
-                self.id = resolved_id
                 return_value['resolved_id'] = resolved_id
                 return_value['method'] = 'own timestamp'
                 return_value['reason'] = 'parent is untitled and parent timestamp not available'
@@ -243,7 +243,7 @@ class UrtextNode:
             if entry.keyname in [
                 '_newest_timestamp',
                 '_oldest_timestamp', 
-                'inline_timestamp']:
+                '_inline_timestamp']:
                 continue
             if entry.is_node:
                 continue

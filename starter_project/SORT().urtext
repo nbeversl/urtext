@@ -1,0 +1,61 @@
+SORT() _ #directive
+
+By default, included nodes are sorted alphabetically by ID. 
+SORT enables sorting by any other metadata key, including | System Keys >
+
+Arguments are keynames with optional flags. 
+
+Example:
+	[[ 
+		+(*)
+		SORT(title -r)
+		LIMIT(15)
+		TREE() 
+		>(| Example Use of SORT() >) ]]
+
+	Includes all nodes in the project, sorts them in reverse order by title, and limits the results to 15.
+
+Output:
+
+{~ Example Use of SORT() _
+| self >
+| project_settings >
+| popup _ >
+| metadata is not getting pulled from hash keys >
+| log _ >
+| etc. >
+| console _ >
+| clipboard _ >
+| another node ... >
+| another node >
+| again collecting timestamps by using the parent cuases issues here. Also this node does not always get included in dynamic output >
+| _newest_timestamp is returning the _oldest_timestamp if it's retrieved from the parent >
+| Word Wrap in Traverse Mode >
+| Wildcard >
+| Web/HTTP(S) Links >
+}
+
+{ 	Arguments _
+	
+	Accepts any metadata key in the project, including | System Keys >
+
+	For multi-dimensional (inner-to-outer) sort, specify multiple keys. Multiple keys are separated by semicolon or newline.
+
+}
+
+{	Flags _
+	
+	`-num` or `-n`
+	Sorts the results numerically if the metadata key permits this. 
+	See the `numerical_settings` key in | project_settings > for more information.
+	
+
+	`-timestamp` or `-t` 
+	Sorts the results using the timestamp in the value of the metadata entry, if any.
+
+	`-reverse` or `-r`
+	Reverses the sort order. Applicable to any of the above.
+
+}
+
+See next: | SHOW() >

@@ -37,17 +37,6 @@ class UrtextDynamicDefinition:
                 self.targets = get_all_targets_from_string(argument_string)
                 continue
 
-            elif func in ['WHEN']:
-                flags = syntax.dd_flags_c.match(argument_string)
-                if flags:
-                    flags = flags.group().split(' ')
-                    flags = [f.strip() for f in flags if f]
-                    for flag in flags:
-                        if flag[0] == '-':
-                            flag = flag[1:]
-                        self.flags.append(flag)
-                continue
-
             else:
                 directive = self.project.get_directive(func)
                 if directive:
@@ -99,6 +88,8 @@ class UrtextDynamicDefinition:
         accumulated_text = ''
         
         for operation in self.operations:
+            if operation.should_continue() is False:
+                return
             current_text = accumulated_text
             try:
                 transformed_text = operation.dynamic_output(current_text)
@@ -117,6 +108,14 @@ class UrtextDynamicDefinition:
                 accumulated_text = current_text
                 continue
             accumulated_text = transformed_text
+        if accumulated_text == '' and (['TREE'] not in [op.name for op in self.operations]):
+            tree_directive = self.project.get_directive('TREE')
+            tree_instance = tree_directive(self.project)
+            tree_instance.dynamic_definition = self
+            tree_instance.parse_argument_string('')
+            self.operations.insert(-1, tree_instance)
+            return self.process_output(target)
+
         self.flags = []
         self.project.run_hook('on_dynamic_def_process_ended', self)
         if self.system_contents:
@@ -153,8 +152,6 @@ class UrtextDynamicDefinition:
             flags = []
         self.flags = flags
         if target.is_node and target.node_id not in self.project.nodes:
-            # if self.source_node.id not in self.project.nodes:
-            #     continue # ?? <Fri., Sep. 06, 2024, 12:29 PM CEST>
             filename = self.project.nodes[self.source_node.id].filename
             self.project.log_item(filename, {
                 'top_message': ''.join([
@@ -171,7 +168,7 @@ class UrtextDynamicDefinition:
         return output
 
     def post_process(self, target, output):
-        output = '~' + ''.join([
+        output = ''.join([
             # self.preserve_timestamp_if_present(target),
             self.preserve_title_if_present(target),
             output])

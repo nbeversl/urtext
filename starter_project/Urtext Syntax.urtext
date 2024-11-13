@@ -1,0 +1,70 @@
+Urtext Syntax _
+
+{
+
+	`{` and  `}`
+
+	Bracket Node Wrappers _ Can appear anywhere. Can be nested aribrarily deep.
+	More information: | Bracket Nodes >
+}
+
+{
+	`•`
+
+	Bullet _ Must be the first non-whitespace character on a line.
+	More information: | Bullet Nodes >
+}
+
+{
+	` _`
+
+	Space-Underscore _ Marks all previous text on the line as the title of the node.
+	If this syntax appears more than once in a node, only the first use is observed.
+	This syntax can be overridden in any node using the reserved `title` metadata key.
+	More information: | Metadata Syntax >
+}
+
+{
+
+	`| [node id ] >`
+	
+	Node Link _
+	
+	Links to the specified node by ID, like a hyperlink, and can be opened with `Ctrl+Shift+/` or `Ctrl+Shift+mouseclick`. 
+	More information: | Links >
+	Links updated dynamically if their destination title changes. See | Dynamic IDs >
+	You can also link to files: | File Links >
+	and to HTTP(S)/web links: | Web/HTTP(S) Links >
+}
+
+{
+	`| [node id ] >>`		
+
+	Pointer _ 
+	An alias to the specified node, as though the node were included in the text at the position of the pointer.
+
+}
+
+{
+	`<` and `>` 
+
+	Timestamp Wrappers _
+	Parses datetime strings as metadata.
+
+	Example: <Tue., Jul. 28, 2020, 07:43 PM>
+	More information: | Timestamps >
+}
+
+{
+	`key::value - value - value - ... ;`
+
+	Metadata _
+
+	Accepts a key on the left and one or more values, optionally with timestamps, on the right.
+
+	Example: example_key::example value - another example value;
+	Metadata may appear anywhere. They attach to their containing (parent) node, remember their exact location, and can serve as anchors/bookmarks to context.
+	More information: | Metadata Syntax >
+}
+
+See next: | Metadata Syntax >
