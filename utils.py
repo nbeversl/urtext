@@ -199,6 +199,7 @@ def get_file_extension(filename):
         return os.path.splitext(filename)[1].lstrip('.')
 
 def strip_errors(contents):
-    for match in syntax.urtext_message_c.findall(contents):
-        contents = match.sub('', contents)
+    matches = syntax.urtext_message_c.findall(contents)
+    for match in matches:
+        contents = contents.replace(match, '')
     return contents
