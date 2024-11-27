@@ -1,4 +1,4 @@
-Export Directive _
+Export Call _
 
 %%Python
 
@@ -350,6 +350,6 @@ class UrtextExport:
         return '\n'.join(['\t' * tabs + line for line in text.split('\n')])
 
 
-ThisProject.add_directive(UrtextExport)
+ThisProject.add_call(UrtextExport)
 
 %%

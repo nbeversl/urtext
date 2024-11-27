@@ -36,11 +36,13 @@ class UrtextFile(UrtextBuffer):
     def write_buffer_contents(self, run_hook=False):
         if run_hook: # for last modification only
             self.project.run_hook('on_write_file_contents', self)
-        existing_contents = self._read_contents()
-        if existing_contents == self.contents:
-            return False
         utils.write_file_contents(self.filename, self.contents)
-        self.project._parse_buffer(self)
+        buffer_setting = self.project.get_single_setting('use_buffer')
+        if buffer_setting and buffer_setting.true():
+            self.project.run_editor_method('set_buffer', self.filename, self.contents)
+        else:
+            self.project.run_editor_method('refresh_files', self.filename)
+        self.project._parse_file(self.filename)
         return True
 
     def contents_did_change(self):

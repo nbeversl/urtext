@@ -1,0 +1,43 @@
+COLLECT() _ #call
+
+Collects occurrences of metadata from included nodes.
+Returns a seperate item for each __metadata__ occurence.
+
+	{ Parameters _
+
+	  Accepts a single key/operator/value combination.
+
+	  To collect multiple outputs, use multiple COLLECT() calls.
+
+	  COLLECT() accepts no flags.
+	}
+
+Note that COLLECT requires | INCLUDE() > to have any effect.
+Example:
+
+[[  +(*)
+		Includes all nodes in the project
+
+		SHOW($_link\n)
+
+		COLLECT(_inline_timestamp=*)
+		Collects all occurences of inline timestamps
+
+		>(| Example Use of COLLECT() >) 
+
+		]]
+
+Output:
+
+	{~ Example Use of COLLECT() _
+	  | Bugs >
+	  | Example Use of SHOW() >:97
+	  | Timestamps >:218
+	  | Timestamps >:250
+	  | Timestamps >:270
+	  | Timestamps >:281
+	}
+
+Note that the output links directly to the location of the metadata entry using the syntax described in | Link to Character Location >
+
+See next: | TEXT() >

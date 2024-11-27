@@ -68,12 +68,36 @@ class Navigation:
 					self.nav_index -= 1
 				self.navigation.remove(item)
 
-	def on_node_id_changed(self, project, new_node_id, old_id):
+	def on_node_id_changed(self, project, old_id, new_node_id):
 		for index, item in enumerate(self.navigation):
 			nav_project = item[0]
 			old_nav_id = item[1]
 			if project == nav_project and (old_nav_id == old_id):
 				self.navigation[index] = (project, new_node_id)
 
-ProjectList.add_directive(Navigation)
+	def on_selected(self, project):
+		on_selected_setting = project.get_setting_as_text('on_selected')
+		if on_selected_setting:
+			for action in on_selected_setting:
+				if action == 'open_last_nav' and self.navigation:
+					reversed_navs = list(self.navigation)
+					reversed_navs.reverse()
+					for index, item in enumerate(reversed_navs):
+						nav_project, node_id = item
+						if nav_project == project:
+							return project.open_node(node_id)
+
+				if action == 'open_home' and project.get_home():
+					if project.open_home():
+						return
+					elif not project.compiled:
+						timer = threading.Timer(.5, self.on_selected)
+						timer.start()
+						return timer
+
+				if action == 'open_any':
+					filename = list(project.files.keys())[0]
+					project.run_editor_method('open_file_to_position', filename)
+
+ProjectList.add_call(Navigation)
 %%

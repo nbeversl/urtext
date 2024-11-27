@@ -17,7 +17,7 @@ class UrtextFiles:
 		else:
 			path = self.argument_string
 		if path and path.strip() == '':
-			path = self.os.path.dirname(self.dynamic_definition.source_node.filename)
+			path = self.os.path.dirname(self.frame.source_node.filename)
 		if not self.os.path.exists(path):
 			return text_contents + 'Path does not exist "%s"' % path
 		file_list = self.os.listdir(path)
@@ -51,7 +51,7 @@ class UrtextFiles:
 				f_node = self.Node(node_name_link, parent=root_node)
 		return root_node
 
-ThisProject.add_directive(UrtextFiles)
+ThisProject.add_call(UrtextFiles)
 
 %%
 																																																																			 

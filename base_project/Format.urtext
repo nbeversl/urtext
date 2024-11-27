@@ -1,4 +1,4 @@
-Format Directive _
+Format Call _
 
 %%Python
 
@@ -23,5 +23,5 @@ class Format:
 			contents = '\n'.join(indented_contents)
 		return contents
 
-ThisProject.add_directive(Format)
+ThisProject.add_call(Format)
 %%

@@ -6,9 +6,11 @@ from urtext.link import UrtextLink
 from urtext.target import UrtextTarget
 
 def strip_backtick_escape(contents):
-    for e in syntax.preformat_c.findall(contents):
-        contents = contents.replace(e,' '*len(e))
-    return contents
+    ranges = []
+    for e in syntax.preformat_c.finditer(contents):
+        contents = contents.replace(e.group(),' '*len(e.group()))
+        ranges.append([e.start(), e.end()])
+    return ranges, contents
 
 def force_list(thing):
 	if not isinstance(thing, list):
@@ -37,8 +39,6 @@ def make_project_link(project_name):
         ])
 
 def write_file_contents(filename, contents):
-    if os.path.exists(filename):
-        os.remove(filename)    
     with open(filename, 'w', encoding='utf-8' ) as f:
         f.write(contents)
 
@@ -54,11 +54,17 @@ def make_file_link(path):
         path,
         syntax.link_closing_wrapper])
 
-def make_node_link(node_id):
+def make_node_link(node_id, position=0):
+    position_str = ''
+    if position != 0:
+        position_str = str(position)
+    if position_str:
+        position_str = ":" + position_str
     return ''.join([
         syntax.link_opening_wrapper,
         node_id,
-        syntax.link_closing_wrapper])
+        syntax.link_closing_wrapper,
+        position_str])
 
 def make_node_pointer(node_id):
     return ''.join([
@@ -88,6 +94,7 @@ def get_all_targets_from_string(string):
     if replaced_contents.strip():
         target = UrtextTarget(replaced_contents.strip())
         target.is_raw_string = True
+        target.is_node = True
         target.node_id = replaced_contents.strip()
         targets.append(target)
     return targets
@@ -97,12 +104,15 @@ def get_all_links_from_string(string, include_http=False):
     replaced_contents = string
     
     for match in syntax.cross_project_link_with_node_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())        
+        link = UrtextLink(match.group())
         link.project_name = match.group(2)
-        link.node_id = match.group(4)
+        link.node_id = match.group(6)
         link.is_node = True
-        if match.group(7):
-            link.dest_node_position = match.group(7)[1:]
+        if match.group(9):
+            try:
+                link.dest_node_position = int(match.group(9)[1:])
+            except:
+                pass
         link.position_in_string = match.start()
         links.append(link)
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
@@ -113,8 +123,14 @@ def get_all_links_from_string(string, include_http=False):
             link.is_missing = True
         link.path = match.group(2)
         link.is_file = True
-        links.append(link)
         link.position_in_string = match.start()
+        if match.group(4):
+            if match.group(4)[0] == ":":
+               link.character_number = int(match.group(4)[1:])
+            if match.group(4)[0] == ".":
+               link.line_number = int(match.group(4)[1:])
+            link.suffix = match.group(4)
+        links.append(link)
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
     
     for match in syntax.node_link_or_pointer_c.finditer(replaced_contents):
@@ -135,8 +151,10 @@ def get_all_links_from_string(string, include_http=False):
         link.node_id = match.group(5).strip()
         link.is_node = True
         if match.group(7):
-            link.dest_node_position = int(match.group(7)[1:])
-
+            try:
+                link.dest_node_position = int(match.group(7)[1:])
+            except:
+                pass
         if match.group(6) == syntax.pointer_closing_wrapper:
             link.is_pointer = True  
         link.position_in_string = match.start()
@@ -175,3 +193,12 @@ def get_link_from_position_in_string(string, position, include_http=True):
             if position in range(link.position_in_string, link.position_in_string+len(link.matching_string)):
                 return link
         return link
+
+def get_file_extension(filename):
+    if len(os.path.splitext(filename)) == 2:
+        return os.path.splitext(filename)[1].lstrip('.')
+
+def strip_errors(contents):
+    for match in syntax.urtext_message_c.findall(contents):
+        contents = match.sub('', contents)
+    return contents

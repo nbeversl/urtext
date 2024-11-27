@@ -1,7 +1,7 @@
 Limit _
 
 Limits the output to the specified numbers of nodes.
-To limit the output by lines instead see |? Max Length Directive >
+To limit the output by lines instead see |? Max Length Call >
 
 %%Python
 
@@ -13,9 +13,9 @@ class Limit:
 		if self.argument_string:
 			number = int(self.argument_string)
 			if number:
-				self.dynamic_definition.included_nodes = self.dynamic_definition.included_nodes[:number]
+				self.frame.included_nodes = self.frame.included_nodes[:number]
 
 
-ThisProject.add_directive(Limit)
+ThisProject.add_call(Limit)
 
 %%

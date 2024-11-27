@@ -17,9 +17,8 @@ class Sort:
 			return flags
 		
 	def dynamic_output(self, text_contents):
-
 		sorted_nodes = []
-		nodes = self.dynamic_definition.included_nodes
+		nodes = self.frame.included_nodes
 		if self.keys_with_flags:
 			for key_with_flags in self.keys_with_flags:
 				key, flags = key_with_flags
@@ -38,9 +37,7 @@ class Sort:
 					)
 				nodes = [n for n in nodes if n not in group_to_sort]
 			sorted_nodes.extend(nodes)
-
-			self.dynamic_definition.included_nodes = sorted_nodes
-		self.dynamic_definition.sorted = True
+			self.frame.included_nodes = sorted_nodes
 
 	def sort_values(self, 
 		node, 
@@ -76,5 +73,5 @@ class Sort:
 		return tuple(t)
 
 
-ThisProject.add_directive(Sort)
+ThisProject.add_call(Sort)
 %%

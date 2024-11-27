@@ -1,0 +1,62 @@
+WHEN() _ #call
+
+Specifies when a frame should be run. (See | Default Execution Times > for the default times.)
+WHEN can limit unwanted execution or trigger execution times other than the defaults.
+
+{ Parameters _
+
+	Accepts any number of flags.
+}
+
+{ Flags _
+	
+	Note that using any flag overrides the defaults (see | Default Execution Times >),
+
+	`-file_visited`
+	The default for all dynamic definitions. Execute when the target node is visited.
+
+	`-link_clicked`
+	The definition will run when its action link is clicked
+
+	`-project_compiled`
+	Overrides the 
+
+	`-never`
+	Disables the definition
+
+}
+
+
+{ Action Links _
+
+	[[
+	 	>(| Open Urtext Website >)
+	 	WHEN(-link_clicked)
+		TEXT(Link was clicked! -- delete this text from the target node and click again.)	
+	 	EXEC(| Code to exec >)
+ 	]]
+	
+	|! Open Urtext Website >
+
+
+
+{ Code to exec _
+
+%%Python
+
+import webbrowser
+webbrowser.get().open('https://urtext.co')
+
+%%
+}
+
+ {~ Open Urtext Website _
+Link was clicked! -- delete this text from the target node and click again.
+}
+
+
+
+}
+
+ 
+

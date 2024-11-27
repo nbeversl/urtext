@@ -1,0 +1,235 @@
+Frames _
+
+Frames are instruction sets that interact programmatically with the project. Frames can generate dynamic text output or execute arbitrary Python code.
+
+Frames are abstractions on top of the Python language that can modify and extend Urtext up to the capabilities of any Python environment. If Urtext does not have a feature you want, you can add it with some Python knowledge.
+
+	{ Calls _
+
+	  Frames contain calls. Each call triggers an operation or transformation. The output of each call is sent as input to the next. The final output is sent to the node or other target specified.
+
+	  See | All Available Calls > for more information
+	}
+
+	{ Syntax _
+
+	  Frames are written in double square brackets: [[ ]]. There are no restrictions on spacing, indentation, newlines, or arbitrary text or whitespace inside.
+
+	  It is not necessary to store the frame in the same file as its target.
+
+	}
+
+	{ Default Execution Times _
+
+	  By default frames run at three times:
+	  - When the project initially compiles
+	  - When the file containing the frame is visited or saved
+	  - When the file containing the frame's target is visited or or saved
+	  These defaults can be modified using the | WHEN() > call
+	}
+
+The most basic frame includes:
+
+- a target node for output, using the | TARGET() > call
+- specifying what nodes to include, using the | INCLUDE() > call
+
+This example frame populates the node immediately below it, which lists all nodes in this starter project.
+
+[[ 	
+	TARGET(| Example Use of TARGET() and INCLUDE() >) 	
+	Specifies the target output node for the resulting text.
+	see | TARGET() > for more information
+
+	INCLUDE(*)
+	or +(*)
+	Specifies nodes to include in output. The asterisk includes all nodes in the project.
+	See | INCLUDE() > for more informatino
+
+]]
+
+Nodes with dynamic output begin with the tilde character `~`. The tilde pushes a scope that shades the background so dynamic text can be easily distinguished.
+
+Without any other calls, the default output is a list of links to the included nodes, in alphabetical order by ID:
+
+	{~ Example Use of TARGET() and INCLUDE() _ 	  | AND/OR >
+	  | About Urtext >
+	  | Accessing Nested Metadata in Frames >
+	  | Action Links ^ Links >
+	  | Action Links ^ WHEN() >
+	  | All Available Calls >
+	  | Arguments >
+	  | Asterisk >
+	  | Auto-Completions >
+	  | Bracket Nodes >
+	  | Bug list >
+	  | Bugs >
+	  | Bullet Nodes >
+	  | COLLECT() >
+	  | Calls >
+	  | Case-sensitivity >
+	  | Code to exec >
+	  | Copying a Link to a Node >
+	  | Cross-Project Linking >
+	  | Custom Themes >
+	  | Default Execution Times >
+	  | Disable Prompts for File Reload >
+	  | Dynamic IDs >
+	  | EXCLUDE() >
+	  | EXEC() >
+	  | Escaping Curly Brackets >
+	  | Escaping and Embedding >
+	  | Evaluation Order >
+	  | Example EXEC() output >
+	  | Example Python Code >
+	  | Example Use of COLLECT() >
+	  | Example Use of INCLUDE and EXCLUDE >
+	  | Example Use of LIMIT() >
+	  | Example Use of MAX_LENGTH >
+	  | Example Use of SHOW() >
+	  | Example Use of SORT() >
+	  | Example Use of STATS() >
+	  | Example Use of TEXT() >
+	  | Example Use of TREE() >
+	  | Example Use of self Virtual Output >
+	  | Example of Linked Node as Metadata Output >
+	  | Example of Nested Metadata Output >
+	  | Example use of LOG >
+	  | Extended Metadata >
+	  | Extensible >
+	  | Features >
+	  | Features and Philosophy >
+	  | File Links >
+	  | File Naming >
+	  | File Nodes >
+	  | File Output >
+	  | Files >
+	  | Flags ^ INCLUDE() >
+	  | Flags ^ SORT() >
+	  | Flags ^ WHEN() >
+	  | Frames >
+	  | Freeform, Flexible Syntax >
+	  | From a Frame >
+	  | From the Sublime Text Command Palette >
+	  | Full Screen / Distraction Free Mode >
+	  | Full Text Search >
+	  | Future Proof >
+	  | Generic >
+	  | HTML >
+	  | Hash >
+	  | Hiding Line Numbers >
+	  | Hiding Tabs >
+	  | How to get started >
+	  | INCLUDE() >
+	  | JSON >
+	  | LIMIT() >
+	  | LOG() >
+	  | Link to Character Location >
+	  | Links >
+	  | Lint >
+	  | Lint Code >
+	  | Local >
+	  | MAX_LENGTH() >
+	  | Making a File Link With a Dialog in Sublime Text >
+	  | Metadata Syntax >
+	  | Missing Links >
+	  | Navigation >
+	  | Nested EXEC()s >
+	  | Nested Metadata as Link >
+	  | Node Browser >
+	  | Node IDs >
+	  | Node Link ^ Links >
+	  | Node Output >
+	  | Node Titles >
+	  | Nodes >
+	  | Nodes as Metadata >
+	  | Nodes as Metadata Values >
+	  | One node >
+	  | Open Urtext Website >
+	  | Open source >
+	  | Operators >
+	  | POP >
+	  | POP and PULL >
+	  | PULL >
+	  | Parameters ^ COLLECT() >
+	  | Parameters ^ MAX_LENGTH() >
+	  | Parameters ^ SHOW() >
+	  | Parameters ^ TREE() >
+	  | Parameters ^ WHEN() >
+	  | Plain Text >
+	  | Plaintext >
+	  | Project Naming (Identification) >
+	  | Projects >
+	  | Projects, Structure and Compiling >
+	  | Propagating metadata to descendents >
+	  | Python >
+	  | Pythonista : Use the "?" Urtext Button. Results will be updated in real time in the view behind the search field. To exit, tap outside the search field. >
+	  | REINDEX() >
+	  | Remove Indent Guides >
+	  | SHOW() >
+	  | SORT() >
+	  | STATS() >
+	  | Save on Focus Lost >
+	  | Scott Fitzgerald >
+	  | Search >
+	  | Searching >
+	  | See also: ^ Metadata Syntax >
+	  | See also: ^ SHOW() >
+	  | Short descrasdfasdfasdfiption >
+	  | Shorthand ^ INCLUDE() >
+	  | Shorthand ^ TARGET() >
+	  | Snippet ^ EXEC() >
+	  | Snippet ^ Nested EXEC()s >
+	  | Sublime : select                  from the command pallete. This provides an input panel on the lower edge of the screen. Dynamically search results will be shown in a scratch view as you enter search terms. Press ESC to cancel.  Results include links to >
+	  | Sublime Text Commands for Linking >
+	  | Sublime Text Interface Tips >
+	  | Sublime Text Key Bindings >
+	  | Syntax >
+	  | Syntax Highlighting >
+	  | System Keys >
+	  | TARGET() >
+	  | TEXT() >
+	  | TREE() >
+	  | Table of Contents >
+	  | Test output for REINDEX >
+	  | The Beautiful and Damned >
+	  | Theming Metadata >
+	  | Time Zones >
+	  | Timestamps >
+	  | Title Key >
+	  | Todo: Go through project_settings and find all things that aren't linked or documented well and add them here, fixing as you go. >
+	  | Tracking Node Dates and Times >
+	  | Traverse Mode >
+	  | Urtext Starter Project >
+	  | Use more useful examples here, like an author name or something. >
+	  | Using Links >
+	  | Using Multiple Projects >
+	  | Using a Sublime Project for an Urtext Project >
+	  | Viewing Linked Relationships >
+	  | Virtual Targets >
+	  | WHEN() >
+	  | Web/HTTP(S) Links >
+	  | Word Wrap in Traverse Mode >
+	  | _lint ^ project_settings >
+	  | another node >
+	  | another node ... >
+	  | bold >
+	  | clipboard _ >
+	  | console _ >
+	  | debugging output >
+	  | etc. >
+	  | example node >
+	  | inline_timestamp >
+	  | italic >
+	  | links_from >
+	  | links_to >
+	  | log _ >
+	  | newest_timestamp >
+	  | oldest_timestamp >
+	  | paths ^ project_settings >
+	  | popup _ >
+	  | project_settings >
+	  | self >
+	}
+
+See Next: | INCLUDE() >
+

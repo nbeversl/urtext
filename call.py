@@ -1,16 +1,14 @@
 import urtext.syntax as syntax
 from urtext.utils import force_list, get_id_from_link
-from urtext.dynamic_output import DynamicOutput
 import urtext.utils as utils
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.render import ContStyle
 from urtext.timestamp import UrtextTimestamp
 
-class UrtextDirective:
+class UrtextCall:
 
     syntax = syntax
     utils = utils
-    DynamicOutput = DynamicOutput
     name = []
     Node = Node
     RenderTree = RenderTree
@@ -32,7 +30,7 @@ class UrtextDirective:
         else:
             self.project = project_or_project_list
         self.argument_string = None
-        self.dynamic_definition = None
+        self.frame = None
 
     def run(self, *args, **kwargs):
         pass
@@ -112,6 +110,12 @@ class UrtextDirective:
             if self.params_dict[keyname] == (keyname, value, operator):
                 return True
         return False
+
+    def should_continue(self):
+        return True
+
+    def default_output(self):
+        return ''
 
     def have_keys(self, keys):
         #TODO disambiguate "keys" from params dict keys

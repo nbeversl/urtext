@@ -4,9 +4,9 @@ Outputs an "anytree" tree of the included nodes. (https://anytree.readthedocs.io
 
 %%Python 
 
-class TreeDirective:
+class TreeCall:
 
-    name = ['TREE']
+    name = ['TREE', 'LIST']
     
     def __init__(self, project):
         super().__init__(project)
@@ -22,7 +22,7 @@ class TreeDirective:
                 self.depth = 1
 
         tree_render = ''
-        start_points = self.dynamic_definition.included_nodes
+        start_points = self.frame.included_nodes
 
         for start_point in start_points:
             start_point_tree_node = self._duplicate_tree(self.Node(start_point.id))            
@@ -54,46 +54,18 @@ class TreeDirective:
                 
                 this_node.children = sorted(
                     this_node.children,
-                    key=lambda n: self.project.nodes[n.name].start_position if (
-                        n.name in self.project.nodes ) else n.position)
+                    key=lambda n: n.position)
 
                 indented_pre = '  ' + pre
 
-                next_content = self.DynamicOutput(self.dynamic_definition.show, self.project)
-
-                next_content.title = urtext_node.title
-               
-                link = []
-                #TODO refactor
-                if urtext_node.project.get_setting('project_title') not in self.project.paths and urtext_node.project.get_setting('project_title') != self.project.get_setting('project_title'):
-                    link.extend(['=>"', urtext_node.project.get_setting('project_title'),'"'])
-                else:
-                    link.append(self.syntax.link_opening_wrapper)
-                link.append(urtext_node.id + self.syntax.link_closing_wrapper)
-                next_content.link = ''.join(link)
-
-                next_content.pointer = urtext_node.pointer()
-
-                # TODO rewrite
-                # if self.project.get_setting('node_date_keyname') and self.project.get_setting('timestamp_format'):
-                #     next_content.date = urtext_node.get_date(
-                #         self.project.get_setting('node_date_keyname')).strftime(
-                #                 self.project.get_setting('timestamp_format'))
-
-                next_content.meta = urtext_node.consolidate_metadata(separator=':')
-
-                if next_content.needs_contents:
-                    next_content.contents = urtext_node.stripped_contents
-
-                for meta_key in next_content.needs_other_format_keys:
-                    next_content.other_format_keys[meta_key] = urtext_node.metadata.get_extended_values(meta_key)
+                next_content = urtext_node.dynamic_output(self.frame.show)
                 
                 if level == 0:
                     prefix = pre
                 else:
                     prefix = indented_pre
 
-                tree_render += "%s%s" % (prefix, next_content.output())
+                tree_render += "%s%s" % (prefix, next_content)
 
                 level += 1
 
@@ -102,12 +74,12 @@ class TreeDirective:
     def _tree_node_is_excluded(self, tree_node):
 
         node_id = tree_node.name
-        if node_id in self.dynamic_definition.target_ids():
+        if node_id in self.frame.target_ids():
             return True
 
-        if self.dynamic_definition.excluded_nodes:
+        if self.frame.excluded_nodes:
 
-            if node_id in self.dynamic_definition.excluded_nodes:
+            if node_id in self.frame.excluded_nodes:
                 return True
 
             if node_id not in self.project.nodes:
@@ -123,13 +95,9 @@ class TreeDirective:
         urtext_node = self.project.nodes[from_tree_node.name]
         for pointer in urtext_node.pointers:
             if pointer['id'] not in ancestors:
-                if pointer['id'] not in self.project.nodes:
-                    alias_node = self.Node('< Not in project: ' + pointer['id'] + ' >')
-                    alias_node.parent = from_tree_node
-                    ancestors.append(pointer['id'])
-                    continue
                 alias_node = self.Node(pointer['id'])
                 alias_node.parent = from_tree_node
+                alias_node.position = pointer['position']
                 ancestors.append(pointer['id'])
                 new_pointer_tree_node = self._duplicate_tree(alias_node, ancestors=ancestors)
                 new_pointer_tree_node.parent = from_tree_node
@@ -149,6 +117,6 @@ class TreeDirective:
  
         return from_tree_node
 
-ThisProject.add_directive(TreeDirective)
+ThisProject.add_call(TreeCall)
 
 %%

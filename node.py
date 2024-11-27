@@ -1,6 +1,6 @@
 import re
-from urtext.metadata import NodeMetadata, MetadataValue
-from urtext.dynamic_definition import UrtextDynamicDefinition
+from urtext.metadata import NodeMetadata
+from urtext.frame import UrtextFrame
 import urtext.utils as utils
 import urtext.syntax as syntax
 
@@ -19,17 +19,19 @@ class UrtextNode:
         self.ranges = []
         self.is_tree = False
         self.is_node = True
+        self.errors = False
         self.is_meta = False
         self.meta_key = None
         self.export_points = {}
-        self.dynamic = False
+        self.marked_dynamic = False
+        self.is_dynamic = False
         self.id = None
         self.pointers = []
         self.display_detail = ''
         self.links = []
         self.root_node = root
         self.compact = compact
-        self.dynamic_definitions = []
+        self.frames = []
         self.target_nodes = []
         self.untitled = False
         self.title_only = False
@@ -39,16 +41,23 @@ class UrtextNode:
         self.first_line_title = False
         self.title_from_marker = False
         self.nested = nested
-        self.resolved = False
+        self.resolution = None
         self.filename = None
         self.embedded_syntax_ranges = []
-        self.dd_ranges = []
+        self.frame_ranges = []
         
-        contents = strip_errors(contents)
-        self.full_contents = contents
-        self.embedded_syntax_ranges, stripped_contents, replaced_contents = strip_embedded_syntaxes(contents)
+        contents = utils.strip_errors(contents)
+
+        ranges, stripped_contents = utils.strip_backtick_escape(contents)
+        self.embedded_syntax_ranges.extend(ranges)
+        self.full_contents = stripped_contents
+
+        ranges, stripped_contents, replaced_contents = self._strip_embedded_syntaxes(stripped_contents)
+        self.embedded_syntax_ranges.extend(ranges)
+
+        replaced_contents, self.marked_dynamic = check_and_sanitize_dynamic_marker(replaced_contents)
         self._get_links(replaced_contents)
-        self.dd_ranges, stripped_contents, replaced_contents = self.parse_dynamic_definitions(replaced_contents)
+        self.frame_ranges, stripped_contents, replaced_contents = self.parse_frames(replaced_contents)
         self.metadata = self.urtext_metadata(self, self.project)        
         stripped_contents, replaced_contents = self.metadata.parse_contents(replaced_contents)
         for link in self.links:
@@ -57,7 +66,7 @@ class UrtextNode:
         if not stripped_contents.strip().replace(self.title,'').replace(' _',''):
             self.title_only = True
         self.id = self.title
-        for d in self.dynamic_definitions:
+        for d in self.frames:
             d.source_node = self
         for entry in self.metadata.entries():
             entry.from_node = self
@@ -79,6 +88,7 @@ class UrtextNode:
 
     def contents(self,
         stripped=True,
+        strip_dynamic_marker=False,
         strip_first_line_title=False):
 
         if stripped:
@@ -86,21 +96,21 @@ class UrtextNode:
         else:
             contents = self.full_contents
 
+        if strip_dynamic_marker:
+            contents = strip_dynamic_markers(contents)
+
         if strip_first_line_title:
-            return self.strip_first_line_title(contents)
-        
+            contents = self.strip_first_line_title(contents)
+
         return contents
 
     def contents_with_contained_nodes(self):
         file_contents = self.file._get_contents()
-        full_contents = file_contents[self.start_position:self.end_position+1]
+        full_contents = file_contents[self.start_position:self.end_position-1]
         return full_contents
 
     def links_ids(self):
         return [link.node_id for link in self.links]
-
-    def date(self):
-        return self.metadata.get_date(self.project.get_single_setting('node_date_keyname'))
 
     def resolve_id(self, allocated_ids=None):
         return_value = {
@@ -108,7 +118,7 @@ class UrtextNode:
             'method': None,
             'reason': None,
         }
-        if self.resolved:
+        if self.resolution:
             return_value = {
                 'resolved_id': self.id,
                 'method': "already resolved",
@@ -124,7 +134,7 @@ class UrtextNode:
                         self.parent.title
                     ])
                 if resolved_id not in allocated_ids:
-                    self.resolved = True
+                    self.resolution = self.parent.title
                     return_value['resolved_id'] = resolved_id
                     return_value['method'] = 'meta key'
                     return return_value
@@ -135,7 +145,7 @@ class UrtextNode:
                         timestamp.unwrapped_string
                     ])
                     if resolved_id not in allocated_ids:
-                        self.resolved = True
+                        self.resolution = timestamp.unwrapped_string
                         return_value['resolved_id'] = resolved_id
                         return_value['method'] = 'meta key and timestamp'
                         return return_value
@@ -147,7 +157,7 @@ class UrtextNode:
                         self.parent.title
                     ])
                 if resolved_id not in allocated_ids:
-                    self.resolved = True
+                    self.resolution = self.parent.title
                     return_value['resolved_id'] = resolved_id
                     return_value['method'] = 'parent title'
                     return return_value
@@ -160,7 +170,7 @@ class UrtextNode:
                         parent_oldest_timestamp.unwrapped_string
                     ])
                 if resolved_id not in allocated_ids:
-                    self.resolved = True
+                    self.resolution = parent_oldest_timestamp.unwrapped_string
                     return_value['resolved_id'] = resolved_id
                     return_value['method'] = 'parent timestamp'
                     return_value['reason'] = 'parent is untitled'
@@ -172,8 +182,7 @@ class UrtextNode:
                 timestamp.unwrapped_string, 
                 ])
             if resolved_id not in allocated_ids:
-                self.resolved = True
-                self.id = resolved_id
+                self.resolution = timestamp.unwrapped_string
                 return_value['resolved_id'] = resolved_id
                 return_value['method'] = 'own timestamp'
                 return_value['reason'] = 'parent is untitled and parent timestamp not available'
@@ -229,7 +238,7 @@ class UrtextNode:
         if len(title) > 255:
             title = title[:255].strip()
         title = title.strip()
-        self.metadata.add_entry('title', [MetadataValue(title)], self)
+        self.metadata.add_entry('title', title, self)
         return title
    
     def log(self):
@@ -237,36 +246,30 @@ class UrtextNode:
         print(self.filename)
         self.metadata.log()
 
-    def consolidate_metadata(self, one_line=True, separator='::'):
+    def consolidate_metadata(self, separator='::'):
         
         keynames = {}
         for entry in self.metadata.entries():
             if entry.keyname in [
                 '_newest_timestamp',
                 '_oldest_timestamp', 
-                'inline_timestamp']:
-                continue
-            if entry.is_node:
+                '_inline_timestamp']:
                 continue
             if entry.keyname not in keynames:
                 keynames[entry.keyname] = []
             keynames[entry.keyname] = [v.unparsed_text for v in entry.meta_values]
 
-        return self.build_metadata(keynames, one_line=one_line, separator=separator)
+        return self.build_metadata(keynames, separator=separator)
 
     @classmethod
     def build_metadata(self, 
         metadata, 
-        one_line=None, 
-        separator=syntax.metadata_assignment_operator
-        ):
+        separator=syntax.metadata_assignment_operator):
 
         if not metadata:
             return ''
 
         line_separator = '\n'
-        if one_line:
-            line_separator = syntax.metadata_closing_marker + ' '
         new_metadata = ''
 
         for keyname in metadata:
@@ -283,7 +286,7 @@ class UrtextNode:
         use project._set_node_contents() method instead of using this directly.
 
         file should be parsed before this, in case the content
-        has been modified manually by a directive
+        has been modified manually by a call
         """
         if preserve_title and self.first_line_title:
             new_node_contents = ''.join([ 
@@ -319,15 +322,15 @@ class UrtextNode:
             file_contents[file_range_to_replace[1]:]])
         self.file.set_buffer_contents(new_file_contents)
 
-    def parse_dynamic_definitions(self, contents): 
-        dd_ranges = []
+    def parse_frames(self, contents): 
+        frame_ranges = []
         stripped_contents = contents
         replaced_contents = contents
         for d in syntax.dynamic_def_c.finditer(contents):
-            dd_ranges.append([d.start(),d.end()])
+            frame_ranges.append([d.start(),d.end()])
             param_string = d.group(0)[2:-2]
-            self.dynamic_definitions.append(
-                UrtextDynamicDefinition(
+            self.frames.append(
+                UrtextFrame(
                     param_string, 
                     self.project, 
                     d.start()))
@@ -340,7 +343,7 @@ class UrtextNode:
                 '', 
                 1)
 
-        return dd_ranges, stripped_contents, replaced_contents
+        return frame_ranges, stripped_contents, replaced_contents
 
     def strip_first_line_title(self, contents):
         if self.first_line_title:
@@ -356,7 +359,7 @@ class UrtextNode:
         return node_descendants(self)
 
     def replace_links(self, original_id, new_id='', new_project=''):
-        if self.dynamic:
+        if self.is_dynamic:
             return
         if not new_id and not new_project:
             return None
@@ -372,13 +375,13 @@ class UrtextNode:
             new_contents = new_contents.replace(link.group(), replacement, 1)
         self._set_contents(new_contents)
 
-    def link(self, include_project=False):
+    def link(self, include_project=False, position=0):
         project_link = ''
         if include_project:
             project_link = utils.make_project_link(self.project.title())
         return ''.join([
             project_link,
-            utils.make_node_link(self.id)])
+            utils.make_node_link(self.id, position=position)])
 
     def pointer(self):
         return utils.make_node_pointer(self.id)
@@ -426,6 +429,67 @@ class UrtextNode:
                 syntax.node_closing_wrapper, '\n',
                 ]))
 
+    def lines(self, strip_dynamic_marker=False):
+        return self.contents(stripped=False, strip_dynamic_marker=strip_dynamic_marker).split('\n')
+
+    def line_from_pos(self, position):
+        length = 0
+        for index, l in enumerate(self.lines()):
+            length += len(l)
+            if position < length:
+                return index
+        return index # temporary fallback
+
+    def dynamic_output(self, m_format):
+        m_format = m_format.replace('$title', self.title)
+        m_format = m_format.replace('$_link', self.link())
+        m_format = m_format.replace('$_pointer', self.pointer()) 
+        m_format = m_format.replace('$_meta', self.metadata.dynamic_output(m_format))
+
+        contents_syntax = re.compile(r'\$_contents(:\d*)?', flags=re.DOTALL)      
+        contents_match = re.search(contents_syntax, m_format)
+        if contents_match:
+            contents = self.contents(strip_dynamic_marker=True)
+            suffix = ''
+            if contents_match.group(1):
+                suffix = contents_match.group(1)
+                length_str = suffix[1:]
+                length = int(length_str)
+                if len(contents) > length:
+                    contents = contents[0:length] + ' (...)'
+            m_format = m_format.replace(''.join(['$_contents',suffix]), ''.join([ contents, '\n']))
+
+        for match in re.finditer(r'(\$_lines:)(\d{1,9})(,\d{1,9})?', m_format):
+            lines = self.lines(strip_dynamic_marker=True)
+            if match.group(3):
+                first_line = int(match.group(2))
+                last_line = int(match.group(3))
+            else:
+                first_line = 0
+                last_line = int(match.group(2))
+            if first_line - 1 > len(lines): first_line = len(lines) - 1
+            if last_line - 1 > len(lines): last_line = len(lines) 
+            m_format = m_format.replace(match.group(), '\n'.join(lines[first_line:last_line+1]))
+
+        other_format_keys = re.findall(r'\$[\.A-Za-z0-9_-]+', m_format)
+        for match in other_format_keys:
+            meta_key = match.lstrip('$')
+            values = self.metadata.get_extended_values(meta_key)
+            m_format = m_format.replace(match, values)
+        m_format = m_format.replace(r'\n', '\n')
+        return m_format
+
+    def _strip_embedded_syntaxes(self, contents):
+        replaced_contents = contents
+        stripped_contents = contents
+        ranges = []
+        for e in syntax.embedded_syntax_c.finditer(contents):
+            contents = e.group()
+            stripped_contents = stripped_contents.replace(contents, '')
+            replaced_contents = replaced_contents.replace(contents, ' '*len(contents))
+            ranges.append([e.start(), e.end()])
+        return ranges, stripped_contents, replaced_contents
+    
 def node_descendants(node, known_descendants=[]):
     # differentiate between pointer and "real" descendants
     all_descendants = [n for n in node.children if n not in known_descendants]
@@ -441,86 +505,31 @@ def node_ancestors(node, known_ancestors=[]):
         return node_ancestors(node.parent, known_ancestors)
     return known_ancestors
 
-def strip_contents(contents, 
-    preserve_length=False, 
-    include_backtick=True,
-    reformat_and_keep_embedded_syntaxes=False,
-    embedded_syntaxes=True,
-    metadata=True,
-    dynamic_definitions=True
-    ):
-    if embedded_syntaxes:
-        ranges, stripped_contents, contents = strip_embedded_syntaxes(contents, 
-            preserve_length=preserve_length, 
-            include_backtick=include_backtick,
-            reformat_and_keep_contents=reformat_and_keep_embedded_syntaxes)
-    if metadata:
-        contents = strip_metadata(
-            contents=contents,
-            preserve_length=preserve_length)
-    if dynamic_definitions:
-        contents = strip_dynamic_definitions(
-            contents=contents, 
-            preserve_length=preserve_length)
-    contents = contents.strip().strip('{}').strip()
-    return contents
-
-def strip_metadata(contents, preserve_length=False):
-    r = ' ' if preserve_length else ''
-    for e in syntax.metadata_replacements.finditer(contents):
-        contents = contents.replace(e.group(), r*len(e.group()))       
-    contents = contents.replace('• ',r*2)
-    return contents
-
-def strip_dynamic_definitions(contents, preserve_length=False):
-    r = ' ' if preserve_length else ''
-    if not contents:
-        return contents
-    stripped_contents = contents
-  
-    for dynamic_definition in syntax.dynamic_def_c.finditer(stripped_contents):
-        stripped_contents = stripped_contents.replace(dynamic_definition.group(), r*len(dynamic_definition.group()))
-    return stripped_contents
-
 def strip_nested_links(title):
     stripped_title = title
     for nested_link in syntax.node_link_or_pointer_c.finditer(title):
         stripped_title = title.replace(nested_link.group(), '')
     return stripped_title
 
-def strip_errors(contents):
-    return re.sub('<!.*?!>', '', contents, flags=re.DOTALL)
-
-#TODO refactor
-def strip_embedded_syntaxes(
-    stripped_contents, 
-    preserve_length=False,
-    reformat_and_keep_contents=False,
-    include_backtick=True):
-
-    ranges = []
-    if len(stripped_contents) > 1 and stripped_contents[:2] == '~?':
-        stripped_contents = stripped_contents[2:]
-    elif len(stripped_contents) and stripped_contents[0] == '~':
-        stripped_contents = stripped_contents[1:]
-    if include_backtick:
-        stripped_contents = utils.strip_backtick_escape(stripped_contents)
-    replaced_contents = stripped_contents
-    for e in syntax.embedded_syntax_c.finditer(stripped_contents):
-        contents = e.group()
-        if reformat_and_keep_contents:
-            unwrapped_contents = contents
-            for opening_wrapper in syntax.embedded_syntax_open_c.findall(unwrapped_contents):
-                unwrapped_contents = unwrapped_contents.replace(opening_wrapper,'`',1)   
-            for closing_wrapper in syntax.embedded_syntax_close_c.findall(unwrapped_contents):
-                unwrapped_contents = unwrapped_contents.replace(closing_wrapper,'`',1)
-            unwrapped_contents = unwrapped_contents.strip()
-            unwrapped_contents = unwrapped_contents.split('\n')
-            unwrapped_contents = [line.strip() for line in unwrapped_contents if line.strip() != '']
-            unwrapped_contents = '\t\t\n'.join(unwrapped_contents)
-            stripped_contents = stripped_contents.replace(e, unwrapped_contents)
+def check_and_sanitize_dynamic_marker(text):
+    marked_dynamic = False
+    missing = False
+    while True:
+        text = text.lstrip()
+        if not len(text):
+            break
+        if text[0] == syntax.dynamic_marker:
+            marked_dynamic = True
+            text = text[1:]
         else:
-            stripped_contents = stripped_contents.replace(contents, '')
-            replaced_contents = replaced_contents.replace(contents, ' '*len(contents))
-        ranges.append([e.start(), e.end()])
-    return ranges, stripped_contents, replaced_contents
+            break
+    if len(text) and text[0] == syntax.dynamic_def_missing_marker:
+        text = text[1:]
+    return text, marked_dynamic
+
+def strip_dynamic_markers(contents):
+    if len(contents) and contents[0] == '~':
+        contents = contents[1:]
+        if len(contents) and contents[0] == '?':
+            contents = contents[1:]
+    return contents

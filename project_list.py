@@ -1,13 +1,14 @@
 import os
 import concurrent.futures
 import sys
+import shutil
 
 if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'sublime.txt')):
     custom_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
     sys.path.append(custom_path)
 
 from urtext.project import UrtextProject
-from urtext.directive import UrtextDirective
+from urtext.call import UrtextCall
 import urtext.syntax as syntax
 import urtext.utils as utils
 
@@ -25,26 +26,26 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        #self.is_async = False  # development
+        self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
-        self.directives = {}
-        self.project_instance_directives = {}
-        self.project_list_instance_directives = {}
+        self.calls = {}
+        self.project_instance_calls = {}
+        self.project_list_instance_calls = {}
         self.projects = []
         self.entry_points = []
         self.current_project = None
         self.node_opened = False
         if base_project:
-            self.add_project(os.path.abspath(base_project))
+            self.init_project(os.path.abspath(base_project), visible=False)
         if os.path.abspath(base_project) != os.path.abspath(self.entry_point):
-            self.add_project(os.path.abspath(self.entry_point), initial=True)
+            self.init_project(os.path.abspath(self.entry_point), initial=True, visible=True)
 
-    def add_project(self, entry_point, new_file_node_created=False, initial=False):
-        self.execute(self._add_project, entry_point, new_file_node_created=False, initial=initial)
+    def init_project(self, entry_point, new_file_node_created=False, initial=False, visible=True):
+        self.execute(self._init_project, entry_point, new_file_node_created=False, initial=initial, visible=visible)
 
-    def _add_project(self, entry_point, new_file_node_created=False, initial=None):
+    def _init_project(self, entry_point, new_file_node_created=False, initial=None, visible=True):
         if self.get_project(entry_point):
             return
         project = UrtextProject(entry_point,
@@ -52,9 +53,11 @@ class ProjectList:
                                 editor_methods=self.editor_methods,
                                 initial=initial,
                                 new_file_node_created=new_file_node_created)
+        project.initialize(callback=self.add_project, initial=initial, visible=visible)
+
+    def add_project(self, project, initial=False):
         self.projects.append(project)
         self.entry_points.append(project.entry_point)
-        project.initialize()
         if initial:
             self.current_project = project
 
@@ -95,23 +98,32 @@ class ProjectList:
             if not self.set_current_project(link.project_name):
                 self.run_editor_method('popup', 'Project is not available.')
                 return None
-
         elif filename:
             self.set_current_project(os.path.dirname(filename))
 
-        if link.is_file:
+        if link.is_file:            
+            path = None
             if os.path.exists(link.path):
-                return self.run_editor_method(
-                    'open_external_file',
-                    link.path)
-            elif self.current_project and os.path.exists(
-                os.path.join(self.current_project.entry_path, link.path)):
-                # try as relative path
-                return self.run_editor_method(
-                    'open_external_file',
-                    os.path.join(self.current_project.entry_path, link.path))
-            else:
-                self.handle_message('Path does not exist')
+                path = link.path
+            elif self.current_project:
+                rel_path = os.path.abspath(os.path.join(self.current_project.entry_path, link.path))
+                if os.path.exists(rel_path):
+                    path = rel_path
+                else:
+                    abs_path = os.path.abspath(os.path.join(os.path.dirname(filename), link.path))
+                    if os.path.exists(abs_path):
+                        path = abs_path
+            if path:
+                ext = utils.get_file_extension(link.path)
+                editor_extensions = self.current_project.get_setting_as_text('open_in_editor')
+                if editor_extensions and ext in editor_extensions:
+                    return self.run_editor_method(
+                        'open_file_to_position',
+                        path,
+                        character=link.character_number,
+                        line=link.line_number)
+                return self.run_editor_method('open_external_file', path)
+            return self.handle_message('Path does not exist')
 
         elif link.is_node:
             if self.current_project: 
@@ -119,14 +131,6 @@ class ProjectList:
 
         elif link.is_http:
             return self.run_editor_method('open_http_link', link.url)
-
-    def handle_link_using_all_projects(self, link):
-        for project in self.projects:
-            if link.node_id in project.nodes:
-                self.set_current_project(project.title())
-                return self.current_project.handle_link(link)
-        self.handle_message('Node cannot be found in any active project.')
-        link.is_missing=True
 
     def handle_unusable_link(self):
         if self.current_project and not self.current_project.compiled:
@@ -145,7 +149,7 @@ class ProjectList:
             self.current_project = project
             return project.on_modified(filename)
         else:
-            self._add_project(filename)
+            self._init_project(filename)
 
     def _get_project_from_path(self, path):
         if not os.path.isdir(path):
@@ -165,7 +169,10 @@ class ProjectList:
             project = self._get_project_from_path(title_or_path)
         return project
 
-    def set_current_project(self, project_or_title_or_path, notify=True, run_hook=False):
+    def select_project(self, project_or_title_or_path, visible=True, run_hook=False):
+        self.set_current_project(project_or_title_or_path, visible=True, run_hook=True)    
+
+    def set_current_project(self, project_or_title_or_path, visible=True, run_hook=False):
         if isinstance(project_or_title_or_path, UrtextProject):
             project = project_or_title_or_path
         else:
@@ -175,12 +182,12 @@ class ProjectList:
         if (not self.current_project) or (
                 project.title() != self.current_project.title()):
             self.current_project = project
-            if notify:
+            if visible:
                 self.run_editor_method('popup',
                    'Switched to project: %s ' % self.current_project.title())
             project_paths = self.current_project.get_settings_paths()
             if project_paths and run_hook:
-                self.current_project.on_activated()
+                self.current_project.on_selected()
         return self.current_project
 
     def build_contextual_link(self,
@@ -205,10 +212,7 @@ class ProjectList:
             return link
 
     def project_titles(self):
-        titles = []
-        for project in self.projects:
-            titles.append(project.title())
-        return titles
+        return [p.title() for p in self.projects if p.visible]
 
     def get_project_title_from_link(self, target):
         match = syntax.project_link_c.search(target)
@@ -269,7 +273,7 @@ class ProjectList:
             return None
 
         moved_nodes = list(source_project.files[old_filename].nodes)
-        source_project.drop_file(old_filename)
+        source_project.drop_buffer(source.project.files[old_filename])
         new_filename = os.path.join(
             destination_project.get_settings_paths()[0],
             os.path.basename(old_filename))
@@ -342,7 +346,7 @@ class ProjectList:
 
     def editor_insert_link_to_node(self, node, project_title=None):
         if project_title is None:
-            project_title = self.current_project.title
+            project_title = self.current_project.title()
         if project_title:
             link = self.build_contextual_link(node.id, project_title=project_title)
             self.run_editor_method('insert_text', link)
@@ -362,40 +366,40 @@ class ProjectList:
         self.run_editor_method('popup', message)
         print(message)
 
-    def add_directive(self, directive):
+    def add_call(self, call):
         
-        for n in directive.name:
-            self.directives[n] = directive
+        for n in call.name:
+            self.calls[n] = call
 
-        class Directive(directive, UrtextDirective):
+        class call(call, UrtextCall):
             pass
             
-        if Directive.project_list_instance:
-            if Directive.name[0] not in self.project_list_instance_directives:
-                instance_directive = Directive(self)
-                instance_directive.on_added()
-                self.project_list_instance_directives[Directive.name[0]] = instance_directive
+        if call.project_list_instance:
+            if call.name[0] not in self.project_list_instance_calls:
+                instance_call = call(self)
+                instance_call.on_added()
+                self.project_list_instance_calls[call.name[0]] = instance_call
                 return
 
-        if Directive.project_instance:
-            self.project_instance_directives[n[0]] = directive
+        if call.project_instance:
+            self.project_instance_calls[n[0]] = call
 
-    def get_directive_instance(self, directive_name):
-        get_directive_instance = None
-        if directive_name in self.project_list_instance_directives:
-            get_directive_instance = self.project_list_instance_directives[directive_name]
-        return get_directive_instance
+    def get_call_instance(self, call_name):
+        get_call_instance = None
+        if call_name in self.project_list_instance_calls:
+            get_call_instance = self.project_list_instance_calls[call_name]
+        return get_call_instance
 
-    def run_directive(self, directive_name, *args, **kwargs):
-        directive_instance = self.get_directive_instance(directive_name)
-        if not directive_instance:
-            self.handle_message('Directive %s is not available' % directive_name)
+    def run_call(self, call_name, *args, **kwargs):
+        call_instance = self.get_call_instance(call_name)
+        if not call_instance:
+            self.handle_message('call %s is not available' % call_name)
             return None
-        return directive_instance.run(*args, **kwargs)
+        return call_instance.run(*args, **kwargs)
 
     def run_hook(self, hook_name, *args):
-        for directive in self.project_list_instance_directives.values():
-            hook = getattr(directive, hook_name, None)
+        for call in self.project_list_instance_calls.values():
+            hook = getattr(call, hook_name, None)
             if hook and callable(hook):
                 hook(*args)
 
@@ -408,3 +412,15 @@ class ProjectList:
 
     def node_has_been_opened(self):
         return self.node_opened
+
+    @classmethod
+    def make_starter_project(self, folder):
+        if os.path.isdir(folder):
+            starter_proj_dir = os.path.join(os.path.dirname(__file__), 'starter_project')
+            for f in os.listdir(os.path.join(os.path.dirname(__file__), 'starter_project')):
+                file_path = os.path.join(starter_proj_dir, f)
+                if not os.path.isdir(file_path):
+                    if len(os.path.splitext(file_path)) == 2 and os.path.splitext(file_path)[1] == '.urtext':
+                        shutil.copyfile(file_path, os.path.join(folder, f))
+        else:
+            print(folder, 'is not a folder')

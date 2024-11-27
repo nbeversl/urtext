@@ -5,9 +5,15 @@ import os
 
 class MetadataValue:
 
-    def __init__(self, value_string):
-
+    def __init__(self, project):
         self.timestamp = None
+        self.project = project
+        self.node_as_value = False
+        
+    def set_as_node(self, node):
+        self.node_as_value = node
+
+    def set_from_text(self, value_string):
         self.unparsed_text = value_string
         for ts in syntax.timestamp_c.finditer(value_string):
             dt_string = ts.group(0).strip()
@@ -19,7 +25,6 @@ class MetadataValue:
                 self.timestamp = t
         self.text = value_string
         self.text_lower = value_string.lower()
-        self.is_node = False
 
     def num(self):
         try:
@@ -35,6 +40,15 @@ class MetadataValue:
                     os.path.dirname(self.entry.node.filename),
                     urtext_link.path)
         return urtext_links
+
+    def node(self):
+        if self.node_as_value:
+            return self.node_as_value
+        for l in self.links():
+            if l.is_node:
+                node = self.entry.node.project.get_node(l.node_id)
+                if node: return node
+        return False
 
     def __lt__(self, other):
         if self.text:

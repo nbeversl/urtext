@@ -17,12 +17,12 @@ class NodeQuery:
 
 		for arg in self.arguments:
 			if self.re.match(self.syntax.virtual_target_marker+'self', arg):
-				added_nodes.update([self.dynamic_definition.source_node.id])
+				added_nodes.update([self.frame.source_node.id])
 				break
 
 			if self.re.match(self.syntax.virtual_target_marker+'parent', arg):
-				if self.dynamic_definition.source_node.parent:
-					added_nodes.update([self.dynamic_definition.source_node.parent.id])
+				if self.frame.source_node.parent:
+					added_nodes.update([self.frame.source_node.parent.id])
 				break
 
 		if not added_nodes:
@@ -32,7 +32,7 @@ class NodeQuery:
 			added_nodes = added_nodes.union(self._build_group_and(
 					self.project,
 					self.params,
-					self.dynamic_definition,
+					self.frame,
 					include_dynamic=self.have_flags('-dynamic'))
 				)
 
@@ -46,7 +46,7 @@ class NodeQuery:
 		if self.have_flags('-is_meta'):
 			added_nodes = set([node_id for node_id in added_nodes if self.project.nodes[node_id].is_meta])
 		
-		for target_id in self.dynamic_definition.target_ids():
+		for target_id in self.frame.target_ids():
 			added_nodes.discard(target_id)  
 
 		return list(added_nodes)
@@ -77,7 +77,7 @@ class NodeQuery:
 		for this_set in found_sets:
 			new_group = new_group.intersection(this_set)
 		
-		return new_group
+		return [n.id for n in new_group]
 
 class Exclude(NodeQuery):
 	
@@ -87,23 +87,24 @@ class Exclude(NodeQuery):
 		excluded_nodes = self.build_list()
 		# this flag will have to be reimplemented
 		# if self.have_flags('-including_as_descendants'):
-		self.dynamic_definition.excluded_nodes.extend(excluded_nodes)
-		self.dynamic_definition.excluded_nodes = list(set(self.dynamic_definition.excluded_nodes))
-		self.dynamic_definition.included_nodes = [
-			nid for nid in list(self.dynamic_definition.included_nodes) if nid not in self.dynamic_definition.excluded_nodes]	
+		self.frame.excluded_nodes.extend(excluded_nodes)
+		self.frame.excluded_nodes = list(set(self.frame.excluded_nodes))
+		self.frame.included_nodes = [nid for nid in list(self.frame.included_nodes) if nid not in self.frame.excluded_nodes]
 
 class Include(NodeQuery):
 
 	name = ["INCLUDE","+"] 	
 
 	def dynamic_output(self, nodes):
-		current_included_nids = [node.id for node in self.dynamic_definition.included_nodes]
+		current_included_nids = [node.id for node in self.frame.included_nodes]
 		new_included_nodes = self.build_list()
-		current_included_nids.extend(new_included_nodes)
-		current_included_nids = list(set(current_included_nids))
-		self.dynamic_definition.included_nodes = [self.project.nodes[nid] for nid in current_included_nids if nid in self.project.nodes]
+		new_included_nodes = [nid for nid in new_included_nodes if nid not in [n.id for n in self.frame.included_nodes]]
+		self.frame.included_nodes.extend(sorted([self.project.nodes[nid] for nid in new_included_nodes if nid in self.project.nodes], key=lambda node: node.id))
+		
+	def default_output(self):
+		return ''.join([n.dynamic_output(self.frame.show) for n in self.frame.included_nodes])
 
-ThisProject.add_directive(Include)
-ThisProject.add_directive(Exclude)
+ThisProject.add_call(Include)
+ThisProject.add_call(Exclude)
 
 %%

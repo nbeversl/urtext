@@ -1,0 +1,14 @@
+STATS() _
+
+
+[[ >(| Example Use of STATS() >)
+	
+	TREE()
+TEXT(test)
+STATS()
+]]
+
+#bug
+{~ Example Use of STATS() _
+test
+call "STATS" not found} 

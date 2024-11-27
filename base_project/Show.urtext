@@ -6,7 +6,7 @@ class Show:
 	name = ["SHOW"]    
 	
 	def dynamic_output(self, text_contents):
-		self.dynamic_definition.show = self.argument_string
+		self.frame.show = self.argument_string
 
-ThisProject.add_directive(Show)
+ThisProject.add_call(Show)
 %%

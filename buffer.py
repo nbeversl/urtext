@@ -2,7 +2,6 @@ import re
 from urtext.node import UrtextNode
 from urtext.utils import strip_backtick_escape, get_id_from_link
 import urtext.syntax as syntax
-from urtext.metadata import MetadataValue
 
 class UrtextBuffer:
 
@@ -16,29 +15,33 @@ class UrtextBuffer:
         self.has_errors = False
         self.filename = filename
         self.nodes = []
+        self.allocated_ids = []
         self.root_node = None
         self.__clear_messages()
         self._lex_and_parse()
         if not self.root_node:
-            print('LOGGING NO ROOT NODE (DEBUGGING, buffer)')
             self._log_error('No root node', 0)
     
     def _lex_and_parse(self):
         self.nodes = []
         self.root_node = None
+        self.has_errors = False
+        self.messages = []
+        self.meta_to_node = []
         symbols = self._lex(self._get_contents())
         self._parse(self._get_contents(), symbols)
-        self.propagate_timestamps(self.root_node)
         for node in self.nodes:
             node.buffer = self
             node.filename = self.filename
         self._assign_parents(self.root_node)
-        self.project._resolve_node_ids(self)
+        self.allocated_ids = []
+        self._resolve_untitled_nodes()
+        self._resolve_duplicate_ids()
 
     def _lex(self, contents, start_position=0):
         symbols = {}
         embedded_syntaxes = []
-        contents = strip_backtick_escape(contents)
+        ranges, contents = strip_backtick_escape(contents)
 
         for match in syntax.embedded_syntax_c.finditer(contents):
             embedded_syntaxes.append([match.start(), match.end()])
@@ -79,7 +82,7 @@ class UrtextBuffer:
         start_position=0,
         from_compact=False):
  
-        unstripped_contents = strip_backtick_escape(contents)
+        ranges, unstripped_contents = strip_backtick_escape(contents)
         last_position = start_position
         pointers = {}
 
@@ -156,7 +159,7 @@ class UrtextBuffer:
                 node = self.add_node(
                     nested_levels[nested],
                     nested,
-                    unstripped_contents,
+                    contents,
                     start_position=start_position)
 
                 if nested + 1 in child_group:
@@ -265,14 +268,12 @@ class UrtextBuffer:
 
     def set_buffer_contents(self, 
         new_contents,
-        re_parse=True,
         clear_messages=True):
 
         self.contents = new_contents
         if clear_messages:
             self.__clear_messages()
-        if re_parse:
-            self._lex_and_parse()
+        self._lex_and_parse()
 
     def write_buffer_contents(self, run_hook=None):
         self.project.run_editor_method(
@@ -332,17 +333,64 @@ class UrtextBuffer:
         self.messages = []
         self.set_buffer_contents(new_contents, clear_messages=False)
         self.write_buffer_contents()
+
+    def _resolve_untitled_nodes(self):        
+        for node in list([n for n in self.nodes if n.title == '(untitled)']):
+            resolution = node.resolve_id(allocated_ids=self.allocated_ids)
+            if not resolution['resolved_id']:
+                message = {
+                    'top_message': ''.join([
+                                'Dropping (untitled) ID at position ',
+                                str(node.start_position),
+                                '. ',
+                                resolution['reason'],
+                                ' ',
+                            ]),
+                    'position_message': 'Dropped (untitled), ' + resolution['reason'] ,
+                    'position' : node.start_position
+                    }
+                self.project.log_item(self.filename, message)
+                self.messages.append(message)
+                node.errors = True
+            else:
+                node.id = resolution['resolved_id']
+                self.allocated_ids.append(node.id)
+        if self.messages:
+            self.has_errors = True
         
+    def _resolve_duplicate_ids(self):
+        own_node_ids = [n.id for n in self.nodes]
+        nodes_to_resolve = [n for n in self.nodes if own_node_ids.count(n.id) > 1]
+        for n in nodes_to_resolve:
+            resolution = n.resolve_id(allocated_ids=self.allocated_ids)
+            if not resolution['resolved_id']:
+                message = {
+                    'top_message' :''.join([
+                                'Dropping duplicate node"',
+                                n.id,
+                                '"',
+                                ' at position ',
+                                str(n.start_position),
+                                '; ',
+                                resolution['reason']
+                            ]),
+                    'position_message': resolution['reason'],
+                    'position': n.start_position
+                    }
+                self.project.log_item(self.filename, message)
+                self.messages.append(message)
+                n.errors = True
+            else:
+                n.id = resolution['resolved_id']
+                self.allocated_ids.append(n.id)
+       
     def __get_messages(self):
-        messages = []        
-        for match in syntax.urtext_messages_c.finditer(self._get_contents()):
-            messages.append(match)
-        return messages
+        return [m for m in syntax.urtext_messages_c.finditer(self._get_contents())]
 
     def __clear_messages(self):
-        original_contents = self._get_contents()
-        if original_contents:
-            messages = self.__get_messages()
+        messages = self.__get_messages()
+        if messages:
+            original_contents = self._get_contents()
             cleared_contents = original_contents
             for match in messages:
                 cleared_contents = cleared_contents.replace(match.group(),'')
@@ -353,21 +401,6 @@ class UrtextBuffer:
         return sorted( 
             list(self.nodes),
             key=lambda node : node.start_position)
-
-    def propagate_timestamps(self, start_node):
-        oldest_timestamp = start_node.metadata.get_oldest_timestamp()
-        if oldest_timestamp:
-            for child in start_node.children:
-                child_oldest_timestamp = child.metadata.get_oldest_timestamp()
-                if not child_oldest_timestamp:
-                    child.metadata.add_entry(
-                        'inline_timestamp',
-                        [MetadataValue(oldest_timestamp.wrapped_string)],
-                        child,
-                        from_node=start_node.id,
-                        )
-                    child.metadata.add_system_keys()
-                self.propagate_timestamps(child)
 
     def _assign_parents(self, start_node):
         for child in start_node.children:
@@ -382,6 +415,11 @@ class UrtextBuffer:
 
     def node_ids(self):
         return [n.id for n in self.nodes]
+
+    def get_node(self, node_id):
+        for n in self.nodes:
+            if n.id == node_id:
+                return n
 
     def get_node_id_from_position(self, position):
         node = self.get_node_from_position(position)

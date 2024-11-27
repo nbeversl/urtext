@@ -11,9 +11,12 @@ class When:
 		if self.have_flags('-never'):
 			return False
 		for flag in self.flags:
-			if flag in self.dynamic_definition.flags:
+			if flag in self.frame.flags:
 				return True
 		return False
 
-ThisProject.add_directive(When)
+	def dynamic_output(self, existing_text):
+		return None
+
+ThisProject.add_call(When)
 %%

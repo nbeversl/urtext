@@ -22,6 +22,6 @@ class UrtextStats:
 		contents.append('compile time :' + str(self.project.last_compile_time))
 		return text_contents + '\n'.join(contents)
 
-ThisProject.add_directive(UrtextStats)
+ThisProject.add_call(UrtextStats)
 
 %%

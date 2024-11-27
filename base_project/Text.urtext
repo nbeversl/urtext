@@ -15,5 +15,5 @@ class UrtextText:
             added_text += '\n'
         return ''.join([contents, added_text])
 
-ThisProject.add_directive(UrtextText)
+ThisProject.add_call(UrtextText)
 %%

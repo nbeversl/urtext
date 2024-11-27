@@ -1,7 +1,7 @@
 Home _
 
 
-The base project includes all the core Urtext directives as nodes that can be executed. 
+The base project includes all the core Urtext calls as nodes that can be executed. 
 The dynamic definition below executes them in order. Each node will include documentation on the feature it adds.
 
 [[
@@ -19,18 +19,18 @@ EXEC(| Collect >)
 EXEC(| Pull >)
 EXEC(| Pop >)
 EXEC(| Files >)
+EXEC(| When >)
 EXEC(| Show >)
 >(| results >)
 +(*)
-SORT(title)
-TREE()
+
 ]]
 
 {~ results _
 | Collect >
-| Export Directive >
+| Export Call >
 | Files >
-| Format Directive >
+| Format Call >
 | Home >
 | Include and Exclude >
 | Interlinks >
@@ -43,6 +43,7 @@ TREE()
 | Pull >
 | Reindex >
 | Request >
+| STRIP() >
 | Show >
 | Sort >
 | Stats >

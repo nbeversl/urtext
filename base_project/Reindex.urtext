@@ -103,6 +103,10 @@ class ReindexFiles:
 
         return renamed_files
 
+    def dynamic_output(self, text_contents):
+        self.run()
+        return text_contents
+
 class RenameSingleFile(ReindexFiles):
 
     name=['RENAME_SINGLE_FILE']
@@ -125,10 +129,9 @@ class RenameSingleFile(ReindexFiles):
             self.project.run_editor_method('close_current')
             self.project.run_editor_method(
                 'open_file_to_position',
-                renamed_files[filename],
-                0)
+                renamed_files[filename])
 
-ThisProject.add_directive(ReindexFiles)
-ThisProject.add_directive(RenameSingleFile)
+ThisProject.add_call(ReindexFiles)
+ThisProject.add_call(RenameSingleFile)
 
 %%

@@ -17,6 +17,10 @@ class UrtextLink:
 		self.is_missing = False
 		self.position_in_string = None
 		self.dest_node_position = 0
+		self.character_number = None
+		self.line_number = None
+		self.suffix = ''
+		self.dest_file_line = 0
 		self.url = None
 		self.path = None
 
@@ -34,7 +38,7 @@ class UrtextLink:
 					file_link_modifiers['file']
 				])
 		return ''.join([
-			syntax.other_project_link_prefix,
+				syntax.other_project_link_prefix,
 	        	'"%s"' % self.project_name if self.project_name and include_project else '',
 				link_opening_wrapper,
 				link_modifier,

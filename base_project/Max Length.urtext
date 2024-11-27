@@ -17,12 +17,12 @@ class MaxLength:
 			except:
 				self.project._log_item(					
 					self.project.nodes[
-						self.dynamic_definition.source_node.id].filename,
-					'MAX_LENGTH directive does not contain a number')
+						self.frame.source_node.id].filename,
+					'MAX_LENGTH call does not contain a number')
 				return contents
 			contents = contents.split('\n')			
 			return '\n'.join(contents[:length])
 		return contents
 
-ThisProject.add_directive(MaxLength)
+ThisProject.add_call(MaxLength)
 %%

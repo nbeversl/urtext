@@ -30,6 +30,6 @@ class Log:
 	                ]))
 		return text_contents + '\n'.join(output) + '\n'
 
-ThisProject.add_directive(Log)
+ThisProject.add_call(Log)
 
 %%

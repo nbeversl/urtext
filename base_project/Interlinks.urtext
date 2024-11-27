@@ -82,5 +82,5 @@ class Interlinks:
         render = render.split('\n')
         return '\n'.join(render)
 
-ThisProject.add_directive(Interlinks)
+ThisProject.add_call(Interlinks)
 %%

@@ -18,6 +18,6 @@ class Request:
 		except urllib.error.URLError:
 			return text_contents + '\n' + str(urllib.error.URLError)
 
-ThisProject.add_directive(Request)
+ThisProject.add_call(Request)
 
 %%
