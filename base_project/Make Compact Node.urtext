@@ -1,0 +1,24 @@
+Make Compact Node _
+%%Python
+class CompactNode:
+
+    selector_string = 'compact_node'
+    name = "Compact Node"
+     
+    def run(self):
+        line_contents, cursor_pos = self.run_editor_method('get_line_and_cursor')
+        if self.utils.match_compact_node(line_contents):
+            contents = self.current_project().add_compact_node()
+            self.project_list.run_editor_method('insert_text', '\n'+contents)
+        else:
+            contents = line_contents.strip()
+            indent = ''
+            pos = 0
+            if len(line_contents):
+                while line_contents[pos].isspace() and pos < len(line_contents) - 1:
+                    indent = ''.join([indent, line_contents[pos]])
+                    pos = pos + 1
+            contents = self.current_project().add_compact_node(contents=contents)
+            self.project_list.run_editor_method('insert_text', indent+contents)       
+ThisProject.add_selector(CompactNode)
+%%

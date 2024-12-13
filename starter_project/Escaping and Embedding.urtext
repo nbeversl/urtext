@@ -43,7 +43,7 @@ def times_ten(i):
 
 	{ Plaintext _
 
-		%%PLAINTEXT
+	  %%PLAINTEXT
 
 		This text will get no syntax highlighting and will not be evaluated.
 

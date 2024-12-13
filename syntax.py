@@ -11,7 +11,8 @@ link_opening_pipe_escaped = re.escape(link_opening_pipe)
 link_opening_wrapper = link_opening_pipe + space
 node_link_modifiers = {
     'action'        : '!',
-    'missing'       : '?'
+    'missing'       : '?',
+    'bound'    : ':'
 }
 file_link_modifiers = {
     'file': '/',
@@ -22,7 +23,7 @@ missing_node_link_opening_wrapper = ''.join([
     node_link_modifiers['missing'],
     space,
     ])
-
+whitespace_anchor = r'^\s*\.'
 missing_file_link_opening_wrapper = ''.join([
     link_opening_pipe,
     file_link_modifiers['file'],
@@ -41,6 +42,7 @@ node_link_modifier_group = r'(' + '|'.join([
     '(' + m + ')' for m in [
         node_link_modifiers_regex['action'],
         node_link_modifiers_regex['missing'],
+        node_link_modifiers_regex['bound'],
         ]
     ]) + ')?'
 
@@ -201,7 +203,7 @@ cross_project_link_with_node = r''.join ([
     node_link_or_pointer,
     ])
 
-function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)(?![^\S\r\n]>)'
+function = r'([A-Z_\-\+\>]+)\((((\|\s)(([^\|>\n\r])+)\s>)?([^\)]*?))\)(?![^\s\r\n]>)'
 
 node_action_link = r''.join([
     link_opening_pipe_escaped,
@@ -325,6 +327,7 @@ title_regex_c = re.compile(title_pattern)
 urtext_message_c =re.compile(urtext_message, flags=re.DOTALL)
 invalidated_messages_c = re.compile(invalidated_messages, flags=re.DOTALL)
 virtual_target_match_c = re.compile(virtual_target, flags=re.DOTALL)
+whitespace_anchor_c = re.compile(whitespace_anchor, flags=re.M)
 metadata_replacements = re.compile("|".join([
     r'(?:<)([^-/<\s`][^=<]+?)(?:>)', # timestamp
     r'\*{0,2}\w+\:\:([^\n}]+);?', # inline_meta

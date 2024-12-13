@@ -23,7 +23,7 @@ class Navigation:
 
 	def forward(self):
 		if self.nav_index + 1 > (len(self.navigation) - 1):
-			return print('index is already at the end')
+			return self.project_list.handle_message('index is already at the end')
 
 		self.nav_index += 1
 		project, next_node = self.navigation[self.nav_index]
@@ -33,11 +33,11 @@ class Navigation:
 
 	def reverse(self):
 		if not self.navigation:
-			return print('no nav history')
+			return self.project_list.handle_message('no nav history')
 		if self.nav_index > -1:
 			self.nav_index -= 1
 		if self.nav_index == -1:
-			return print('index is already at the beginning.')
+			return self.project_list.handle_message('index is already at the beginning.')
 		project, previous_node = self.navigation[self.nav_index]
 		self.project_list.set_current_project(project)
 		self.triggered_node_visit = True
@@ -52,7 +52,6 @@ class Navigation:
 			last_project, last_id = self.navigation[self.nav_index]
 			# don't re-remember consecutive duplicate links
 			if (-1 < self.nav_index < len(self.navigation) - 1 and node_id == last_id): 
-				print('returning')
 				return
 
 		# add the newly opened file as the new "HEAD"
@@ -99,5 +98,24 @@ class Navigation:
 					filename = list(project.files.keys())[0]
 					project.run_editor_method('open_file_to_position', filename)
 
+class NavigateForward:
+
+	selector_string = 'nav_forward'
+	name = "Nav Forward"
+
+	def run(self):
+		self.project_list.run_call('NAVIGATION', 'forward')
+
+class NavigateBackward:
+
+	selector_string = 'nav_back'
+	name = "Nav Back"
+
+	def run(self):
+		self.project_list.run_call('NAVIGATION', 'reverse')
+
 ProjectList.add_call(Navigation)
+ThisProject.add_selector(NavigateForward)
+ThisProject.add_selector(NavigateBackward)
+
 %%

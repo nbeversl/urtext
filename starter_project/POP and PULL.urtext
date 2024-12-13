@@ -25,4 +25,4 @@ Nodes can be “popped” out to separate files and pulled back in again, either
 	  press `Shift + Ctrl + Super + left-arrow`
 	}
 
-See next: | REINDEX() >
+See next: | RENAME_FILES() >

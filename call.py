@@ -29,8 +29,14 @@ class UrtextCall:
             self.project_list = project_or_project_list
         else:
             self.project = project_or_project_list
+            self.project_list = self.project.project_list
+
         self.argument_string = None
         self.frame = None
+
+    def add_doc_name(self):
+        for n in list(self.names):
+            self.names.append(n+'_DOC')
 
     def run(self, *args, **kwargs):
         pass
@@ -44,9 +50,13 @@ class UrtextCall:
     def on_node_visited(self, project, node_id):
         pass
         
+    def _dynamic_output(self, input_contents):
+        # here capture whether the end is DOCS and write the doc
+        pass
+    
     def dynamic_output(self, input_contents):
         return False
-    
+
     def parse_argument_string(self, argument_string):
         self.argument_string = argument_string.strip()
         argument_string = self._parse_links(argument_string)
@@ -96,8 +106,15 @@ class UrtextCall:
             self.params_dict[param[0]].extend(param[1:])
         
     def _parse_links(self, argument_string):
-        self.links, remaining_contents = self.utils.get_all_links_from_string(argument_string)
+        self.links, remaining_contents = self.utils.get_all_links_from_string(
+            argument_string,
+            self.frame.source_node,
+            self)
         return remaining_contents
+
+    def get_param(self, keyname):
+        if keyname in self.params_dict:
+            return self.params_dict[keyname][0] if self.params_dict[keyname][1] == '=' else None
 
     def have_flags(self, flags):
         for f in force_list(flags):
@@ -113,6 +130,9 @@ class UrtextCall:
 
     def should_continue(self):
         return True
+
+    def on_added(self):
+        pass
 
     def default_output(self):
         return ''

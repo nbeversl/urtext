@@ -1,9 +1,8 @@
-import os
-import re
-import urtext.syntax as syntax
-from urtext.url import url_match_c
-from urtext.link import UrtextLink
 from urtext.target import UrtextTarget
+from urtext.link import UrtextLink
+from urtext.url import url_match_c
+import urtext.syntax as syntax
+import os
 
 def strip_backtick_escape(contents):
     ranges = []
@@ -38,6 +37,15 @@ def make_project_link(project_name):
         '"%s"' % project_name
         ])
 
+def make_selector_link(selector_string):
+    return ''.join([
+        syntax.link_opening_pipe,
+        syntax.node_link_modifiers['bound'],
+        ' ',
+        selector_string,
+        syntax.link_closing_wrapper     
+        ])
+
 def write_file_contents(filename, contents):
     with open(filename, 'w', encoding='utf-8' ) as f:
         f.write(contents)
@@ -66,19 +74,29 @@ def make_node_link(node_id, position=0):
         syntax.link_closing_wrapper,
         position_str])
 
+def make_bound_link(text):
+    return ''.join([
+        syntax.link_opening_pipe,
+        syntax.node_link_modifiers['bound'],
+        ' ',
+        text,
+        syntax.link_closing_wrapper,
+        ])
+
 def make_node_pointer(node_id):
     return ''.join([
         syntax.link_opening_wrapper,
         node_id,
         syntax.pointer_closing_wrapper])
 
-def get_all_targets_from_string(string):
+def get_all_targets_from_string(string, node, project_list):
     targets = []
-    links, replaced_contents = get_all_links_from_string(string)
+    links, replaced_contents = get_all_links_from_string(string, node, project_list)
     for link in links:
         target = UrtextTarget(link.matching_string)
         target.is_link = True
         target.link = link
+        link.containing_node = node
         target.is_node = link.is_node
         target.filename = link.filename
         target.path = link.path
@@ -99,13 +117,12 @@ def get_all_targets_from_string(string):
         targets.append(target)
     return targets
 
-def get_all_links_from_string(string, include_http=False):
+def get_all_links_from_string(string, node, project_list, include_http=False):
     links = []
     replaced_contents = string
-    
     for match in syntax.cross_project_link_with_node_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())
-        link.project_name = match.group(2)
+        link = UrtextLink(match.group(), node, project_list)
+        link.project = match.group(2)
         link.node_id = match.group(6)
         link.is_node = True
         if match.group(9):
@@ -118,7 +135,7 @@ def get_all_links_from_string(string, include_http=False):
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
 
     for match in syntax.file_link_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())
+        link = UrtextLink(match.group(), node, project_list)
         if match.group(1) == syntax.file_link_modifiers['missing']:
             link.is_missing = True
         link.path = match.group(2)
@@ -134,7 +151,7 @@ def get_all_links_from_string(string, include_http=False):
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
     
     for match in syntax.node_link_or_pointer_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())
+        link = UrtextLink(match.group(), node, project_list)
         kind = None
         if match.group(1) in syntax.node_link_modifiers.values():
             for kind in syntax.node_link_modifiers:
@@ -148,11 +165,15 @@ def get_all_links_from_string(string, include_http=False):
         if kind == 'MISSING':
             link.is_missing = True
 
+        if kind == 'BOUND':
+            link.bound = True
+            link.bound_argument = match.group(5).strip()
+
         link.node_id = match.group(5).strip()
         link.is_node = True
-        if match.group(7):
+        if match.group(8):
             try:
-                link.dest_node_position = int(match.group(7)[1:])
+                link.dest_node_position = int(match.group(8)[1:])
             except:
                 pass
         if match.group(6) == syntax.pointer_closing_wrapper:
@@ -162,7 +183,7 @@ def get_all_links_from_string(string, include_http=False):
         replaced_contents = replaced_contents.replace(match.group(),' ', 1)
     
     for match in syntax.project_link_c.finditer(replaced_contents):
-        link = UrtextLink(match.group())        
+        link = UrtextLink(match.group(), node, project_list)        
         link.project_name = match.group(2)      
         link.position_in_string = match.start()
         links.append(link)
@@ -174,29 +195,37 @@ def get_all_links_from_string(string, include_http=False):
                 http_link = match.group(1)
             else:
                 http_link = match.group(3)
-            link = UrtextLink(http_link)          
+            link = UrtextLink(http_link, node, project_list)          
             link.is_http = True
             link.url = http_link
             link.position_in_string = match.start()
             links.append(link)
             replaced_contents = replaced_contents.replace(http_link,' ', 1)
 
+    for l in links:
+        l.project_list = project_list 
     return links, replaced_contents
-
-def get_link_from_position_in_string(string, position, include_http=True):
-    if not string.strip():
-        return None
-    links, r = get_all_links_from_string(string, include_http=include_http)
-    if links:
-        links = sorted(links, key=lambda l: l.position_in_string)
-        for link in links:
-            if position in range(link.position_in_string, link.position_in_string+len(link.matching_string)):
-                return link
-        return link
 
 def get_file_extension(filename):
     if len(os.path.splitext(filename)) == 2:
         return os.path.splitext(filename)[1].lstrip('.')
+
+def strip_whitespace_anchors(contents):
+    matches = syntax.whitespace_anchor_c.findall(contents)
+    for e in matches:
+        contents = contents.replace(e, ' ' * len(e), 1)
+    return contents
+
+def get_link_from_position_in_string(string, string_pos, node, project_list, include_http=True):
+    if not string.strip():
+        return None
+    links, r = get_all_links_from_string(string, node, project_list, include_http=include_http)
+    if links:
+        links = sorted(links, key=lambda l: l.position_in_string)
+        for link in links:
+            if string_pos in range(link.position_in_string, link.position_in_string+len(link.matching_string)):
+                return link
+        return link
 
 def strip_errors(contents):
     matches = syntax.urtext_message_c.findall(contents)

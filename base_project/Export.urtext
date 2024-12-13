@@ -1,4 +1,4 @@
-Export Call _
+Export _
 
 %%Python
 
@@ -148,7 +148,7 @@ class UrtextExport:
             TODO: Add checking in here for excluded nodes
             """
             if not self.have_flags('-single_node_only') and single_range[1] < ranges[-1][1]:
-                next_node = self.project.get_node_id_from_position(filename, single_range[1] + 1)
+                next_node = self.project.get_node_from_position(filename, single_range[1] + 1)
                 if next_node and next_node not in visited_nodes:
 
                     next_nested = nested + 1

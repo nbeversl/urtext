@@ -5,14 +5,13 @@ Executes arbitrary Python code.
 Example:
 
 [[
-	EXEC(| Example Python Code >)
-	>(| Example EXEC() output >)
+.	EXEC(| Example Python Code >)
+.	>(| Example EXEC() output >)
 ]]
-
 
 	{ Example Python Code _
 
-	  	  Python code must be wrapped using embedding wrappers as below (see | Python >)
+	  Python code must be wrapped using embedding wrappers as below (see | Python >)
 
 %%Python
 
@@ -21,38 +20,29 @@ print('This text will print in the destination node.')
 
 %%
 	}
-s
 
 	{~ Example EXEC() output _
 	  This text will print in the destination node.
 	}
 
-	{ Snippet _
-
-	  	  A Sublime Text snippet is available to create a frame and a target node at the same time.
-	  	  Anywhere in text, type "frame" and press tab. Pressing tab again moves between entry points. You can modify the snippet or create additional ones.
-
-	}
-
 	{ Nested EXEC()s _
 
-	  	  Using the | self > virtual target (see | Virtual Targets >), a frame can be nested inside its target so the Python code in the node executes. EXEC() preserves the Python code on execution. The result can be used like a simple REPL buffer.
+	  Using the | self > virtual target (see | Virtual Targets >), a frame can be nested inside its target so the Python code in the node executes. EXEC() preserves the Python code on execution. The result can be used like a simple REPL buffer.
 
-	  	  {~ example node _
+		{~ example node _
 %%Python
 print('example python code')
 print(5*5)
 
 %%
 		  example python code
-		  25		
-				
-		[[>(@self) EXEC(@self)]]
-		}
+		  25
+
+		  [[>(@self) EXEC(@self)]]		}
 
 		{ Snippet _
 
-		  		  A Sublime Text snippet is available for this. Anywhere in text, type "execself" and press tab.
+		  A Sublime Text snippet is available for this. Anywhere in text, type "execself" and press tab.
 		}
 	}
 

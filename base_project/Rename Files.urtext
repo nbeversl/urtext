@@ -1,19 +1,17 @@
-Reindex _
+Rename Files _
 
 Renames files individually or all at once, by the parameters provided.
 
 %%Python
 
-class ReindexFiles:
-    """ 
-    sorts all file-level nodes by their index, then passes
-    the result to rename_file_nodes() to rename them.
-    """    
-    name=['REINDEX']        
+class RenameFiles:
+
+    selector_string = 'rename_files'
+    name = "Rename All Files"
     import os
     
     def run(self):
-        return self._rename_file_nodes(self.project.files)
+        return self._rename_file_nodes(self.current_project().files)
 
     def _rename_file_nodes(self, filenames):
         """ Rename a file or list of files by metadata """
@@ -24,19 +22,21 @@ class ReindexFiles:
         renamed_files = {}
         for old_filename in filenames:
 
-            if old_filename not in self.project.files:
+            if old_filename not in self.current_project().files:
                 print('%s not found in project files' % old_filename)
                 continue
-            if not self.project.files[old_filename].root_node:
+            if not self.current_project().files[old_filename].root_node:
                 print('%s is an empty file, nothing to use for filenaming' % old_filename)
                 continue
 
-            root_node = self.project.files[old_filename].root_node
-            filename_template = list(self.project.get_setting_as_text('filenames'))
+            self.project_list.run_editor_method('save_file', old_filename)
+
+            root_node = self.current_project().files[old_filename].root_node
+            filename_template = list(self.current_project().get_setting_as_text('filenames'))
             for i in range(0,len(filename_template)):
                 
                 if filename_template[i].lower() == 'title':
-                    filename_title_length_setting = self.project.get_single_setting('filename_title_length')
+                    filename_title_length_setting = self.current_project().get_single_setting('filename_title_length')
                     if filename_title_length_setting:
                         try:
                             filename_length = int(filename_title_length_setting.text)
@@ -47,14 +47,14 @@ class ReindexFiles:
                     title = root_node.title
                     filename_template[i] = title[:filename_length]
                 
-                elif filename_template[i].lower() in self.project.get_setting_as_text('use_timestamp'):
+                elif filename_template[i].lower() in self.current_project().get_setting_as_text('use_timestamp'):
                     timestamp_value = root_node.metadata.get_first_value(
                         filename_template[i])
                     if timestamp_value:
                         timestamp = timestamp_value.timestamp
                         if timestamp:
                             filename_template[i] = timestamp.datetime.strftime(
-                                self.project.get_single_setting('filename_datestamp_format').text)
+                                self.current_project().get_single_setting('filename_datestamp_format').text)
                     else:
                         filename_template[i] = ''                
                 else:
@@ -98,8 +98,10 @@ class ReindexFiles:
             
         for old_filename in renamed_files:
             new_filename = renamed_files[old_filename]
+            self.current_project().drop_file(old_filename)
             self.os.rename(old_filename, new_filename)
-            self.project._handle_renamed(old_filename, new_filename)
+            self.current_project()._parse_file(new_filename)
+            self.run_editor_method('retarget_view', old_filename, new_filename)
 
         return renamed_files
 
@@ -107,31 +109,27 @@ class ReindexFiles:
         self.run()
         return text_contents
 
-class RenameSingleFile(ReindexFiles):
+class RenameSingleFile(RenameFiles):
 
-    name=['RENAME_SINGLE_FILE']
-    project_instance = True
+    selector_string = 'rename_single_file'
+    name = "Rename Single File"
 
     def _should_run(self):
-        if self.project.setting_is_true('atomic_rename'):
-            return self.project.get_single_setting('atomic_rename')
-
-    def manual_rename(self, filename):
-        self.run(filename)
+        if self.current_project().setting_is_true('rename_on_save'):
+            return self.current_project().get_single_setting('rename_on_save')
 
     def after_on_file_modified(self, filename):
         if self._should_run():
-            self.run(filename)
+            self.run(filename=filename)
 
-    def run(self, filename):
+    def run(self, filename=None):
+        if filename is None:
+            filename = self.run_editor_method('get_current_filename')
         renamed_files = self._rename_file_nodes(filename)
         if renamed_files:
-            self.project.run_editor_method('close_current')
-            self.project.run_editor_method(
-                'open_file_to_position',
-                renamed_files[filename])
+            self.current_project().run_editor_method('close_file', filename)
+            self.current_project().run_editor_method('open_file_to_position', renamed_files[filename])
 
-ThisProject.add_call(ReindexFiles)
-ThisProject.add_call(RenameSingleFile)
-
+ThisProject.add_selector(RenameSingleFile)
+ThisProject.add_selector(RenameFiles)
 %%

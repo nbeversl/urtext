@@ -9,6 +9,9 @@ class MetadataValue:
         self.timestamp = None
         self.project = project
         self.node_as_value = False
+        self.text_lower = None
+        self.text = None
+        self.unparsed_text = None
         
     def set_as_node(self, node):
         self.node_as_value = node
@@ -33,7 +36,7 @@ class MetadataValue:
             return float('inf')
 
     def links(self):
-        urtext_links, replaced_contents = utils.get_all_links_from_string(self.text)
+        urtext_links, replaced_contents = utils.get_all_links_from_string(self.text, self.node, self.project.project_list)
         for urtext_link in urtext_links:
             if urtext_link.is_file:
                 urtext_link.path = os.path.join(

@@ -1,0 +1,13 @@
+Random Node _
+
+%%Python
+class RandomNode:
+
+	selector_string = 'random_node'
+	name = 'Random Node'
+
+	def run(self):
+		self.project_list.current_project.random_node()
+
+ThisProject.add_selector(RandomNode)
+%%

@@ -18,7 +18,7 @@ class ProjectList:
     def __init__(self,
                  entry_point,
                  is_async=True,
-                 base_project=os.path.join(os.path.dirname(__file__), 'base_project'),
+                 base_project_path=os.path.join(os.path.dirname(__file__), 'base_project'),
                  urtext_location=None,
                  editor_methods=None):
 
@@ -26,20 +26,22 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        self.is_async = False  # development
+        #self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
         self.calls = {}
+        self.selectors = {}
         self.project_instance_calls = {}
         self.project_list_instance_calls = {}
         self.projects = []
         self.entry_points = []
         self.current_project = None
         self.node_opened = False
-        if base_project:
-            self.init_project(os.path.abspath(base_project), visible=False)
-        if os.path.abspath(base_project) != os.path.abspath(self.entry_point):
+        if base_project_path:
+            self.base_project_path = base_project_path
+            self.init_project(os.path.abspath(base_project_path), visible=False)
+        if os.path.abspath(base_project_path) != os.path.abspath(self.entry_point):
             self.init_project(os.path.abspath(self.entry_point), initial=True, visible=True)
 
     def init_project(self, entry_point, new_file_node_created=False, initial=False, visible=True):
@@ -74,63 +76,36 @@ class ProjectList:
                     return values
         return []
 
-    def parse_link(self, string, filename, col_pos=0):
-        return utils.get_link_from_position_in_string(string, col_pos, include_http=True)
+    def _get_project_from_buffer(self, buffer_id):
+        for project in self.projects:
+            if buffer_id in project.buffers:
+                return project
 
-    def handle_link(self,
-                    string,
-                    filename,
-                    col_pos=0):
+    def on_hover(self, string, filename, file_pos, col_pos=0, identifier=None):
+        for p in self.projects:
+            p.run_hook('on_hover', string, filename, file_pos, col_pos=0, identifier=None)
 
-        """
-        Given a line of text, looks for a link to a node or project
-        with node, sets the current project to the containing project,
-        and returns the link information. Does not update navigation,
-        this should be done by the calling method.
-        """
-        link = utils.get_link_from_position_in_string(string, col_pos, include_http=True)
+    def parse_link(self, string, filename, file_pos, col_pos=0, identifier=None):
+        if filename:
+            project = self._get_project_from_path(filename)
+        if filename is None and identifier is not None:
+            project = self._get_project_from_buffer(identifier)
+        node = project.get_node_from_position(filename, file_pos, identifier=identifier) if project else None
+        return utils.get_link_from_position_in_string(string, col_pos, node, self, include_http=True)
+
+    def bound_action(self, node, selector_string):
+        if node:
+            node = self.current_project.get_node(node.id)
+            if node:
+                return node.bound_action(selector_string)
+        return self.run_selector(selector_string)
+
+    def handle_link(self, string, filename, file_pos, col_pos=0, identifier=None):
+        link = self.parse_link(string, filename, file_pos, col_pos=col_pos, identifier=identifier)
         if not link:
             return self.handle_unusable_link()
         link.filename = filename
-        
-        """ If a project name has been specified, locate the project and node """
-        if link.project_name:
-            if not self.set_current_project(link.project_name):
-                self.run_editor_method('popup', 'Project is not available.')
-                return None
-        elif filename:
-            self.set_current_project(os.path.dirname(filename))
-
-        if link.is_file:            
-            path = None
-            if os.path.exists(link.path):
-                path = link.path
-            elif self.current_project:
-                rel_path = os.path.abspath(os.path.join(self.current_project.entry_path, link.path))
-                if os.path.exists(rel_path):
-                    path = rel_path
-                else:
-                    abs_path = os.path.abspath(os.path.join(os.path.dirname(filename), link.path))
-                    if os.path.exists(abs_path):
-                        path = abs_path
-            if path:
-                ext = utils.get_file_extension(link.path)
-                editor_extensions = self.current_project.get_setting_as_text('open_in_editor')
-                if editor_extensions and ext in editor_extensions:
-                    return self.run_editor_method(
-                        'open_file_to_position',
-                        path,
-                        character=link.character_number,
-                        line=link.line_number)
-                return self.run_editor_method('open_external_file', path)
-            return self.handle_message('Path does not exist')
-
-        elif link.is_node:
-            if self.current_project: 
-                return self.current_project.handle_link(link)
-
-        elif link.is_http:
-            return self.run_editor_method('open_http_link', link.url)
+        link.click()
 
     def handle_unusable_link(self):
         if self.current_project and not self.current_project.compiled:
@@ -169,9 +144,6 @@ class ProjectList:
             project = self._get_project_from_path(title_or_path)
         return project
 
-    def select_project(self, project_or_title_or_path, visible=True, run_hook=False):
-        self.set_current_project(project_or_title_or_path, visible=True, run_hook=True)    
-
     def set_current_project(self, project_or_title_or_path, visible=True, run_hook=False):
         if isinstance(project_or_title_or_path, UrtextProject):
             project = project_or_title_or_path
@@ -183,8 +155,7 @@ class ProjectList:
                 project.title() != self.current_project.title()):
             self.current_project = project
             if visible:
-                self.run_editor_method('popup',
-                   'Switched to project: %s ' % self.current_project.title())
+                self.run_editor_method('popup', 'Switched to project: %s ' % self.current_project.title())
             project_paths = self.current_project.get_settings_paths()
             if project_paths and run_hook:
                 self.current_project.on_selected()
@@ -237,16 +208,6 @@ class ProjectList:
             self.notify_node_opened()
             return self.execute(self.current_project.visit_file, filename)
 
-    def visit_node(self, filename, node_id):
-        return self.execute(self._visit_node, filename, node_id)
-
-    def _visit_node(self, filename, node_id):
-        self.set_current_project(filename)
-        if self.current_project and node_id in self.current_project.nodes:
-            self.current_project.visit_node(node_id)
-            return True
-        return False
-
     def move_file(self,
                   old_filename,
                   source_project_name_or_path,
@@ -273,7 +234,7 @@ class ProjectList:
             return None
 
         moved_nodes = list(source_project.files[old_filename].nodes)
-        source_project.drop_buffer(source.project.files[old_filename])
+        source_project.drop_buffer(source_project.files[old_filename])
         new_filename = os.path.join(
             destination_project.get_settings_paths()[0],
             os.path.basename(old_filename))
@@ -286,7 +247,7 @@ class ProjectList:
 
         if replace_links:
             for moved_node in moved_nodes:
-                nodes_with_links = source_project.get_links_to(moved_node.id, as_nodes=True)
+                nodes_with_links = source_project.get_links_to(moved_node.id)
                 for node_with_link in nodes_with_links:
                     node_with_link.replace_links(
                         moved_node.id,
@@ -397,12 +358,6 @@ class ProjectList:
             return None
         return call_instance.run(*args, **kwargs)
 
-    def run_hook(self, hook_name, *args):
-        for call in self.project_list_instance_calls.values():
-            hook = getattr(call, hook_name, None)
-            if hook and callable(hook):
-                hook(*args)
-
     def make_file_link(self, path):
         if path:
             return utils.make_file_link(path)
@@ -412,6 +367,22 @@ class ProjectList:
 
     def node_has_been_opened(self):
         return self.node_opened
+
+    def selector_menu(self):
+        selections = list(self.selectors.keys())
+
+        def callback(selection):
+            if selection > -1 :
+                if selections[selection] in self.selectors:
+                    return self.selectors[selections[selection]].run()
+                return self.handle_message('No selection for %s' % selections[selection])
+        self.run_editor_method('show_panel', selections, callback)
+
+    def run_selector(self, selection):
+        if self.current_project and selection in self.current_project.selectors:
+            return self.execute(self.current_project.selectors[selection].run)
+        if selection in self.selectors:
+            self.execute(self.selectors[selection].run)
 
     @classmethod
     def make_starter_project(self, folder):

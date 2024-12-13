@@ -83,4 +83,17 @@ Square brackets in this syntax documentation (`[`, `]`) indicate the enclosed te
 
 	}
 
+	{ `.`
+
+	  Whitespace Anchor _
+
+	  When the first non-whitespace character on a line, it will not be parsed and permits manual whitespace when using | Lint >
+
+	  Dot (period) at the beginning of a line.
+
+	  Example:
+	  .		This text is indented and the whitespace anchor is not very visible.
+
+	}
+
 See next: | Links >

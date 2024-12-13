@@ -214,14 +214,10 @@ class NodeMetadata:
                 start_position=inline_timestamps[-1].start_position,
                 end_position=inline_timestamps[-1].end_position)
 
-    def get_first_value(self, 
-        keyname,
-        order_by='default'):
-
+    def get_first_value(self, keyname,order_by='default'):
         values = self.get_values(
             keyname,
             order_by=order_by)
-
         if values:
             return values[0]
 
@@ -234,11 +230,11 @@ class NodeMetadata:
 
         for e in entries:
             for v in e.meta_values:
-                if v.is_node():
-                    values[e.meta_values[0].contents()] = values.get(
-                        e.meta_values[0].contents(),
-                        0)
-                    values[e.meta_values[0].contents()] += 1
+                node_as_value = v.node()
+                if node_as_value:
+                    link_as_value = node_as_value.link()
+                    values[link_as_value] = values.get(link_as_value,0)
+                    values[link_as_value] += 1
                     continue                 
                 values[v] = values.get(v, 0)
                 values[v] +=1
@@ -290,7 +286,7 @@ class NodeMetadata:
                 for v in meta_values:
                     if v == value:
                         matching_entries.append(e)
-            return matching_entries
+        return matching_entries
 
     def get_date(self, keyname):
         """

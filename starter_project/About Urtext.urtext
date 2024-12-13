@@ -59,12 +59,18 @@ About Urtext _
 	{ Features _
 
 	  - Connect text among dozens, hundreds or thousands of files
-	  - User-definable metadata
+
+	  - Metadata
+
 	  - Dynamic content that aggregates from the contents from elsewhere in the project(s).
-	  - Package for Sublime Text 3/4 and an implementation for iOS using Pythonista
+
 	  - Manage, edit and cross-connect multiple projects within a single Urtext instance
-	  - Direct interaction with file system is mostly unnecessary. Creating, naming, saving, and organizing files is handled for you.
+
+	  - Creating, naming and opening files is handled for you .
+
 	  - Urtext is designed to make direct interaction with file system mostly unnecessary. Creating, naming, saving, and organizing files is handled for you.
+
+	  - Package for Sublime Text 3/4 and an implementation for iOS using Pythonista
 
 	}
 

@@ -39,13 +39,17 @@ class UrtextFile(UrtextBuffer):
         existing_contents = self._read_contents()
         if existing_contents == self.contents:
             return False
-        utils.write_file_contents(self.filename, self.contents)
-        buffer_setting = self.project.get_single_setting('use_buffer')
-        if buffer_setting and buffer_setting.true():
-            self.project.run_editor_method('set_buffer', self.filename, self.contents)
-        else:
-            self.project.run_editor_method('refresh_files', self.filename)
-        self.project._parse_file(self.filename)
+        if self.filename:
+            utils.write_file_contents(self.filename, self.contents)
+            buffer_setting = self.project.get_single_setting('use_buffer')
+            if buffer_setting and buffer_setting.true():
+                self.project.run_editor_method('set_buffer', self.filename, self.contents)
+            else:
+                self.project.run_editor_method('refresh_files', self.filename)
+            self.project._parse_file(self.filename)
+        elif self.identifier:
+            self.project.run_editor_method('set_buffer', None, self.contents, identifier=self.identifier)
+            self.project._parse_buffer(self)
         return True
 
     def contents_did_change(self):

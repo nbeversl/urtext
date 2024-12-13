@@ -1,7 +1,22 @@
-Collect _ 
+Collect _
 
-Collects the specified metadata entries from included and outputs them as text using the parameters provided
-Generates a collection of context-aware metadata anchors in list or tree format
+	{ Documentation _
+
+	  Collects occurrences of metadata from included nodes.
+	  Returns a seperate item for each __metadata__ occurence.
+	  Note that COLLECT requires |: doc INCLUDE() > to have any effect.
+
+		{ Parameters _
+
+		  Accepts a single key/operator/value combination.
+
+		  To collect multiple outputs, use multiple COLLECT() calls.
+
+		  COLLECT() accepts no flags.
+		}
+
+	}
+
 %%Python
 
 class Collect:

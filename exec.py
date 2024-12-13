@@ -17,14 +17,14 @@ class Exec:
     def dynamic_output(self, text_contents):
         node_is_self = False
         if self.argument_string.strip() == '@self':
-            node_to_exec = self.frame.source_node.id
+            node_to_exec = self.frame.source_node
             contents = self.frame.source_node.full_contents
             node_is_self = True
         else:
-            node_to_exec = get_id_from_link(self.argument_string)
-            if node_to_exec in self.project.nodes:
-                contents = self.project.nodes[node_to_exec].full_contents
-            else: return text_contents + make_node_link(node_to_exec) + ' : not found\n'
+            node_to_exec = self.project.get_node(get_id_from_link(self.argument_string))
+            if node_to_exec:
+                contents = node_to_exec.full_contents
+            else: return text_contents + make_node_link(get_id_from_link(self.argument_string)) + ' : not found\n'
     
         python_embed = python_code_regex.search(contents)
         if python_embed:
@@ -42,6 +42,7 @@ class Exec:
                 'ProjectList': self.project.project_list,
             }
             try:
+                self.project.last_exec_node = node_to_exec
                 exec(python_code, {}, locals_parameter)
                 sys.stdout = old_stdout
                 message = mystdout.getvalue()
@@ -52,7 +53,6 @@ class Exec:
             except Exception as e:
                 sys.stdout = old_stdout
                 return text_contents + ''.join([
-                    python_embed.group(),
                     '\n',
                     '`',
                     'error in | ',

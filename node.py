@@ -50,6 +50,7 @@ class UrtextNode:
 
         ranges, stripped_contents = utils.strip_backtick_escape(contents)
         self.embedded_syntax_ranges.extend(ranges)
+        stripped_contents = utils.strip_whitespace_anchors(stripped_contents)
         self.full_contents = stripped_contents
 
         ranges, stripped_contents, replaced_contents = self._strip_embedded_syntaxes(stripped_contents)
@@ -116,13 +117,11 @@ class UrtextNode:
         return_value = {
             'resolved_id': None,
             'method': None,
-            'reason': None,
-        }
+            'reason': None}
         if self.resolution:
             return_value = {
                 'resolved_id': self.id,
-                'method': "already resolved",
-            }
+                'method': "already resolved"}
         if allocated_ids is None:
             allocated_ids = self.project.nodes
         timestamp = self.metadata.get_oldest_timestamp()
@@ -195,7 +194,7 @@ class UrtextNode:
         return return_value
 
     def _get_links(self, positioned_contents):
-        urtext_links, replaced_contents = utils.get_all_links_from_string(positioned_contents)
+        urtext_links, replaced_contents = utils.get_all_links_from_string(positioned_contents, self, self.project.project_list)
         for urtext_link in urtext_links:
             urtext_link.containing_node = self
             self.links.append(urtext_link)
@@ -245,6 +244,10 @@ class UrtextNode:
         print(self.id)
         print(self.filename)
         self.metadata.log()
+
+    def bound_action(self, selector_string):
+        # this does not work as hoped
+        self.project.project_list.run_selector(selector_string)
 
     def consolidate_metadata(self, separator='::'):
         
@@ -333,7 +336,8 @@ class UrtextNode:
                 UrtextFrame(
                     param_string, 
                     self.project, 
-                    d.start()))
+                    d.start(),
+                    d.end()))
             stripped_contents = stripped_contents.replace(
                 d.group(), 
                 ' '*len(d.group()), 
@@ -357,6 +361,21 @@ class UrtextNode:
 
     def descendants(self):
         return node_descendants(self)
+
+    def siblings(self):
+        if self.parent:
+            return [n for n in self.parent.children if n.id != self.id]
+        return []
+
+    def get_sibling(self, node_title):
+        for n in self.siblings():
+            if n.title == node_title:
+                return n
+
+    def get_child(self, node_title):
+        for c in self.children:
+            if c.title == node_title:
+                return c
 
     def replace_links(self, original_id, new_id='', new_project=''):
         if self.is_dynamic:

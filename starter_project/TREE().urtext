@@ -12,42 +12,42 @@ Shows a tree representation of each included node and its nested or pointer desc
 Example:
 
 [[
-  	+(*)
-  	Includes all nodes in the project
++(*)
+Includes all nodes in the project
 
-  	LIMIT(10)
-  	Limits included nodes to 10 as example. Each included node gets its own tree.
+LIMIT(10)
+Limits included nodes to 10 as example. Each included node gets its own tree.
 
-  	TREE(*)
-  	Show unlimited nesting depth. Add nodes or change the limit to see the change in output
+TREE(*)
+Show unlimited nesting depth. Add nodes or change the limit to see the change in output
 
-  	>(| Example Use of TREE() >)
+>(| Example Use of TREE() >)
 ]]
 
 Output:
 
-{~ Example Use of TREE() _
-| AND/OR >
-| About Urtext >
-  ├── | Features and Philosophy >
-  │   ├── | Plain Text >
-  │   ├── | Freeform, Flexible Syntax >
-  │   ├── | Open source >
-  │   ├── | Extensible >
-  │   ├── | Future Proof >
-  │   └── | Local >
-  └── | Features >
-| Accessing Nested Metadata in Frames >
-  └── | Example of Nested Metadata Output >
-| Action Links ^ Links >
-| Action Links ^ WHEN() >
-  ├── | Code to exec >
-  └── | Open Urtext Website >
-| All Available Calls >
-| Arguments >
-| Asterisk >
-| Auto-Completions >
-| Bold Text >
-}
+	{~ Example Use of TREE() _
+	  | (untitled) ^ Base Project Info: >
+	  | AND/OR >
+	  | About Urtext >
+	  ├── | Features and Philosophy >
+	  │   ├── | Plain Text >
+	  │   ├── | Freeform, Flexible Syntax >
+	  │   ├── | Open source >
+	  │   ├── | Extensible >
+	  │   ├── | Future Proof >
+	  │   └── | Local >
+	  └── | Features >
+	  | Accessing Nested Metadata in Frames >
+	  └── | Example of Nested Metadata Output >
+	  | Action Links ^ Links >
+	  | Action Links ^ WHEN() >
+	  ├── | Code to exec >
+	  └── | Open Urtext Website >
+	  | All Available Calls >
+	  | Arguments >
+	  | Asterisk >
+	  | Auto-Completions >
+	}
 
 See next: | COLLECT() >

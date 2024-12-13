@@ -11,6 +11,7 @@ class UrtextBuffer:
         self.contents = contents
         self.messages = []
         self.project = project
+        self.identifier = None
         self.meta_to_node = []
         self.has_errors = False
         self.filename = filename
@@ -279,7 +280,8 @@ class UrtextBuffer:
         self.project.run_editor_method(
             'set_buffer',
             self.filename,
-            self.contents)
+            self.contents,
+            identifier=self.identifier)
 
     def write_buffer_messages(self, messages=None):
         if not messages and not self.messages:
@@ -420,11 +422,6 @@ class UrtextBuffer:
         for n in self.nodes:
             if n.id == node_id:
                 return n
-
-    def get_node_id_from_position(self, position):
-        node = self.get_node_from_position(position)
-        if node:
-            return node.id
 
     def _log_error(self, message, position):
         self.nodes = {}
