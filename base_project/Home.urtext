@@ -50,7 +50,7 @@ EXEC(| Yes Or No >)
 EXEC(| Forward Links Browser >)
 EXEC(| Make Compact Node >)
 EXEC(| All Selectors Scratch Buffer >)
-EXEC(|? All Projects Node Browser >)
+EXEC(| All Projects Node Browser >)
 +(*)
 TREE()
 >(| results >)
@@ -58,78 +58,80 @@ TREE()
 ]]
 
 	{~ results _
-	  |? All Projects Node Browser > : not found
-	  | All Selectors >
-	  | All Selectors Scratch Buffer >
-	  | Backlinks Browser >
-	  | Browse Metadata >
-	  | Collect >
-	  | Copy Link To Here >
-	  | Copy Link To Here With Project >
-	  | Delete This Node >
-	  | Document All Selectors >
-	  | Documentation ^ All Projects Node Browser >
-	  | Documentation ^ All Selectors >
-	  | Documentation ^ All Selectors Scratch Buffer >
-	  | Documentation ^ Browse Metadata >
-	  | Documentation ^ Copy Link To Here >
-	  | Documentation ^ Copy Link To Here With Project >
-	  | Documentation ^ Delete This Node >
-	  | Documentation ^ File Outline Dropdown >
-	  | Documentation ^ Go To Frame >
-	  | Documentation ^ Link to New Node >
-	  | Documentation ^ Move File To Other Project >
-	  | Export >
-	  | File Outline Dropdown >
-	  | Files >
-	  | Format >
-	  | Forward Links Browser >
-	  | Go To Frame >
-	  | Home >
-	  | Include and Exclude >
-	  | Info >
-	  | Insert Timestamp >
-	  | Interlinks >
-	  | Keybindings >
-	  | Keybindings to Sublime Text JSON >
-	  | Limit >
-	  | Link Preview >
-	  | Link To Node >
-	  | Link to New Node >
-	  | Lint >
-	  | Lint Code >
-	  | List Projects >
-	  | Log >
-	  | Make Compact Node >
-	  | Max Length >
-	  | Move File To Other Project >
-	  | Navigation >
-	  | New File Node >
-	  | Node Browser >
-	  | Open Home >
-	  | Pop >
-	  | Project Log >
-	  | Pull >
-	  | Random Node >
-	  | Rename Files >
-	  | Request >
-	  | Selectors >
-	  | Show >
-	  | Sort >
-	  | Strip >
-	  | Sublime Text Keybindings >
-	  | Target Call >
-	  | Text >
-	  | To Next Node >
-	  | To Previous Node >
-	  | Tree >
-	  | Urtext Starter Project >
-	  | When >
-	  | Wrap Selection >
-	  | Yes Or No >
-	  | _lint ^ project_settings >
-	  | debugging output >
-	  | dropped nodes should not drop the whole file >
-	  | output >
-	  | project_settings >
-	}
+| All Projects Node Browser >
+| All Selectors >
+| All Selectors Scratch Buffer >
+| Backlinks Browser >
+| Browse Metadata >
+| Collect >
+| Copy Link To Here >
+| Copy Link To Here With Project >
+| Delete This Node >
+| Document All Selectors >
+| Documentation ^ All Projects Node Browser >
+| Documentation ^ All Selectors >
+| Documentation ^ All Selectors Scratch Buffer >
+| Documentation ^ Browse Metadata >
+| Documentation ^ Collect >
+| Documentation ^ Copy Link To Here >
+| Documentation ^ Copy Link To Here With Project >
+| Documentation ^ Delete This Node >
+| Documentation ^ File Outline Dropdown >
+| Documentation ^ Go To Frame >
+| Documentation ^ Link to New Node >
+| Documentation ^ Move File To Other Project >
+| Export >
+| File Outline Dropdown >
+| Files >
+| Format >
+| Forward Links Browser >
+| Go To Frame >
+| Home >
+| Include and Exclude >
+| Info >
+| Insert Timestamp >
+| Interlinks >
+| Keybindings >
+| Keybindings to Sublime Text JSON >
+| Limit >
+| Link Preview >
+| Link To Node >
+| Link to New Node >
+| Lint >
+| Lint Code >
+| List Projects >
+| Log >
+| Make Compact Node >
+| Max Length >
+| Move File To Other Project >
+| Navigation >
+| New File Node >
+| Node Browser >
+| Open Home >
+| Parameters >
+| Pop >
+| Project Log >
+| Pull >
+| Random Node >
+| Rename Files >
+| Request >
+| Selectors >
+| Show >
+| Sort >
+| Strip >
+| Sublime Text Keybindings >
+| Target Call >
+| Text >
+| To Next Node >
+| To Previous Node >
+| Tree >
+| Urtext Starter Project >
+| When >
+| Wrap Selection >
+| Yes Or No >
+| _lint ^ project_settings >
+| debugging output >
+| dropped nodes should not drop the whole file >
+| output >
+| project_settings >
+}

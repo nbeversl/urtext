@@ -117,7 +117,10 @@ class TreeCall:
                     new_tree_node.position = child.start_position 
 
         else:
-            return self.Node('(debugging): %s not in nodes' % from_tree_node.name)
+            error_node = self.Node('(debugging): %s not in nodes' % from_tree_node.name)
+            error_node.position = 0
+            error_node.parent = from_tree_node
+            return error_node
  
         return from_tree_node
 

@@ -44,10 +44,23 @@ class ProjectList:
         if os.path.abspath(base_project_path) != os.path.abspath(self.entry_point):
             self.init_project(os.path.abspath(self.entry_point), initial=True, visible=True)
 
-    def init_project(self, entry_point, new_file_node_created=False, initial=False, visible=True):
-        self.execute(self._init_project, entry_point, new_file_node_created=False, initial=initial, visible=visible)
+    def init_project(self,
+        entry_point,
+        new_file_node_created=False,
+        initial=False,
+        visible=True,
+        make_current=False,
+        selector=None):
+        self.execute(self._init_project, entry_point, new_file_node_created=False, initial=initial, make_current=make_current, visible=visible, selector=selector)
 
-    def _init_project(self, entry_point, new_file_node_created=False, initial=None, visible=True):
+    def _init_project(self,
+        entry_point,
+        new_file_node_created=False,
+        initial=None,
+        visible=True,
+        make_current=False,
+        selector=None):
+
         if self.get_project(entry_point):
             return
         project = UrtextProject(entry_point,
@@ -55,13 +68,15 @@ class ProjectList:
                                 editor_methods=self.editor_methods,
                                 initial=initial,
                                 new_file_node_created=new_file_node_created)
-        project.initialize(callback=self.add_project, initial=initial, visible=visible)
+        project.initialize(callback=self._add_project, initial=initial, visible=visible, make_current=make_current, selector=selector)
 
-    def add_project(self, project, initial=False):
+    def _add_project(self, project, initial=False, make_current=False, selector=None):
         self.projects.append(project)
         self.entry_points.append(project.entry_point)
-        if initial:
+        if initial or make_current:
             self.current_project = project
+        if selector:
+            self.run_selector(selector)
 
     def execute(self, function, *args, **kwargs):
         if self.is_async:

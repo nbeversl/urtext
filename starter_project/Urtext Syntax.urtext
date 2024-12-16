@@ -7,7 +7,7 @@ Square brackets in this syntax documentation (`[`, `]`) indicate the enclosed te
 	  Bracket Node Wrappers _
 
 	  Can appear anywhere. Can be nested aribrarily deep.
-	  More information: | Bracket Nodes >
+	  More information: | another node >
 	}
 
 	{ `•`

@@ -53,7 +53,6 @@ class UrtextProject:
         self.compiled = False
         self.excluded_files = []
         self.home_requested = False
-        self.running_on_modified = None
         self.new_file_node_created = new_file_node_created
         self.initial_project = initial
         self.visible = None
@@ -112,7 +111,7 @@ class UrtextProject:
             return self.get_settings_keys()
         return propagated_settings
 
-    def initialize(self, callback=None, initial=True, visible=True):
+    def initialize(self, callback=None, initial=True, visible=True, make_current=False, selector=None):
         self.visible = visible
         self.add_call(Exec)
         for call in self.project_list.calls.values():
@@ -138,7 +137,7 @@ class UrtextProject:
             return False
 
         if callback:
-            callback(self, initial=initial)
+            callback(self, initial=initial, make_current=make_current, selector=selector)
 
         for p in self.get_settings_paths():
             if self._approve_new_path(p):
@@ -1009,7 +1008,7 @@ class UrtextProject:
                     if filename in self.files:
                         self.run_hook('after_on_file_modified', filename)  
                     self.run_editor_method('refresh_files', modified_files)
-                self.running_on_modified = False
+        self.running_on_modified = False
         self.close_inactive()
         return modified_files
 
