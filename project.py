@@ -2,7 +2,6 @@ import re
 import datetime
 import platform
 import os
-import random
 import time
 import concurrent.futures
 import threading
@@ -135,9 +134,6 @@ class UrtextProject:
                 self._parse_file(file)
         if not self.files:
             return False
-
-        if callback:
-            callback(self, initial=initial, make_current=make_current, selector=selector)
 
         for p in self.get_settings_paths():
             if self._approve_new_path(p):
@@ -970,12 +966,6 @@ class UrtextProject:
                         ]))
 
         return list(set(pairs))
-
-    def random_node(self):
-        if self.nodes:
-            node_id = random.choice(list(self.nodes))
-            self.open_node(node_id)
-        return None
 
     def close_inactive(self):
         if self.compiled and self.setting_is_true('close_inactive_views'):

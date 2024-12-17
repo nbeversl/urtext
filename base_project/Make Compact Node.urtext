@@ -4,7 +4,8 @@ class CompactNode:
 
     selector_string = 'compact_node'
     name = "Compact Node"
-     
+    thread_safe = True
+ 
     def run(self):
         line_contents, cursor_pos = self.run_editor_method('get_line_and_cursor')
         if self.utils.match_compact_node(line_contents):

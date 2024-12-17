@@ -4,6 +4,7 @@ class LinkToNode:
 
 	selector_string = 'link_to_node'
 	name = 'Link To Node ..'
+	thread_safe = True
 
 	def run(self):
 		self.selections = [[n.id, n.display_detail] for n in self.project_list.current_project.sort_for_node_browser()]

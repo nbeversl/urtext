@@ -6,6 +6,7 @@ class AllSelectorsSelector:
 
 	selector_string = 'all_selectors'
 	name = 'All Selectors'
+	thread_safe = True
 
 	def run(self):
 		self.selections = list(self.project_list.selectors.keys())

@@ -5,6 +5,7 @@ class UrtextSelector:
     syntax = syntax
     utils = utils
     display = True
+    thread_safe = False
 
     def __init__(self, project_list):
         self.project_list = project_list

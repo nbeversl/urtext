@@ -6,6 +6,7 @@ class OpenHome:
    
 	selector_string = 'urtext_home'
 	name = "Open Home"
+	thread_safe = True
 
 	def run(self):
 		self.current_project().open_home()

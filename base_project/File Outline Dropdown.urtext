@@ -5,6 +5,7 @@ class FileOutlineDropdown:
 
 	selector_string ='file_outline_dropdown'
 	name = 'Shows an outline of the current file'
+	thread_safe = True
 
 	def run(self):
 		if self.project_list.current_project:

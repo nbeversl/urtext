@@ -5,6 +5,7 @@ class NodeBrowser:
 	
 	selector_string = 'node_browser'
 	name = 'Node Browser'
+	thread_safe = True
 
 	def run(self):
 		if self.project_list.current_project:

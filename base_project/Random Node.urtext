@@ -5,9 +5,12 @@ class RandomNode:
 
 	selector_string = 'random_node'
 	name = 'Random Node'
+	import random
 
 	def run(self):
-		self.project_list.current_project.random_node()
+		if self.current_project() and self.current_project().nodes:
+			node_id = self.random.choice(list(self.self.current_project().nodes))
+			self.current_project().open_node(node_id)
 
 ThisProject.add_selector(RandomNode)
 %%

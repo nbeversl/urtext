@@ -4,6 +4,7 @@ class CopyLinkToHere:
 
 	selector_string = 'copy_link_to_here'
 	name = 'Copy Link to Here'
+	thread_safe = True
 
 	def run(self):
 		filename = self.project_list.run_editor_method('get_current_filename')

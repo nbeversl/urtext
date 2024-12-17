@@ -4,6 +4,7 @@ class ForwardlinksBrowser:
 
 	selector_string = 'forwardlinks_browser'
 	name = "Forward Links Browser"
+	thread_safe = True
 
 	def run(self):
 		node = self.current_project().get_node_from_editor()

@@ -1,10 +1,11 @@
-List Projects _
+#List Projects _
 %%Python
 
 class ProjectSelector:
 
 	selector_string = 'select_project'
 	name = 'Select Project'
+	thread_safe = True
 
 	def run(self):
 		

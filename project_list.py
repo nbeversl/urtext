@@ -63,18 +63,18 @@ class ProjectList:
 
         if self.get_project(entry_point):
             return
+
         project = UrtextProject(entry_point,
                                 project_list=self,
                                 editor_methods=self.editor_methods,
                                 initial=initial,
                                 new_file_node_created=new_file_node_created)
-        project.initialize(callback=self._add_project, initial=initial, visible=visible, make_current=make_current, selector=selector)
 
-    def _add_project(self, project, initial=False, make_current=False, selector=None):
         self.projects.append(project)
         self.entry_points.append(project.entry_point)
         if initial or make_current:
             self.current_project = project
+        project.initialize(initial=initial, visible=visible, make_current=make_current, selector=selector)
         if selector:
             self.run_selector(selector)
 
@@ -98,7 +98,7 @@ class ProjectList:
 
     def on_hover(self, string, filename, file_pos, col_pos=0, identifier=None):
         for p in self.projects:
-            p.run_hook('on_hover', string, filename, file_pos, col_pos=0, identifier=None)
+            p.run_hook('on_hover', string, filename, file_pos, col_pos=col_pos, identifier=None)
 
     def parse_link(self, string, filename, file_pos, col_pos=0, identifier=None):
         if filename:
@@ -387,16 +387,22 @@ class ProjectList:
         selections = list(self.selectors.keys())
 
         def callback(selection):
+            selections = list(self.selectors.keys())
             if selection > -1 :
                 if selections[selection] in self.selectors:
                     return self.selectors[selections[selection]].run()
                 return self.handle_message('No selection for %s' % selections[selection])
+
         self.run_editor_method('show_panel', selections, callback)
 
     def run_selector(self, selection):
         if self.current_project and selection in self.current_project.selectors:
+            if self.current_project.selectors[selection].thread_safe:
+                return self.current_project.selectors[selection].run()
             return self.execute(self.current_project.selectors[selection].run)
         if selection in self.selectors:
+            if self.selectors[selection].thread_safe:
+                return self.selectors[selection].run()
             self.execute(self.selectors[selection].run)
 
     @classmethod

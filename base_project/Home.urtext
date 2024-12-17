@@ -26,7 +26,7 @@ EXEC(| When >)
 EXEC(| Show >)
 EXEC(| Wrap Selection >)
 EXEC(| Lint Code >)
-EXEC(| List Projects >)
+EXEC(| Projects >)
 EXEC(| Node Browser >)
 EXEC(| Random Node >)
 EXEC(| Go To Frame >)
@@ -43,7 +43,6 @@ EXEC(| Open Home >)
 EXEC(| Copy Link To Here With Project >)
 EXEC(| New File Node >)
 EXEC(| Keybindings >)
-EXEC(| Open Home >)
 EXEC(| All Selectors >)
 EXEC(| Strip >)
 EXEC(| Yes Or No >)
@@ -99,7 +98,6 @@ TREE()
 | Link to New Node >
 | Lint >
 | Lint Code >
-| List Projects >
 | Log >
 | Make Compact Node >
 | Max Length >
@@ -111,6 +109,7 @@ TREE()
 | Parameters >
 | Pop >
 | Project Log >
+| Projects >
 | Pull >
 | Random Node >
 | Rename Files >

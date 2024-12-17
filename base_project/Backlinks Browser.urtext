@@ -5,6 +5,7 @@ class BacklinksBrowser:
 
 	selector_string = 'backlinks_browser'
 	name = 'Backlinks Browser'
+	thread_safe = True
 
 	def run(self):
 		node = self.current_project().get_node_from_editor()

@@ -8,6 +8,8 @@ class Navigation:
 
 	name = ["NAVIGATION"]
 	project_list_instance = True
+	import threading
+	thread_safe = True
 
 	def __init__(self, project_list):
 		super().__init__(project_list)
@@ -79,8 +81,7 @@ class Navigation:
 		if on_selected_setting:
 			for action in on_selected_setting:
 				if action == 'open_last_nav' and self.navigation:
-					reversed_navs = list(self.navigation)
-					reversed_navs.reverse()
+					reversed_navs = list(reversed(self.navigation))
 					for index, item in enumerate(reversed_navs):
 						nav_project, node_id = item
 						if nav_project == project:
@@ -90,9 +91,8 @@ class Navigation:
 					if project.open_home():
 						return
 					elif not project.compiled:
-						timer = threading.Timer(.5, self.on_selected)
+						timer = self.threading.Timer(.5, self.on_selected, project)
 						timer.start()
-						return timer
 
 				if action == 'open_any':
 					filename = list(project.files.keys())[0]

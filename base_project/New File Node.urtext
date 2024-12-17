@@ -3,6 +3,7 @@ New File Node _
 class NewFileNode:
 	selector_string = 'new_file_node'
 	name = 'New File Node'
+	thread_safe = True
 
 	import os
 	def run(self):
