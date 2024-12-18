@@ -18,13 +18,9 @@ class NodeMetadata:
         remaining_contents = full_contents
 
         for m in syntax.metadata_entry_c.finditer(full_contents):
-            keyname, contents = m.group().strip(
-                syntax.metadata_end_marker).split(
-                    syntax.metadata_assigner, 
-                    1)
-
+            keyname, contents = m.group().strip(syntax.metadata_end_marker).split(syntax.metadata_assigner, 1)
             value_list = []
-            for pattern in list(syntax.special_metadata_patterns_c.finditer(contents)):
+            for pattern in syntax.special_metadata_patterns_c.finditer(contents):
                 value_list.append(pattern.group())
                 contents = contents.replace(pattern.group(),'')
             value_list.extend(syntax.metadata_separator_pattern_c.split(contents))       

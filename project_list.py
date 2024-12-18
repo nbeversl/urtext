@@ -106,7 +106,9 @@ class ProjectList:
         if filename is None and identifier is not None:
             project = self._get_project_from_buffer(identifier)
         node = project.get_node_from_position(filename, file_pos, identifier=identifier) if project else None
-        return utils.get_link_from_position_in_string(string, col_pos, node, self, include_http=True)
+        link = utils.get_link_from_position_in_string(string, col_pos, node, self, include_http=True)
+        link.project_list = self
+        return link
 
     def bound_action(self, node, selector_string):
         if node:

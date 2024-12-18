@@ -13,6 +13,7 @@ import urtext.syntax as syntax
 import urtext.utils as utils
 from urtext.exec import Exec
 from urtext.selector import UrtextSelector
+from itertools import chain
 
 class UrtextProject:
     urtext_file = UrtextFile
@@ -42,6 +43,7 @@ class UrtextProject:
         self.buffers = {}
         self.last_exec_node = None
         self.paths = []
+        self.frames = {}
         self.selectors = {}
         self.messages = {}
         self.virtual_outputs = {}
@@ -231,16 +233,13 @@ class UrtextProject:
 
         self.drop_buffer(buffer)
         if not buffer.root_node:
+            self.log_item(buffer.filename, {'top_message': '%s has no root node, dropping' % buffer.filename})
             buffer.write_buffer_messages()
-            buffer.write_buffer_contents()
-            self.log_item(buffer.filename, {
-                'top_message': '%s has no root node, dropping' % buffer.filename})
             return False
 
         self.messages[buffer.filename] = buffer.messages
         if buffer.has_errors:
             buffer.write_buffer_messages()
-            buffer.write_buffer_contents()
             return False
 
         changed_ids = {}
@@ -264,13 +263,15 @@ class UrtextProject:
         for node in buffer.nodes:
             if not node.errors:
                 self._add_node(node)
-                for frame in node.frames:
-                    frame.source_node = node
-                    for t in frame.targets:
-                        if t.is_virtual and t.matching_string == "@self":
-                            t.is_node = True
-                            t.node_id = frame.source_node.id
-                    # self._check_conflicting_frames(frame)
+                if node.frames:
+                    self.frames[node.id] = []
+                    for frame in node.frames:
+                        frame.source_node = node
+                        for t in frame.targets:
+                            if t.is_virtual and t.matching_string == "@self":
+                                t.is_node = True
+                                t.node_id = frame.source_node.id
+                        self.frames[node.id].append(frame)
 
         if buffer.identifier:
             self.buffers[buffer.identifier] = buffer
@@ -384,50 +385,7 @@ class UrtextProject:
                                 utils.make_node_link(links_to_change[node_id]), replaced_contents)
                             project_node.file.set_buffer_contents(replaced_contents, clear_messages=False)
                             project_node.file.write_buffer_contents()
-                            
-    def _check_conflicting_frames(self, new_frame):
-        all_frames= self._get_all_frames()
-        target_ids, target_files = self._get_all_targets()
-        for frame in all_frames:
-            for target_id in new_frame.target_ids():
-                if target_id in target_ids:
-                    message = {
-                        'top_message': ''.join([
-                            '\nDynamic node ',
-                            utils.make_node_link(target_id),
-                            '\nalready has a definition in ',
-                            e.source_node.link(),
-                            '\n in file ',
-                            syntax.file_link_opening_wrapper,
-                            good_frame.source_node.filename,
-                            syntax.link_closing_wrapper,
-                            '\nskipping the definition in ',
-                            duplicate_frame.source_node.link(),
-                            ])}
-            for target_file in new_frame.target_files():
-                if target_file in target_files:
-                    message = {
-                        'top_message': ''.join([
-                            '\nFile ',
-                            utils.make_file_link(target_file),
-                            '\nahas multiple frames in ',
-                            good_frame.source_node.link(),
-                            '\n in file ',
-                            syntax.file_link_opening_wrapper,
-                            good_frame.source_node.filename,
-                            syntax.link_closing_wrapper,
-                            '\nskipping the definition in ',
-                            duplicate_frame.source_node.link(),
-                            ])}
  
-    def _get_all_targets(self):
-        target_ids = []
-        target_files = []
-        for d in self._get_all_frames():
-            target_ids.extend(d.target_ids())
-            target_files.extend(d.target_files())
-        return target_ids, target_files
-
     def _verify_frame_present_if_marked(self, node_id):
         node = self.get_node(node_id)
         if node and node.marked_dynamic and not node.is_dynamic:
@@ -447,18 +405,14 @@ class UrtextProject:
                 resolution = d.resolve_id(allocated_ids=self.nodes)
                 if not resolution['resolved_id']:
                     message = {
-                    'top_message' : ''.join([
-                            'Dropping node ID "',
-                            node.id,
-                            '", ',
-                            resolution['reason'],
-                        ]),
-                    'position_message': 'ANOTHER NODE HAS THE SAME ID',
-                    'position': node.start_position,
-                    }
+                    'top_message' : ''.join(['Dropping node ID "', node.id, '", ', resolution['reason'],
+                        '; node exists at %s '  % utils.make_node_link(d.id)]),
+                    'position_message': 'node exists at %s ' % utils.make_node_link(d.id),
+                    'position': node.start_position}
                     node.errors = True
                     self.log_item(node.filename, message)
                     node.buffer.messages.append(message)
+                    node.buffer.has_errors = True
                     return
                 else:
                     d.id = resolution['resolved_id']
@@ -467,23 +421,17 @@ class UrtextProject:
                     if old_id in self.project_settings_nodes:
                         self.project_settings_nodes.remove(old_id)
                         self.project_settings_nodes.append(resolution['resolved_id'])
-                    self.run_hook('on_node_id_changed',
-                            self,
-                            old_id,
-                            resolution['resolved_id'])
+                    self.run_hook('on_node_id_changed', self, old_id, resolution['resolved_id'])
             resolution = node.resolve_id(allocated_ids=list(self.nodes))
             if not resolution['resolved_id']:
                 message = {
-                    'top_message' : ''.join([
-                            'Dropping node ID "',
-                            node.id,
-                            '", ',
-                            resolution['reason'],
-                        ]),
-                    'position_message': resolution['reason'],
-                    'position': node.start_position,
-                }
+                    'top_message' : ''.join(['Dropping node ID "', node.id, '", ', resolution['reason'],
+                        '; node exists at %s'  % utils.make_node_link(d.id)]),
+                    'position_message': ''.join(['node exists at %s ' % utils.make_node_link(d.id), resolution['reason']]),
+                    'position': node.start_position}
                 node.errors = True
+                node.buffer.has_errors = True
+                node.buffer.messages.append(message)
                 self.log_item(node.filename, message)
                 return
             else:
@@ -552,6 +500,8 @@ class UrtextProject:
             if node.id in self.project_settings_nodes:
                 self.project_settings_nodes.remove(node.id)
             self._remove_sub_tags(node.id)
+            if node.id in self.frames:
+                del self.frames[node.id]
             del self.nodes[node.id]
             del node
 
@@ -716,10 +666,7 @@ class UrtextProject:
         return '• ' + contents.strip() + metadata_block
 
     def _get_all_frames(self):
-        defs = []
-        for node in list(self.nodes.values()):
-            defs.extend(node.frames)
-        return defs
+        return list(chain.from_iterable(self.frames.values()))
 
     def __get_all_dynamic_targets(self):
         targets = []
@@ -729,24 +676,23 @@ class UrtextProject:
 
     def _get_frames(self, target_node=None, source_node=None, flags=None):        
         frames = []
-        for node in [n for n in self.nodes.values() if n.frames]:
-            for frame in node.frames:
-                if target_node and (target_node.id in frame.target_ids()):
+        for frame in self._get_all_frames():
+            if target_node and (target_node.id in frame.target_ids()):
+                frames.append(frame)
+            if source_node:
+                if frame.source_node.id == source_node.id:
                     frames.append(frame)
-                if source_node:
-                    if frame.source_node.id == source_node.id:
+            for target in self.virtual_outputs:
+                if source_node and frame.source_node.id == source_node.id:
+                    frames.append(frame)
+                elif not source_node:
+                    frames.append(frame)
+            if flags:
+                if not isinstance(flags, list):
+                    flags = [flags]
+                for f in flags:
+                    if frame.have_flags(f) and frame not in frames:
                         frames.append(frame)
-                for target in self.virtual_outputs:
-                    if source_node and frame.source_node.id == source_node.id:
-                        frames.append(frame)
-                    elif not source_node:
-                        frames.append(frame)
-                if flags:
-                    if not isinstance(flags, list):
-                        flags = [flags]
-                    for f in flags:
-                        if frame.have_flags(f) and frame not in frames:
-                            frames.append(frame)
         return frames
 
     def _remove_dynamic_metadata_entries(self, node_id):
@@ -976,29 +922,25 @@ class UrtextProject:
     def on_modified(self, filename, flags=[]):
         modified_files = []
         if self.compiled and filename in self._get_included_files():
-            if not self.running_on_modified:                
-                self.running_on_modified = True
-                if filename in self.files:
-                    modified_files, dynamic_nodes = self._compile_file(
-                        filename,
-                        flags=['-on_modified'] + flags)
-                    file_obj = self.files[filename]
-                    verified_contents = self._reverify_links(filename)
-                    file_obj.set_buffer_contents(verified_contents)
-                    for d in dynamic_nodes:
-                        # these have to persist between parses
-                        node = file_obj.get_node(d)
-                        if node:
-                            node.is_dynamic = True
-                    if file_obj.write_buffer_contents(run_hook=True):
-                        modified_files.append(filename)
-                    self.run_hook('file_contents_were_modified', filename)
-                    self.files[filename] = file_obj
-                    self._sync_file_list()
-                    if filename in self.files:
-                        self.run_hook('after_on_file_modified', filename)  
-                    self.run_editor_method('refresh_files', modified_files)
-        self.running_on_modified = False
+            modified_files, dynamic_nodes = self._compile_file(
+                filename,
+                flags=['-on_modified'] + flags)
+            file_obj = self.files[filename]
+            verified_contents = self._reverify_links(filename)
+            file_obj.set_buffer_contents(verified_contents)
+            for d in dynamic_nodes:
+                # these have to persist between parses
+                node = file_obj.get_node(d)
+                if node:
+                    node.is_dynamic = True
+            if file_obj.write_buffer_contents(run_hook=True):
+                modified_files.append(filename)
+            self.run_hook('file_contents_were_modified', filename)
+            self.files[filename] = file_obj
+            self._sync_file_list()
+            if filename in self.files:
+                self.run_hook('after_on_file_modified', filename)  
+            self.run_editor_method('refresh_files', modified_files)
         self.close_inactive()
         return modified_files
 
@@ -1248,7 +1190,6 @@ class UrtextProject:
             hook = getattr(call, hook_name, None)
             if hook and callable(hook):
                 hook(*args, **kwargs)
-
         for selector in self.selectors.values():
             hook = getattr(selector, hook_name, None)
             if hook and callable(hook):
@@ -1274,21 +1215,22 @@ class UrtextProject:
         modified_buffers = []
         dynamic_nodes = []
         buffer = self._parse_file(filename)
-        for node in buffer.nodes:
-            for frame in list(self._get_frames(target_node=node, source_node=node)):
-                m_buffers, d_nodes = self._run_frame(frame, flags=flags)
-                modified_buffers.extend(m_buffers)
-                dynamic_nodes.extend(d_nodes)
-                for b in modified_buffers:
-                    b.write_buffer_contents()
-                    node_ids = []
-                    while len(node_ids) < len([n for n in b.nodes if not n.errors]):
-                        for node_id in [n.id for n in b.nodes if not n.errors]:
-                            if node_id in node_ids:
-                                continue
-                            node_ids.append(node_id)
-                            if self._verify_frame_present_if_marked(node_id) is False:
-                                b.write_buffer_contents()
+        if buffer:
+            for node in buffer.nodes:
+                for frame in list(self._get_frames(target_node=node, source_node=node)):
+                    m_buffers, d_nodes = self._run_frame(frame, flags=flags)
+                    modified_buffers.extend(m_buffers)
+                    dynamic_nodes.extend(d_nodes)
+                    for b in modified_buffers:
+                        b.write_buffer_contents()
+                        node_ids = []
+                        while len(node_ids) < len([n for n in b.nodes if not n.errors]):
+                            for node_id in [n.id for n in b.nodes if not n.errors]:
+                                if node_id in node_ids:
+                                    continue
+                                node_ids.append(node_id)
+                                if self._verify_frame_present_if_marked(node_id) is False:
+                                    b.write_buffer_contents()
         return [b.filename for b in modified_buffers], dynamic_nodes
 
     def _run_frame(self, frame, flags=None):

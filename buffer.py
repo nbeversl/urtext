@@ -294,8 +294,7 @@ class UrtextBuffer:
             syntax.urtext_message_opening_wrapper,
             ' ',
             '\n'.join([m['top_message'] for m in self.messages]),
-            timestamp,
-            ' ',
+            ' ', timestamp, ' ',
             syntax.urtext_message_closing_wrapper,
             '\n'
             ])

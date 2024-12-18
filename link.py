@@ -42,20 +42,20 @@ class UrtextLink:
 		dest_node = self.get_node()
 		if dest_node:
 			if self.is_action:
-				for frame in self.containing_node.project._get_frames(target_node=dest_node):
-					modified_buffers, _l = self.containing_node.project._run_frame(frame, flags=['-target_link_clicked'])
+				for frame in self.project_list.current_project._get_frames(target_node=dest_node):
+					modified_buffers, _l = self.cproject_list.current_project._run_frame(frame, flags=['-target_link_clicked'])
 					for b in modified_buffers:
 						b.write_buffer_contents()
 			else:
-				return self.containing_node.project.open_node(dest_node.id,
+				return self.project_list.current_project.open_node(dest_node.id,
 					position=dest_node.start_position + self.dest_node_position)
 		elif self.is_node:
-			return  self.containing_node.project.run_editor_method('popup', 'Node cannot be found in the current project.')
+			return self.project_list.current_project.run_editor_method('popup', 'Node cannot be found in the current project.')
 		elif self.is_file:            
 			path = None
 			if os.path.exists(self.path):
 				path = self.path
-				rel_path = os.path.abspath(os.path.join(self.containing_node.project.entry_path, self.path))
+				rel_path = os.path.abspath(os.path.join(self.project_list.current_project.entry_path, self.path))
 				if os.path.exists(rel_path):
 					path = rel_path
 				else:
@@ -64,28 +64,28 @@ class UrtextLink:
 						path = abs_path
 			if path:
 				ext = get_file_extension(self.path)
-				editor_extensions = self.containing_node.project.get_setting_as_text('open_in_editor')
+				editor_extensions = self.project_list.current_project.get_setting_as_text('open_in_editor')
 				if editor_extensions and ext in editor_extensions:
-					return self.containing_node.project.run_editor_method(
+					return self.project_list.current_project.run_editor_method(
 						'open_file_to_position',
 						path,
 						character=self.character_number,
 						line=self.line_number)
-				return self.containing_node.project.run_editor_method('open_external_file', path)
-			return self.containing_node.project.handle_info_message('Path does not exist')
+				return self.project_list.current_project.run_editor_method('open_external_file', path)
+			return self.project_list.current_project.handle_info_message('Path does not exist')
 		elif self.is_http:
 			if open_http_link(self.url) is False:
-				self.containing_node.project.handle_info_message('Could not open the weblink')
+				self.project_list.current_project.handle_info_message('Could not open the weblink')
 
 	def hover(self):
 		if self.is_node or self.is_pointer:
-			dest_node = self.containing_node.project.get_node(self.node_id)
+			dest_node = self.project_list.current_project.get_node(self.node_id)
 			if dest_node:
-				for frame in self.containing_node.project._get_frames(source_node=dest_node):
-					modified_buffers, _l = self.containing_node.project._run_frame(frame, flags=['-link_hovered'])
+				for frame in self.project_list.current_project._get_frames(source_node=dest_node):
+					modified_buffers, _l = self.project_list.current_project._run_frame(frame, flags=['-link_hovered'])
 					for b in modified_buffers:
 						b.write_buffer_contents()
-		self.containing_node.project.run_hook('on_link_hovered', self)
+		self.project_list.current_project.run_hook('on_link_hovered', self)
 
 	def bound_action(self):
 		return self.project_list.bound_action(self.containing_node, self.bound_argument)
