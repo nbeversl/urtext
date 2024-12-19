@@ -105,7 +105,7 @@ class UrtextFrame:
                 continue
             accumulated_text = transformed_text
 
-        if accumulated_text is '':
+        if accumulated_text == '':
             accumulated_text = self.default_output()
 
         self.flags = []

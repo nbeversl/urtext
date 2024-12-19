@@ -1325,7 +1325,7 @@ class UrtextProject:
             if uid not in visited_nodes and not self.nodes[node_to_tag].is_dynamic:
                 self.nodes[node_to_tag].metadata.add_entry(
                     entry.keyname,
-                    entry.meta_values,
+                    [v.text if not v.node_as_value else v.node() for v in entry.meta_values],
                     self.nodes[node_to_tag],
                     tag_self=True,
                     from_node=entry.from_node,

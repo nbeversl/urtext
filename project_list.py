@@ -101,13 +101,16 @@ class ProjectList:
             p.run_hook('on_hover', string, filename, file_pos, col_pos=col_pos, identifier=None)
 
     def parse_link(self, string, filename, file_pos, col_pos=0, identifier=None):
+        project = None
         if filename:
             project = self._get_project_from_path(filename)
         if filename is None and identifier is not None:
             project = self._get_project_from_buffer(identifier)
-        node = project.get_node_from_position(filename, file_pos, identifier=identifier) if project else None
+        if project:
+            node = project.get_node_from_position(filename, file_pos, identifier=identifier) if project else None
         link = utils.get_link_from_position_in_string(string, col_pos, node, self, include_http=True)
-        link.project_list = self
+        if link:
+            link.project_list = self
         return link
 
     def bound_action(self, node, selector_string):
