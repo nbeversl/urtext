@@ -96,6 +96,7 @@ def get_all_targets_from_string(string, node, project_list):
         target = UrtextTarget(link.matching_string)
         target.is_link = True
         target.link = link
+        target.project_name = link.project_name
         link.containing_node = node
         target.is_node = link.is_node
         target.filename = link.filename
@@ -122,8 +123,8 @@ def get_all_links_from_string(string, node, project_list, include_http=False):
     replaced_contents = string
     for match in syntax.cross_project_link_with_node_c.finditer(replaced_contents):
         link = UrtextLink(match.group(), node, project_list)
-        link.project = match.group(2)
-        link.node_id = match.group(6)
+        link.project_name = match.group(2)
+        link.node_id = match.group(7)
         link.is_node = True
         if match.group(9):
             try:

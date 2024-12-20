@@ -96,7 +96,7 @@ class UrtextLint:
 			elif l.strip()[0] == '{':
 				margin = len(l) - len(l.lstrip())
 				node = urtext_buffer.get_node_from_position(length+margin+1)
-				if self.is_embedded_syntax(node, length+1):
+				if node is None or self.is_embedded_syntax(node, length+1):
 					separated_lines.append({
 						'contents': l,
 						'embedded' : True,
@@ -131,7 +131,7 @@ class UrtextLint:
 			elif len(l) > 2 and "::{" in l:
 				blank_lines = 0
 				node = urtext_buffer.get_node_from_position(length + len(l.split('::{')[0]) + 4)
-				if self.is_embedded_syntax(node, length):
+				if node is None or self.is_embedded_syntax(node, length):
 					separated_lines.append({
 					'contents': l,
 					'embedded' : True,
@@ -164,7 +164,7 @@ class UrtextLint:
 			elif l == '}':
 				blank_lines = 0
 				node = urtext_buffer.get_node_from_position(length + (len(l)) - 1)
-				if self.is_embedded_syntax(node, length):
+				if node is None or self.is_embedded_syntax(node, length):
 					separated_lines.append({
 						'contents': l,
 						'embedded' : True,

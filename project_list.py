@@ -26,7 +26,7 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        #self.is_async = False  # development
+        self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
@@ -109,8 +109,6 @@ class ProjectList:
         if project:
             node = project.get_node_from_position(filename, file_pos, identifier=identifier) if project else None
         link = utils.get_link_from_position_in_string(string, col_pos, node, self, include_http=True)
-        if link:
-            link.project_list = self
         return link
 
     def bound_action(self, node, selector_string):

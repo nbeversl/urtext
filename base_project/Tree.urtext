@@ -8,11 +8,8 @@ class TreeCall:
 
     name = ['TREE', 'LIST']
     
-    def __init__(self, project):
-        super().__init__(project)
-        self.depth = 1
-
     def dynamic_output(self, text_contents):
+        self.depth = 1
         if self.have_flags('*'):
             self.depth = float('inf')
         else:
@@ -91,36 +88,29 @@ class TreeCall:
 
         if ancestors is None:
             ancestors = [from_tree_node.name]
-        urtext_node = self.project.get_node(from_tree_node.name)
-        if urtext_node:
-            node_children = urtext_node.children
-            for pointer in urtext_node.pointers:
-                if pointer['id'] not in ancestors:
-                    alias_node = self.Node(pointer['id'])
-                    alias_node.parent = from_tree_node
-                    alias_node.position = pointer['position']
-                    ancestors.append(pointer['id'])
-                    new_pointer_tree_node = self._duplicate_tree(alias_node, ancestors=ancestors)
-                    new_pointer_tree_node.parent = from_tree_node
+        urtext_node = self.project.nodes[from_tree_node.name]
+        node_children = urtext_node.children
+        for pointer in urtext_node.pointers:
+            if pointer['id'] not in ancestors:
+                alias_node = self.Node(pointer['id'])
+                alias_node.parent = from_tree_node
+                alias_node.position = pointer['position']
+                ancestors.append(pointer['id'])
+                new_pointer_tree_node = self._duplicate_tree(alias_node, ancestors=ancestors)
+                new_pointer_tree_node.parent = from_tree_node
 
-            for child in node_children:
-                if child.id not in ancestors:               
-                    new_tree_node = self.Node(child.id)
-                    new_tree_node.parent = from_tree_node
-                    new_tree_node.position = child.start_position
-                    ancestors.append(child.id)
-                    next_childen_node = self._duplicate_tree(new_tree_node, ancestors=ancestors)
-                    next_childen_node.parent = from_tree_node
-                else:
-                    new_tree_node = self.Node('! RECURSION (from tree duplication) : '+ child.id + ' >')
-                    new_tree_node.parent = from_tree_node
-                    new_tree_node.position = child.start_position 
-
-        else:
-            error_node = self.Node('(debugging): %s not in nodes' % from_tree_node.name)
-            error_node.position = 0
-            error_node.parent = from_tree_node
-            return error_node
+        for child in node_children:
+            if child.id not in ancestors:               
+                new_tree_node = self.Node(child.id)
+                new_tree_node.parent = from_tree_node
+                new_tree_node.position = child.start_position
+                ancestors.append(child.id)
+                next_childen_node = self._duplicate_tree(new_tree_node, ancestors=ancestors)
+                next_childen_node.parent = from_tree_node
+            else:
+                new_tree_node = self.Node('! RECURSION (from tree duplication) : '+ child.id + ' >')
+                new_tree_node.parent = from_tree_node
+                new_tree_node.position = child.start_position  
  
         return from_tree_node
 

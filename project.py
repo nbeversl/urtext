@@ -161,7 +161,6 @@ class UrtextProject:
 
         for node in self.nodes.values():
             node.metadata.convert_hash_keys()
-        self._add_all_sub_tags()
         self._mark_dynamic_nodes()
         self.initialized = True
         if self.initial_project:
@@ -213,9 +212,7 @@ class UrtextProject:
 
         buffer = None
         if self.compiled and try_buffer:
-            buffer_contents = self.run_editor_method(
-                'get_buffer',
-                filename)
+            buffer_contents = self.run_editor_method('get_buffer', filename)
             if buffer_contents:
                 buffer = self._make_buffer(filename, buffer_contents)
         else:
@@ -240,7 +237,6 @@ class UrtextProject:
         self.messages[buffer.filename] = buffer.messages
         if buffer.has_errors:
             buffer.write_buffer_messages()
-            return False
 
         changed_ids = {}
         if existing_buffer_ids:
@@ -261,17 +257,16 @@ class UrtextProject:
                             # TODO try to map old to new.
 
         for node in buffer.nodes:
-            if not node.errors:
-                self._add_node(node)
-                if node.frames:
-                    self.frames[node.id] = []
-                    for frame in node.frames:
-                        frame.source_node = node
-                        for t in frame.targets:
-                            if t.is_virtual and t.matching_string == "@self":
-                                t.is_node = True
-                                t.node_id = frame.source_node.id
-                        self.frames[node.id].append(frame)
+            self._add_node(node)
+            if node.frames:
+                self.frames[node.id] = []
+                for frame in node.frames:
+                    frame.source_node = node
+                    for t in frame.targets:
+                        if t.is_virtual and t.matching_string == "@self":
+                            t.is_node = True
+                            t.node_id = frame.source_node.id
+                    self.frames[node.id].append(frame)
 
         if buffer.identifier:
             self.buffers[buffer.identifier] = buffer
@@ -319,45 +314,46 @@ class UrtextProject:
         for filename in links:
             self._reverify_links(filename)
 
-    def _reverify_links(self, filename):
-        if filename in self.files:
-            contents = self.files[filename]._get_contents()
-            for node in [n for n in self.files[filename].nodes if not n.is_dynamic]:
-                rewrites = {}
-                for link in node.links:
-                    if link.is_file:
-                        if link.is_missing and link.exists():
-                            rewrites[link] = ''.join([
-                                syntax.file_link_opening_wrapper,
-                                link.path,
-                                syntax.link_closing_wrapper])
-                        if not link.exists():
-                            rewrites[link] = ''.join([
-                                syntax.missing_file_link_opening_wrapper,
-                                link.path,
-                                syntax.link_closing_wrapper,
-                                link.suffix])
-                        continue
-                    if not link.node_id or link.project_name or link.bound:
-                        continue
-                    node_id = link.node_id
-                    suffix = ' >>' if link.is_pointer else ' >'
-                    if node_id not in self.nodes:
-                        title_only = node_id.split(syntax.resolution_identifier)[0]
-                        if title_only not in self.nodes and link.node_id not in rewrites:
-                            rewrites[link] = ''.join([
-                                syntax.missing_node_link_opening_wrapper,
-                                title_only,
-                                suffix])
-                    elif link.is_missing and link not in rewrites:  # node marked missing but is there
+    def _reverify_links(self, filename, buffer=None):
+        if not buffer and filename in self.files:
+            buffer = self.files[filename]
+        contents = buffer._get_contents()
+        for node in [n for n in buffer.nodes if not n.is_dynamic]:
+            rewrites = {}
+            for link in node.links:
+                if link.is_file:
+                    if link.is_missing and link.exists():
                         rewrites[link] = ''.join([
-                            syntax.link_opening_wrapper,
-                            link.node_id,
+                            syntax.file_link_opening_wrapper,
+                            link.path,
+                            syntax.link_closing_wrapper])
+                    if not link.exists():
+                        rewrites[link] = ''.join([
+                            syntax.missing_file_link_opening_wrapper,
+                            link.path,
+                            syntax.link_closing_wrapper,
+                            link.suffix])
+                    continue
+                if not link.node_id or link.project_name or link.bound:
+                    continue
+                node_id = link.node_id
+                suffix = ' >>' if link.is_pointer else ' >'
+                if node_id not in self.nodes:
+                    title_only = node_id.split(syntax.resolution_identifier)[0]
+                    if title_only not in self.nodes and link.node_id not in rewrites:
+                        rewrites[link] = ''.join([
+                            syntax.missing_node_link_opening_wrapper,
+                            title_only,
                             suffix])
-                if rewrites:
-                    for old_link in rewrites:
-                        contents = contents.replace(old_link.matching_string, rewrites[old_link])
-            return contents
+                elif link.is_missing and link not in rewrites:  # node marked missing but is there
+                    rewrites[link] = ''.join([
+                        syntax.link_opening_wrapper,
+                        link.node_id,
+                        suffix])
+            if rewrites:
+                for old_link in rewrites:
+                    contents = contents.replace(old_link.matching_string, rewrites[old_link])
+        return contents
 
     def _add_all_sub_tags(self):
         for entry in self.dynamic_metadata_entries:
@@ -386,12 +382,12 @@ class UrtextProject:
                             project_node.file.set_buffer_contents(replaced_contents, clear_messages=False)
                             project_node.file.write_buffer_contents()
  
-    def _verify_frame_present_if_marked(self, node_id):
+    def _verify_frame_present_if_marked(self, node_id, buffer=None):
         node = self.get_node(node_id)
         if node and node.marked_dynamic and not node.is_dynamic:
             dynamic_contents = node.contents_with_contained_nodes().strip()
             if len(dynamic_contents) > 1 and dynamic_contents[:2] != "~?":
-                self._set_node_contents(node_id, dynamic_contents.replace('~', '~?', 1))
+                self._set_node_contents(node_id, dynamic_contents.replace('~', '~?', 1), buffer=buffer)
                 return False
         return True      
 
@@ -409,10 +405,8 @@ class UrtextProject:
                         '; node exists at %s '  % utils.make_node_link(d.id)]),
                     'position_message': 'node exists at %s ' % utils.make_node_link(d.id),
                     'position': node.start_position}
-                    node.errors = True
                     self.log_item(node.filename, message)
                     node.buffer.messages.append(message)
-                    node.buffer.has_errors = True
                     return
                 else:
                     d.id = resolution['resolved_id']
@@ -429,8 +423,6 @@ class UrtextProject:
                         '; node exists at %s'  % utils.make_node_link(d.id)]),
                     'position_message': ''.join(['node exists at %s ' % utils.make_node_link(d.id), resolution['reason']]),
                     'position': node.start_position}
-                node.errors = True
-                node.buffer.has_errors = True
                 node.buffer.messages.append(message)
                 self.log_item(node.filename, message)
                 return
@@ -460,8 +452,13 @@ class UrtextProject:
                 offset = position - indexes[index]
                 return node, target_position + offset
 
-    def _set_node_contents(self, node_id, contents, preserve_title=False):
+    def _set_node_contents(self, node_id, contents, preserve_title=False, buffer=None):
         """ project-aware alias for the Node _set_contents() method """
+        if buffer:
+            for node in buffer.nodes:
+                if node.id == node_id:
+                    node._set_contents(contents, preserve_title=preserve_title)
+                    return node.buffer
         node = self.get_node(node_id)
         if node:
             node._set_contents(contents, preserve_title=preserve_title)
@@ -922,26 +919,9 @@ class UrtextProject:
     def on_modified(self, filename, flags=[]):
         modified_files = []
         if self.compiled and filename in self._get_included_files():
-            modified_files, dynamic_nodes = self._compile_file(
-                filename,
-                flags=['-on_modified'] + flags)
-            file_obj = self.files[filename]
-            verified_contents = self._reverify_links(filename)
-            file_obj.set_buffer_contents(verified_contents)
-            for d in dynamic_nodes:
-                # these have to persist between parses
-                node = file_obj.get_node(d)
-                if node:
-                    node.is_dynamic = True
-            if file_obj.write_buffer_contents(run_hook=True):
-                modified_files.append(filename)
-            self.run_hook('file_contents_were_modified', filename)
-            self.files[filename] = file_obj
-            self._sync_file_list()
-            if filename in self.files:
-                self.run_hook('after_on_file_modified', filename)  
-            self.run_editor_method('refresh_files', modified_files)
+            modified_files = self._compile_file(filename, flags=['-on_modified'] + flags)    
         self.close_inactive()
+        self._sync_file_list()
         return modified_files
 
     def visit_node(self, node_id):
@@ -1200,40 +1180,54 @@ class UrtextProject:
     def _compile(self):
         num_calls = len(list(self.calls.keys()))
         num_project_calls = len(list(self.project_instance_calls.keys()))
+        modified_buffers = set()
+        dynamic_nodes = set()
+        self._add_all_sub_tags()
         for frame in self._get_all_frames():
-            self._run_frame(frame)
+            m_buffers, d_nodes = self._run_frame(frame, flags=['-on_compile'])
+            modified_buffers.update(m_buffers)
+            dynamic_nodes.update(d_nodes)
+            for b in modified_buffers:
+                for node in b.nodes:
+                    self._verify_frame_present_if_marked(node.id, buffer=b)
+        for b in list(modified_buffers):
+            b.write_buffer_contents(run_hook=True)
+        for d in list(dynamic_nodes):
+            node = self.get_node(d)
+            if node:
+                node.is_dynamic = True
         if len(self.calls.keys()) > num_calls or len(self.project_instance_calls.keys()) > num_project_calls:
             return self._compile()
         for frame in self._get_all_frames():
             self._run_frame(frame)
-        self._add_all_sub_tags()
         self._verify_links_globally()
 
-    def _compile_file(self, filename, flags=None):
-        if flags is None:
-            flags = []
-        modified_buffers = []
-        dynamic_nodes = []
+    def _compile_file(self, filename, flags=[]):
+        modified_buffers = set()
+        modified_files = set()
+        dynamic_nodes = set()
         buffer = self._parse_file(filename)
         if buffer:
             for node in buffer.nodes:
                 for frame in list(self._get_frames(target_node=node, source_node=node)):
-                    m_buffers, d_nodes = self._run_frame(frame, flags=flags)
-                    modified_buffers.extend(m_buffers)
-                    dynamic_nodes.extend(d_nodes)
+                    m_buffers, d_nodes = self._run_frame(frame, flags=flags, buffer=buffer)
+                    modified_buffers.update(m_buffers)
+                    dynamic_nodes.update(d_nodes)
                     for b in modified_buffers:
-                        b.write_buffer_contents()
-                        node_ids = []
-                        while len(node_ids) < len([n for n in b.nodes if not n.errors]):
-                            for node_id in [n.id for n in b.nodes if not n.errors]:
-                                if node_id in node_ids:
-                                    continue
-                                node_ids.append(node_id)
-                                if self._verify_frame_present_if_marked(node_id) is False:
-                                    b.write_buffer_contents()
-        return [b.filename for b in modified_buffers], dynamic_nodes
+                        for node in b.nodes:
+                            self._verify_frame_present_if_marked(node.id, buffer=b)
+            modified_buffers.add(buffer)
+            for b in list(modified_buffers):
+                b.write_buffer_contents(run_hook=True)
+            for d in list(dynamic_nodes):
+                node = self.get_node(d)
+                if node:
+                    node.is_dynamic = True
+        if filename in self.files:
+            self.run_hook('after_on_file_modified', filename)  
+        return modified_files
 
-    def _run_frame(self, frame, flags=None):
+    def _run_frame(self, frame, flags=None, buffer=None):
         if flags is None:
             flags = []
         modified_buffers = []
@@ -1255,7 +1249,7 @@ class UrtextProject:
                             syntax.link_closing_wrapper])})
                     continue
                 targeted_output = frame.post_process(target, output)
-                buffer = self._direct_output(targeted_output, target, frame)
+                buffer = self._direct_output(targeted_output, target, frame, buffer=buffer)
                 if target.is_virtual and target.matching_string == "@self":
                     modified_buffers.append(buffer)
                 if target.is_node and self.get_node(target.node_id):
@@ -1263,12 +1257,12 @@ class UrtextProject:
                     dynamic_nodes.append(target.node_id)
         return modified_buffers, dynamic_nodes
 
-    def _direct_output(self, output, target, frame):
+    def _direct_output(self, output, target, frame, buffer=None):
         if target.is_node and target.node_id in self.nodes:
-            return self._set_node_contents(target.node_id, ''.join([syntax.dynamic_marker, output]))            
+            return self._set_node_contents(target.node_id, ''.join([syntax.dynamic_marker, output]), buffer=buffer)            
         if target.is_virtual:
             if target.matching_string == '@self':
-                return self._set_node_contents(frame.source_node.id, ''.join([syntax.dynamic_marker, output]))
+                return self._set_node_contents(frame.source_node.id, ''.join([syntax.dynamic_marker, output]), buffer=buffer)
             if target.matching_string == '@clipboard':
                 return self.run_editor_method('set_clipboard', output)
             if target.matching_string == '@log':
@@ -1294,7 +1288,7 @@ class UrtextProject:
         if target.is_file:
             return utils.write_file_contents(os.path.join(self.entry_path, target.path), output)
         if target.is_raw_string and target.matching_string in self.nodes:  # fallback
-            return self._set_node_contents(target.matching_string, ''.join([syntax.dynamic_marker, output]))
+            return self._set_node_contents(target.matching_string, ''.join([syntax.dynamic_marker, output]), buffer=buffer)
 
     """ Metadata Handling """
 
@@ -1330,7 +1324,8 @@ class UrtextProject:
                     tag_self=True,
                     from_node=entry.from_node,
                     tag_descendants=entry.tag_descendants)
-                self.nodes[node_to_tag].metadata.convert_hash_keys()
+                if self.compiled:
+                    self.nodes[node_to_tag].metadata.convert_hash_keys()
                 if node_to_tag not in entry.from_node.target_nodes:
                     entry.from_node.target_nodes.append(node_to_tag)
 

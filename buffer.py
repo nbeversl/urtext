@@ -352,7 +352,7 @@ class UrtextBuffer:
                     }
                 self.project.log_item(self.filename, message)
                 self.messages.append(message)
-                node.errors = True
+                self.nodes = [n for n in self.nodes if n.title != node.title]
             else:
                 node.id = resolution['resolved_id']
                 self.allocated_ids.append(node.id)
@@ -380,7 +380,7 @@ class UrtextBuffer:
                     }
                 self.project.log_item(self.filename, message)
                 self.messages.append(message)
-                n.errors = True
+                self.nodes = [node for node in self.nodes if node.title != n.title]
             else:
                 n.id = resolution['resolved_id']
                 self.allocated_ids.append(n.id)

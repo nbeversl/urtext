@@ -37,6 +37,8 @@ class UrtextLink:
 	def click(self):
 		if self.bound:
 			return self.bound_action()
+		elif self.project_name:
+			self.project_list.set_current_project(self.project_name)
 		elif self.filename:
 			self.project_list.set_current_project(os.path.dirname(self.filename))
 		dest_node = self.get_node()

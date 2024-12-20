@@ -17,6 +17,9 @@ class NodeMetadata:
         parsed_contents = full_contents
         remaining_contents = full_contents
 
+        def mask_content(string, start, end, replace_with=' '):
+            return string[:start] + (replace_with * (end - start)) + string[end:]
+
         for m in syntax.metadata_entry_c.finditer(full_contents):
             keyname, contents = m.group().strip(syntax.metadata_end_marker).split(syntax.metadata_assigner, 1)
             value_list = []
@@ -35,16 +38,10 @@ class NodeMetadata:
                 tag_children=tag_children,
                 tag_descendants=tag_descendants,
                 start_position=m.start(),
-                end_position=m.start() + len(m.group().strip()))
+                end_position=m.end())
 
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()), 
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '', 
-                1)
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         for m in syntax.hash_meta_c.finditer(parsed_contents):
             tag_self=False
@@ -70,16 +67,10 @@ class NodeMetadata:
                 tag_children=tag_children,
                 tag_descendants=tag_descendants,
                 start_position=m.start(), 
-                end_position=m.start() + len(m.group()))
+                end_position=m.end())
             
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()),
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '',
-                1)
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         # inline timestamps:
         for m in syntax.timestamp_c.finditer(parsed_contents):
@@ -89,25 +80,13 @@ class NodeMetadata:
                 self.node,
                 start_position=m.start(),
                 end_position=m.start() + len(m.group()))
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()),
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '',
-                1)
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         #remove from contents entries without or entries that are nodes:
         for m in syntax.metadata_key_only_c.finditer(parsed_contents):
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()),
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '',
-                1)
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         for m in syntax.bold_text_c.finditer(parsed_contents):
             self.add_entry(
@@ -115,15 +94,9 @@ class NodeMetadata:
                 m.group(),
                 self.node,
                 start_position=m.start(),
-                end_position=m.start() + len(m.group()))
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()),
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '',
-                1)
+                end_position=m.end())
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         for m in syntax.italic_text_c.finditer(parsed_contents):
             self.add_entry(
@@ -131,18 +104,12 @@ class NodeMetadata:
                 m.group(),
                 self.node,
                 start_position=m.start(),
-                end_position=m.start() + len(m.group()))
-            parsed_contents = parsed_contents.replace(
-                m.group(),
-                ' '*len(m.group()),
-                1)
-            remaining_contents = remaining_contents.replace(
-                m.group(),
-                '',
-                1)
+                end_position=m.end())
+            parsed_contents = mask_content(parsed_contents, m.start(), m.end())
+            remaining_contents = mask_content(remaining_contents, m.start(), m.end(), '')
 
         self.add_system_keys()
-        return remaining_contents, parsed_contents
+        return ''.join(remaining_contents), ''.join(parsed_contents)
 
     def add_entry(self, 
         key,

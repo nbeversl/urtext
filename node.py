@@ -19,7 +19,6 @@ class UrtextNode:
         self.ranges = []
         self.is_tree = False
         self.is_node = True
-        self.errors = False
         self.is_meta = False
         self.meta_key = None
         self.export_points = {}
