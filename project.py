@@ -161,6 +161,7 @@ class UrtextProject:
 
         for node in self.nodes.values():
             node.metadata.convert_hash_keys()
+        self._add_all_sub_tags()
         self._mark_dynamic_nodes()
         self.initialized = True
         if self.initial_project:
@@ -1182,24 +1183,13 @@ class UrtextProject:
         num_project_calls = len(list(self.project_instance_calls.keys()))
         modified_buffers = set()
         dynamic_nodes = set()
-        self._add_all_sub_tags()
         for frame in self._get_all_frames():
-            m_buffers, d_nodes = self._run_frame(frame, flags=['-on_compile'])
-            modified_buffers.update(m_buffers)
-            dynamic_nodes.update(d_nodes)
-            for b in modified_buffers:
-                for node in b.nodes:
-                    self._verify_frame_present_if_marked(node.id, buffer=b)
-        for b in list(modified_buffers):
-            b.write_buffer_contents(run_hook=True)
-        for d in list(dynamic_nodes):
-            node = self.get_node(d)
-            if node:
-                node.is_dynamic = True
+            self._run_frame(frame)
         if len(self.calls.keys()) > num_calls or len(self.project_instance_calls.keys()) > num_project_calls:
             return self._compile()
         for frame in self._get_all_frames():
             self._run_frame(frame)
+        self._add_all_sub_tags()
         self._verify_links_globally()
 
     def _compile_file(self, filename, flags=[]):
@@ -1324,8 +1314,7 @@ class UrtextProject:
                     tag_self=True,
                     from_node=entry.from_node,
                     tag_descendants=entry.tag_descendants)
-                if self.compiled:
-                    self.nodes[node_to_tag].metadata.convert_hash_keys()
+                self.nodes[node_to_tag].metadata.convert_hash_keys()
                 if node_to_tag not in entry.from_node.target_nodes:
                     entry.from_node.target_nodes.append(node_to_tag)
 

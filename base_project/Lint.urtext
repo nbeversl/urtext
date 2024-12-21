@@ -18,6 +18,7 @@ class UrtextLint:
 	
 	def _get_settings(self):
 		self.settings = None
+		lint_settings = None
 		if self.project.project_list.current_project:
 			lint_settings = self.project.project_list.current_project.get_single_setting('_lint')
 		if lint_settings and lint_settings.node():
