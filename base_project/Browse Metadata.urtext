@@ -3,7 +3,6 @@ Browse Metadata _
 %%Python
 class BrowseMetadata:
 
-	selector_string = 'browse_metadata'
 	name = 'Browse Metadata'
 	thread_safe = True
 

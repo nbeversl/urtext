@@ -59,4 +59,5 @@ webbrowser.get().open('https://urtext.co')
 
 		{~ Open Urtext Website _
 
-		}	}
+		}
+	}

@@ -6,12 +6,14 @@ class UrtextSelector:
     utils = utils
     display = True
     thread_safe = False
+    name = None
 
     def __init__(self, project_list):
         self.project_list = project_list
         self.selection_has_changed = False
         self.run_editor_method = project_list.run_editor_method
         self.source_node = None
+        self.selector_string = self.name.replace(' ','_').lower()
 
     def run(self):
         pass

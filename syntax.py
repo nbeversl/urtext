@@ -85,7 +85,6 @@ node_link_opening_wrapper_match = r''.join([
     r'\s'
     ])
 # Base Patterns
-bullet = r'^([^\S\n]*?)•'
 closing_wrapper = r'(?<!\\)' + re.escape(node_closing_wrapper)
 dd_flag = '((-[\w_]+)|\*)(\s|$)'
 dd_flags = r''.join([
@@ -171,7 +170,6 @@ node_link_modifiers_regex_c = {
 
 # Composite match patterns
 
-compact_node = '('+bullet+')' + r'([^\r\n]*)(?=\n|$)'
 embedded_syntax_full = embedded_syntax_open + '.*?' + embedded_syntax_close
 hash_meta = r''.join([
     '(?:^|\s)',
@@ -243,21 +241,6 @@ special_metadata_patterns = r''.join([
     ')'
 ])
 
-urtext_messages = r''.join([
-    re.escape(urtext_message_opening_wrapper),
-    r'.*?',
-    re.escape(urtext_message_closing_wrapper),
-    '\n?'
-    ])
-
-invalidated_messages = r''.join([
-    re.escape(urtext_message_opening_wrapper),
-    'X',
-    r'.*?',
-    re.escape(urtext_message_closing_wrapper),
-    '\n?'
-    ])
-
 metadata_ops = r'(' + r'|'.join([
             metadata_op_before,
             metadata_op_after,
@@ -281,8 +264,7 @@ dd_key_op_value = r''.join([
 # Compiled Patterns
 node_link_or_pointer_c = re.compile(node_link_or_pointer)
 bold_text_c = re.compile(bold_text)
-bullet_c = re.compile(bullet)
-compact_node_c = re.compile(compact_node, flags=re.MULTILINE)
+
 closing_wrapper_c = re.compile(closing_wrapper)
 cross_project_link_with_node_c = re.compile(cross_project_link_with_node)
 dd_flags_c = re.compile(dd_flags)
@@ -295,7 +277,6 @@ file_link_c = re.compile(file_link)
 embedded_syntax_open_c = re.compile(embedded_syntax_open, flags=re.DOTALL)
 embedded_syntax_c = re.compile(embedded_syntax_full, flags=re.DOTALL)
 embedded_syntax_close_c = re.compile(embedded_syntax_close, flags=re.DOTALL)
-urtext_messages_c = re.compile(urtext_messages, flags=re.DOTALL)
 format_key_c = re.compile(format_key, flags=re.DOTALL)
 function_c = re.compile(function, flags=re.DOTALL)
 hash_key_c = re.compile(hash_key)
@@ -325,7 +306,6 @@ subnode_regexp_c = re.compile(sub_node, flags=re.DOTALL)
 timestamp_c = re.compile(timestamp)
 title_regex_c = re.compile(title_pattern)
 urtext_message_c =re.compile(urtext_message, flags=re.DOTALL)
-invalidated_messages_c = re.compile(invalidated_messages, flags=re.DOTALL)
 virtual_target_match_c = re.compile(virtual_target, flags=re.DOTALL)
 whitespace_anchor_c = re.compile(whitespace_anchor, flags=re.M)
 metadata_replacements = re.compile("|".join([
@@ -338,7 +318,6 @@ compiled_symbols = {
     opening_wrapper_c : 'opening_wrapper',
     closing_wrapper_c : 'closing_wrapper',
     re.compile(node_pointer) : 'pointer',
-    compact_node_c : 'compact_node',
     meta_to_node_c : 'meta_to_node'
     }
 embedded_syntax_symbols = {

@@ -46,15 +46,7 @@ class UrtextFile(UrtextBuffer):
                 self.project.run_editor_method('set_buffer', self.filename, self.contents)
             else:
                 self.project.run_editor_method('refresh_files', self.filename)
-            self.project._parse_file(self.filename)
         elif self.identifier:
             self.project.run_editor_method('set_buffer', None, self.contents, identifier=self.identifier)
-            self.project._parse_buffer(self)
+        self.project._parse_file(self.filename)
         return True
-
-    def contents_did_change(self):
-        current_contents = self.contents
-        disk_contents = self._read_contents()
-        if current_contents != disk_contents:
-            return True
-        return False

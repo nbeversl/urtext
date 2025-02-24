@@ -3,7 +3,6 @@ Copy Link To Here With Project _
 class CopyLinkToHereWithProject:
 
 	name = 'Copy Link to Here With Project'
-	selector_string = "copy_link_to_here_with_project"
 	thread_safe = True
 	
 	def run(self):

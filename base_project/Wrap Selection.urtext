@@ -4,8 +4,7 @@ Wrap Selection _
 
 class WrapSelection:
    
-	selector_string = 'wrap_selection'
-	name = 'Wrap Selectino'
+	name = 'Wrap Selection'
 
 	def run(self):
 		selection, position = self.current_project().run_editor_method('get_selection')

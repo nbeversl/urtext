@@ -4,7 +4,6 @@ Open Home _
 
 class OpenHome:
    
-	selector_string = 'urtext_home'
 	name = "Open Home"
 	thread_safe = True
 

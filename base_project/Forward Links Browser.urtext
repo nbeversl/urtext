@@ -2,7 +2,6 @@ Forward Links Browser _
 %%Python
 class ForwardlinksBrowser:
 
-	selector_string = 'forwardlinks_browser'
 	name = "Forward Links Browser"
 	thread_safe = True
 

@@ -1,7 +1,7 @@
 New File Node _
 %%Python
 class NewFileNode:
-	selector_string = 'new_file_node'
+
 	name = 'New File Node'
 	thread_safe = True
 

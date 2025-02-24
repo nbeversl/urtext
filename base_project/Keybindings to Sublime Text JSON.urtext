@@ -1,9 +1,5 @@
 Keybindings to Sublime Text JSON _
 
-See | Sublime Text Keybindings >
-
-{ Keybindings _
-
 %%Python
 class KeybindingsToJson:
 
@@ -46,5 +42,3 @@ class KeybindingsToJson:
 ThisProject.add_call(KeybindingsToJson)
 
 %%
-
-}

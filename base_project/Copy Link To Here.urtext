@@ -2,7 +2,6 @@ Copy Link To Here _
 %%Python
 class CopyLinkToHere:
 
-	selector_string = 'copy_link_to_here'
 	name = 'Copy Link to Here'
 	thread_safe = True
 

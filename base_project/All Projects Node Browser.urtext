@@ -2,7 +2,6 @@ All Projects Node Browser _
 %%Python
 class AllProjectsNodeBrowser:
  
-	selector_string = 'all_projects_node_browser'
 	name = 'Node Browser All Projects'
 	 
 	def run(self):

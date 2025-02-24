@@ -15,7 +15,6 @@ class ToNextNodeCommand(UrtextTextCommand):
     	position = self.project_list.run_editor_method('get_position')
         next_wrapper = self.re.search(r'|'.join([
                 self.syntax.opening_wrapper,
-                self.syntax.bullet,
                 self.syntax.node_pointer
             ]),
             contents[position:])
@@ -35,7 +34,6 @@ class ToPreviousNodeCommand(UrtextTextCommand):
         all_previous_opening_wrappers = [r.a for r in self.view.find_all(
             '|'.join([
                 syntax.opening_wrapper,
-                syntax.bullet,
                 syntax.node_pointer
             ])) if r.a < self.view.sel()[0].a]
         if all_previous_opening_wrappers:

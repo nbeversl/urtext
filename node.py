@@ -12,7 +12,6 @@ class UrtextNode:
         contents,
         project,
         root=False,
-        compact=False,
         nested=None):
 
         self.project = project
@@ -25,11 +24,11 @@ class UrtextNode:
         self.marked_dynamic = False
         self.is_dynamic = False
         self.id = None
+        self.needs_resolution = False
         self.pointers = []
         self.display_detail = ''
         self.links = []
-        self.root_node = root
-        self.compact = compact
+        self.is_root_node = root
         self.frames = []
         self.target_nodes = []
         self.untitled = False
@@ -45,8 +44,6 @@ class UrtextNode:
         self.embedded_syntax_ranges = []
         self.frame_ranges = []
         
-        contents = utils.strip_errors(contents)
-
         ranges, stripped_contents = utils.strip_backtick_escape(contents)
         self.embedded_syntax_ranges.extend(ranges)
         stripped_contents = utils.strip_whitespace_anchors(stripped_contents)
@@ -105,92 +102,53 @@ class UrtextNode:
         return contents
 
     def contents_with_contained_nodes(self):
-        file_contents = self.file._get_contents()
-        full_contents = file_contents[self.start_position:self.end_position-1]
-        return full_contents
+        buffer_contents = self.buffer.contents
+        return buffer_contents[self.start_position:self.end_position]
 
     def links_ids(self):
         return [link.node_id for link in self.links]
 
-    def resolve_id(self, allocated_ids=None):
-        return_value = {
-            'resolved_id': None,
-            'method': None,
-            'reason': None}
-        if self.resolution:
-            return_value = {
-                'resolved_id': self.id,
-                'method': "already resolved"}
-        if allocated_ids is None:
-            allocated_ids = self.project.nodes
-        timestamp = self.metadata.get_oldest_timestamp()
-        if self.parent:
-            if self.is_meta:
-                resolved_id = ''.join([
-                        self.meta_key,
-                        syntax.resolution_identifier,
-                        self.parent.title
-                    ])
-                if resolved_id not in allocated_ids:
-                    self.resolution = self.parent.title
-                    return_value['resolved_id'] = resolved_id
-                    return_value['method'] = 'meta key'
-                    return return_value
-                if timestamp:
-                    resolved_id = ''.join([
-                        self.meta_key,
-                        syntax.resolution_identifier,
-                        timestamp.unwrapped_string
-                    ])
-                    if resolved_id not in allocated_ids:
-                        self.resolution = timestamp.unwrapped_string
-                        return_value['resolved_id'] = resolved_id
-                        return_value['method'] = 'meta key and timestamp'
-                        return return_value
-
-            if self.parent.title != '(untitled)':
-                resolved_id = ''.join([
-                        self.title,
-                        syntax.resolution_identifier,
-                        self.parent.title
-                    ])
-                if resolved_id not in allocated_ids:
-                    self.resolution = self.parent.title
-                    return_value['resolved_id'] = resolved_id
-                    return_value['method'] = 'parent title'
-                    return return_value
-
-            parent_oldest_timestamp = self.parent.metadata.get_oldest_timestamp()
-            if parent_oldest_timestamp:
-                resolved_id = ''.join([
-                        self.title,
-                        syntax.resolution_identifier,
-                        parent_oldest_timestamp.unwrapped_string
-                    ])
-                if resolved_id not in allocated_ids:
-                    self.resolution = parent_oldest_timestamp.unwrapped_string
-                    return_value['resolved_id'] = resolved_id
-                    return_value['method'] = 'parent timestamp'
-                    return_value['reason'] = 'parent is untitled'
-                    return return_value
-        if timestamp:
+    def resolve_id(self, existing_nodes=[]):
+        self.buffer.i += 1
+        timestamps = self.metadata.get_values('_inline_timestamp')
+        existing_ids = [n.id for n in existing_nodes]
+        # try resolving to own timestamp        
+        for timestamp in timestamps:
             resolved_id = ''.join([
                 self.title,
                 syntax.resolution_identifier,
-                timestamp.unwrapped_string, 
+                timestamp.timestamp.unwrapped_string, 
                 ])
-            if resolved_id not in allocated_ids:
-                self.resolution = timestamp.unwrapped_string
-                return_value['resolved_id'] = resolved_id
-                return_value['method'] = 'own timestamp'
-                return_value['reason'] = 'parent is untitled and parent timestamp not available'
-                return return_value
-            else:
-                return_value['reason'] = 'timestamp is used to resolve %s' % utils.make_node_link(resolved_id)
-                return return_value
-
-        return_value['reason'] = 'no title or timestamp in parent, no timestamp in node'
-        return return_value
+            if resolved_id not in existing_ids:
+                self.resolution = timestamp.timestamp.unwrapped_string
+                self.id = resolved_id
+                return self.id
+        if self.is_meta:
+            for timestamp in timestamps:
+                resolved_id = ''.join([
+                    self.meta_key,
+                    syntax.resolution_identifier,
+                    timestamp.timestamp.unwrapped_string
+                ])
+                if resolved_id not in existing_ids:
+                    self.resolution = timestamp.timestamp.unwrapped_string
+                    self.id = resolved_id
+                    return self.id
+        # try resolving to parent title
+        if self.parent and self.parent.title != '(untitled)':
+            resolved_id = ''.join([
+                self.title,
+                syntax.resolution_identifier,
+                self.parent.title])
+            if resolved_id not in existing_ids:
+                self.resolution = self.parent.title
+                self.id = resolved_id
+                return self.id
+        existing_resolutions = [n.resolution for n in existing_nodes if n.resolution]
+        timestamp = self.project.timestamp(ensure_unique=True, existing_resolutions=existing_resolutions)
+        self._set_contents(''.join([' ', timestamp.wrapped_string, ' ',
+            self.contents_with_contained_nodes()]),
+            preserve_title=False)
 
     def _get_links(self, positioned_contents):
         urtext_links, replaced_contents = utils.get_all_links_from_string(positioned_contents, self, self.project.project_list)
@@ -299,13 +257,13 @@ class UrtextNode:
                 ])
         else:
             new_node_contents = new_contents
-        file_contents = self.file._get_contents()
-        new_file_contents = ''.join([
-            file_contents[:self.start_position],
+        buffer_contents = self.buffer._get_contents()
+        new_buffer_contents = ''.join([
+            buffer_contents[:self.start_position],
             new_node_contents,
-            file_contents[self.end_position:]])
-        self.file.set_buffer_contents(new_file_contents, clear_messages=False)
-        # does not re-parse into project
+            buffer_contents[self.end_position:]])
+        self.buffer.set_buffer_contents(new_buffer_contents)
+        # re-parses within buffer but does not re-parse into project
 
     def replace_range(self, 
         range_to_replace, 
@@ -315,8 +273,7 @@ class UrtextNode:
         file_contents = self.file._get_contents()
         file_range_to_replace = [
             self.get_file_position(range_to_replace[0]),
-            self.get_file_position(range_to_replace[1])
-            ]
+            self.get_file_position(range_to_replace[1])]
 
         new_file_contents = ''.join([
             file_contents[0:file_range_to_replace[0]],
@@ -412,26 +369,22 @@ class UrtextNode:
                     ranges_with_embedded_syntaxes[r[0]] = {
                         'start' : r[0],
                         'kind': 'urtext',
-                        'end' : embedded[0]
-                     }
+                        'end' : embedded[0]}
                     ranges_with_embedded_syntaxes[embedded[0]] = {
                         'start' : embedded[0],
                         'kind': 'embedded',
-                        'end' : embedded[1]
-                     }
+                        'end' : embedded[1]}
                     ranges_with_embedded_syntaxes[embedded[1]] = {
                         'start' : embedded[1],
                         'kind': 'urtext',
-                        'end' : r[1]
-                     }
+                        'end' : r[1]}
             if r[0] not in ranges_with_embedded_syntaxes:
                 ranges_with_embedded_syntaxes[r[0]] = {
                     'start' : r[0],
                     'starts_node' : r == self.ranges[0],
                     'ends_node' : r == self.ranges[-1],
                     'kind': 'urtext',
-                    'end' : r[1]
-                 }
+                    'end' : r[1]}
 
         return ranges_with_embedded_syntaxes
 

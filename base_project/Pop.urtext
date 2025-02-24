@@ -9,7 +9,6 @@ See also | Pull >
 
 class PopNode:
 
-    selector_string = 'pop_node'
     name = "Pop"
     is_running = False
     import os
@@ -26,10 +25,10 @@ class PopNode:
                 '%s not in project' % source_filename)
         file_pos = self.run_editor_method('get_position')
 
-        if self.project_list.selectors['pull_node'].is_running or self.project_list.selectors['pop_node'].is_running:
+        if self.project_list.selectors['pull'].is_running or self.project_list.selectors['pop'].is_running:
             return
 
-        self.project_list.selectors['pop_node'].is_running = True
+        self.project_list.selectors['pop'].is_running = True
         self.run_editor_method('save_file', source_filename)
         return self._pop_node_from_editor(source_filename, file_pos, from_project=from_project)
 
@@ -39,12 +38,12 @@ class PopNode:
 
         popped_node = self.current_project().get_node_from_position(source_filename, file_pos) 
         if not popped_node:
-            self.project_list.selectors['pop_node'].is_running = False
+            self.project_list.selectors['pop'].is_running = False
             return self.current_project().handle_info_message('No node ID or duplicate Node ID')        
 
-        if popped_node.root_node:
-            self.project_list.selectors['pop_node'].is_running = False
-            return self.current_project().handle_info_message('%s is already a root node.' % popped_node.id)
+        if popped_node.is_root_node:
+            self.project_list.selectors['pop'].is_running = False
+            return self.current_project().handle_info_message('Node "%s" is already a root node.' % popped_node.id)
 
         return self._pop_node(popped_node, from_project=from_project)
 
@@ -55,8 +54,8 @@ class PopNode:
         end = popped_node.end_position
         source_file_contents = self.current_project().files[source_filename]._get_contents()
         popped_node_contents = source_file_contents[start:end].strip()
-        pre_offset = 2 if popped_node.compact else 1
-        post_offset = 0 if popped_node.compact else 1
+        pre_offset =  1
+        post_offset = 1
         parent_id = popped_node.parent.id
         
         breadcrumb_key = self.current_project().get_single_setting('pop_breadcrumb_key')
@@ -91,14 +90,13 @@ class PopNode:
         remaining_node_contents = ''.join([
             source_file_contents[:start - pre_offset],
             insertion,
-            '\n' if popped_node.compact else '',
             source_file_contents[end + post_offset:]
             ])
         self.current_project().files[source_filename].set_buffer_contents(remaining_node_contents)
         self.current_project().files[source_filename].write_buffer_contents()
 
         new_file_node = self.current_project().new_file_node(contents=popped_node_contents, open_file=False)
-        self.project_list.selectors['pop_node'].is_running = False
+        self.project_list.selectors['pop'].is_running = False
 
 ThisProject.add_selector(PopNode)
         

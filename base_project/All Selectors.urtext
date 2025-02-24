@@ -4,22 +4,18 @@ All Selectors _
 
 class AllSelectorsSelector:
 
-	selector_string = 'all_selectors'
 	name = 'All Selectors'
 	thread_safe = True
-
 	def run(self):
-		self.selections = list(self.project_list.selectors.keys())
+		self.selections = [selector.name for selector in self.project_list.selectors.values()]
 		def run_the_selector(selection):
 			if selection > -1:
 				self.current_project().run_selector(self.selections[selection])
 		self.project_list.run_editor_method('show_panel', self.selections, run_the_selector)
 
-
 class AllSelectorsCall:
 
 	name = ['ALL_SELECTORS']
-
 	def dynamic_output(self, current_text):
 		selections = list(self.project_list.selectors.keys())
 		return current_text + '\n'.join([ self.utils.make_selector_link(s) for s in selections])

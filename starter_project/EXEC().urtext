@@ -38,7 +38,7 @@ print(5*5)
 		  example python code
 		  25
 
-		  [[>(@self) EXEC(@self)]]		}
+		  [[>(@self) EXEC(@self)]]}
 
 		{ Snippet _
 

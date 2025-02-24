@@ -3,8 +3,7 @@ File Outline Dropdown _
 %%Python
 class FileOutlineDropdown:
 
-	selector_string ='file_outline_dropdown'
-	name = 'Shows an outline of the current file'
+	name = 'File Outline'
 	thread_safe = True
 
 	def run(self):
@@ -23,7 +22,7 @@ class FileOutlineDropdown:
 
 				def callback(index):
 					if index > -1 :
-						self.project_list.current_project.open_node(selections[index][0].strip())
+						self.project_list.current_project.open_node(selections[index].strip())
 
 				self.project_list.run_editor_method('show_panel', selections, callback, on_highlight=on_highlight)
 

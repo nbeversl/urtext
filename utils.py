@@ -16,9 +16,6 @@ def force_list(thing):
 		thing = [thing]
 	return thing
 
-def match_compact_node(selection):
-    return True if syntax.compact_node_c.match(selection) else False
-
 def strip_illegal_file_characters(filename):
     for c in [
         '<', '>', '\:', '"', '/', '\\', '|', '?','*', '.', ';', '%']:

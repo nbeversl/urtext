@@ -45,7 +45,7 @@ class UrtextLink:
 		if dest_node:
 			if self.is_action:
 				for frame in self.project_list.current_project._get_frames(target_node=dest_node):
-					modified_buffers, _l = self.cproject_list.current_project._run_frame(frame, flags=['-target_link_clicked'])
+					modified_buffers, _l = self.project_list.current_project._run_frame(frame, flags=['-target_link_clicked'])
 					for b in modified_buffers:
 						b.write_buffer_contents()
 			else:
@@ -53,17 +53,15 @@ class UrtextLink:
 					position=dest_node.start_position + self.dest_node_position)
 		elif self.is_node:
 			return self.project_list.current_project.run_editor_method('popup', 'Node cannot be found in the current project.')
-		elif self.is_file:            
+		elif self.is_file:
 			path = None
-			if os.path.exists(self.path):
-				path = self.path
-				rel_path = os.path.abspath(os.path.join(self.project_list.current_project.entry_path, self.path))
-				if os.path.exists(rel_path):
-					path = rel_path
-				else:
-					abs_path = os.path.abspath(os.path.join(os.path.dirname(self.filename), self.path))
-					if os.path.exists(abs_path):
-						path = abs_path
+			rel_path = os.path.abspath(os.path.join(self.project_list.current_project.entry_path, self.path))
+			if os.path.exists(rel_path):
+				path = rel_path
+			else:
+				abs_path = os.path.abspath(os.path.join(os.path.dirname(self.filename), self.path))
+				if os.path.exists(abs_path):
+					path = abs_path
 			if path:
 				ext = get_file_extension(self.path)
 				editor_extensions = self.project_list.current_project.get_setting_as_text('open_in_editor')

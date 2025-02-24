@@ -13,4 +13,4 @@ This feature is not built into Urtext; it is a feature of the Sublime package on
 	  Since Traverse Mode splits the window into two or more panes, it is suggested to set Word Wrap Column to "Auto" in Sublime Settings. This will cause the edited views to wrap correctly no matter the screen or window/pane size, as well as in Sublime's Distraction Free Mode.
 
 	  Whenever Traverse Mode is enabled on a view, word wrap for that view is turned off altogether to prevent awkward wrapping of trees. It is restored when Traverse Mode is turned off.
-	}Tue., Dec. 12, 2023, 04:28 AM
+	}

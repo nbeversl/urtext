@@ -21,15 +21,18 @@ EXEC(| Collect >)
 EXEC(| Pull >)
 EXEC(| Info >)
 EXEC(| Pop >)
+EXEC(| Anchor >)
 EXEC(| Files >)
 EXEC(| When >)
 EXEC(| Show >)
 EXEC(| Wrap Selection >)
 EXEC(| Lint Code >)
 EXEC(| Projects >)
+EXEC(| File Link >)
 EXEC(| Node Browser >)
 EXEC(| Random Node >)
 EXEC(| Go To Frame >)
+EXEC(| Show Base Project >)
 EXEC(| File Outline Dropdown >)
 EXEC(| Move File To Other Project >)
 EXEC(| Link to New Node >)
@@ -42,14 +45,15 @@ EXEC(| Link To Node >)
 EXEC(| Open Home >)
 EXEC(| Copy Link To Here With Project >)
 EXEC(| New File Node >)
-EXEC(| Keybindings >)
+EXEC(| Keybindings to Sublime Text JSON >)
 EXEC(| All Selectors >)
 EXEC(| Strip >)
 EXEC(| Yes Or No >)
+EXEC(| Backlinks Browser >)
 EXEC(| Forward Links Browser >)
-EXEC(| Make Compact Node >)
 EXEC(| All Selectors Scratch Buffer >)
 EXEC(| All Projects Node Browser >)
+EXEC(| Create Starter Project >)
 +(*)
 TREE()
 >(| results >)
@@ -60,11 +64,13 @@ TREE()
 | All Projects Node Browser >
 | All Selectors >
 | All Selectors Scratch Buffer >
+| Anchor >
 | Backlinks Browser >
 | Browse Metadata >
 | Collect >
 | Copy Link To Here >
 | Copy Link To Here With Project >
+| Create Starter Project >
 | Delete This Node >
 | Document All Selectors >
 | Documentation ^ All Projects Node Browser >
@@ -80,6 +86,7 @@ TREE()
 | Documentation ^ Link to New Node >
 | Documentation ^ Move File To Other Project >
 | Export >
+| File Link >
 | File Outline Dropdown >
 | Files >
 | Format >
@@ -90,7 +97,6 @@ TREE()
 | Info >
 | Insert Timestamp >
 | Interlinks >
-| Keybindings >
 | Keybindings to Sublime Text JSON >
 | Limit >
 | Link Preview >
@@ -99,7 +105,6 @@ TREE()
 | Lint >
 | Lint Code >
 | Log >
-| Make Compact Node >
 | Max Length >
 | Move File To Other Project >
 | Navigation >
@@ -116,9 +121,9 @@ TREE()
 | Request >
 | Selectors >
 | Show >
+| Show Base Project >
 | Sort >
 | Strip >
-| Sublime Text Keybindings >
 | Target Call >
 | Text >
 | To Next Node >
@@ -131,6 +136,5 @@ TREE()
 | _lint ^ project_settings >
 | debugging output >
 | dropped nodes should not drop the whole file >
-| output >
 | project_settings >
 }

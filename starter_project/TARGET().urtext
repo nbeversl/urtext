@@ -52,7 +52,7 @@ TARGET directs the output of any frame (see | Frames >) to a target, either a no
 			{~ Example Use of self _
 			  This text outputs to the same node containing the frame
 
-			  [[>(@self) TEXT(This text outputs to the same node containing the frame)]]			}
+			  [[>(@self) TEXT(This text outputs to the same node containing the frame)]]}
 		}
 
 		{ @clipboard _

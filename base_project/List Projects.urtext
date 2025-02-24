@@ -3,7 +3,6 @@
 
 class ProjectSelector:
 
-	selector_string = 'select_project'
 	name = 'Select Project'
 	thread_safe = True
 

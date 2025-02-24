@@ -3,7 +3,6 @@ Node Browser _
 %%Python
 class NodeBrowser:
 	
-	selector_string = 'node_browser'
 	name = 'Node Browser'
 	thread_safe = True
 

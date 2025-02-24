@@ -3,7 +3,6 @@ Backlinks Browser _
 %%Python
 class BacklinksBrowser:
 
-	selector_string = 'backlinks_browser'
 	name = 'Backlinks Browser'
 	thread_safe = True
 

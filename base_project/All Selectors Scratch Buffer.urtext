@@ -3,7 +3,6 @@ All Selectors Scratch Buffer _
 %%Python
 class InScratchBuffer:
 
-	selector_string = 'all_selectors_scratch_buffer'
 	name = 'All Selectors in Scratch Buffer'
 
 	def run(self):

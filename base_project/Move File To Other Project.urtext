@@ -1,8 +1,8 @@
 Move File To Other Project _
 %%Python
+
 class MoveFileToAnotherProjectCommand:
 
-	selector_string = 'move_file_to_other_project'
 	name = 'Move the current file to another project'
 
 	def run(self):

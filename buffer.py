@@ -9,25 +9,19 @@ class UrtextBuffer:
 
     def __init__(self, project, filename, contents):
         self.contents = contents
-        self.messages = []
         self.project = project
         self.identifier = None
         self.meta_to_node = []
-        self.has_errors = False
         self.filename = filename
         self.nodes = []
-        self.allocated_ids = []
         self.root_node = None
-        self.__clear_messages()
+        self.i = 0
         self._lex_and_parse()
-        if not self.root_node:
-            self._log_error('No root node', 0)
-    
+        
     def _lex_and_parse(self):
+        self.i += 1
         self.nodes = []
         self.root_node = None
-        self.has_errors = False
-        self.messages = []
         self.meta_to_node = []
         symbols = self._lex(self._get_contents())
         self._parse(self._get_contents(), symbols)
@@ -35,9 +29,9 @@ class UrtextBuffer:
             node.buffer = self
             node.filename = self.filename
         self._assign_parents(self.root_node)
-        self.allocated_ids = []
-        self._resolve_untitled_nodes()
-        self._resolve_duplicate_ids()
+        self._check_untitled_nodes()
+        self._check_duplicate_ids()
+        self.resolve_nodes()
 
     def _lex(self, contents, start_position=0):
         symbols = {}
@@ -63,10 +57,6 @@ class UrtextBuffer:
                     symbols[match.start() + start_position] = {}
                     symbols[match.start() + start_position]['contents'] = get_id_from_link(match.group())
                     symbols[match.start() + start_position]['type'] = symbol_type
-                elif symbol_type == 'compact_node':
-                    symbols[match.start() + start_position + len(match.group(1))] = {}
-                    symbols[match.start() + start_position + len(match.group(1))]['type'] = symbol_type
-                    symbols[match.start() + start_position + len(match.group(1))]['contents'] = match.group(3)
                 else:
                     symbols[match.start() + start_position] = {}
                     symbols[match.start() + start_position]['type'] = symbol_type
@@ -80,18 +70,13 @@ class UrtextBuffer:
         nested_levels={},
         nested=0,
         child_group={},
-        start_position=0,
-        from_compact=False):
+        start_position=0):
  
         ranges, unstripped_contents = strip_backtick_escape(contents)
         last_position = start_position
         pointers = {}
 
         for position in sorted(symbols.keys()):
-
-            if position < last_position: 
-                # avoid processing wrapped nodes twice if inside compact
-                continue
 
             # Allow node nesting arbitrarily deep
             nested_levels[nested] = [] if nested not in nested_levels else nested_levels[nested]
@@ -104,57 +89,24 @@ class UrtextBuffer:
                 continue
 
             elif symbols[position]['type'] == 'opening_wrapper':
-                if from_compact:
-                    nested_levels[nested].append([last_position-1, position-1])
+                if position == 0:
+                    nested_levels[nested].append([0, 0])
+                    nested_levels[nested] = []
                 else:
-                    if position == 0:
-                        nested_levels[nested].append([0, 0])
-                        nested_levels[nested] = []
-                    else:
-                        if position == last_position:
-                            nested += 1
-                            last_position += 1
-                            #consecutive bracket nodes, i.e. }{
-                            continue
-                        nested_levels[nested].append([last_position, position])
+                    if position == last_position:
+                        nested += 1
+                        last_position += 1
+                        #consecutive bracket nodes, i.e. }{
+                        continue
+                    nested_levels[nested].append([last_position, position])
                 position += 1 #wrappers exist outside range
                 nested += 1
-
-            elif not from_compact and symbols[position]['type'] == 'compact_node':
-                if position > 0:
-                    nested_levels[nested].append([last_position, position-1])
-                else:
-                    nested_levels[nested].append([0, 0])
-
-                compact_symbols = self._lex(
-                    symbols[position]['contents'], 
-                    start_position=position+1)
-
-                nested_levels, child_group, nested = self._parse(
-                    symbols[position]['contents'],
-                    compact_symbols,
-                    nested_levels=nested_levels,
-                    nested=nested+1,
-                    child_group=child_group,
-                    start_position=position+1,
-                    from_compact=True)
-               
-                r = position + len(symbols[position]['contents'])
-                if r in symbols and symbols[r]['type'] == 'EOB':
-                    nested_levels[nested].append([r,r])
-                    last_position = r
-                    continue
-                last_position = position + 1 + len(symbols[position]['contents'])
-                continue
  
             elif symbols[position]['type'] == 'closing_wrapper':
-                if from_compact:
-                    nested_levels[nested].append([last_position-1, position-1])
-                else:
-                    nested_levels[nested].append([last_position, position])
+                nested_levels[nested].append([last_position, position])
                 if nested <= 0:
                     contents = contents[:position] + contents[position + 1:]
-                    return self.set_buffer_contents(contents, clear_messages=False)
+                    return self.set_buffer_contents(contents)
 
                 position += 1 #wrappers exist outside range
                 node = self.add_node(
@@ -186,8 +138,7 @@ class UrtextBuffer:
                     nested_levels[nested],
                     nested,
                     unstripped_contents,
-                    root=True if not from_compact else False,
-                    compact=from_compact,
+                    root=True,
                     start_position=start_position)
 
                 #TODO refactor?
@@ -210,7 +161,7 @@ class UrtextBuffer:
 
             last_position = position
         
-        if not from_compact and nested >= 0:
+        if nested >= 0:
             contents = ''.join([contents[:position],
                 ' ',
                 syntax.node_closing_wrapper,
@@ -237,7 +188,6 @@ class UrtextBuffer:
         nested,
         contents,
         root=None,
-        compact=False,
         start_position=0):
 
         # Build the node contents and construct the node
@@ -252,7 +202,6 @@ class UrtextBuffer:
             node_contents,
             self.project,
             root=root,
-            compact=compact,
             nested=nested)
         
         new_node.ranges = ranges
@@ -260,20 +209,15 @@ class UrtextBuffer:
         new_node.end_position = ranges[-1][1]
 
         self.nodes.append(new_node)
-        if new_node.root_node:
+        if new_node.is_root_node:
             self.root_node = new_node
         return new_node
 
     def _get_contents(self):
         return self.contents
 
-    def set_buffer_contents(self, 
-        new_contents,
-        clear_messages=True):
-
+    def set_buffer_contents(self, new_contents):
         self.contents = new_contents
-        if clear_messages:
-            self.__clear_messages()
         self._lex_and_parse()
 
     def write_buffer_contents(self, run_hook=None):
@@ -283,120 +227,22 @@ class UrtextBuffer:
             self.contents,
             identifier=self.identifier)
 
-    def write_buffer_messages(self, messages=None):
-        if not messages and not self.messages:
-            return False
-        if messages:
-            self.messages = messages
-        timestamp = self.project.timestamp(as_string=True)
-        
-        top_message = ''.join([
-            syntax.urtext_message_opening_wrapper,
-            ' ',
-            '\n'.join([m['top_message'] for m in self.messages]),
-            ' ', timestamp, ' ',
-            syntax.urtext_message_closing_wrapper,
-            '\n'
-            ])
+    def resolve_nodes(self, messages=None):
+        unresolved_nodes = [n for n in self.nodes if n.needs_resolution]
+        for n in unresolved_nodes:
+            resolution = n.resolve_id(existing_nodes=self.nodes)
+            if not resolution:
+                self.write_buffer_contents()
+                return False
 
-        current_messages = self.__get_messages()
-        messaged_contents = self._get_contents()
-        for m in current_messages:
-            messaged_contents = messaged_contents.replace(m.group(), 
-                ''.join([
-                    m.group()[:2],
-                    'X',
-                    m.group()[3:],                   
-                    ]))
+    def _check_untitled_nodes(self):        
+        for node in [n for n in self.nodes if n.title == '(untitled)']:
+            node.needs_resolution = True
 
-        sorted_messages = sorted(self.messages, key=lambda m: m['position'])
-        insert_index = 0
-        for m in sorted_messages:
-            
-            insert_position = m['position'] + insert_index
-            messaged_contents = ''.join([
-                messaged_contents[:insert_position],
-                syntax.urtext_message_opening_wrapper,
-                ' ',
-                m['position_message'],
-                ' ',
-                syntax.urtext_message_closing_wrapper,
-                messaged_contents[insert_position:],
-                ])
-            insert_index += len(m['position_message']) + 6
-        
-        for match in syntax.invalidated_messages_c.finditer(messaged_contents):
-            messaged_contents = messaged_contents.replace(match.group(), '')
-        new_contents = ''.join([
-            top_message,
-            messaged_contents,
-            ])
-        self.messages = []
-        self.set_buffer_contents(new_contents, clear_messages=False)
-        self.write_buffer_contents()
-
-    def _resolve_untitled_nodes(self):        
-        for node in list([n for n in self.nodes if n.title == '(untitled)']):
-            resolution = node.resolve_id(allocated_ids=self.allocated_ids)
-            if not resolution['resolved_id']:
-                message = {
-                    'top_message': ''.join([
-                                'Dropping (untitled) ID at position ',
-                                str(node.start_position),
-                                '. ',
-                                resolution['reason'],
-                                ' ',
-                            ]),
-                    'position_message': 'Dropped (untitled), ' + resolution['reason'] ,
-                    'position' : node.start_position
-                    }
-                self.project.log_item(self.filename, message)
-                self.messages.append(message)
-                self.nodes = [n for n in self.nodes if n.title != node.title]
-            else:
-                node.id = resolution['resolved_id']
-                self.allocated_ids.append(node.id)
-        if self.messages:
-            self.has_errors = True
-        
-    def _resolve_duplicate_ids(self):
-        own_node_ids = [n.id for n in self.nodes]
-        nodes_to_resolve = [n for n in self.nodes if own_node_ids.count(n.id) > 1]
-        for n in nodes_to_resolve:
-            resolution = n.resolve_id(allocated_ids=self.allocated_ids)
-            if not resolution['resolved_id']:
-                message = {
-                    'top_message' :''.join([
-                                'Dropping duplicate node"',
-                                n.id,
-                                '"',
-                                ' at position ',
-                                str(n.start_position),
-                                '; ',
-                                resolution['reason']
-                            ]),
-                    'position_message': resolution['reason'],
-                    'position': n.start_position
-                    }
-                self.project.log_item(self.filename, message)
-                self.messages.append(message)
-                self.nodes = [node for node in self.nodes if node.title != n.title]
-            else:
-                n.id = resolution['resolved_id']
-                self.allocated_ids.append(n.id)
-       
-    def __get_messages(self):
-        return [m for m in syntax.urtext_messages_c.finditer(self._get_contents())]
-
-    def __clear_messages(self):
-        messages = self.__get_messages()
-        if messages:
-            original_contents = self._get_contents()
-            cleared_contents = original_contents
-            for match in messages:
-                cleared_contents = cleared_contents.replace(match.group(),'')
-            if cleared_contents != original_contents:
-                self.set_buffer_contents(cleared_contents, clear_messages=False)
+    def _check_duplicate_ids(self):
+        allocated_ids = [n.id for n in self.nodes]
+        for n in [n for n in self.nodes if allocated_ids.count(n.id) > 1]:
+            n.needs_resolution = True
 
     def get_ordered_nodes(self):
         return sorted( 
@@ -421,12 +267,3 @@ class UrtextBuffer:
         for n in self.nodes:
             if n.id == node_id:
                 return n
-
-    def _log_error(self, message, position):
-        self.nodes = {}
-        self.root_node = None
-        message = message +' at position '+ str(position)
-        if message not in self.messages:
-            self.messages.append()
-
-        

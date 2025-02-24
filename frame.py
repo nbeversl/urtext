@@ -90,14 +90,13 @@ class UrtextFrame:
             try:
                 transformed_text = operation.dynamic_output(current_text)
             except Exception as e:
-                accumulated_text += '`' + ''.join([
+                transformed_text = '`' + ''.join([
                     'error in ',
                     str(operation.name),
                     ': ',
                     traceback.format_exc(),
                     '\n'
                 ]) + '`'
-                break
             if transformed_text is False:  # not None
                 return ''
             if transformed_text is None:

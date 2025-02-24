@@ -3,7 +3,6 @@ Delete This Node _
 %%Python
 class DeleteThisNodeCommand:
 
-	selector_string = 'delete_this_node'
 	name = 'Delete this Node'
 
 	def run(self):

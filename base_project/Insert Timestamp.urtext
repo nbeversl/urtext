@@ -3,7 +3,6 @@ Insert Timestamp _
 %%Python
 class InsertTimestampCommand:
 
-	selector_string = 'insert_timestamp'
 	name = 'Insert Timestamp'
 	thread_safe = True
 	

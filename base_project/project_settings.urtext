@@ -1,7 +1,6 @@
 project_settings _
 
 Default Settings
-
 atomic_rename::False
 pop_breadcrumb_key::popped_from
 case_sensitive_keys::title - project_title - timestamp_format - filenames - timestamp
@@ -12,7 +11,7 @@ file_extensions::.urtext
 filename_datestamp_format::%m-%d-%Y %I-%M %p
 filename_title_length::100
 hash_key::keyword
-home::Home
+home::| Home >
 _lint::{ 
   run_when_file_modified::no
   lines_between_nodes::1

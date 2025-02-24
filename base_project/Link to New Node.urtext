@@ -3,7 +3,6 @@
 %%Python
 class InsertLinkToNewNodeCommand:
 
-	selector_string = 'insert_link_to_new_node'
 	name = 'Insert Link to New Node'
 	import os
 	thread_safe = True

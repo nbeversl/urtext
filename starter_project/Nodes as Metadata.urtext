@@ -39,7 +39,7 @@ Example:
 		  [[ >(| Example of Linked Node as Metadata Output >)	]]
 
 			{~ Example of Linked Node as Metadata Output _
-			  No call has text output			}
+			  No call has text output}
 
 		}
 

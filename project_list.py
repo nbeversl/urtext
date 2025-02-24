@@ -26,7 +26,7 @@ class ProjectList:
             sys.path.append(urtext_location)
 
         self.is_async = is_async
-        self.is_async = False  # development
+        #self.is_async = False  # development
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.editor_methods = editor_methods if editor_methods else {}
         self.entry_point = entry_point.strip()
@@ -74,7 +74,7 @@ class ProjectList:
         self.entry_points.append(project.entry_point)
         if initial or make_current:
             self.current_project = project
-        project.initialize(initial=initial, visible=visible, make_current=make_current, selector=selector)
+        project.initialize(visible=visible, make_current=make_current, selector=selector)
         if selector:
             self.run_selector(selector)
 
@@ -102,6 +102,7 @@ class ProjectList:
 
     def parse_link(self, string, filename, file_pos, col_pos=0, identifier=None):
         project = None
+        node = None
         if filename:
             project = self._get_project_from_path(filename)
         if filename is None and identifier is not None:
@@ -290,8 +291,6 @@ class ProjectList:
 
     def get_all_paths(self):
         paths = [os.path.abspath(os.path.dirname(p)) for p in self.entry_points]
-        for p in [project for project in self.projects if project.initialized]:
-            paths.extend(p.get_settings_paths())
         return paths
 
     def get_all_meta_pairs(self):
@@ -399,6 +398,7 @@ class ProjectList:
         self.run_editor_method('show_panel', selections, callback)
 
     def run_selector(self, selection):
+        selection = selection.replace(' ', '_').lower()
         if self.current_project and selection in self.current_project.selectors:
             if self.current_project.selectors[selection].thread_safe:
                 return self.current_project.selectors[selection].run()
@@ -414,8 +414,22 @@ class ProjectList:
             starter_proj_dir = os.path.join(os.path.dirname(__file__), 'starter_project')
             for f in os.listdir(os.path.join(os.path.dirname(__file__), 'starter_project')):
                 file_path = os.path.join(starter_proj_dir, f)
+                if os.path.basename(file_path) == 'Urtext Starter Project.urtext':
+                    with open(file_path, 'r', encoding="utf-8") as f:
+                        contents = f.read()
+                    contents = contents.replace(NO_MODIFY_WARNING,'')
+                    with open(os.path.join(folder, os.path.basename(file_path)), "w", encoding="utf-8") as f:
+                        f.write(contents)
+                    continue
                 if not os.path.isdir(file_path):
                     if len(os.path.splitext(file_path)) == 2 and os.path.splitext(file_path)[1] == '.urtext':
                         shutil.copyfile(file_path, os.path.join(folder, f))
         else:
             print(folder, 'is not a folder')
+
+
+NO_MODIFY_WARNING = """!--------------------------------------------------------------------------------------------------------------------------------------------!
+IF YOU ARE SEEING THIS TEXT, YOU ARE VIEWING THE STARTER PROJECT IN THE URTEXT LIBRARY.
+Do not modify it here; instead, copy it to a new project using either "Urtext: Create Starter Project" in the
+Sublime Command palette or the "Create Starter Project" selector from within Urtext.
+!--------------------------------------------------------------------------------------------------------------------------------------------!"""

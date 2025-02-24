@@ -63,10 +63,10 @@ class Sort:
 		if isinstance(value, str):
 			value = value.lower()			
 		t.append(value)
-	
-		if self.have_flags('-num'):
+		numerical_keys_setting = self.project.get_setting_as_text('numerical_keys')
+		if self.have_flags('-num') or key in numerical_keys_setting:
 			try:
-				nt = [int(n) for n in t]
+				nt = [n.num() for n in t]
 			except ValueError:
 				return tuple([])
 			return tuple(nt)

@@ -45,6 +45,9 @@ class NodeQuery:
 
 		if self.have_flags('-is_meta'):
 			added_nodes = set([node_id for node_id in added_nodes if self.project.nodes[node_id].is_meta])
+
+		if self.have_flags('-blank'):
+			added_nodes = set([node_id for node_id in added_nodes if self.project.nodes[node_id].title_only])
 		
 		for target_id in self.frame.target_ids():
 			added_nodes.discard(target_id)  
@@ -89,7 +92,7 @@ class Exclude(NodeQuery):
 		# if self.have_flags('-including_as_descendants'):
 		self.frame.excluded_nodes.extend(excluded_nodes)
 		self.frame.excluded_nodes = list(set(self.frame.excluded_nodes))
-		self.frame.included_nodes = [nid for nid in list(self.frame.included_nodes) if nid not in self.frame.excluded_nodes]
+		self.frame.included_nodes = [node for node in list(self.frame.included_nodes) if node.id not in self.frame.excluded_nodes]
 
 class Include(NodeQuery):
 

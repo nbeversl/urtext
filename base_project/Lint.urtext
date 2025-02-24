@@ -18,6 +18,7 @@ class UrtextLint:
 	
 	def _get_settings(self):
 		self.settings = None
+		lint_settings = None
 		if self.project.project_list.current_project:
 			lint_settings = self.project.project_list.current_project.get_single_setting('_lint')
 		if lint_settings and lint_settings.node():
@@ -71,13 +72,15 @@ class UrtextLint:
 		do_not_concat = []
 		contents = urtext_buffer.contents
 		lines = self.re.split(''.join([
-			'(\n|\}|',
+			'(\n|\})|(^\s*?•)|(',
 			'(?:'+self.syntax.metadata_key+ '\:\:)?\{~?\??)']), contents)
 		length = 0
 		skip_lines = []
 		blank_lines = 0
 		lines_between_nodes += 1
 		for index, l in enumerate(lines):
+			if l is None:
+				continue
 			if index in skip_lines:
 				length += len(lines[index])
 				continue
@@ -192,6 +195,7 @@ class UrtextLint:
 					})
 				length += len(l)
 				continue
+			
 			else: # any other line
 				blank_lines = 0
 				node = urtext_buffer.get_node_from_position(length+1)
@@ -208,7 +212,7 @@ class UrtextLint:
 					})
 					length += len(l)
 					continue
-				# bug here because of compact nodees
+
 				if not node.is_meta:
 					nested = node.nested
 				else:

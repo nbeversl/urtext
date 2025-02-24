@@ -6,7 +6,6 @@ Renames files individually or all at once, by the parameters provided.
 
 class RenameFiles:
 
-    selector_string = 'rename_files'
     name = "Rename All Files"
     import os
     
@@ -111,11 +110,10 @@ class RenameFiles:
 
 class RenameSingleFile(RenameFiles):
 
-    selector_string = 'rename_single_file'
     name = "Rename Single File"
 
     def _should_run(self):
-        if self.current_project().setting_is_true('rename_on_save'):
+        if self.current_project() and self.current_project().setting_is_true('rename_on_save'):
             return self.current_project().get_single_setting('rename_on_save')
 
     def after_on_file_modified(self, filename):

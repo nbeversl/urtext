@@ -3,7 +3,6 @@ Link Preview _
 %%Python
 class LinkPreviewOnHover:
 
-	selector_string = 'link_preview_on_hover'
 	name = "Link Preview On Hover"
 	thread_safe = True
 

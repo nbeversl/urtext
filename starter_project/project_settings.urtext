@@ -81,6 +81,9 @@ _lint::{ Lint Settings
   lines_between_nodes::1
 }
 
+on_loaded::open_home
+Specifies an optional command when the project is compiled. Only bulit-in option is open_home.
+
 project_title::Starter Project
 Provides a title for the entire project
 
