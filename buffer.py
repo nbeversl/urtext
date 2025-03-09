@@ -15,16 +15,15 @@ class UrtextBuffer:
         self.filename = filename
         self.nodes = []
         self.root_node = None
-        self.i = 0
         self._lex_and_parse()
         
     def _lex_and_parse(self):
-        self.i += 1
         self.nodes = []
         self.root_node = None
         self.meta_to_node = []
-        symbols = self._lex(self._get_contents())
-        self._parse(self._get_contents(), symbols)
+        contents = self._get_contents()
+        symbols = self._lex(contents)
+        self._parse(contents, symbols)
         for node in self.nodes:
             node.buffer = self
             node.filename = self.filename
@@ -52,25 +51,16 @@ class UrtextBuffer:
                 if symbol_type == 'meta_to_node':
                     self.meta_to_node.append(match)
                     continue
+                symbols[match.start() + start_position] = {}
+                symbols[match.start() + start_position]['type'] = symbol_type
 
                 if symbol_type == 'pointer':
-                    symbols[match.start() + start_position] = {}
                     symbols[match.start() + start_position]['contents'] = get_id_from_link(match.group())
-                    symbols[match.start() + start_position]['type'] = symbol_type
-                else:
-                    symbols[match.start() + start_position] = {}
-                    symbols[match.start() + start_position]['type'] = symbol_type
 
         symbols[len(contents) + start_position] = { 'type': 'EOB' }
         return symbols
 
-    def _parse(self, 
-        contents,
-        symbols,
-        nested_levels={},
-        nested=0,
-        child_group={},
-        start_position=0):
+    def _parse(self, contents,symbols, nested_levels={},nested=0,child_group={}, start_position=0):
  
         ranges, unstripped_contents = strip_backtick_escape(contents)
         last_position = start_position
@@ -183,27 +173,13 @@ class UrtextBuffer:
 
         return nested_levels, child_group, nested
 
-    def add_node(self, 
-        ranges, 
-        nested,
-        contents,
-        root=None,
-        start_position=0):
+    def add_node(self, ranges, nested, contents, root=None, start_position=0):
 
         # Build the node contents and construct the node
         node_contents = ''.join([
-            contents[
-                r[0] - start_position
-                :
-                r[1] - start_position ]
-            for r in ranges])
+            contents[r[0] - start_position:r[1] - start_position ] for r in ranges])
 
-        new_node = self.urtext_node(
-            node_contents,
-            self.project,
-            root=root,
-            nested=nested)
-        
+        new_node = self.urtext_node(node_contents, self.project, root=root, nested=nested)
         new_node.ranges = ranges
         new_node.start_position = ranges[0][0]
         new_node.end_position = ranges[-1][1]

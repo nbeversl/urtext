@@ -109,7 +109,8 @@ class UrtextNode:
         return [link.node_id for link in self.links]
 
     def resolve_id(self, existing_nodes=[]):
-        self.buffer.i += 1
+        if self.resolution:
+            return self.id
         timestamps = self.metadata.get_values('_inline_timestamp')
         existing_ids = [n.id for n in existing_nodes]
         # try resolving to own timestamp        
@@ -149,6 +150,7 @@ class UrtextNode:
         self._set_contents(''.join([' ', timestamp.wrapped_string, ' ',
             self.contents_with_contained_nodes()]),
             preserve_title=False)
+        return False
 
     def _get_links(self, positioned_contents):
         urtext_links, replaced_contents = utils.get_all_links_from_string(positioned_contents, self, self.project.project_list)

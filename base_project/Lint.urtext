@@ -72,7 +72,7 @@ class UrtextLint:
 		do_not_concat = []
 		contents = urtext_buffer.contents
 		lines = self.re.split(''.join([
-			'(\n|\})|(^\s*?•)|(',
+			'(\n|\})|(',
 			'(?:'+self.syntax.metadata_key+ '\:\:)?\{~?\??)']), contents)
 		length = 0
 		skip_lines = []
@@ -212,7 +212,6 @@ class UrtextLint:
 					})
 					length += len(l)
 					continue
-
 				if not node.is_meta:
 					nested = node.nested
 				else:
