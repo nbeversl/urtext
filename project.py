@@ -99,7 +99,10 @@ class UrtextProject:
     def get_propagated_settings(self, _called_from_project_list=False):
         propagated_settings = self.get_setting_as_text('propagate_settings', _called_from_project_list=_called_from_project_list)
         if '_all' in propagated_settings:
-            return self.get_settings_keys()
+            all_settings = self.get_settings_keys()
+            if 'project_title' in all_settings:
+                all_settings.remove('project_title')
+            return all_settings
         return propagated_settings
 
     def initialize(self, visible=True, make_current=False, action=None):
