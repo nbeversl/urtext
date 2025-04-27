@@ -239,7 +239,7 @@ class UrtextProject:
 
         for n in buffer.nodes:
             if not self._resolve_duplicate_ids(n):
-                return self._parse_buffer(buffer)
+                return False
 
         self.drop_buffer(buffer)     
         changed_ids = {}
