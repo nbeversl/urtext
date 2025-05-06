@@ -1,10 +1,12 @@
 # Urtext Core Library
 
+## This repository
+
+This repository is the core Python library. It has no user interface and requires an implementation in a text editor (see Implementations).
+
 ## What Urtext Is
 
 Urtext /ˈʊrtekst/ is an open-source syntax and interpreter for plaintext writing, research, documentation, knowledge bases, journaling, Zettelkasten, project/personal organization, note taking, a lightweight database substitute, or any other writing or information management that can be done in text format. See https://urtext.co for more information.
-
-This repository is the core Python library. It has no user interface and requires an implementation in a text editor:
 
 ## Implementations
 
