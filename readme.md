@@ -1,8 +1,8 @@
 # Urtext Core Library
 
 ## This repository
-
-This repository is the core Python library. It has no user interface and requires an implementation in a text editor (see Implementations).
+[
+This repository is the core Python library. It has no user interface and requires an implementation in a text editor (see [Implementations](https://github.com/nbeversl/urtext?tab=readme-ov-file#sublime-text)).
 
 ## What Urtext Is
 
@@ -22,12 +22,12 @@ Installation instructions are here: [https://urtext.co/setup/sublime-text/](http
 
 ### iOS
 
-There is an implementation for iOS using [Pythonista](https://omz-software.com/pythonista/). The repository for this implementation is at [urtext_pythonista](https://github.com/nbeversl/urtext_pythonista).
+There is an implementation for iOS using [Pythonista](https://omz-software.com/pythonista/). The repository for this implementation is at [urtext_pythonista](https://github.com/nbeversl/urtext_pythonista) and utilizes [Sublemon](https://github.com/nbeversl/sublemon), a simple custom editor created just for this implementation that provides syntax highlighting and a custom keyboard.
 
-
-There is an [install script](https://github.com/nbeversl/urtext_pythonista_install_or_update) that downloads all dependencies in a single step. For instructions see that repository or [https://urtext.co/setup/ios-using-pythonista/](https://urtext.co/setup/ios-using-pythonista/).
+An [install script](https://github.com/nbeversl/urtext_pythonista_install_or_update) is available that downloads all dependencies in a single step. For instructions, see that repository or [https://urtext.co/setup/ios-using-pythonista/](https://urtext.co/setup/ios-using-pythonista/).
 
 ## Questions and Issues
 
-Questions and issues may be submitted either to https://urtext.co/support/ or to https://github.com/nbeversl/UrtextSublime/issues.
+All questions and support requests may be submitted to the webform https://urtext.co/support/ (no login needed).
 
+Questions and issues with this core library may be submitted to [the issues tab](https://github.com/nbeversl/urtext/issues). For issues with specifical implementations, please submit to the issues tabs of the those repositories. 
