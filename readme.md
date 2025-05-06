@@ -1,8 +1,8 @@
 # Urtext Core Library
 
 ## This repository
-[
-This repository is the core Python library. It has no user interface and requires an implementation in a text editor (see [Implementations](https://github.com/nbeversl/urtext?tab=readme-ov-file#sublime-text)).
+
+This repository is the core Urtext Python library. It has no user interface and requires an implementation in a text editor (see [Implementations](https://github.com/nbeversl/urtext?tab=readme-ov-file#sublime-text)).
 
 ## What Urtext Is
 
