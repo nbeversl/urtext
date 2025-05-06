@@ -2,7 +2,7 @@
 
 ## This repository
 
-This repository is the core Urtext Python library. It has no user interface and requires an implementation in a text editor (see [Implementations](https://github.com/nbeversl/urtext?tab=readme-ov-file#sublime-text)).
+This repository is the core Urtext library in Python. It has no user interface and requires an implementation in a text editor (see [Implementations](https://github.com/nbeversl/urtext?tab=readme-ov-file#sublime-text)).
 
 ## What Urtext Is
 
@@ -30,4 +30,4 @@ An [install script](https://github.com/nbeversl/urtext_pythonista_install_or_upd
 
 All questions and support requests may be submitted to the webform https://urtext.co/support/ (no login needed).
 
-Questions and issues with this core library may be submitted to [the issues tab](https://github.com/nbeversl/urtext/issues). For issues with specifical implementations, please submit to the issues tabs of the those repositories. 
+Developer questions and issues with this core library may be submitted to [the issues tab](https://github.com/nbeversl/urtext/issues). For issues with specifical implementations, please submit to the issues tabs of the those repositories. 
