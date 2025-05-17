@@ -221,7 +221,7 @@ class UrtextLint:
 					 	nested = 0
 				added_text = l.strip()
 				if not node.is_dynamic:
-					if index < (len(lines) - 2) and '}' in lines[index+1]:
+					if index < (len(lines) - 2) and lines[index+1] and '}' in lines[index+1]:
 						added_text = l.lstrip() + lines[index+1]
 						skip_lines.append(index+1)
 				else:
