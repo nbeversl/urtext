@@ -51,7 +51,9 @@ class UrtextFile(UrtextBuffer):
             if buffer_setting and buffer_setting.true():
                 self.project.run_editor_method('set_buffer', self.filename, self.contents)
             else:
-                self.project.run_editor_method('refresh_files', self.filename)
+                open_files = self.project.run_editor_method('get_open_files')
+                if self.filename in open_files and open_files[self.filename] == False:
+                    self.project.run_editor_method('refresh_files', self.filename)
         elif self.identifier:
             self.project.run_editor_method('set_buffer', None, self.contents, identifier=self.identifier)
         if re_parse:
