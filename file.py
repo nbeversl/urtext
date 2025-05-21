@@ -6,18 +6,21 @@ class UrtextFile(UrtextBuffer):
    
     def __init__(self, filename, project):
         self.filename = filename
+        self.project = project
         super().__init__(project, filename, self._read_contents())
 
     def _get_contents(self):
-        buffer_setting = self.project.get_single_setting('use_buffer')
-        if buffer_setting and buffer_setting.true():
-            self.contents = self.project.run_editor_method('get_buffer', self.filename)
         if not self.contents:
             self.contents = self._read_contents()
         return self.contents
 
     def _read_contents(self):
         """ returns the file contents, filtering out Unicode Errors, directories, other errors """
+        buffer_setting = self.project.get_single_setting('use_buffer')
+        if buffer_setting and buffer_setting.true():
+            contents = self.project.run_editor_method('get_buffer', self.filename)
+            if contents:
+                return contents
         try:
             with open(self.filename, 'r', encoding='utf-8') as theFile:
                 full_file_contents = theFile.read()
