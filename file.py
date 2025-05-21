@@ -9,6 +9,9 @@ class UrtextFile(UrtextBuffer):
         super().__init__(project, filename, self._read_contents())
 
     def _get_contents(self):
+        buffer_setting = self.project.get_single_setting('use_buffer')
+        if buffer_setting and buffer_setting.true():
+            self.contents = self.project.run_editor_method('get_buffer', self.filename)
         if not self.contents:
             self.contents = self._read_contents()
         return self.contents
