@@ -98,6 +98,8 @@ class UrtextProject:
 
     def get_propagated_settings(self, _called_from_project_list=False):
         propagated_settings = self.get_setting_as_text('propagate_settings', _called_from_project_list=_called_from_project_list)
+        not_propagated_settings = self.get_setting_as_text('do_not_propagate_settings', _called_from_project_list=_called_from_project_list)
+        propagated_settings = [s for s in propagated_settings if s not in not_propagated_settings]
         if '_all' in propagated_settings:
             all_settings = self.get_settings_keys()
             if 'project_title' in all_settings:
@@ -425,7 +427,14 @@ class UrtextProject:
         self.nodes[new_node.id] = new_node
         if new_node.title == 'project_settings':
             self.project_settings_nodes.append(new_node.id)
+            self.on_project_settings_found()
         self.run_hook('on_node_added', new_node)
+
+    def on_project_settings_found(self):
+        on_loaded_setting = self.get_setting_as_text('on_loaded')
+        for action in on_loaded_setting:
+            if action == 'open_home' and self.title() != 'Urtext Base Project' and not self.project_list.node_has_been_opened():
+                self.open_home()
 
     def get_source_node(self, filename, position):  # future
         if filename not in self.files:
@@ -665,7 +674,15 @@ class UrtextProject:
                 self.nodes[target_id].metadata.clear_from_source(source_node)
 
     def open_node(self, node_id, position=None):
-        self.project_list.execute(self._open_node, node_id, position=position)
+        if not self.compiled:
+            self._open_node(node_id, position=position)
+        else:
+            self.project_list.execute(self._open_node, node_id, position=position)
+
+    def preview_node(self, node_id, position=None):
+        filename, position =self.get_file_and_position(node_id)
+        if filename:
+            self.run_editor_method('preview_file_at_position', filename, position)
 
     def _open_node(self, node_id, position=None):
         node = self.get_node(node_id)
@@ -711,7 +728,7 @@ class UrtextProject:
 
     def handle_info_message(self, message):
         print(message)
-        self.run_editor_method('popup', message)
+        self.run_editor_method('info_message', message)
 
     def handle_error_message(self, message):
         print(message)
@@ -1234,8 +1251,8 @@ class UrtextProject:
                 return self.log_item(frame.source_node.filename, {'top_message': output})
             if target.matching_string == '@buffer':
                 return self.run_editor_method('scratch_buffer', output)
-            if target.matching_string == '@popup':
-                return self.run_editor_method('popup', output)
+            if target.matching_string == '@info':
+                return self.run_editor_method('info_message', output)
             if target.matching_string == '@line':
                 contents = frame.source_node.contents_with_contained_nodes()
                 return self._set_node_contents(
@@ -1248,8 +1265,8 @@ class UrtextProject:
                     '\n']))
             if target.matching_string == '@console':
                 return self.run_editor_method('write_to_console', output)
-            if target.matching_string == '@popup':
-                return self.run_editor_method('popup', output)
+            if target.matching_string == '@info':
+                return self.run_editor_method('info_message', output)
         if target.is_file:
             return utils.write_file_contents(os.path.join(self.entry_path, target.path), output)
         if target.is_raw_string and target.matching_string in self.nodes:  # fallback
@@ -1311,10 +1328,7 @@ class UrtextProject:
         return self.entry_point
 
     def on_initialized(self):
-        on_loaded_setting = self.get_setting_as_text('on_loaded')
-        for action in on_loaded_setting:
-            if action == 'open_home' and not self.project_list.node_has_been_opened():
-                if self.open_home(): return
+        pass
 
     def on_selected(self):
         self.run_hook('on_selected', self)
