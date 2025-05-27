@@ -559,15 +559,10 @@ class UrtextProject:
             self.run_hook('on_new_file_node', self.files[filename].root_node.id)
             if open_file:
                 self.open_node(self.files[filename].root_node.id, position=cursor_pos)
-            if filename in self.files:
-                return {
-                    'filename': filename,
-                    'root_node': self.files[filename].root_node,
-                    'id': buffer.root_node.id,
-                    'cursor_pos': cursor_pos
+        return {
+                'filename': filename,
+                'cursor_pos': cursor_pos
                 }
-            else:
-                print('(DEBUGGING) error in project.new_file_node')
 
     def new_inline_node(self,
                         metadata=None,
