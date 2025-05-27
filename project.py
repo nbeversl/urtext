@@ -790,7 +790,11 @@ class UrtextProject:
         if identifier and identifier in self.buffers:
             return self.buffers[identifier].get_node_from_position(position)
         if filename in self.files:
-            return self.files[filename].get_node_from_position(position)
+            node_id = None
+            for node in self.files[filename].nodes:
+                for r in node.ranges:
+                    if position in range(r[0], r[1] + 1):  # +1 in case the cursor is in the last position of the node.
+                        return node
 
     def get_node(self, node_id):
         if node_id in self.nodes:
@@ -900,7 +904,7 @@ class UrtextProject:
         if flags is None:
             flags = []
         included_files = self._get_included_files()
-        if self.compiled and filename in  included_files:
+        if self.compiled and filename in included_files:
             self._compile_file(filename, flags=['-on_modified'] + flags)    
         self.close_inactive()
         self._sync_file_list()
@@ -1406,11 +1410,13 @@ class UrtextProject:
         return call
 
     def run_action(self, action_string):
+        """
+        should not be called directly, is called from ProjectList
+        to determine whether it is safe outside a thread
+        """
         action_string = action_string.replace(' ','_').lower()
         if action_string in self.actions:
             return self.actions[action_string].run()
-        if action_string in self.project_list.actions:
-            return self.project_list.actions[action_string].run()
 
     def run_call(self, call_name, *args, **kwargs):
         call = self.get_call(call_name)

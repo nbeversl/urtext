@@ -4,7 +4,7 @@ Node Browser _
 class NodeBrowser:
 	
 	name = 'Node Browser'
-	thread_safe = True
+	inline_safe = True
 
 	def run(self):
 	

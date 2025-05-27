@@ -4,7 +4,7 @@ File Outline Dropdown _
 class FileOutlineDropdown:
 
 	name = 'File Outline'
-	thread_safe = True
+	inline_safe = True
 
 	def run(self):
 		if self.project_list.current_project:

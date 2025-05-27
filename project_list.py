@@ -405,11 +405,11 @@ class ProjectList:
     def run_action(self, selection):
         selection = selection.replace(' ', '_').lower()
         if self.current_project and selection in self.current_project.actions:
-            if self.current_project.actions[selection].thread_safe:
+            if self.current_project.actions[selection].inline_safe:
                 return self.current_project.actions[selection].run()
             return self.execute(self.current_project.actions[selection].run)
         if selection in self.actions:
-            if self.actions[selection].thread_safe:
+            if self.actions[selection].inline_safe:
                 return self.actions[selection].run()
             self.execute(self.actions[selection].run)
 
