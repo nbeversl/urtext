@@ -14,6 +14,7 @@ EXEC(| Include and Exclude >)
 EXEC(| Limit >)
 EXEC(| Rename Files >)
 EXEC(| Files >)
+EXEC(| Open Link >)
 EXEC(| Navigation >)
 EXEC(| Log >)
 EXEC(| Collect >)
@@ -111,6 +112,7 @@ TREE()
 | New File Node >
 | Node Browser >
 | Open Home >
+| Open Link >
 | Parameters >
 | Patterns >
 | Pop >

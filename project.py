@@ -217,7 +217,8 @@ class UrtextProject:
 
         existing_buffer_ids = None
         if filename in self.files:
-            existing_buffer_ids = [n.id for n in self.nodes.values() if n.filename == filename]
+            existing_nodes = [n for n in self.nodes.values() if n.filename == filename]
+            existing_buffer_ids = [n.id for n in sorted(existing_nodes, key= lambda n : n.start_position)]
 
         if filename in self.files:
             self.drop_buffer(self.files[filename])
