@@ -1,0 +1,26 @@
+Syntax Overview _ <- the single underscore denotes the node title
+
+Text is freeform within the syntax.
+
+	{ Bracket node
+
+		{ nested bracket node
+		}
+	}
+
+|? Link >
+| Pointer >>
+
+Timestamp: <Thu., May. 08, 2025, 09:20 PM CEST>
+
+Metadata_Key::Metadata value - another metadata value - etc.
+
+#hash_metadata_value (a shorthand)
+
+Example frame:
+
+[[
+.	Example calls:
+.	INCLUDE(* -flag)
+.	TARGET(|? a node for output >)
+]]
