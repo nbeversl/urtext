@@ -5,4 +5,5 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "urtext"
 version = "0.1.0"
-description = "Programmable knowledge base"
+description = "Programmable knowledge base."
+readme = "readme.md"
