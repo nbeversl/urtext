@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "urtext"
-version = "0.1.2"
+version = "0.1.3"
 description = "Urtext /ˈʊrtekst/ is a markup language and framework for programmable notebooks in text files on top of the Python language."
 readme = "readme.md"
 dependencies = [
@@ -12,9 +12,6 @@ dependencies = [
     "python-dateutil",
     "six"
 ]
-
-[tool.setuptools.packages.find]
-where = ["urtext"]
 
 [tool.setuptools.package-data]
 "urtext" = ["base_project/*", "starter_project/*"]
