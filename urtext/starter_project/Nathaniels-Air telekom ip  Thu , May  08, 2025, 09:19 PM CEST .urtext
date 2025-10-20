@@ -2,7 +2,9 @@ Syntax Overview _ <- the single underscore denotes the node title
 
 Text is freeform within the syntax.
 
+
 	{ Bracket node
+
 
 		{ nested bracket node
 		}
