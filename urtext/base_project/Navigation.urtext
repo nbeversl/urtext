@@ -16,6 +16,7 @@ class Navigation:
 		self.navigation = []
 		self.nav_index = -1
 		self.triggered_node_visit = False
+		self.should_reverse = None
 
 	def run(self, arg):
 		if arg == 'forward':
@@ -61,7 +62,7 @@ class Navigation:
 	
 		if self.navigation:
 			last_project, last_id = self.navigation[self.nav_index]
-			# don't re-remember consecutive duplicate links
+			# don't re-remember consecuhtive duplicate links
 			if (-1 < self.nav_index < len(self.navigation) - 1 and node.id == last_id): 
 				return
 
@@ -70,11 +71,16 @@ class Navigation:
 		self.navigation.append((project, node.id))
 
 	def before_file_deleted(self, project, filename):
+		current_open_filename = self.editor_methods('get_current_filename')
+		if filename == current_open_filename:
+			self.should_reverse = True
 		for item in list(self.navigation):
-			project, node_id = item
-			if filename in project.files and node_id in project.files[filename].node_ids():				
+			item_project, node_id = item
+			if filename in item_project.files and node_id in item_project.files[filename].node_ids():
 				if self.navigation.index(item) < self.nav_index:
 					self.nav_index -= 1
+				if self.navigation.index(item) == self.nav_index:
+					self.should_reverse = True
 				del self.navigation[self.nav_index]
 
 	def after_file_deleted(self, project, filename):
