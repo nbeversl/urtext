@@ -148,8 +148,8 @@ class NavigateToNextNode:
 	inline_safe = True
 	
 	def run(self):
-		position = self.run_editor_method('get_position')
-		filename = self.run_editor_method('get_current_filename')
+		position = self.project_list.run_editor_method('get_position')
+		filename = self.project_list.run_editor_method('get_current_filename')
 		self.current_project()._parse_file(filename, try_buffer=True)
 		current_node = self.current_project().get_node_from_position(filename, position)
 		if current_node:
@@ -163,8 +163,8 @@ class NavigateToPreviousNode:
 	inline_safe = True
 	
 	def run(self):
-		position = self.run_editor_method('get_position')
-		filename = self.run_editor_method('get_current_filename')
+		position = self.project_list.run_editor_method('get_position')
+		filename = self.project_list.run_editor_method('get_current_filename')
 		self.current_project()._parse_file(filename, try_buffer=True)
 		current_node = self.current_project().get_node_from_position(filename, position)
 		if current_node:
