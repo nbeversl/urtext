@@ -71,7 +71,7 @@ class Navigation:
 		self.navigation.append((project, node.id))
 
 	def before_file_deleted(self, project, filename):
-		current_open_filename = self.editor_methods('get_current_filename')
+		current_open_filename = self.project_list.run_editor_method('get_current_filename')
 		if filename == current_open_filename:
 			self.should_reverse = True
 		for item in list(self.navigation):
