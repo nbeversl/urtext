@@ -137,10 +137,13 @@ class NodeMetadata:
         self.entries_dict[key] = self.entries_dict.get(key, [])        
         self.entries_dict[key].append(e)
 
-    def get_keys(self, exclude=[]):
+    def get_keys(self, exclude=None):
+        if exclude is None:
+            exclude = []
         keys = {}
         for k in self.entries_dict.keys():
-            keys[k] = len(self.entries_dict[k])
+            if k not in exclude:
+                keys[k] = len(self.entries_dict[k])
         return keys
 
     def get_entries(self, keyname):
@@ -256,9 +259,10 @@ class NodeMetadata:
       
     def clear_from_source(self, source_node):
         for k in self.entries_dict:
-            for entry in self.entries_dict[k]:
-                if entry.from_node == source_node:
-                    self.entries_dict[k].remove(entry)
+            self.entries_dict[k] = [
+                e for e in self.entries_dict[k]
+                if e.from_node != source_node
+            ]
     
     def convert_hash_keys(self):
         hash_key_setting = self.project.get_single_setting('hash_key')

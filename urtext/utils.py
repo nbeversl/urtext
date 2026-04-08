@@ -12,9 +12,9 @@ def strip_backtick_escape(contents):
     return ranges, contents
 
 def force_list(thing):
-	if not isinstance(thing, list):
-		thing = [thing]
-	return thing
+    if not isinstance(thing, list):
+        thing = [thing]
+    return thing
 
 def strip_illegal_file_characters(filename):
     for c in [
@@ -126,7 +126,7 @@ def get_all_links_from_string(string, node, project_list, include_http=False):
         if match.group(9):
             try:
                 link.dest_node_position = int(match.group(9)[1:])
-            except:
+            except Exception:
                 pass
         link.position_in_string = match.start()
         links.append(link)
@@ -172,7 +172,7 @@ def get_all_links_from_string(string, node, project_list, include_http=False):
         if match.group(8):
             try:
                 link.dest_node_position = int(match.group(8)[1:])
-            except:
+            except Exception:
                 pass
         if match.group(7) == syntax.pointer_closing_wrapper:
             link.is_pointer = True  
@@ -264,7 +264,7 @@ def strip_metadata(contents):
 def strip_urtext_syntax(contents):
     ranges, stripped_contents = strip_backtick_escape(contents) 
     stripped_contents = strip_whitespace_anchors(stripped_contents)
-    ranges, stripped_contents, replaced_contents = utils.strip_embedded_syntaxes(stripped_contents)
+    ranges, stripped_contents, replaced_contents = strip_embedded_syntaxes(stripped_contents)
 
-    return contents
+    return stripped_contents
 

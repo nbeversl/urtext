@@ -109,7 +109,9 @@ class UrtextNode:
     def links_ids(self):
         return [link.node_id for link in self.links]
 
-    def resolve_id(self, existing_nodes=[]):
+    def resolve_id(self, existing_nodes=None):
+        if existing_nodes is None:
+            existing_nodes = []
         if self.resolution:
             return self.id
         newest_timestamp = self.metadata.get_newest_timestamp()
@@ -456,16 +458,20 @@ class UrtextNode:
         m_format = m_format.replace(r'\n', '\n')
         return m_format
 
-def node_descendants(node, known_descendants=[]):
+def node_descendants(node, known_descendants=None):
     # differentiate between pointer and "real" descendants
+    if known_descendants is None:
+        known_descendants = []
     all_descendants = [n for n in node.children if n not in known_descendants]
     for descendant in all_descendants:
         all_descendants.extend(
             node_descendants(descendant, known_descendants=all_descendants))
     return all_descendants
 
-def node_ancestors(node, known_ancestors=[]):
+def node_ancestors(node, known_ancestors=None):
     # differentiate between pointer and "real" descendants
+    if known_ancestors is None:
+        known_ancestors = []
     if node.parent:
         known_ancestors.append(node.parent)
         return node_ancestors(node.parent, known_ancestors)

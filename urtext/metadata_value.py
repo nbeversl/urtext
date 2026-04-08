@@ -32,7 +32,7 @@ class MetadataValue:
     def num(self):
         try:
             return float(self.text)
-        except:
+        except Exception:
             return float('inf')
 
     def links(self):

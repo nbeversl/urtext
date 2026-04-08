@@ -354,18 +354,18 @@ class ProjectList:
         for n in call.name:
             self.calls[n] = call
 
-        class call(call, UrtextCall):
+        class BoundCall(call, UrtextCall):
             pass
             
-        if call.project_list_instance:
-            if call.name[0] not in self.project_list_instance_calls:
-                instance_call = call(self)
+        if BoundCall.project_list_instance:
+            if BoundCall.name[0] not in self.project_list_instance_calls:
+                instance_call = BoundCall(self)
                 instance_call.on_added()
-                self.project_list_instance_calls[call.name[0]] = instance_call
+                self.project_list_instance_calls[BoundCall.name[0]] = instance_call
                 return
 
-        if call.project_instance:
-            self.project_instance_calls[n[0]] = call
+        if BoundCall.project_instance:
+            self.project_instance_calls[n[0]] = BoundCall
 
     def get_call_instance(self, call_name):
         get_call_instance = None

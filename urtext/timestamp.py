@@ -32,12 +32,12 @@ def date_from_timestamp(datestamp_string):
     d = None
     try:
         d = parse(datestamp_string)
-    except:
+    except Exception:
         return None
     if d.tzinfo == None:
         try:
             d = d.replace(tzinfo=datetime.timezone.utc)    
-        except:
+        except Exception:
             print('cannot add timezone info to')
             print(datestamp_string)
             print(d)

@@ -56,6 +56,9 @@ class UrtextProject:
         self.new_file_node_created = new_file_node_created
         self.initial_project = initial
         self.visible = None
+        self._included_files_cache = None
+        self._file_extensions_cache = None
+        self.nodes_by_file = {}
 
     def get_setting(self, setting, _called_from_project_list=False, use_project_list=True):
 
@@ -217,8 +220,9 @@ class UrtextProject:
 
         existing_buffer_ids = None
         if filename in self.files:
-            existing_nodes = [n for n in self.nodes.values() if n.filename == filename]
-            existing_buffer_ids = [n.id for n in sorted(existing_nodes, key= lambda n : n.start_position)]
+            existing_node_ids = self.nodes_by_file.get(filename, set())
+            existing_nodes = [self.nodes[nid] for nid in existing_node_ids if nid in self.nodes]
+            existing_buffer_ids = [n.id for n in sorted(existing_nodes, key=lambda n: n.start_position)]
 
         if filename in self.files:
             self.drop_buffer(self.files[filename])
@@ -238,7 +242,8 @@ class UrtextProject:
 
         if existing_buffer_ids is None:
             if buffer.filename and buffer.filename in self.files:
-                existing_buffer_ids = [n.id for n in self.nodes.values() if n.filename == buffer.filename]
+                existing_node_ids = self.nodes_by_file.get(buffer.filename, set())
+                existing_buffer_ids = [nid for nid in existing_node_ids if nid in self.nodes]
 
         for n in buffer.nodes:
             if not self._resolve_duplicate_ids(n):
@@ -331,6 +336,7 @@ class UrtextProject:
             self._add_sub_tags(entry)
 
     def _rewrite_changed_links(self, changed_ids):
+        modified_buffers = {}
         for old_id in list(changed_ids.keys()):
             new_id = changed_ids[old_id]
             if new_id in self.nodes:
@@ -340,18 +346,23 @@ class UrtextProject:
                         if link.node_id == old_id:
                             links_to_change[old_id] = new_id
                     if links_to_change:
-                        contents = project_node.buffer.contents
+                        buf = project_node.file
+                        if buf.filename not in modified_buffers:
+                            modified_buffers[buf.filename] = buf.contents
+                        contents = modified_buffers[buf.filename]
                         for node_id in list(links_to_change.keys()):
-                            replaced_contents = contents
                             node_id_regex = re.escape(node_id)
-                            replaced_contents = re.sub(''.join([
+                            contents = re.sub(''.join([
                                     syntax.node_link_opening_wrapper_match,
                                     node_id_regex,
                                     syntax.link_closing_wrapper
                                     ]),
-                                utils.make_node_link(links_to_change[node_id]), replaced_contents)
-                            project_node.file.set_buffer_contents(replaced_contents)
-                            project_node.file.write_buffer_contents()
+                                utils.make_node_link(links_to_change[node_id]), contents)
+                        modified_buffers[buf.filename] = contents
+        for filename, contents in modified_buffers.items():
+            if filename in self.files:
+                self.files[filename].set_buffer_contents(contents)
+                self.files[filename].write_buffer_contents()
  
     def _verify_frame_present_if_marked(self, node_id, buffer=None):
         node = self.get_node(node_id)
@@ -426,12 +437,17 @@ class UrtextProject:
    
         new_node.project = self
         self.nodes[new_node.id] = new_node
+        if new_node.filename:
+            self.nodes_by_file.setdefault(new_node.filename, set())
+            self.nodes_by_file[new_node.filename].add(new_node.id)
         if new_node.title == 'project_settings':
             self.project_settings_nodes.append(new_node.id)
             self.on_project_settings_found()
         self.run_hook('on_node_added', new_node)
 
     def on_project_settings_found(self):
+        self._file_extensions_cache = None
+        self._included_files_cache = None
         on_loaded_setting = self.get_setting_as_text('on_loaded')
         for action in on_loaded_setting:
             if action == 'open_home' and self.title() != 'Urtext Base Project' and not self.project_list.node_has_been_opened():
@@ -483,7 +499,8 @@ class UrtextProject:
         self.run_hook('on_buffer_dropped', buffer.filename)
         if buffer.identifier and buffer.identifier in self.buffers:
             del self.buffers[buffer.identifier]
-        file_nodes = [n for n in self.nodes.values() if n.filename == buffer.filename]
+        file_node_ids = list(self.nodes_by_file.get(buffer.filename, set()))
+        file_nodes = [self.nodes[nid] for nid in file_node_ids if nid in self.nodes]
         for node in file_nodes:
             self._drop_node(node)
         if buffer.filename in self.files:
@@ -497,6 +514,10 @@ class UrtextProject:
         if node.id in self.frames:
             del self.frames[node.id]
         self.run_hook('on_node_dropped', node)
+        if node.filename and node.filename in self.nodes_by_file:
+            self.nodes_by_file[node.filename].discard(node.id)
+            if not self.nodes_by_file[node.filename]:
+                del self.nodes_by_file[node.filename]
         if node.id in self.nodes:
             del self.nodes[node.id]
         del node
@@ -756,16 +777,19 @@ class UrtextProject:
             node_group = [r for r in remaining_nodes if r.metadata.get_first_value(k) is not None]
             remaining_nodes = [r for r in remaining_nodes if r not in node_group]
             if node_group:
+                sort_values = {
+                    node.id: node.metadata.get_first_value(k)
+                    for node in node_group
+                }
                 if use_timestamp:
                     node_group = sorted(
                         node_group,
-                        key=lambda node: node.metadata.get_first_value(k).timestamp if node.metadata.get_first_value(
-                            k) else None,
+                        key=lambda node: sort_values[node.id].timestamp if sort_values[node.id] else None,
                         reverse=reverse)
                 else:
                     node_group = sorted(
                         node_group,
-                        key=lambda n: n.metadata.get_first_value(k), reverse=reverse)
+                        key=lambda n: sort_values[n.id], reverse=reverse)
                 for node in node_group:
                     if not detail_key:
                         detail_key = k
@@ -869,12 +893,12 @@ class UrtextProject:
 
     def get_all_meta_pairs(self):
         pairs = []
+        hash_key_setting = self.get_single_setting('hash_key')
         for n in self.nodes.values():
             for k in n.metadata.get_keys().keys():
                 values = n.metadata.get_values(k)
                 assigner = syntax.metadata_assignment_operator
-                hash_key_setting = self.get_single_setting('hash_key')
-                if k == hash_key_setting.text:
+                if hash_key_setting and k == hash_key_setting.text:
                     k = '#'
                     assigner = ''
                 for v in values:
@@ -899,8 +923,7 @@ class UrtextProject:
     def on_modified(self, filename, flags=None):
         if flags is None:
             flags = []
-        included_files = self._get_included_files()
-        if self.compiled and filename in included_files:
+        if self.compiled and self._include_file(filename):
             self._compile_file(filename, flags=['-on_modified'] + flags)    
         self.close_inactive()
         self._sync_file_list()
@@ -917,6 +940,7 @@ class UrtextProject:
         return self.on_modified(filename, flags=['-file_visited'])
 
     def _sync_file_list(self):
+        self._included_files_cache = None
         self._add_paths_from_settings()
         self._verify_paths_from_settings()
         self._drop_missing_files()
@@ -930,13 +954,16 @@ class UrtextProject:
             self.drop_buffer(self.files[filename])
 
     def _get_included_files(self):
+        if self._included_files_cache is not None:
+            return self._included_files_cache
         files = []
         for pathname in self.paths:
             if os.path.isdir(pathname):
                 files.extend([os.path.join(pathname, f) for f in os.listdir(pathname)])
             else:
                 files.extend([os.path.join(os.path.dirname(pathname), f) for f in os.listdir(os.path.dirname(pathname))])
-        return [f for f in files if self._include_file(f)]
+        self._included_files_cache = [f for f in files if self._include_file(f)]
+        return self._included_files_cache
 
     def get_settings_paths(self):
         paths = []
@@ -973,11 +1000,12 @@ class UrtextProject:
         return False
 
     def is_project_file(self, filename):
-        file_extensions = self.get_setting_as_text('file_extensions')
-        if '.urtext' not in file_extensions or 'urtext' not in file_extensions:
-            file_extensions.append('urtext')  # for bootstrapping
-        file_extensions = [e.lstrip('.') for e in file_extensions]
-        if utils.get_file_extension(filename) in file_extensions:
+        if self._file_extensions_cache is None:
+            file_extensions = self.get_setting_as_text('file_extensions')
+            if '.urtext' not in file_extensions or 'urtext' not in file_extensions:
+                file_extensions.append('urtext')  # for bootstrapping
+            self._file_extensions_cache = [e.lstrip('.') for e in file_extensions]
+        if utils.get_file_extension(filename) in self._file_extensions_cache:
             return True
         return False
 
@@ -1169,14 +1197,10 @@ class UrtextProject:
     def _compile(self):
         num_calls = len(list(self.calls.keys()))
         num_project_calls = len(list(self.project_instance_calls.keys()))
-        modified_buffers = set()
-        dynamic_nodes = set()
         for frame in self._get_all_frames():
             self._run_frame(frame)
         if len(self.calls.keys()) > num_calls or len(self.project_instance_calls.keys()) > num_project_calls:
             return self._compile()
-        for frame in self._get_all_frames():
-            self._run_frame(frame)
         self._add_all_sub_tags()
         self._verify_links_globally()
 
@@ -1337,7 +1361,7 @@ class UrtextProject:
         included_paths = self.get_settings_paths()
         if os.path.isdir(self.entry_point):
             included_paths.append(self.entry_point)
-        return included_paths
+        return folder in included_paths
 
     def _make_buffer(self, filename, buffer_contents):
         new_buffer = UrtextBuffer(self, filename, buffer_contents)
@@ -1375,20 +1399,20 @@ class UrtextProject:
         propagated_calls = self.get_setting_as_text('propagate_calls')
         propagate_all_calls = '_all' in propagated_calls
 
-        class call(call, UrtextCall):
+        class BoundCall(call, UrtextCall):
             pass
 
-        if call.project_instance:
-            if call.name[0] not in self.project_instance_calls:
-                global_call = call(self)
+        if BoundCall.project_instance:
+            if BoundCall.name[0] not in self.project_instance_calls:
+                global_call = BoundCall(self)
                 global_call.on_added()
-                self.project_instance_calls[call.name[0]] = (call(self))
-                if call.name in propagated_calls or propagate_all_calls:
-                    self.project_list.add_call(call)
+                self.project_instance_calls[BoundCall.name[0]] = (BoundCall(self))
+                if BoundCall.name in propagated_calls or propagate_all_calls:
+                    self.project_list.add_call(BoundCall)
         else:
-            for n in call.name:
-                self.calls[n] = call
-            self.project_list.add_call(call)
+            for n in BoundCall.name:
+                self.calls[n] = BoundCall
+            self.project_list.add_call(BoundCall)
         return self.calls
 
     def get_call(self, call_name):
@@ -1400,10 +1424,10 @@ class UrtextProject:
         if not call_class:
             return None
 
-        class call(call_class, UrtextCall):
+        class BoundCall(call_class, UrtextCall):
             pass
 
-        return call
+        return BoundCall
 
     def run_action(self, action_string):
         """
@@ -1425,9 +1449,9 @@ class UrtextProject:
     def add_action(self, action):
         propagated_actions = self.get_setting_as_text('propagate_actions')
         propagate_all_actions = '_all' in propagated_actions
-        class action(action, UrtextAction):
+        class BoundAction(action, UrtextAction):
             pass
-        action_instance = action(self.project_list)
+        action_instance = BoundAction(self.project_list)
         action_instance.source_node = self.last_exec_node
         self.actions[action_instance.action_string] = action_instance
         if action_instance.action_string in propagated_actions or propagate_all_actions:

@@ -35,8 +35,6 @@ italic_text = r'(__)(.*)(__)'
 node_link_modifiers_regex = {}
 for modifier in node_link_modifiers:
     node_link_modifiers_regex[modifier] = ''.join([r'(?<=\|)', re.escape(node_link_modifiers[modifier])])
-node_link_modifier_group = r'(' + '|'.join(
-    ['(' + m + ')' for m in node_link_modifiers_regex.values()]) + ')?'
 
 node_link_modifier_group = r'(' + '|'.join([
     '(' + m + ')' for m in [
