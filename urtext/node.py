@@ -155,8 +155,13 @@ class UrtextNode:
         self._set_contents(''.join([
             marker, ' ', timestamp.wrapped_string, ' ', contents]),
             preserve_title=False)
+        self.resolution = timestamp.unwrapped_string
+        self.id = ''.join([
+            self.title,
+            syntax.resolution_identifier,
+            timestamp.unwrapped_string])
         self.buffer.write_buffer_contents(re_parse=False)
-        return False
+        return self.id
 
     def _get_links(self, positioned_contents):
         urtext_links, replaced_contents = utils.get_all_links_from_string(positioned_contents, self, self.project.project_list)
