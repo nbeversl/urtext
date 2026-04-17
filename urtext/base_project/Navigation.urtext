@@ -110,8 +110,7 @@ class Navigation:
 					if project.open_home():
 						return
 					elif not project.compiled:
-						timer = self.threading.Timer(.5, self.on_selected, project)
-						timer.start()
+						project.home_requested = True
 
 				if action == 'open_any':
 					filename = list(project.files.keys())[0]

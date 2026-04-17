@@ -3,7 +3,6 @@ import datetime
 import platform
 import os
 import time
-import threading
 from urtext.file import UrtextFile, UrtextBuffer
 from urtext.node import UrtextNode
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
@@ -159,6 +158,13 @@ class UrtextProject:
         self.compiled = True
         self.last_compile_time = time.time() - self.time
         self.time = time.time()
+        if self.home_requested:
+            home_node_id = self.get_home()
+            if home_node_id and home_node_id in self.nodes:
+                self.home_requested = False
+                self.open_node(home_node_id)
+            else:
+                self.home_requested = False
         if visible:
             self.handle_info_message('"%s" compiled' % self.title())
         return True
@@ -451,7 +457,12 @@ class UrtextProject:
         on_loaded_setting = self.get_setting_as_text('on_loaded')
         for action in on_loaded_setting:
             if action == 'open_home' and self.title() != 'Urtext Base Project' and not self.project_list.node_has_been_opened():
-                self.open_home()
+                self.home_requested = True
+        if self.home_requested:
+            home_node_id = self.get_home()
+            if home_node_id and home_node_id in self.nodes:
+                self.home_requested = False
+                self.open_node(home_node_id)
 
     def get_source_node(self, filename, position):  # future
         if filename not in self.files:
@@ -728,14 +739,9 @@ class UrtextProject:
         home_node_id = self.get_home() 
         if not home_node_id:
             if not self.compiled:
-                if not self.home_requested:
-                    self.handle_info_message('Project is compiling. Home will be shown when found.')
-                    self.home_requested = True
-                timer = threading.Timer(.5, self.open_home)
-                timer.start()
-                return timer
+                self.home_requested = True
+                return None
             else:
-                self.home_requested = False
                 self.handle_info_message('No home node for this project')
                 return False
         self.home_requested = False
