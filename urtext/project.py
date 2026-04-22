@@ -1,5 +1,6 @@
 import re
 import datetime
+import hashlib
 import platform
 import os
 import time
@@ -7,6 +8,7 @@ from urtext.file import UrtextFile, UrtextBuffer
 from urtext.node import UrtextNode
 from urtext.timestamp import date_from_timestamp, default_date, UrtextTimestamp
 from urtext.call import UrtextCall
+from urtext.cache import UrtextCache
 import urtext.syntax as syntax
 import urtext.utils as utils
 from urtext.exec import Exec
@@ -58,6 +60,7 @@ class UrtextProject:
         self._included_files_cache = None
         self._file_extensions_cache = None
         self.nodes_by_file = {}
+        self.cache = None
 
     def get_setting(self, setting, _called_from_project_list=False, use_project_list=True):
 
@@ -110,6 +113,7 @@ class UrtextProject:
         return propagated_settings
 
     def initialize(self, visible=True, make_current=False, action=None):
+        print('[CACHE DEBUG] initialize() called, file: %s' % __file__)
         self.visible = visible
         self.add_call(Exec)
         for call in self.project_list.calls.values():
@@ -119,11 +123,14 @@ class UrtextProject:
         if os.path.exists(self.entry_point):
             if os.path.isdir(self.entry_point) and self._approve_new_path(self.entry_point):
                 self.entry_path = os.path.abspath(self.entry_point)
-                self.paths.append(os.path.abspath(self.entry_point))          
+                self.paths.append(os.path.abspath(self.entry_point))
+                self.cache = UrtextCache(os.path.join(self.entry_path, '.urtext_cache.db'), self)
             elif self._include_file(self.entry_point):
                 self._parse_file(self.entry_point)
                 self.entry_path = os.path.abspath(os.path.dirname(self.entry_point))
                 self.paths.append(os.path.abspath(self.entry_point))
+                self.cache = UrtextCache(os.path.join(self.entry_path, '.urtext_cache.db'), self)
+            self._load_cached_settings()
             included_files = self._get_included_files()
             if included_files and visible:
                 self.handle_info_message('Initializing Urtext project from %s' % os.path.basename(self.entry_point))
@@ -156,6 +163,7 @@ class UrtextProject:
                 self.project_list._init_project(os.path.abspath(utils.get_path_from_link(value.text)))
 
         self.compiled = True
+        self._populate_cache()
         self.last_compile_time = time.time() - self.time
         self.time = time.time()
         if self.home_requested:
@@ -197,6 +205,137 @@ class UrtextProject:
             len(self.get_setting('file_extensions')) < num_file_extensions):
             self._add_paths_from_settings()
         
+    def _load_cached_settings(self):
+        """Load cached settings before file parsing for faster startup."""
+        try:
+            if self.cache and self.cache.is_available():
+                cached_settings = self.cache.get_cached_settings()
+                if 'file_extensions' in cached_settings:
+                    extensions = [entry['value'] for entry in cached_settings['file_extensions']]
+                    if extensions:
+                        self._file_extensions_cache = [e.lstrip('.') for e in extensions]
+                        if 'urtext' not in self._file_extensions_cache and '.urtext' not in self._file_extensions_cache:
+                            self._file_extensions_cache.append('urtext')
+                if 'home' in cached_settings:
+                    self.home_requested = True
+        except Exception:
+            pass
+
+    def _populate_cache(self):
+        """Populate the cache with current project state after compilation."""
+        try:
+            print('[CACHE DEBUG] _populate_cache called')
+            print('[CACHE DEBUG] cache exists: %s, available: %s' % (
+                self.cache is not None,
+                self.cache.is_available() if self.cache else False))
+
+            if not self.cache or not self.cache.is_available():
+                print('[CACHE DEBUG] cache not available, returning')
+                return
+
+            print('[CACHE DEBUG] total files in project: %d' % len(self.files))
+            print('[CACHE DEBUG] total nodes in project: %d' % len(self.nodes))
+
+            # Compute SHA-256 hashes for all files
+            current_files = {}
+            hash_errors = 0
+            null_contents = 0
+            for filename in self.files:
+                try:
+                    contents = self.files[filename].contents
+                    if contents:
+                        current_files[filename] = hashlib.sha256(
+                            contents.encode('utf-8')).hexdigest()
+                    else:
+                        null_contents += 1
+                except Exception as e:
+                    hash_errors += 1
+                    print('[CACHE DEBUG] hash error for %s: %s' % (os.path.basename(filename), str(e)))
+                    continue
+
+            print('[CACHE DEBUG] hashed %d files, %d null contents, %d hash errors' % (
+                len(current_files), null_contents, hash_errors))
+
+            # Detect changes
+            changed, new, deleted = self.cache.get_changed_files(current_files)
+            print('[CACHE DEBUG] changed: %d, new: %d, deleted: %d, unchanged: %d' % (
+                len(changed), len(new), len(deleted),
+                len(current_files) - len(changed) - len(new)))
+
+            # Populate changed and new files
+            populate_ok = 0
+            populate_err = 0
+            total_nodes_written = 0
+            for filename in changed | new:
+                try:
+                    node_ids = self.nodes_by_file.get(filename, set())
+                    nodes = [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+                    total_nodes_written += len(nodes)
+                    self.cache.populate_file(
+                        filename,
+                        nodes,
+                        os.path.getmtime(filename),
+                        current_files[filename])
+                    populate_ok += 1
+                except Exception as e:
+                    populate_err += 1
+                    print('[CACHE DEBUG] populate error for %s: %s' % (os.path.basename(filename), str(e)))
+                    continue
+
+            print('[CACHE DEBUG] populated %d files (%d nodes), %d errors' % (
+                populate_ok, total_nodes_written, populate_err))
+
+            # Remove deleted files
+            for filename in deleted:
+                try:
+                    self.cache.remove_file_record(filename)
+                except Exception:
+                    continue
+
+            # Update unchanged files (mtime may have changed)
+            unchanged = set(current_files.keys()) - changed - new
+            for filename in unchanged:
+                try:
+                    self.cache.update_file_record(
+                        filename,
+                        os.path.getmtime(filename),
+                        current_files[filename])
+                except Exception:
+                    continue
+
+            # Write settings
+            try:
+                settings_nodes = [self.nodes[nid] for nid in self.project_settings_nodes if nid in self.nodes]
+                self.cache.write_settings(settings_nodes)
+            except Exception:
+                pass
+
+            # Final DB stats
+            try:
+                cursor = self.cache.conn.execute('SELECT COUNT(*) FROM files')
+                db_files = cursor.fetchone()[0]
+                cursor = self.cache.conn.execute('SELECT COUNT(*) FROM nodes')
+                db_nodes = cursor.fetchone()[0]
+                cursor = self.cache.conn.execute('SELECT COUNT(*) FROM metadata')
+                db_meta = cursor.fetchone()[0]
+                cursor = self.cache.conn.execute('SELECT COUNT(*) FROM links')
+                db_links = cursor.fetchone()[0]
+                db_fts = 0
+                if self.cache._fts_available:
+                    cursor = self.cache.conn.execute('SELECT COUNT(*) FROM nodes_fts')
+                    db_fts = cursor.fetchone()[0]
+                print('[CACHE DEBUG] DB rows — files: %d, nodes: %d, metadata: %d, links: %d, fts: %d' % (
+                    db_files, db_nodes, db_meta, db_links, db_fts))
+            except Exception as e:
+                print('[CACHE DEBUG] DB stats error: %s' % str(e))
+
+            print('[CACHE DEBUG] _populate_cache done')
+
+        except Exception as e:
+            print('[CACHE DEBUG] _populate_cache FAILED: %s' % str(e))
+            import traceback
+            traceback.print_exc()
+
     def _approve_new_path(self, path):
         if path in self.project_list.get_all_paths():
             self.log_item('system', {
@@ -321,6 +460,12 @@ class UrtextProject:
                             changed_ids[old_node_id])
             self._rewrite_changed_links(changed_ids)
         self._mark_dynamic_nodes()
+        # Update cache for the newly parsed file
+        if self.compiled and self.cache and self.cache.is_available():
+            try:
+                self._update_cache_for_file(buffer.filename)
+            except Exception:
+                pass
         return buffer
 
     def _verify_links_globally(self):
@@ -504,6 +649,11 @@ class UrtextProject:
 
     def drop_file(self, filename):
         if filename in self.files:
+            if self.cache and self.cache.is_available():
+                try:
+                    self.cache.remove_file(filename)
+                except Exception:
+                    pass
             self.drop_buffer(self.files[filename])
 
     def drop_buffer(self, buffer):
@@ -540,6 +690,11 @@ class UrtextProject:
         self.run_hook('before_file_deleted', self, filename)
         self.run_editor_method('close_file', filename)
         if filename in self.files:
+            if self.cache and self.cache.is_available():
+                try:
+                    self.cache.remove_file(filename)
+                except Exception:
+                    pass
             self.drop_buffer(self.files[filename])
         os.remove(filename)
         self.run_hook('after_file_deleted', self, filename)
@@ -827,12 +982,24 @@ class UrtextProject:
             return self.nodes[node_id]
 
     def get_links_to(self, to_id, include_dynamic=True):
+        if self.cache and self.cache.is_available():
+            try:
+                node_ids = self.cache.query_links_to(to_id, include_dynamic=include_dynamic)
+                return [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+            except Exception:
+                pass
         links_to = [n for n in self.nodes.values() if to_id in n.links_ids()]
         if not include_dynamic:
             links_to = [n for n in links_to if not n.is_dynamic]
         return links_to
 
     def get_links_from(self, from_id, include_dynamic=True):
+        if self.cache and self.cache.is_available():
+            try:
+                node_ids = self.cache.query_links_from(from_id, include_dynamic=include_dynamic)
+                return [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+            except Exception:
+                pass
         from_node = self.get_node(from_id)
         if from_node:
             links = from_node.links_ids()
@@ -850,6 +1017,12 @@ class UrtextProject:
         return links
 
     def _find_duplicate_titles(self, node):
+        if self.cache and self.cache.is_available():
+            try:
+                node_ids = self.cache.query_duplicate_titles(node.title)
+                return [self.nodes[nid] for nid in node_ids if nid in self.nodes and nid != node.id]
+            except Exception:
+                pass
         return [n for n in self.nodes.values() if n.title == node.title]
 
     def log_item(self, filename, message):
@@ -1038,6 +1211,13 @@ class UrtextProject:
             for n in list(self.nodes)]
 
     def get_keys_with_frequency(self):
+        if self.cache and self.cache.is_available():
+            try:
+                exclude = self.get_setting_as_text('exclude_from_star')
+                exclude.extend(self.get_settings_keys())
+                return self.cache.query_all_keys(excluded_keys=exclude)
+            except Exception:
+                pass
         key_occurrences = {}
         exclude = self.get_setting_as_text('exclude_from_star')
         exclude.extend(self.get_settings_keys())
@@ -1062,6 +1242,11 @@ class UrtextProject:
             return sorted(unique_keys)
 
     def get_all_values_for_key_with_frequency(self, key):
+        if self.cache and self.cache.is_available():
+            try:
+                return self.cache.query_all_values_for_key(key)
+            except Exception:
+                pass
         values = {}
         for node in list(self.nodes.values()):
             values_occurrences = node.metadata.get_values_with_frequency(key)
@@ -1097,6 +1282,69 @@ class UrtextProject:
         if not isinstance(values, list):
             values = [values]
         results = set()
+
+        # Try cache first
+        if self.cache and self.cache.is_available():
+            try:
+                # Handle special cases that delegate to other cache methods
+                if key == '_contents' and operator == '?':
+                    # FTS pre-filter + Python substring verification
+                    if self.cache._fts_available:
+                        candidate_ids = self.cache.query_fts(values[0] if values else '')
+                        for node_id in candidate_ids:
+                            if node_id in self.nodes:
+                                node = self.nodes[node_id]
+                                if node.is_dynamic:
+                                    continue
+                                lower_contents = node.stripped_contents.lower()
+                                for v in values:
+                                    if v.lower() in lower_contents:
+                                        results.add(node.id)
+                        return results
+                    # else fall through to in-memory scan below
+
+                elif key == '_links_to':
+                    for v in values:
+                        link_node_ids = self.cache.query_links_to(v)
+                        for nid in link_node_ids:
+                            if nid in self.nodes:
+                                results.update(self.get_links_to(v))
+                    return results
+
+                elif key == '_links_from':
+                    for v in values:
+                        link_node_ids = self.cache.query_links_from(v)
+                        for nid in link_node_ids:
+                            if nid in self.nodes:
+                                results.update(self.get_links_from(v))
+                    return results
+
+                else:
+                    # Standard metadata query — return node IDs (strings),
+                    # matching the existing fallback behavior
+                    numerical_keys = self.get_setting_as_text('numerical_keys')
+                    case_sensitive_keys = self.get_setting_as_text('case_sensitive_keys')
+                    excluded_keys = []
+                    if key == '*':
+                        excluded_keys = self.get_setting_as_text('exclude_from_star')
+                        excluded_keys.extend(self.get_settings_keys())
+
+                    node_ids = self.cache.query_by_meta(
+                        key, values, operator,
+                        excluded_keys=excluded_keys,
+                        numerical_keys=numerical_keys,
+                        case_sensitive_keys=case_sensitive_keys)
+
+                    # For before/after, return node objects (matching fallback)
+                    if operator in ['before', 'after']:
+                        return [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+
+                    # Default: resolve to node objects (matching fallback's
+                    # final `return [self.nodes[n] for n in results]`)
+                    return [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+            except Exception:
+                # Fall through to in-memory scan on any cache error
+                results = set()
 
         if operator in ['before', 'after']:
             compare_date = date_from_timestamp(values[0][1:-1])
@@ -1236,7 +1484,37 @@ class UrtextProject:
                 if node:
                     node.is_dynamic = True
         if filename in self.files:
-            self.run_hook('after_on_file_modified', filename)  
+            self.run_hook('after_on_file_modified', filename)
+            if self.cache and self.cache.is_available():
+                try:
+                    # Update cache for the modified file
+                    self._update_cache_for_file(filename)
+                    # Also update cache for any files modified by frame execution
+                    if buffer:
+                        for b in modified_buffers:
+                            if b.filename != filename:
+                                self._update_cache_for_file(b.filename)
+                except Exception:
+                    pass
+
+    def _update_cache_for_file(self, filename):
+        """Update cache data for a single file after modification."""
+        if not self.cache or not self.cache.is_available():
+            return
+        if filename not in self.files:
+            return
+        try:
+            contents = self.files[filename]._get_contents()
+            if contents:
+                content_hash = hashlib.sha256(contents.encode('utf-8')).hexdigest()
+                node_ids = self.nodes_by_file.get(filename, set())
+                nodes = [self.nodes[nid] for nid in node_ids if nid in self.nodes]
+                self.cache.populate_file(
+                    filename, nodes,
+                    os.path.getmtime(filename),
+                    content_hash)
+        except Exception:
+            pass
 
     def _run_frame(self, frame, flags=None, buffer=None):
         if flags is None:
