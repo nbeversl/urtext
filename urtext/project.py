@@ -61,7 +61,6 @@ class UrtextProject:
         self._file_extensions_cache = None
         self.nodes_by_file = {}
         self.cache = None
-        self._file_content_hashes = {}
 
     def get_setting(self, setting, _called_from_project_list=False, use_project_list=True):
 
@@ -650,7 +649,6 @@ class UrtextProject:
 
     def drop_file(self, filename):
         if filename in self.files:
-            self._file_content_hashes.pop(filename, None)
             if self.cache and self.cache.is_available():
                 try:
                     self.cache.remove_file(filename)
@@ -1463,21 +1461,6 @@ class UrtextProject:
     def _compile_file(self, filename, flags=None):
         if flags is None:
             flags = []
-
-        # Skip recompile if file contents haven't changed
-        current_contents = self.run_editor_method('get_buffer', filename)
-        if current_contents is None:
-            try:
-                with open(filename, 'r', encoding='utf-8') as f:
-                    current_contents = f.read()
-            except Exception:
-                current_contents = None
-        if current_contents is not None:
-            content_hash = hashlib.sha256(current_contents.encode('utf-8')).hexdigest()
-            if filename in self._file_content_hashes and self._file_content_hashes[filename] == content_hash:
-                return
-            self._file_content_hashes[filename] = content_hash
-
         modified_buffers = set()
         dynamic_nodes = set()
         buffer = self._parse_file(filename)
@@ -1496,10 +1479,6 @@ class UrtextProject:
                 verified_links_content = self._reverify_links(b.filename, buffer=b)
                 b.set_buffer_contents(verified_links_content)
                 b.write_buffer_contents(run_hook=True)
-                # Update hash for any file modified by frame execution
-                if b.contents:
-                    self._file_content_hashes[b.filename] = hashlib.sha256(
-                        b.contents.encode('utf-8')).hexdigest()
             for d in list(dynamic_nodes):
                 node = self.get_node(d)
                 if node:
